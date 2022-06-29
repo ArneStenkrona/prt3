@@ -1,0 +1,58 @@
+#ifndef PRT3_MODEL_MANAGER_H
+#define PRT3_MODEL_MANAGER_H
+
+#include "src/engine/scene/node.h"
+#include "src/engine/rendering/renderer.h"
+#include "src/engine/rendering/resources.h"
+#include "src/engine/rendering/model.h"
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/hash.hpp>
+
+#include <assimp/scene.h>
+
+#include <vector>
+#include <string>
+#include <unordered_map>
+
+
+namespace prt3 {
+
+class Scene;
+class Context;
+
+class ModelManager {
+public:
+    ModelManager(Context & renderer);
+
+    void add_model_to_scene_from_path(std::string const & path, Scene & scene, NodeID parent_id);
+
+private:
+    typedef int ModelHandle;
+    typedef int ModelResourceIndex;
+
+    struct ModelResource {
+        std::vector<ResourceID> mesh_resource_ids;
+    };
+    Context & m_context;
+
+    std::vector<Model> m_models; // models imported into memory
+    std::unordered_map<ModelHandle, ModelResource> m_model_resources; // models uploaded to graphics device
+
+    std::unordered_map<ModelHandle, ModelResourceIndex> m_handle_to_resource_index;
+    std::unordered_map<std::string, ModelHandle> m_path_to_model_handle;
+
+    void add_model_to_scene(Scene & scene, ModelHandle handle, NodeID parent_id);
+    bool model_is_uploaded(ModelHandle handle);
+    /* upload to graphics device */
+    void upload_model(ModelHandle handle);
+
+};
+
+} // namespace prt3
+
+#endif
