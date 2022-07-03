@@ -2,6 +2,8 @@
 
 #include "src/driver/opengl/gl_texture.h"
 
+#include "src/driver/opengl/gl_utility.h"
+
 using namespace prt3;
 
 GLRenderer::GLRenderer(SDL_Window * window)
@@ -12,6 +14,9 @@ GLRenderer::GLRenderer(SDL_Window * window)
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glCheckError();
+    glDisable(GL_CULL_FACE);
+    glCheckError();
 
     /* create default material */
     m_materials.emplace_back("assets/shaders/opengl/standard.vs",
@@ -32,6 +37,7 @@ void GLRenderer::render(RenderData const & render_data) {
         );
     }
     SDL_GL_SwapWindow(m_window);
+    glCheckError();
 }
 
 void GLRenderer::upload_model(ModelManager::ModelHandle model_handle,
@@ -40,71 +46,101 @@ void GLRenderer::upload_model(ModelManager::ModelHandle model_handle,
     // upload model buffers
     GLuint vao;
     GLuint vbo;
+    GLuint ebo;
+
     glGenVertexArraysOES(1, &vao);
+    glCheckError();
+    glBindVertexArrayOES(vao);
+    glCheckError();
+
     glGenBuffers(1, &vbo);
+    glCheckError();
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glCheckError();
 
     std::vector<Model::Vertex> const & vertices = model.vertex_buffer();
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Model::Vertex), &vertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertices[0]), vertices.data(), GL_STATIC_DRAW);
+    glCheckError();
 
     GLMaterial & default_material = m_materials[RenderBackend::DEFAULT_MATERIAL_ID];
     GLuint shader_program = default_material.shader().ID;
 
     GLint pos_attr = glGetAttribLocation(shader_program, "a_Position");
+    glCheckError();
     glEnableVertexAttribArray(pos_attr);
+    glCheckError();
     glVertexAttribPointer(pos_attr, 3, GL_FLOAT, GL_FALSE,
                           sizeof(Model::Vertex),
                           reinterpret_cast<void*>(offsetof(Model::Vertex, position)));
+    glCheckError();
 
     GLint normal_attr = glGetAttribLocation(shader_program, "a_Normal");
+    glCheckError();
     glEnableVertexAttribArray(normal_attr);
+    glCheckError();
     glVertexAttribPointer(normal_attr, 3, GL_FLOAT, GL_FALSE,
                           sizeof(Model::Vertex),
                           reinterpret_cast<void*>(offsetof(Model::Vertex, normal)));
+    glCheckError();
 
     GLint texcoord_attr = glGetAttribLocation(shader_program, "a_TexCoordinate");
+    glCheckError();
     glEnableVertexAttribArray(texcoord_attr);
+    glCheckError();
     glVertexAttribPointer(texcoord_attr, 2, GL_FLOAT, GL_FALSE,
                           sizeof(Model::Vertex),
                           reinterpret_cast<void*>(offsetof(Model::Vertex, texture_coordinate)));
+    glCheckError();
 
     GLint tan_attr = glGetAttribLocation(shader_program, "a_Tangent");
-    glEnableVertexAttribArray(tan_attr);
-    glVertexAttribPointer(tan_attr, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(Model::Vertex),
-                          reinterpret_cast<void*>(offsetof(Model::Vertex, tangent)));
+    glCheckError();
+    if (tan_attr != -1) {
+        glEnableVertexAttribArray(tan_attr);
+        glCheckError();
+        glVertexAttribPointer(tan_attr, 3, GL_FLOAT, GL_FALSE,
+                            sizeof(Model::Vertex),
+                            reinterpret_cast<void*>(offsetof(Model::Vertex, tangent)));
+        glCheckError();
+    }
 
     GLint bitan_attr = glGetAttribLocation(shader_program, "a_Bitangent");
-    glEnableVertexAttribArray(bitan_attr);
-    glVertexAttribPointer(bitan_attr, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(Model::Vertex),
-                          reinterpret_cast<void*>(offsetof(Model::Vertex, bitangent)));
+    glCheckError();
+    if (bitan_attr != -1) {
+        glEnableVertexAttribArray(bitan_attr);
+        glCheckError();
+        glVertexAttribPointer(bitan_attr, 3, GL_FLOAT, GL_FALSE,
+                            sizeof(Model::Vertex),
+                            reinterpret_cast<void*>(offsetof(Model::Vertex, bitangent)));
+        glCheckError();
+    }
 
-    glBindVertexArrayOES(0);
+    glGenBuffers(1, &ebo);
+    glCheckError();
 
-    m_buffer_handles[model_handle] = {vao, vbo};
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glCheckError();
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, model.index_buffer().size() * sizeof(uint32_t),
+                 model.index_buffer().data(), GL_STATIC_DRAW);
+    glCheckError();
 
-    // upload meshes
+    m_buffer_handles[model_handle] = {vao, vbo, ebo};
+
+    // Create gl meshes
     resource.mesh_resource_ids.resize(model.meshes().size());
     resource.material_resource_ids.resize(model.meshes().size());
     size_t mesh_index = 0;
     for (Model::Mesh const & mesh : model.meshes()) {
-
         ResourceID id = m_meshes.size();
 
-        std::vector<uint32_t> index_buffer;
-        index_buffer.resize(mesh.num_indices);
-        for (uint32_t i = mesh.start_index; i < mesh.num_indices; ++i)
-        {
-            index_buffer[i] = model.index_buffer()[mesh.start_index + i];
-        }
         m_meshes.push_back({});
         GLMesh & gl_mesh = m_meshes.back();
-        gl_mesh.init(vao, vbo, index_buffer, {});
+        gl_mesh.init(vao, mesh.start_index, mesh.num_indices, {});
 
         resource.mesh_resource_ids[mesh_index] = id;
         resource.material_resource_ids[mesh_index] = RenderBackend::DEFAULT_MATERIAL_ID;
-        ++id;
     }
+
+    glBindVertexArrayOES(0);
+    glCheckError();
 }

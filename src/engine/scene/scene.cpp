@@ -7,13 +7,18 @@ using namespace prt3;
 
 Scene::Scene(Context & context)
  : m_context{context},
-   m_camera{context.input()} {
+   m_camera{context.input(), context.renderer().window_width(), context.renderer().window_height()} {
     m_root_id = m_nodes.size();
     m_nodes.push_back({});
+
+        // FOR DEBUGGING, WILL REMOVE ---->
+    m_context.model_manager()
+        .add_model_to_scene_from_path("assets/models/debug/cube_lattice.fbx", *this, m_root_id);
+    // <---- FOR DEBUGGING, WILL REMOVE
 }
 
 void Scene::update(float delta_time) {
-    m_camera.update(delta_time);
+    m_camera.update(delta_time, true, true);
     render();
 }
 
@@ -73,4 +78,8 @@ void Scene::collect_render_data(RenderData & render_data) const {
             queue.push_back({child_id, child_transform});
         }
     }
+}
+
+void Scene::update_window_size(int w, int h) {
+    m_camera.set_size(w, h);
 }

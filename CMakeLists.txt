@@ -23,6 +23,7 @@ file(GLOB SOURCES
 "src/driver/opengl/gl_material.cpp"
 "src/driver/opengl/gl_mesh.cpp"
 "src/driver/opengl/gl_renderer.cpp"
+"src/driver/opengl/gl_utility.cpp"
 "src/engine/core/context.cpp"
 "src/engine/core/engine.cpp"
 "src/engine/core/input.cpp"
@@ -48,7 +49,7 @@ add_dependencies(prt3 copy_resources)
 # Wasm specific
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
     set(CMAKE_CXX_FLAGS "-s USE_SDL=2 -s USE_SDL_IMAGE=2")
-    set_target_properties(prt3 PROPERTIES LINK_FLAGS "${CMAKE_LINK_FLAGS} -std=c++11 -MMD -MP -Oz -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1 -sLLD_REPORT_UNDEFINED -sASSERTIONS --preload-file assets")
+    set_target_properties(prt3 PROPERTIES LINK_FLAGS "${CMAKE_LINK_FLAGS} -std=c++11 -MMD -MP -Oz -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1 -sLLD_REPORT_UNDEFINED -sASSERTIONS --preload-file assets -sALLOW_MEMORY_GROWTH")
 endif ()
 
 # Set compiler flags

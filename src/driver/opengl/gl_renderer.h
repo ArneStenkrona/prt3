@@ -31,6 +31,7 @@ private:
     struct ModelBufferHandles {
         GLuint vao;
         GLuint vbo;
+        GLuint ebo;
     };
     SDL_Window * m_window;
 

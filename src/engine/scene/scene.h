@@ -36,8 +36,10 @@ private:
     void update(float delta_time);
     void render();
     void collect_render_data(RenderData & render_data) const;
+    void update_window_size(int w, int h);
 
     friend class Engine;
+    friend class Renderer;
 };
 
 } // namespace prt3

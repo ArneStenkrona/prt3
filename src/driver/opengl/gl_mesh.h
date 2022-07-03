@@ -19,8 +19,8 @@ public:
     GLMesh();
 
     void init(GLuint vao,
-              GLuint vbo,
-              std::vector<uint32_t> const & indices,
+              uint32_t start_index,
+              uint32_t num_indices,
               std::vector<GLTexture>  const & textures);
 
     void draw(GLMaterial & material,
@@ -32,10 +32,9 @@ private:
 
     /* render data */
     GLuint m_vao;
-    GLuint m_vbo;
-    GLuint m_ebo;
 
-    uint32_t m_index_buffer_length;
+    uint32_t m_start_index;
+    uint32_t m_num_indices;
 
     void setup_mesh();
 };

@@ -29,12 +29,20 @@ public:
 
     Input & input() { return m_input; }
 
+    int window_width() const { return m_window_width; }
+    int window_height() const { return m_window_height; }
+
 private:
     RenderBackend * m_render_backend;
     SDL_Window * m_window;
     Input m_input;
 
-    // Context & m_context;
+    Context & m_context;
+
+    int m_window_width;
+    int m_window_height;
+
+    void set_window_size(int w, int h);
 };
 
 }

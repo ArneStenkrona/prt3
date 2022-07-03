@@ -6,10 +6,11 @@
 
 using namespace prt3;
 
-Renderer::Renderer(Context & /*context*/)
-//  : m_context{context} {
-{
-    SDL_CreateWindowAndRenderer(640, 480, 0, &m_window, nullptr);
+Renderer::Renderer(Context & context)
+ : m_context{context},
+   m_window_width{640},
+   m_window_height{480} {
+    SDL_CreateWindowAndRenderer(m_window_width, m_window_height, 0, &m_window, nullptr);
     m_render_backend = new GLRenderer(m_window);
     m_input.init(m_window);
 }
@@ -26,4 +27,11 @@ void Renderer::upload_model(ModelManager::ModelHandle handle,
                             Model   const & model,
                             ModelResource & resource) {
     m_render_backend->upload_model(handle, model, resource);
+}
+
+void Renderer::set_window_size(int w, int h) {
+    SDL_SetWindowSize(m_window, w, h);
+    m_context.current_scene().update_window_size(w, h);
+    m_window_width = w;
+    m_window_height = h;
 }

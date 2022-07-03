@@ -5,6 +5,8 @@
 using namespace prt3;
 
 Camera::Camera(Input & input,
+              int width,
+              int height,
               glm::vec3 position,
               glm::vec3 up,
               float yaw,
@@ -17,10 +19,10 @@ Camera::Camera(Input & input,
       m_movement_speed(25.0f),
       m_mouse_sensitivity(0.30f),
       m_field_of_view(45.0f),
-      m_width(800.0f),
-      m_height(600.0f),
+      m_width(static_cast<float>(width)),
+      m_height(static_cast<float>(height)),
       m_near_plane(0.3f),
-      m_far_plane(100.0f),
+      m_far_plane(1000.0f),
       m_target_distance(5.0f),
       m_input(input) {
     update_camera_vectors();
@@ -48,12 +50,12 @@ void Camera::get_camera_corners(glm::vec3 & topleft,
                                 glm::vec3 & bottomright) {
     glm::mat4 invmvp = glm::inverse(get_projection_matrix() * get_view_matrix());
     glm::vec4 tl     = invmvp * glm::vec4{ -1.0f, -1.0f, -1.0f, 1.0f };
-    glm::vec4 tr    = invmvp * glm::vec4{ 1.0f, -1.0f, -1.0f, 1.0f };
-    glm::vec4 bl  = invmvp * glm::vec4{ -1.0f, 1.0f, -1.0f, 1.0f };
-    glm::vec4 br = invmvp * glm::vec4{ 1.0f, 1.0f, -1.0f, 1.0f };
-    topleft = tl / tl.w;
-    topright = tr / tl.w;
-    bottomleft = bl / tl.w;
+    glm::vec4 tr     = invmvp * glm::vec4{ 1.0f, -1.0f, -1.0f, 1.0f };
+    glm::vec4 bl     = invmvp * glm::vec4{ -1.0f, 1.0f, -1.0f, 1.0f };
+    glm::vec4 br     = invmvp * glm::vec4{ 1.0f, 1.0f, -1.0f, 1.0f };
+    topleft     = tl / tl.w;
+    topright    = tr / tl.w;
+    bottomleft  = bl / tl.w;
     bottomright = br / tl.w;
 }
 

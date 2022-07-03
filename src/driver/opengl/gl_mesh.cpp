@@ -1,5 +1,9 @@
 #include "gl_mesh.h"
 
+#include "src/driver/opengl/gl_utility.h"
+
+#include "glm/gtx/string_cast.hpp"
+
 using namespace prt3;
 
 GLMesh::GLMesh() {
@@ -7,20 +11,14 @@ GLMesh::GLMesh() {
 }
 
 void GLMesh::init(GLuint vao,
-                  GLuint vbo,
-                  std::vector<uint32_t> const & indices,
+                  uint32_t start_index,
+                  uint32_t num_indices,
                   std::vector<GLTexture>  const & /*textures*/) {
     assert(!m_initialized && "GL Mesh is already initialized!");
 
     m_vao = vao;
-    m_vbo = vbo;
-    m_index_buffer_length = indices.size();
-
-    glGenBuffers(1, &m_ebo);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint32_t),
-                 &indices[0], GL_STATIC_DRAW);
+    m_start_index = start_index;
+    m_num_indices = num_indices;
 
     m_initialized = true;
 }
@@ -28,15 +26,22 @@ void GLMesh::init(GLuint vao,
 void GLMesh::draw(GLMaterial & material,
                   SceneRenderData const & scene_data,
                   MeshRenderData const & mesh_data) {
-    glm::mat4 mv_matrix = scene_data.view_matrix * mesh_data.transform;
+    glm::mat4 mv_matrix = scene_data.view_matrix * glm::mat4{1.0f};
     glm::mat4 mvp_matrix = scene_data.projection_matrix * mv_matrix;
 
     material.shader().use();
+    glCheckError();
     material.shader().setMat4("u_MVMatrix", mv_matrix);
+    glCheckError();
     material.shader().setMat4("u_MVPMatrix", mvp_matrix);
+    glCheckError();
 
     // draw mesh
     glBindVertexArrayOES(m_vao);
-    glDrawElements(GL_TRIANGLES, m_index_buffer_length, GL_UNSIGNED_INT, 0);
+    glCheckError();
+    glDrawElements(GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT,
+                   reinterpret_cast<void*>(m_start_index * sizeof(GLuint)));
+    glCheckError();
     glBindVertexArrayOES(0);
+    glCheckError();
 }

@@ -15,6 +15,8 @@ class Camera {
 public:
     // Constructor with vectors
     Camera(Input & input,
+           int width,
+           int height,
            glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
            glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f),
            float yaw = -90.0f, float pitch = 0.0f);
@@ -37,7 +39,7 @@ public:
     void set_target(glm::vec3 target);
     void rotate(float delta_yaw, float delta_pitch);
 
-    void update(float delta_time, bool keyboard_movement = false, bool drag = false);
+    void update(float delta_time, bool keyboard_movement, bool drag);
 
     inline glm::mat4 get_view_matrix() const
         { return glm::lookAt(m_position, m_position + m_front, m_up); }
@@ -85,6 +87,11 @@ private:
     void process_keyboard(float delta_time);
     void process_mouse_movement(bool drag);
     void update_camera_vectors();
+
+    void set_size(int w, int h)
+        { m_width = static_cast<float>(w); m_height = static_cast<float>(h); }
+
+    friend class Scene;
 };
 
 } // namespace prt3

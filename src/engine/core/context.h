@@ -20,6 +20,10 @@ private:
     Renderer m_renderer;
     ModelManager m_model_manager;
     Scene m_scene;
+
+    void update_window_size(int w, int h);
+
+    friend class Renderer;
 };
 
 } // namespace prt3
