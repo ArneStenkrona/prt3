@@ -9,12 +9,24 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 
+#include <vector>
+
 namespace prt3 {
 
-struct RenderData {
-    ResourceID mesh_rid;
-    ResourceID material_rid;
+struct SceneRenderData {
+    glm::mat4 view_matrix;
+    glm::mat4 projection_matrix;
+};
+
+struct MeshRenderData {
+    ResourceID mesh_id;
+    ResourceID material_id;
     glm::mat4 transform;
+};
+
+struct RenderData {
+    SceneRenderData scene_data;
+    std::vector<MeshRenderData> mesh_data;
 };
 
 }

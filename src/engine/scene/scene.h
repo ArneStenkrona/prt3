@@ -3,6 +3,7 @@
 
 #include "src/engine/scene/node.h"
 #include "src/engine/rendering/renderer.h"
+#include "src/engine/rendering/camera.h"
 
 #include <vector>
 
@@ -15,7 +16,6 @@ class Scene {
 public:
     Scene(Context & context);
 
-    void render();
 
     NodeID add_node(NodeID parent_id);
     NodeID add_node_to_root() { return add_node(m_root_id); }
@@ -28,10 +28,16 @@ public:
 private:
     Context & m_context;
 
+    Camera m_camera;
+
     NodeID m_root_id;
     std::vector<Node> m_nodes;
 
-    void collect_render_data(std::vector<RenderData> & render_data) const;
+    void update(float delta_time);
+    void render();
+    void collect_render_data(RenderData & render_data) const;
+
+    friend class Engine;
 };
 
 } // namespace prt3

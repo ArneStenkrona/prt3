@@ -4,6 +4,7 @@
 #include "src/engine/scene/scene.h"
 #include "src/engine/rendering/renderer.h"
 #include "src/engine/rendering/model_manager.h"
+#include "src/engine/core/input.h"
 
 namespace prt3 {
 
@@ -12,6 +13,7 @@ public:
     Context();
 
     Renderer & renderer() { return m_renderer; }
+    Input & input() { return m_renderer.input(); }
     ModelManager & model_manager() { return m_model_manager; }
     Scene & current_scene() { return m_scene; }
 private:

@@ -10,11 +10,9 @@ class Engine {
 public:
     Engine();
 
-    void run();
+    void execute_frame();
 private:
     Context m_context;
-
-    bool m_exit;
 };
 
 }

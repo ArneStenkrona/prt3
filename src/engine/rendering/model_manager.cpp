@@ -55,7 +55,9 @@ void ModelManager::add_model_to_scene(Scene & scene, ModelHandle handle, NodeID 
         Model::Node const & model_node = model.nodes()[model_node_index];
         if (model_node.mesh_index != -1) {
             ResourceID mesh_id = resource.mesh_resource_ids[model_node.mesh_index];
+            ResourceID material_id = resource.material_resource_ids[model_node.mesh_index];
             scene.set_node_mesh(node_id, mesh_id);
+            scene.set_node_material(node_id, material_id);
         }
 
         for (uint32_t const & index : model_node.child_indices) {
@@ -72,6 +74,5 @@ void ModelManager::upload_model(ModelHandle handle) {
     Model const & model = m_models[handle];
     ModelResource & resource = m_model_resources[handle];
 
-    m_context.renderer().upload_model(model, resource.mesh_resource_ids);
+    m_context.renderer().upload_model(handle, model, resource);
 }
-

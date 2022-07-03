@@ -2,7 +2,6 @@
 #define PRT3_MODEL_MANAGER_H
 
 #include "src/engine/scene/node.h"
-#include "src/engine/rendering/renderer.h"
 #include "src/engine/rendering/resources.h"
 #include "src/engine/rendering/model.h"
 
@@ -25,19 +24,23 @@ namespace prt3 {
 class Scene;
 class Context;
 
+struct ModelResource {
+    std::vector<ResourceID> mesh_resource_ids;
+    std::vector<ResourceID> material_resource_ids;
+};
+
 class ModelManager {
 public:
-    ModelManager(Context & renderer);
+
+    typedef int ModelHandle;
+
+    ModelManager(Context & context);
 
     void add_model_to_scene_from_path(std::string const & path, Scene & scene, NodeID parent_id);
 
 private:
-    typedef int ModelHandle;
     typedef int ModelResourceIndex;
 
-    struct ModelResource {
-        std::vector<ResourceID> mesh_resource_ids;
-    };
     Context & m_context;
 
     std::vector<Model> m_models; // models imported into memory

@@ -1,0 +1,1 @@
+  -L/Users/arnestenkrona/Documents/repositories/prt3/lib/assimp  -L/lib  ../lib/libassimp.a -lpthread ../contrib/zlib/libzlibstatic.a 

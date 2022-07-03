@@ -6,13 +6,19 @@
 using namespace prt3;
 
 Scene::Scene(Context & context)
- : m_context{context} {
+ : m_context{context},
+   m_camera{context.input()} {
     m_root_id = m_nodes.size();
     m_nodes.push_back({});
 }
 
+void Scene::update(float delta_time) {
+    m_camera.update(delta_time);
+    render();
+}
+
 void Scene::render() {
-    std::vector<RenderData> render_data;
+    RenderData render_data;
     collect_render_data(render_data);
 
     m_context.renderer().render(render_data);
@@ -30,7 +36,13 @@ NodeID Scene::add_node(NodeID parent_id) {
 }
 
 
-void Scene::collect_render_data(std::vector<RenderData> & render_data) const {
+void Scene::collect_render_data(RenderData & render_data) const {
+    assert(render_data.mesh_data.size() = 0);
+    /* scene data */
+    render_data.scene_data.view_matrix = m_camera.get_view_matrix();
+    render_data.scene_data.projection_matrix = m_camera.get_projection_matrix();
+
+    /* mesh data */
     struct QueueElement {
         NodeID node_id;
         glm::mat4 global_transform;
@@ -45,19 +57,19 @@ void Scene::collect_render_data(std::vector<RenderData> & render_data) const {
         queue.pop_back();
 
         if (node.should_be_rendered()) {
-            RenderData data;
-            data.mesh_rid = node.mesh_id;
-            data.material_rid = node.material_id;
-            data.transform = node_transform;
+            MeshRenderData mesh_data;
+            mesh_data.mesh_id = node.mesh_id;
+            mesh_data.material_id = node.material_id;
+            mesh_data.transform = node_transform;
 
-            render_data.push_back(data);
+            render_data.mesh_data.push_back(mesh_data);
         }
 
         for (NodeID const & child_id : node.children)
         {
             Node const & child = m_nodes[child_id];
             glm::mat4 child_transform =
-                    child.local_transform.to_transform_matrix() * node_transform;
+                child.local_transform.to_transform_matrix() * node_transform;
             queue.push_back({child_id, child_transform});
         }
     }

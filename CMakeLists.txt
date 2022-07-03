@@ -7,9 +7,11 @@ set (CMAKE_CXX_STANDARD 17)
 # Set relase/debug
 set(CMAKE_BUILD_TYPE release)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Set paths
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+# SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 include_directories(
   "${PROJECT_BINARY_DIR}"
@@ -18,29 +20,41 @@ include_directories(
 
 file(GLOB SOURCES
 "src/main/main.cpp"
-"src/engine/scene/node.cpp"
-"src/engine/scene/scene.cpp"
+"src/driver/opengl/gl_material.cpp"
+"src/driver/opengl/gl_mesh.cpp"
+"src/driver/opengl/gl_renderer.cpp"
+"src/engine/core/context.cpp"
+"src/engine/core/engine.cpp"
+"src/engine/core/input.cpp"
+"src/engine/rendering/camera.cpp"
 "src/engine/rendering/model_manager.cpp"
 "src/engine/rendering/model.cpp"
 "src/engine/rendering/renderer.cpp"
-"src/engine/core/context.cpp"
-"src/engine/core/engine.cpp"
+"src/engine/scene/node.cpp"
+"src/engine/scene/scene.cpp"
 )
 
-## Libraries ##
 
-# glm
-find_package(glm REQUIRED)
-# assimp
-find_package(ASSIMP REQUIRED)
-include_directories(${ASSIMP_INCLUDE_DIR})
-
-## Build ###
+add_subdirectory(lib/glm EXCLUDE_FROM_ALL)
+add_subdirectory(lib/assimp EXCLUDE_FROM_ALL)
 # Add the executable
 add_executable(prt3 ${SOURCES})
+
+add_custom_target(copy_resources
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/resources ${CMAKE_CURRENT_BINARY_DIR}/
+)
+add_dependencies(prt3 copy_resources)
+
+# Wasm specific
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
+    set(CMAKE_CXX_FLAGS "-s USE_SDL=2 -s USE_SDL_IMAGE=2")
+    set_target_properties(prt3 PROPERTIES LINK_FLAGS "${CMAKE_LINK_FLAGS} -std=c++11 -MMD -MP -Oz -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1 -sLLD_REPORT_UNDEFINED -sASSERTIONS --preload-file assets")
+endif ()
+
 # Set compiler flags
 target_compile_options(prt3 PUBLIC -Wall -Wextra -o2 -g -fsanitize=address)
 target_link_options(prt3 PUBLIC -Wall -Wextra -o2 -g -fsanitize=address)
 # Link libraries
-target_link_libraries(prt3 glm)
 target_link_libraries(prt3 assimp::assimp)
+target_link_libraries(prt3 glm)
+target_link_libraries(prt3 SDL2)
