@@ -39,6 +39,8 @@ private:
 
     std::vector<GLMaterial> m_materials;
     std::vector<GLMesh> m_meshes;
+
+    ResourceID upload_material(Model::Material const & material);
 };
 
 } // namespace prt3

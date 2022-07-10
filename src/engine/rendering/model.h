@@ -96,7 +96,7 @@ private:
     std::unordered_map<std::string, int> m_name_to_node;
 
     void calculate_tangent_space();
-    // int get_texture(aiMaterial &aiMat, aiTextureType type, const char * model_path);
+    std::string get_texture(aiMaterial &aiMat, aiTextureType type, const char * model_path);
 };
 
 struct Model::Node {
@@ -116,11 +116,16 @@ struct Model::Material {
     float roughness = 0.5f;
     float ao = 1.0f;
     float emissive = 0.0f;
-    int32_t albedoIndex = -1;
-    int32_t metallicIndex = -1;
-    int32_t roughnessIndex = -1;
-    int32_t aoIndex = -1;
-    int32_t normalIndex = -1;
+    std::string albedo_map;
+    std::string normal_map;
+    std::string metallic_map;
+    std::string roughness_map;
+    std::string ambient_occlusion_map;
+    // int32_t albedoIndex = -1;
+    // int32_t metallicIndex = -1;
+    // int32_t roughnessIndex = -1;
+    // int32_t aoIndex = -1;
+    // int32_t normalIndex = -1;
     bool twosided = false;
 };
 

@@ -13,14 +13,17 @@ GLRenderer::GLRenderer(SDL_Window * window)
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glEnable(GL_DEPTH_TEST);
     glCheckError();
-    glDisable(GL_CULL_FACE);
+    glDepthFunc(GL_LESS);
+    glCheckError();
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glCheckError();
 
     /* create default material */
     m_materials.emplace_back("assets/shaders/opengl/standard.vs",
-                             "assets/shaders/opengl/standard.fs");
+                             "assets/shaders/opengl/standard.fs",
+                             "assets/models/debug/debug-texture.png");
 }
 
 GLRenderer::~GLRenderer() {
@@ -28,7 +31,8 @@ GLRenderer::~GLRenderer() {
 }
 
 void GLRenderer::render(RenderData const & render_data) {
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glCheckError();
     for (MeshRenderData const & mesh_data : render_data.mesh_data) {
         m_meshes[mesh_data.mesh_id].draw(
             m_materials[mesh_data.material_id],
@@ -126,9 +130,17 @@ void GLRenderer::upload_model(ModelManager::ModelHandle model_handle,
 
     m_buffer_handles[model_handle] = {vao, vbo, ebo};
 
+    // Create gl materials
+    resource.material_resource_ids.resize(model.meshes().size());
+    std::vector<ResourceID> material_ids;
+    material_ids.resize(model.materials().size());
+    size_t material_index = 0;
+    for (Model::Material const & material : model.materials()) {
+        material_ids[material_index] = upload_material(material);
+        ++material_index;
+    }
     // Create gl meshes
     resource.mesh_resource_ids.resize(model.meshes().size());
-    resource.material_resource_ids.resize(model.meshes().size());
     size_t mesh_index = 0;
     for (Model::Mesh const & mesh : model.meshes()) {
         ResourceID id = m_meshes.size();
@@ -138,9 +150,18 @@ void GLRenderer::upload_model(ModelManager::ModelHandle model_handle,
         gl_mesh.init(vao, mesh.start_index, mesh.num_indices, {});
 
         resource.mesh_resource_ids[mesh_index] = id;
-        resource.material_resource_ids[mesh_index] = RenderBackend::DEFAULT_MATERIAL_ID;
+        resource.material_resource_ids[mesh_index] = material_ids[mesh.material_index];
+        ++mesh_index;
     }
 
     glBindVertexArrayOES(0);
     glCheckError();
+}
+
+ResourceID GLRenderer::upload_material(Model::Material const & material) {
+    ResourceID id = m_materials.size();
+    m_materials.emplace_back("assets/shaders/opengl/standard.vs",
+                             "assets/shaders/opengl/standard.fs",
+                             material.albedo_map.c_str());
+    return id;
 }

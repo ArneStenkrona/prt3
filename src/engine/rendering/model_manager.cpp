@@ -8,6 +8,8 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+#include <iostream>
+
 using namespace prt3;
 
 ModelManager::ModelManager(Context & context)

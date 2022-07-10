@@ -35,9 +35,9 @@ file(GLOB SOURCES
 "src/engine/scene/scene.cpp"
 )
 
-
 add_subdirectory(lib/glm EXCLUDE_FROM_ALL)
 add_subdirectory(lib/assimp EXCLUDE_FROM_ALL)
+
 # Add the executable
 add_executable(prt3 ${SOURCES})
 
@@ -49,7 +49,7 @@ add_dependencies(prt3 copy_resources)
 # Wasm specific
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
     set(CMAKE_CXX_FLAGS "-s USE_SDL=2 -s USE_SDL_IMAGE=2")
-    set_target_properties(prt3 PROPERTIES LINK_FLAGS "${CMAKE_LINK_FLAGS} -std=c++11 -MMD -MP -Oz -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1 -sLLD_REPORT_UNDEFINED -sASSERTIONS --preload-file assets -sALLOW_MEMORY_GROWTH")
+    set_target_properties(prt3 PROPERTIES LINK_FLAGS "${CMAKE_LINK_FLAGS} -std=c++11 -MMD -MP -Oz -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1 -sLLD_REPORT_UNDEFINED -sASSERTIONS --preload-file assets -sALLOW_MEMORY_GROWTH -s EXCEPTION_DEBUG -sNO_DISABLE_EXCEPTION_CATCHING -s SDL2_IMAGE_FORMATS='[\"bmp\",\"png\"]'")
 endif ()
 
 # Set compiler flags

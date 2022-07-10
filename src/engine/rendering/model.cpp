@@ -21,8 +21,11 @@ Model::Model(char const * path) {
     Assimp::Importer importer;
     importer.SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE,
                                 aiPrimitiveType_LINE | aiPrimitiveType_POINT);
+                                            // aiSetImportPropertyFloat(aiprops, AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, GlobalScale);
+
 
     aiScene const * scene = importer.ReadFile(path,
+                                              aiProcess_ValidateDataStructure    |
                                               aiProcess_CalcTangentSpace         |
                                               aiProcess_Triangulate              |
                                               aiProcess_FlipUVs                  |
@@ -43,7 +46,7 @@ Model::Model(char const * path) {
     // parse materials
     m_materials.resize(scene->mNumMaterials);
     for (size_t i = 0; i < m_materials.size(); ++i) {
- aiString matName;
+        aiString matName;
         aiGetMaterialString(scene->mMaterials[i], AI_MATKEY_NAME, &matName);
         m_materials[i].name = matName.C_Str();
 
@@ -58,11 +61,11 @@ Model::Model(char const * path) {
         scene->mMaterials[i]->Get(AI_MATKEY_OPACITY, m_materials[i].albedo.a);
         scene->mMaterials[i]->Get(AI_MATKEY_TWOSIDED, m_materials[i].twosided);
 
-        // m_materials[i].albedoIndex = get_texture(*scene->mMaterials[i], aiTextureType_DIFFUSE, path);
-        // m_materials[i].metallicIndex = get_texture(*scene->mMaterials[i], aiTextureType_METALNESS, path);
-        // m_materials[i].roughnessIndex = get_texture(*scene->mMaterials[i], aiTextureType_SHININESS, path);
-        // m_materials[i].aoIndex = get_texture(*scene->mMaterials[i], aiTextureType_AMBIENT, path);
-        // m_materials[i].normalIndex = get_texture(*scene->mMaterials[i], aiTextureType_NORMALS, path);
+        m_materials[i].albedo_map = get_texture(*scene->mMaterials[i], aiTextureType_DIFFUSE, path);
+        m_materials[i].normal_map = get_texture(*scene->mMaterials[i], aiTextureType_NORMALS, path);
+        m_materials[i].metallic_map = get_texture(*scene->mMaterials[i], aiTextureType_METALNESS, path);
+        m_materials[i].roughness_map = get_texture(*scene->mMaterials[i], aiTextureType_SHININESS, path);
+        m_materials[i].ambient_occlusion_map = get_texture(*scene->mMaterials[i], aiTextureType_AMBIENT, path);
     }
 
     /* Process node hierarchy */
@@ -491,20 +494,18 @@ glm::mat4 Model::get_bone_transform(char const * name) const {
 //     }
 // }
 
-// int Model::get_texture(aiMaterial &aiMat, aiTextureType type, const char * modelPath) {
-//     aiString texPath;
-//     int32_t id = -1;
-//     if (aiMat.GetTexture(type, 0, &texPath) == AI_SUCCESS) {
-//         char fullTexPath[256];
-//         strcpy(fullTexPath, modelPath);
+std::string Model::get_texture(aiMaterial & ai_mat, aiTextureType type, const char * model_path) {
+    // TODO: optimize, too many temporary strings
+    aiString ai_path;
+    std::string tex_path;
+    if (ai_mat.GetTexture(type, 0, &ai_path) == AI_SUCCESS) {
+        std::string rel_path = std::string(ai_path.C_Str());
+        std::string model_path_str = std::string(model_path);
 
-//         char *ptr = std::strrchr(fullTexPath, '/');
-//         strcpy(++ptr, texPath.C_Str());
-//         id = textureManager.loadTexture(fullTexPath, true);
-//     }
-
-//     return id;
-// }
+        tex_path = model_path_str.substr(0, model_path_str.rfind('/') + 1) + rel_path;
+    }
+    return tex_path;
+}
 
 void Model::calculate_tangent_space() {
     for (size_t i = 0; i < m_index_buffer.size(); i+=3) {

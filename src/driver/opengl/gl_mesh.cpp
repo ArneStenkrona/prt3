@@ -26,7 +26,7 @@ void GLMesh::init(GLuint vao,
 void GLMesh::draw(GLMaterial & material,
                   SceneRenderData const & scene_data,
                   MeshRenderData const & mesh_data) {
-    glm::mat4 mv_matrix = scene_data.view_matrix * glm::mat4{1.0f};
+    glm::mat4 mv_matrix = scene_data.view_matrix * mesh_data.transform;
     glm::mat4 mvp_matrix = scene_data.projection_matrix * mv_matrix;
 
     material.shader().use();
@@ -34,6 +34,11 @@ void GLMesh::draw(GLMaterial & material,
     material.shader().setMat4("u_MVMatrix", mv_matrix);
     glCheckError();
     material.shader().setMat4("u_MVPMatrix", mvp_matrix);
+    glCheckError();
+
+    glActiveTexture(GL_TEXTURE0); // activate the texture unit first before binding texture
+    glCheckError();
+    glBindTexture(GL_TEXTURE_2D, material.texture());
     glCheckError();
 
     // draw mesh

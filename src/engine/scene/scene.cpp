@@ -11,9 +11,9 @@ Scene::Scene(Context & context)
     m_root_id = m_nodes.size();
     m_nodes.push_back({});
 
-        // FOR DEBUGGING, WILL REMOVE ---->
+    // FOR DEBUGGING, WILL REMOVE ---->
     m_context.model_manager()
-        .add_model_to_scene_from_path("assets/models/debug/cube_lattice.fbx", *this, m_root_id);
+        .add_model_to_scene_from_path("assets/models/debug/cube.dae", *this, m_root_id);
     // <---- FOR DEBUGGING, WILL REMOVE
 }
 
