@@ -13,7 +13,7 @@ Scene::Scene(Context & context)
 
     // FOR DEBUGGING, WILL REMOVE ---->
     m_context.model_manager()
-        .add_model_to_scene_from_path("assets/models/debug/cube.dae", *this, m_root_id);
+        .add_model_to_scene_from_path("assets/models/debug/pbr_cube.dae", *this, m_root_id);
     // <---- FOR DEBUGGING, WILL REMOVE
 }
 

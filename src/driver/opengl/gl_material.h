@@ -15,15 +15,20 @@ public:
     // TODO: Retrieve an existing shader program
     //       instead of creating it here.
     //       This is currently very wasteful
-    GLMaterial(char const * vertex_shader_path,
-               char const * fragment_shader_path,
-               char const * albedo_path);
+    GLMaterial(GLShader & shader,
+               GLuint albedo,
+               GLuint normal,
+               GLuint roughness);
 
     GLShader & shader() { return m_shader; }
-    GLuint & texture() { return m_texture; }
+    GLuint & albedo_map() { return m_albedo_map; }
+    GLuint & normal_map() { return m_normal_map; }
+    GLuint & roughness_map() { return m_roughness_map; }
 private:
     GLShader m_shader;
-    GLuint m_texture;
+    GLuint m_albedo_map;
+    GLuint m_normal_map;
+    GLuint m_roughness_map;
 };
 
 }

@@ -12,8 +12,6 @@ namespace prt3 {
 
 class RenderBackend {
 public:
-    static constexpr ResourceID DEFAULT_MATERIAL_ID = 0;
-
     virtual ~RenderBackend() {};
 
     virtual void render(RenderData const & render_data) = 0;

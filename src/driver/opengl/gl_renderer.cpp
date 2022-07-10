@@ -1,13 +1,16 @@
 #include "gl_renderer.h"
 
 #include "src/driver/opengl/gl_texture.h"
-
 #include "src/driver/opengl/gl_utility.h"
+
+#include <SDL_image.h>
 
 using namespace prt3;
 
 GLRenderer::GLRenderer(SDL_Window * window)
- : m_window{window} {
+ : m_window{window},
+   m_standard_shader{"assets/shaders/opengl/standard.vs",
+                     "assets/shaders/opengl/standard.fs"} {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -19,11 +22,12 @@ GLRenderer::GLRenderer(SDL_Window * window)
     glCheckError();
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glCheckError();
+    glEnable(GL_CULL_FACE);
+    glCheckError();
+    glCullFace(GL_BACK);
+    glCheckError();
 
-    /* create default material */
-    m_materials.emplace_back("assets/shaders/opengl/standard.vs",
-                             "assets/shaders/opengl/standard.fs",
-                             "assets/models/debug/debug-texture.png");
+    load_default_texture();
 }
 
 GLRenderer::~GLRenderer() {
@@ -67,8 +71,7 @@ void GLRenderer::upload_model(ModelManager::ModelHandle model_handle,
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertices[0]), vertices.data(), GL_STATIC_DRAW);
     glCheckError();
 
-    GLMaterial & default_material = m_materials[RenderBackend::DEFAULT_MATERIAL_ID];
-    GLuint shader_program = default_material.shader().ID;
+    GLuint shader_program = m_standard_shader.ID;
 
     GLint pos_attr = glGetAttribLocation(shader_program, "a_Position");
     glCheckError();
@@ -160,8 +163,62 @@ void GLRenderer::upload_model(ModelManager::ModelHandle model_handle,
 
 ResourceID GLRenderer::upload_material(Model::Material const & material) {
     ResourceID id = m_materials.size();
-    m_materials.emplace_back("assets/shaders/opengl/standard.vs",
-                             "assets/shaders/opengl/standard.fs",
-                             material.albedo_map.c_str());
+    m_materials.emplace_back(m_standard_shader,
+                             retrieve_texture(material.albedo_map.c_str()),
+                             retrieve_texture(material.normal_map.c_str()),
+                             retrieve_texture(material.roughness_map.c_str()));
     return id;
+}
+
+GLuint GLRenderer::retrieve_texture(char const * path) {
+    std::string path_str{path};
+    if (m_textures.find(path_str) == m_textures.end()) {
+        load_texture(path);
+    }
+    if (m_textures.find(path_str) != m_textures.end()) {
+        return m_textures[path_str];
+    }
+    return m_default_texture;
+}
+
+void GLRenderer::load_texture(char const * path) {
+    if (path[0] != '\0') {
+        SDL_Surface * image = IMG_Load(path);
+
+        // TODO: proper format detection
+        GLenum format = GL_RGB;
+        if(image->format->BytesPerPixel == 4) {
+            format = GL_RGBA;
+        }
+
+        GLuint texture_handle;
+        if (image) {
+            glGenTextures(1, &texture_handle);
+            glBindTexture(GL_TEXTURE_2D, texture_handle);
+            glTexImage2D(GL_TEXTURE_2D, 0, format, image->w, image->h, 0,
+                         format, GL_UNSIGNED_BYTE, image->pixels);
+            glGenerateMipmap(GL_TEXTURE_2D);
+
+            SDL_FreeSurface(image);
+
+            m_textures[std::string(path)] = texture_handle;
+        } else {
+            // TODO: proper error handling
+            std::cout << "failed to load texture at path \"" << path << "\"." << std::endl;
+            std::cout << "IMG_Load: " << IMG_GetError() << std::endl;
+        }
+    } else {
+        // No texture path
+    }
+}
+
+void GLRenderer::load_default_texture() {
+    // Default texture is a 1x1 white image
+    unsigned char data[4] = { 255, 255, 255, 255 };
+
+    glGenTextures(1, &m_default_texture);
+    glBindTexture(GL_TEXTURE_2D, m_default_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0,
+                    GL_RGBA, GL_UNSIGNED_BYTE, &data);
+    // glGenerateMipmap(GL_TEXTURE_2D); Probably not needed for 1x1 image?
 }

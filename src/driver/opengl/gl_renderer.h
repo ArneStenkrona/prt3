@@ -37,10 +37,17 @@ private:
 
     std::unordered_map<ModelManager::ModelHandle, ModelBufferHandles> m_buffer_handles;
 
+    GLShader m_standard_shader;
     std::vector<GLMaterial> m_materials;
     std::vector<GLMesh> m_meshes;
 
+    GLuint m_default_texture;
+    std::unordered_map<std::string, GLuint> m_textures;
+
     ResourceID upload_material(Model::Material const & material);
+    GLuint retrieve_texture(char const * path);
+    void load_texture(char const * path);
+    void load_default_texture();
 };
 
 } // namespace prt3

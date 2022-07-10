@@ -38,7 +38,7 @@ void GLMesh::draw(GLMaterial & material,
 
     glActiveTexture(GL_TEXTURE0); // activate the texture unit first before binding texture
     glCheckError();
-    glBindTexture(GL_TEXTURE_2D, material.texture());
+    glBindTexture(GL_TEXTURE_2D, material.albedo_map());
     glCheckError();
 
     // draw mesh
