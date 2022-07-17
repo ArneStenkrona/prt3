@@ -5,6 +5,9 @@
 
 #include <SDL_image.h>
 
+#include <cassert>
+#include <iostream>
+
 using namespace prt3;
 
 GLRenderer::GLRenderer(SDL_Window * window)
@@ -27,7 +30,15 @@ GLRenderer::GLRenderer(SDL_Window * window)
     glCullFace(GL_BACK);
     glCheckError();
 
-    load_default_texture();
+    unsigned char data_0xffffffff[4] = { 0xff, 0xff, 0xff, 0xff };
+    m_texture_1x1_0xffffffff = load_texture(data_0xffffffff, 1, 1, GL_RGBA,
+                                            false);
+    unsigned char data_0x000000ff[3] = { 0x00, 0x00, 0xff };
+    m_texture_1x1_0x0000ff = load_texture(data_0x000000ff, 1, 1, GL_RGB,
+                                          false);
+    unsigned char data_0x80[3] = { 0x80 };
+    m_texture_1x1_0x80 = load_texture(data_0x80, 1, 1, GL_LUMINANCE,
+                                      false);
 }
 
 GLRenderer::~GLRenderer() {
@@ -149,8 +160,8 @@ void GLRenderer::upload_model(ModelManager::ModelHandle model_handle,
         glEnableVertexAttribArray(tan_attr);
         glCheckError();
         glVertexAttribPointer(tan_attr, 3, GL_FLOAT, GL_FALSE,
-                            sizeof(Model::Vertex),
-                            reinterpret_cast<void*>(offsetof(Model::Vertex, tangent)));
+                              sizeof(Model::Vertex),
+                              reinterpret_cast<void*>(offsetof(Model::Vertex, tangent)));
         glCheckError();
     }
 
@@ -160,8 +171,8 @@ void GLRenderer::upload_model(ModelManager::ModelHandle model_handle,
         glEnableVertexAttribArray(bitan_attr);
         glCheckError();
         glVertexAttribPointer(bitan_attr, 3, GL_FLOAT, GL_FALSE,
-                            sizeof(Model::Vertex),
-                            reinterpret_cast<void*>(offsetof(Model::Vertex, bitangent)));
+                              sizeof(Model::Vertex),
+                              reinterpret_cast<void*>(offsetof(Model::Vertex, bitangent)));
         glCheckError();
     }
 
@@ -207,13 +218,22 @@ void GLRenderer::upload_model(ModelManager::ModelHandle model_handle,
 ResourceID GLRenderer::upload_material(Model::Material const & material) {
     ResourceID id = m_materials.size();
     m_materials.emplace_back(m_standard_shader,
-                             retrieve_texture(material.albedo_map.c_str()),
-                             retrieve_texture(material.normal_map.c_str()),
-                             retrieve_texture(material.roughness_map.c_str()));
+                             retrieve_texture(material.albedo_map.c_str(),
+                                m_texture_1x1_0xffffffff),
+                             retrieve_texture(material.normal_map.c_str(),
+                                m_texture_1x1_0x0000ff),
+                             retrieve_texture(material.roughness_map.c_str(),
+                                m_texture_1x1_0x80),
+                            retrieve_texture(material.metallic_map.c_str(),
+                                m_texture_1x1_0x80),
+                             material.albedo,
+                             material.metallic,
+                             material.roughness);
+
     return id;
 }
 
-GLuint GLRenderer::retrieve_texture(char const * path) {
+GLuint GLRenderer::retrieve_texture(char const * path, GLuint default_texture) {
     std::string path_str{path};
     if (m_textures.find(path_str) == m_textures.end()) {
         load_texture(path);
@@ -221,21 +241,40 @@ GLuint GLRenderer::retrieve_texture(char const * path) {
     if (m_textures.find(path_str) != m_textures.end()) {
         return m_textures[path_str];
     }
-    return m_default_texture;
+    return default_texture;
 }
 
 void GLRenderer::load_texture(char const * path) {
     if (path[0] != '\0') {
         SDL_Surface * image = IMG_Load(path);
 
-        // TODO: proper format detection
-        GLenum format = GL_RGB;
-        if(image->format->BytesPerPixel == 4) {
-            format = GL_RGBA;
-        }
 
         GLuint texture_handle;
         if (image) {
+            // TODO: proper format detection
+            GLenum format = 0;
+            switch (image->format->BytesPerPixel) {
+                case 1: {
+                    format = GL_LUMINANCE;
+                    break;
+                }
+                case 2: {
+                    format = GL_LUMINANCE_ALPHA;
+                    break;
+                }
+                case 3: {
+                    format = GL_RGB;
+                    break;
+                }
+                case 4: {
+                    format = GL_RGBA;
+                    break;
+                }
+                default: {
+                    assert(false && "Invalid number of channels");
+                }
+            }
+
             glGenTextures(1, &texture_handle);
             glBindTexture(GL_TEXTURE_2D, texture_handle);
             glTexImage2D(GL_TEXTURE_2D, 0, format, image->w, image->h, 0,
@@ -255,13 +294,17 @@ void GLRenderer::load_texture(char const * path) {
     }
 }
 
-void GLRenderer::load_default_texture() {
-    // Default texture is a 1x1 white image
-    unsigned char data[4] = { 255, 255, 255, 255 };
-
-    glGenTextures(1, &m_default_texture);
-    glBindTexture(GL_TEXTURE_2D, m_default_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0,
-                    GL_RGBA, GL_UNSIGNED_BYTE, &data);
-    // glGenerateMipmap(GL_TEXTURE_2D); Probably not needed for 1x1 image?
+GLuint GLRenderer::load_texture(unsigned char * data,
+                                int w, int h,
+                                GLenum format,
+                                bool mipmap) {
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0,
+                    format, GL_UNSIGNED_BYTE, data);
+    if (mipmap) {
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    return texture;
 }

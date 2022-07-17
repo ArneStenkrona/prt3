@@ -1,7 +1,13 @@
 precision mediump float;        // Set the default precision to medium. We don't need as high of a
                                 // precision in the fragment shader.
 
-uniform sampler2D u_Albedo;    // The input texture.
+uniform sampler2D u_AlbedoMap;
+uniform sampler2D u_NormalMap;
+uniform sampler2D u_MetallicMap;
+uniform sampler2D u_RoughnessMap;
+uniform vec4 u_Albedo;
+uniform float u_Metallic;
+uniform float u_Roughness;
 
 struct PointLight {
     vec3 position;
@@ -15,19 +21,31 @@ uniform int u_NumberOfPointLights;
 
 uniform vec3 u_ViewPosition;
 
-varying vec3 v_Position;        // Interpolated position for this fragment.
+varying vec3 v_Position;
 
-varying vec3 v_Normal;          // Interpolated normal for this fragment.
-varying vec2 v_TexCoordinate;   // Interpolated texture coordinate per fragment.
+varying vec3 v_Normal;
+varying vec2 v_TexCoordinate;
+varying mat3 v_InverseTBN;
 
 const float PI = 3.14159265359;
 
-vec3 calculatePointLight(PointLight light, vec3 albedo);
+vec3 calculatePointLight(PointLight light,
+                         vec3 albedo,
+                         vec3 normal,
+                         float metallic,
+                         float roughness);
 
 // The entry point for our fragment shader.
 void main()
 {
-    vec4 albedo = texture2D(u_Albedo, v_TexCoordinate);
+    vec4 albedo = u_Albedo * texture2D(u_AlbedoMap, v_TexCoordinate);
+
+    vec3 normal = normalize(v_InverseTBN *
+                    ((2.0 * texture2D(u_NormalMap, v_TexCoordinate).rgb) - 1.0));;
+
+    float metallic = u_Metallic * texture2D(u_MetallicMap, v_TexCoordinate).r;
+    float roughness = 1.0 - u_Roughness * texture2D(u_RoughnessMap, v_TexCoordinate).r;
+
     vec3 lightContribution = vec3(0.0);
     // Add ambient
     lightContribution += 0.3;
@@ -36,14 +54,14 @@ void main()
         // Constant loop count work-around
         if (i < u_NumberOfPointLights) {
             lightContribution += calculatePointLight(u_PointLights[i],
-                                                     albedo.rgb);
+                                                     albedo.rgb,
+                                                     normal,
+                                                     metallic,
+                                                     roughness);
         }
     }
 
-    // Multiply the color by the diffuse illumination level and texture value to get final output color.
-    // gl_FragColor = (v_Color * diffuse * texture2D(u_Texture, v_TexCoordinate));
     gl_FragColor = vec4(lightContribution, 1.0) * albedo;
-    // gl_FragColor = vec4(1.0) * albedo;
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
@@ -82,26 +100,11 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
     return ggx1 * ggx2;
 }
 
-vec3 calculatePointLight(PointLight light, vec3 albedo) {
-    // // Will be used for attenuation.
-    // float distance = length(light.position - v_Position);
-
-    // // Get a lighting direction vector from the light to the vertex.
-    // vec3 lightVector = normalize(light.position - v_Position);
-
-    // // Calculate the dot product of the light vector and vertex normal. If the normal and light vector are
-    // // pointing in the same direction then it will get max illumination.
-    // float diffuse = max(dot(v_Normal, lightVector), 0.0);
-
-    // // Add attenuation.
-    // diffuse = diffuse * (1.0 / (1.0 + (0.10 * distance)));
-
-    // return light.color * diffuse;
-
-    // TODO: retrieve these values properly
-    float roughness = 0.5;
-    float metallic = 0.5;
-    vec3 N = v_Normal;
+vec3 calculatePointLight(PointLight light,
+                         vec3 albedo,
+                         vec3 normal,
+                         float metallic,
+                         float roughness) {
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
 
@@ -111,13 +114,13 @@ vec3 calculatePointLight(PointLight light, vec3 albedo) {
 
     float dist = length(light.position  - v_Position);
     float a =  light.a * dist * dist;
-    float b =  light.c * dist;
+    float b =  light.b * dist;
     float c =  light.c;
     float attenuation = 1.0 / (a + b + c);
     vec3 radiance = light.color * attenuation;
 
-    float NDF = DistributionGGX(N, H, roughness);
-    float G = GeometrySmith(N, V, L, roughness);
+    float NDF = DistributionGGX(normal, H, roughness);
+    float G = GeometrySmith(normal, V, L, roughness);
     vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
 
     vec3 kS = F;
@@ -125,10 +128,10 @@ vec3 calculatePointLight(PointLight light, vec3 albedo) {
     kD *= 1.0 - metallic;
 
     vec3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N,L), 0.0);
+    float denominator = 4.0 * max(dot(normal, V), 0.0) * max(dot(normal,L), 0.0);
     vec3 specular = numerator / max(denominator, 0.001);
 
-    float NdotL = max(dot(N, L), 0.0);
+    float NdotL = max(dot(normal, L), 0.0);
     vec3 contribution = (kD * albedo / PI + specular) * radiance * NdotL;
 
     return contribution;

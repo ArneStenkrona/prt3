@@ -15,13 +15,13 @@ Scene::Scene(Context & context)
 
     // FOR DEBUGGING, WILL REMOVE ---->
     m_context.model_manager()
-        .add_model_to_scene_from_path("assets/models/debug/pbr_cube.dae", *this, m_root_id);
+        .add_model_to_scene_from_path("assets/models/debug/pbr_cube.fbx", *this, m_root_id);
 
     NodeID light_node = add_node_to_root();
     PointLight light;
-    light.color = glm::vec3(1.0f, 0.1f, 0.1f);
-    light.quadratic_term = 0.1f;
-    light.linear_term = 0.0f;
+    light.color = glm::vec3(1.0f, 1.0f, 1.0f);
+    light.quadratic_term = 0.01f;
+    light.linear_term = 0.01f;
     light.constant_term = 0.0f;
     m_component_manager.set_point_light_component(light_node, light);
     set_node_local_position(light_node, glm::vec3(2.1f, 2.1f, 2.1f));

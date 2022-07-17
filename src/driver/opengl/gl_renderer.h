@@ -41,13 +41,20 @@ private:
     std::vector<GLMaterial> m_materials;
     std::vector<GLMesh> m_meshes;
 
-    GLuint m_default_texture;
+    /* Defaults for materials without texture bindings */
+    GLuint m_texture_1x1_0xffffffff;
+    GLuint m_texture_1x1_0x0000ff;
+    GLuint m_texture_1x1_0x80;
+
     std::unordered_map<std::string, GLuint> m_textures;
 
     ResourceID upload_material(Model::Material const & material);
-    GLuint retrieve_texture(char const * path);
+    GLuint retrieve_texture(char const * path, GLuint default_texture);
     void load_texture(char const * path);
-    void load_default_texture();
+    GLuint load_texture(unsigned char * data,
+                        int w, int h,
+                        GLenum format,
+                        bool mipma);
 };
 
 } // namespace prt3

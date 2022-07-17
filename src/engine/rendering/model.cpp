@@ -66,6 +66,8 @@ Model::Model(char const * path) {
         m_materials[i].metallic_map = get_texture(*scene->mMaterials[i], aiTextureType_METALNESS, path);
         m_materials[i].roughness_map = get_texture(*scene->mMaterials[i], aiTextureType_SHININESS, path);
         m_materials[i].ambient_occlusion_map = get_texture(*scene->mMaterials[i], aiTextureType_AMBIENT, path);
+
+        m_materials[i].metallic = m_materials[i].metallic_map == "" ? 0.0 : 1.0;
     }
 
     /* Process node hierarchy */
