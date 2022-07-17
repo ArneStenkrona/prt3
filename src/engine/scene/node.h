@@ -20,13 +20,14 @@ constexpr NodeID NO_NODE = -1;
 
 struct Node {
     Transform local_transform;
-    ResourceID mesh_id = prt3::NO_RESOURCE;
-    ResourceID material_id = prt3::NO_RESOURCE;
+    // ResourceID mesh_id = prt3::NO_RESOURCE;
+    // ResourceID material_id = prt3::NO_RESOURCE;
     NodeID parent = NO_NODE;
     std::vector<NodeID> children;
 
-    bool should_be_rendered() const { return mesh_id != prt3::NO_RESOURCE; }
+    // bool should_be_rendered() const { return mesh_id != prt3::NO_RESOURCE; }
 };
 
-}
+} // namespace prt3
+
 #endif

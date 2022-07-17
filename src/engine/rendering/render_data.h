@@ -2,6 +2,7 @@
 #define PRT3_RENDER_DATA_H
 
 #include "src/engine/rendering/resources.h"
+#include "src/engine/rendering/light.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -10,12 +11,15 @@
 #include <glm/gtx/transform.hpp>
 
 #include <vector>
+#include <array>
+#include <set>
 
 namespace prt3 {
 
 struct SceneRenderData {
     glm::mat4 view_matrix;
     glm::mat4 projection_matrix;
+    glm::vec3 view_position;
 };
 
 struct MeshRenderData {
@@ -24,9 +28,21 @@ struct MeshRenderData {
     glm::mat4 transform;
 };
 
+struct PointLightRenderData {
+    PointLight light;
+    glm::vec3 position;
+};
+
+struct LightRenderData {
+    static constexpr size_t MAX_NUMBER_OF_POINT_LIGHTS = 4;
+    size_t number_of_point_lights;
+    std::array<PointLightRenderData, MAX_NUMBER_OF_POINT_LIGHTS> point_lights;
+};
+
 struct RenderData {
     SceneRenderData scene_data;
     std::vector<MeshRenderData> mesh_data;
+    LightRenderData light_data;
 };
 
 }
