@@ -11,13 +11,16 @@ using namespace prt3;
 GLRenderer::GLRenderer(SDL_Window * window)
  : m_window{window},
    m_material_manager{m_texture_manager},
-   m_model_manager{m_material_manager}
+   m_model_manager{m_material_manager},
+   m_passthrough_shader{"assets/shaders/opengl/passthrough.vs",
+                        "assets/shaders/opengl/passthrough.fs"}
   {
+    /* Set SDL attributes */
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-
+    /* Enable GL functionality */
     glEnable(GL_DEPTH_TEST);
     glCheckError();
     glDepthFunc(GL_LESS);
@@ -28,6 +31,90 @@ GLRenderer::GLRenderer(SDL_Window * window)
     glCheckError();
     glCullFace(GL_BACK);
     glCheckError();
+
+    /* Generate framebuffer */
+    glGenFramebuffers(1, &m_framebuffer);
+    glCheckError();
+    glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+    glCheckError();
+
+    glGenTextures(1, &m_render_texture);
+    glCheckError();
+    glBindTexture(GL_TEXTURE_2D, m_render_texture);
+    glCheckError();
+
+	int w;
+ 	int h;
+    SDL_GetWindowSize(m_window, &w, &h);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0,GL_RGB, GL_UNSIGNED_BYTE, 0);
+    glCheckError();
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glCheckError();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glCheckError();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glCheckError();
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glCheckError();
+
+    glGenRenderbuffers(1, &m_depth_buffer);
+    glCheckError();
+    glBindRenderbuffer(GL_RENDERBUFFER, m_depth_buffer);
+    glCheckError();
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, w, h);
+    glCheckError();
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+                              GL_DEPTH_ATTACHMENT,
+                              GL_RENDERBUFFER,
+                              m_depth_buffer);
+    glCheckError();
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER,
+                           GL_COLOR_ATTACHMENT0,
+                           GL_TEXTURE_2D,
+                           m_render_texture,
+                           0);
+    glCheckError();
+
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        assert(false && "Failed to create framebuffer!");
+    }
+
+    /* Create objects for framebuffer post-processing and display */
+    static const GLfloat g_quad_vertex_buffer_data[] = {
+        -1.0f, -1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f,
+        -1.0f,  1.0f, 0.0f,
+        -1.0f,  1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f,
+        1.0f,  1.0f, 0.0f,
+    };
+
+    glGenVertexArraysOES(1, &m_screen_quad_vao);
+    glCheckError();
+    glBindVertexArrayOES(m_screen_quad_vao);
+    glCheckError();
+
+    glGenBuffers(1, &m_screen_quad_vbo);
+    glCheckError();
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_screen_quad_vbo);
+    glCheckError();
+
+    glBufferData(GL_ARRAY_BUFFER,
+                 sizeof(g_quad_vertex_buffer_data),
+                 g_quad_vertex_buffer_data,
+                 GL_STATIC_DRAW);
+    glCheckError();
+    GLint pos_attr = glGetAttribLocation(m_passthrough_shader.ID, "a_Position");
+    glCheckError();
+    glEnableVertexAttribArray(pos_attr);
+    glCheckError();
+    glVertexAttribPointer(pos_attr, 3, GL_FLOAT, GL_FALSE,
+                          3 * sizeof(float),
+                          0);
+    glCheckError();
 }
 
 GLRenderer::~GLRenderer() {
@@ -35,6 +122,15 @@ GLRenderer::~GLRenderer() {
 }
 
 void GLRenderer::render(RenderData const & render_data) {
+    // Bind the framebuffer
+    int w;
+ 	int h;
+    SDL_GetWindowSize(m_window, &w, &h);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+    glCheckError();
+    glViewport(0, 0, w, h);
+    glCheckError();
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glCheckError();
     std::unordered_map<ResourceID, std::vector<MeshRenderData>> m_material_queues;
@@ -43,7 +139,7 @@ void GLRenderer::render(RenderData const & render_data) {
         m_material_queues[mesh_data.material_id].push_back(mesh_data);
     }
 
-        std::vector<GLMaterial> const & materials = m_material_manager.materials();
+    std::vector<GLMaterial> const & materials = m_material_manager.materials();
     for (auto const & pair : m_material_queues) {
         GLMaterial material = materials[pair.first];
         material.shader().use();
@@ -87,8 +183,31 @@ void GLRenderer::render(RenderData const & render_data) {
                 mesh_data
             );
         }
+        glCheckError();
     }
+
+    /* Render to window */
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glCheckError();
+    glViewport(0, 0, w, h);
+    glCheckError();
+
+    m_passthrough_shader.use();
+    GLint render_loc = glGetUniformLocation(m_passthrough_shader.ID, "u_RenderTexture");
+    glUniform1i(render_loc, 0);
+    glActiveTexture(GL_TEXTURE0);
+    glCheckError();
+    glBindTexture(GL_TEXTURE_2D, m_render_texture);
+    glCheckError();
+
+    glBindVertexArrayOES(m_screen_quad_vao);
+    glCheckError();
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glCheckError();
+    glBindVertexArrayOES(0);
+    glCheckError();
 
     SDL_GL_SwapWindow(m_window);
     glCheckError();
+
 }

@@ -34,6 +34,15 @@ private:
     GLMaterialManager m_material_manager;
     GLModelManager m_model_manager;
 
+    GLuint m_framebuffer;
+    GLuint m_render_texture;
+    GLuint m_depth_buffer;
+
+    // GLuint m_quad_vertexbuffer;
+    GLuint m_screen_quad_vao;
+    GLuint m_screen_quad_vbo;
+
+    GLShader m_passthrough_shader;
 };
 
 } // namespace prt3
