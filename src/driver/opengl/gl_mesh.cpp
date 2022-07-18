@@ -10,8 +10,7 @@ GLMesh::GLMesh() {
 
 void GLMesh::init(GLuint vao,
                   uint32_t start_index,
-                  uint32_t num_indices,
-                  std::vector<GLTexture>  const & /*textures*/) {
+                  uint32_t num_indices) {
     assert(!m_initialized && "GL Mesh is already initialized!");
 
     m_vao = vao;

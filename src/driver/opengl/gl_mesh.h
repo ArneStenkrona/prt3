@@ -2,7 +2,6 @@
 #define PRT3_GL_MESH_H
 
 #include "src/driver/opengl/gl_material.h"
-#include "src/driver/opengl/gl_texture.h"
 #include "src/engine/rendering/render_data.h"
 
 #define GL_GLEXT_PROTOTYPES 1
@@ -20,8 +19,7 @@ public:
 
     void init(GLuint vao,
               uint32_t start_index,
-              uint32_t num_indices,
-              std::vector<GLTexture>  const & textures);
+              uint32_t num_indices);
 
     void draw(GLMaterial & material,
               SceneRenderData const & scene_data,

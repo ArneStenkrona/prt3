@@ -1,12 +1,8 @@
 #include "gl_renderer.h"
 
-#include "src/driver/opengl/gl_texture.h"
 #include "src/driver/opengl/gl_utility.h"
 
-#include <SDL_image.h>
-
 #include <cassert>
-#include <iostream>
 
 using namespace prt3;
 
@@ -29,16 +25,6 @@ GLRenderer::GLRenderer(SDL_Window * window)
     glCheckError();
     glCullFace(GL_BACK);
     glCheckError();
-
-    unsigned char data_0xffffffff[4] = { 0xff, 0xff, 0xff, 0xff };
-    m_texture_1x1_0xffffffff = load_texture(data_0xffffffff, 1, 1, GL_RGBA,
-                                            false);
-    unsigned char data_0x000000ff[3] = { 0x00, 0x00, 0xff };
-    m_texture_1x1_0x0000ff = load_texture(data_0x000000ff, 1, 1, GL_RGB,
-                                          false);
-    unsigned char data_0x80[3] = { 0x80 };
-    m_texture_1x1_0x80 = load_texture(data_0x80, 1, 1, GL_LUMINANCE,
-                                      false);
 }
 
 GLRenderer::~GLRenderer() {
@@ -204,7 +190,7 @@ void GLRenderer::upload_model(ModelManager::ModelHandle model_handle,
 
         m_meshes.push_back({});
         GLMesh & gl_mesh = m_meshes.back();
-        gl_mesh.init(vao, mesh.start_index, mesh.num_indices, {});
+        gl_mesh.init(vao, mesh.start_index, mesh.num_indices);
 
         resource.mesh_resource_ids[mesh_index] = id;
         resource.material_resource_ids[mesh_index] = material_ids[mesh.material_index];
@@ -216,95 +202,27 @@ void GLRenderer::upload_model(ModelManager::ModelHandle model_handle,
 }
 
 ResourceID GLRenderer::upload_material(Model::Material const & material) {
+    GLTextureManager & tm = m_texture_manager;
+    GLuint albedo_map = tm.retrieve_texture(material.albedo_map.c_str(),
+                                            tm.texture_1x1_0xffffffff());
+    GLuint normal_map = tm.retrieve_texture(material.normal_map.c_str(),
+                                            tm.texture_1x1_0x0000ff());
+    GLuint roughness_map = tm.retrieve_texture(material.roughness_map.c_str(),
+                                               tm.texture_1x1_0x80());
+    GLuint metallic_map = tm.retrieve_texture(material.metallic_map.c_str(),
+                                              tm.texture_1x1_0x80());
+
     ResourceID id = m_materials.size();
-    m_materials.emplace_back(m_standard_shader,
-                             retrieve_texture(material.albedo_map.c_str(),
-                                m_texture_1x1_0xffffffff),
-                             retrieve_texture(material.normal_map.c_str(),
-                                m_texture_1x1_0x0000ff),
-                             retrieve_texture(material.roughness_map.c_str(),
-                                m_texture_1x1_0x80),
-                            retrieve_texture(material.metallic_map.c_str(),
-                                m_texture_1x1_0x80),
-                             material.albedo,
-                             material.metallic,
-                             material.roughness);
+    m_materials.emplace_back(
+        m_standard_shader,
+        albedo_map,
+        normal_map,
+        roughness_map,
+        metallic_map,
+        material.albedo,
+        material.metallic,
+        material.roughness
+    );
 
     return id;
-}
-
-GLuint GLRenderer::retrieve_texture(char const * path, GLuint default_texture) {
-    std::string path_str{path};
-    if (m_textures.find(path_str) == m_textures.end()) {
-        load_texture(path);
-    }
-    if (m_textures.find(path_str) != m_textures.end()) {
-        return m_textures[path_str];
-    }
-    return default_texture;
-}
-
-void GLRenderer::load_texture(char const * path) {
-    if (path[0] != '\0') {
-        SDL_Surface * image = IMG_Load(path);
-
-
-        GLuint texture_handle;
-        if (image) {
-            // TODO: proper format detection
-            GLenum format = 0;
-            switch (image->format->BytesPerPixel) {
-                case 1: {
-                    format = GL_LUMINANCE;
-                    break;
-                }
-                case 2: {
-                    format = GL_LUMINANCE_ALPHA;
-                    break;
-                }
-                case 3: {
-                    format = GL_RGB;
-                    break;
-                }
-                case 4: {
-                    format = GL_RGBA;
-                    break;
-                }
-                default: {
-                    assert(false && "Invalid number of channels");
-                }
-            }
-
-            glGenTextures(1, &texture_handle);
-            glBindTexture(GL_TEXTURE_2D, texture_handle);
-            glTexImage2D(GL_TEXTURE_2D, 0, format, image->w, image->h, 0,
-                         format, GL_UNSIGNED_BYTE, image->pixels);
-            glGenerateMipmap(GL_TEXTURE_2D);
-
-            SDL_FreeSurface(image);
-
-            m_textures[std::string(path)] = texture_handle;
-        } else {
-            // TODO: proper error handling
-            std::cout << "failed to load texture at path \"" << path << "\"." << std::endl;
-            std::cout << "IMG_Load: " << IMG_GetError() << std::endl;
-        }
-    } else {
-        // No texture path
-    }
-}
-
-GLuint GLRenderer::load_texture(unsigned char * data,
-                                int w, int h,
-                                GLenum format,
-                                bool mipmap) {
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0,
-                    format, GL_UNSIGNED_BYTE, data);
-    if (mipmap) {
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    return texture;
 }

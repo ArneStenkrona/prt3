@@ -27,6 +27,7 @@ file(GLOB SOURCES
 "src/driver/opengl/gl_material.cpp"
 "src/driver/opengl/gl_mesh.cpp"
 "src/driver/opengl/gl_renderer.cpp"
+"src/driver/opengl/gl_texture_manager.cpp"
 "src/driver/opengl/gl_utility.cpp"
 "src/engine/core/context.cpp"
 "src/engine/core/engine.cpp"

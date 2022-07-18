@@ -5,6 +5,7 @@
 #include "src/driver/opengl/gl_mesh.h"
 #include "src/driver/opengl/gl_shader.h"
 #include "src/driver/opengl/gl_material.h"
+#include "src/driver/opengl/gl_texture_manager.h"
 #include "src/engine/rendering/resources.h"
 #include "src/engine/rendering/model_manager.h"
 
@@ -41,20 +42,9 @@ private:
     std::vector<GLMaterial> m_materials;
     std::vector<GLMesh> m_meshes;
 
-    /* Defaults for materials without texture bindings */
-    GLuint m_texture_1x1_0xffffffff;
-    GLuint m_texture_1x1_0x0000ff;
-    GLuint m_texture_1x1_0x80;
-
-    std::unordered_map<std::string, GLuint> m_textures;
+    GLTextureManager m_texture_manager;
 
     ResourceID upload_material(Model::Material const & material);
-    GLuint retrieve_texture(char const * path, GLuint default_texture);
-    void load_texture(char const * path);
-    GLuint load_texture(unsigned char * data,
-                        int w, int h,
-                        GLenum format,
-                        bool mipma);
 };
 
 } // namespace prt3
