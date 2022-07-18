@@ -17,9 +17,6 @@ namespace prt3 {
 
 class GLMaterial {
 public:
-    // TODO: Retrieve an existing shader program
-    //       instead of creating it here.
-    //       This is currently very wasteful
     GLMaterial(GLShader & shader,
                GLuint albedo_map,
                GLuint normal_map,
@@ -29,12 +26,12 @@ public:
                float metallic,
                float roughness);
 
-    GLShader & shader() { return m_shader; }
-    GLuint & albedo_map() { return m_albedo_map; }
-    GLuint & normal_map() { return m_normal_map; }
-    GLuint & metallic_map() { return m_metallic_map; }
-    GLuint & roughness_map() { return m_roughness_map; }
-    GLuint & ambient_occlussion_map() { return m_ambient_occlusion_map; }
+    GLShader const & shader() const { return m_shader; }
+    GLuint albedo_map() const { return m_albedo_map; }
+    GLuint normal_map() const { return m_normal_map; }
+    GLuint metallic_map() const { return m_metallic_map; }
+    GLuint roughness_map() const { return m_roughness_map; }
+    GLuint ambient_occlussion_map() const { return m_ambient_occlusion_map; }
 
     glm::vec4 albedo() const { return m_albedo; }
     float metallic() const { return m_metallic; }

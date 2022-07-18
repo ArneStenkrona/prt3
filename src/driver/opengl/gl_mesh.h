@@ -21,9 +21,9 @@ public:
               uint32_t start_index,
               uint32_t num_indices);
 
-    void draw(GLMaterial & material,
+    void draw(GLMaterial const & material,
               SceneRenderData const & scene_data,
-              MeshRenderData const & mesh_data);
+              MeshRenderData const & mesh_data) const;
 
 private:
     bool m_initialized = false;

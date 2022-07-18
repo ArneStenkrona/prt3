@@ -2,14 +2,17 @@
 
 #include "src/driver/opengl/gl_utility.h"
 
+#include <vector>
+#include <unordered_map>
 #include <cassert>
 
 using namespace prt3;
 
 GLRenderer::GLRenderer(SDL_Window * window)
  : m_window{window},
-   m_standard_shader{"assets/shaders/opengl/standard.vs",
-                     "assets/shaders/opengl/standard.fs"} {
+   m_material_manager{m_texture_manager},
+   m_model_manager{m_material_manager}
+  {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -40,8 +43,9 @@ void GLRenderer::render(RenderData const & render_data) {
         m_material_queues[mesh_data.material_id].push_back(mesh_data);
     }
 
+        std::vector<GLMaterial> const & materials = m_material_manager.materials();
     for (auto const & pair : m_material_queues) {
-        GLMaterial material = m_materials[pair.first];
+        GLMaterial material = materials[pair.first];
         material.shader().use();
         glCheckError();
         material.shader().setVec3("u_ViewPosition", render_data.scene_data.view_position);
@@ -75,9 +79,10 @@ void GLRenderer::render(RenderData const & render_data) {
         material.shader().setFloat("u_PointLights[3].c", light_data.point_lights[3].light.constant_term);
         glCheckError();
 
+        std::vector<GLMesh> const & meshes = m_model_manager.meshes();
         for (MeshRenderData const & mesh_data : pair.second) {
-            m_meshes[mesh_data.mesh_id].draw(
-                m_materials[mesh_data.material_id],
+            meshes[mesh_data.mesh_id].draw(
+                materials[mesh_data.material_id],
                 render_data.scene_data,
                 mesh_data
             );
@@ -86,143 +91,4 @@ void GLRenderer::render(RenderData const & render_data) {
 
     SDL_GL_SwapWindow(m_window);
     glCheckError();
-}
-
-void GLRenderer::upload_model(ModelManager::ModelHandle model_handle,
-                              Model const & model,
-                              ModelResource & resource) {
-    // upload model buffers
-    GLuint vao;
-    GLuint vbo;
-    GLuint ebo;
-
-    glGenVertexArraysOES(1, &vao);
-    glCheckError();
-    glBindVertexArrayOES(vao);
-    glCheckError();
-
-    glGenBuffers(1, &vbo);
-    glCheckError();
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glCheckError();
-
-    std::vector<Model::Vertex> const & vertices = model.vertex_buffer();
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertices[0]), vertices.data(), GL_STATIC_DRAW);
-    glCheckError();
-
-    GLuint shader_program = m_standard_shader.ID;
-
-    GLint pos_attr = glGetAttribLocation(shader_program, "a_Position");
-    glCheckError();
-    glEnableVertexAttribArray(pos_attr);
-    glCheckError();
-    glVertexAttribPointer(pos_attr, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(Model::Vertex),
-                          reinterpret_cast<void*>(offsetof(Model::Vertex, position)));
-    glCheckError();
-
-    GLint normal_attr = glGetAttribLocation(shader_program, "a_Normal");
-    glCheckError();
-    glEnableVertexAttribArray(normal_attr);
-    glCheckError();
-    glVertexAttribPointer(normal_attr, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(Model::Vertex),
-                          reinterpret_cast<void*>(offsetof(Model::Vertex, normal)));
-    glCheckError();
-
-    GLint texcoord_attr = glGetAttribLocation(shader_program, "a_TexCoordinate");
-    glCheckError();
-    glEnableVertexAttribArray(texcoord_attr);
-    glCheckError();
-    glVertexAttribPointer(texcoord_attr, 2, GL_FLOAT, GL_FALSE,
-                          sizeof(Model::Vertex),
-                          reinterpret_cast<void*>(offsetof(Model::Vertex, texture_coordinate)));
-    glCheckError();
-
-    GLint tan_attr = glGetAttribLocation(shader_program, "a_Tangent");
-    glCheckError();
-    if (tan_attr != -1) {
-        glEnableVertexAttribArray(tan_attr);
-        glCheckError();
-        glVertexAttribPointer(tan_attr, 3, GL_FLOAT, GL_FALSE,
-                              sizeof(Model::Vertex),
-                              reinterpret_cast<void*>(offsetof(Model::Vertex, tangent)));
-        glCheckError();
-    }
-
-    GLint bitan_attr = glGetAttribLocation(shader_program, "a_Bitangent");
-    glCheckError();
-    if (bitan_attr != -1) {
-        glEnableVertexAttribArray(bitan_attr);
-        glCheckError();
-        glVertexAttribPointer(bitan_attr, 3, GL_FLOAT, GL_FALSE,
-                              sizeof(Model::Vertex),
-                              reinterpret_cast<void*>(offsetof(Model::Vertex, bitangent)));
-        glCheckError();
-    }
-
-    glGenBuffers(1, &ebo);
-    glCheckError();
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glCheckError();
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, model.index_buffer().size() * sizeof(uint32_t),
-                 model.index_buffer().data(), GL_STATIC_DRAW);
-    glCheckError();
-
-    m_buffer_handles[model_handle] = {vao, vbo, ebo};
-
-    // Create gl materials
-    resource.material_resource_ids.resize(model.meshes().size());
-    std::vector<ResourceID> material_ids;
-    material_ids.resize(model.materials().size());
-    size_t material_index = 0;
-    for (Model::Material const & material : model.materials()) {
-        material_ids[material_index] = upload_material(material);
-        ++material_index;
-    }
-    // Create gl meshes
-    resource.mesh_resource_ids.resize(model.meshes().size());
-    size_t mesh_index = 0;
-    for (Model::Mesh const & mesh : model.meshes()) {
-        ResourceID id = m_meshes.size();
-
-        m_meshes.push_back({});
-        GLMesh & gl_mesh = m_meshes.back();
-        gl_mesh.init(vao, mesh.start_index, mesh.num_indices);
-
-        resource.mesh_resource_ids[mesh_index] = id;
-        resource.material_resource_ids[mesh_index] = material_ids[mesh.material_index];
-        ++mesh_index;
-    }
-
-    glBindVertexArrayOES(0);
-    glCheckError();
-}
-
-ResourceID GLRenderer::upload_material(Model::Material const & material) {
-    GLTextureManager & tm = m_texture_manager;
-    GLuint albedo_map = tm.retrieve_texture(material.albedo_map.c_str(),
-                                            tm.texture_1x1_0xffffffff());
-    GLuint normal_map = tm.retrieve_texture(material.normal_map.c_str(),
-                                            tm.texture_1x1_0x0000ff());
-    GLuint roughness_map = tm.retrieve_texture(material.roughness_map.c_str(),
-                                               tm.texture_1x1_0x80());
-    GLuint metallic_map = tm.retrieve_texture(material.metallic_map.c_str(),
-                                              tm.texture_1x1_0x80());
-
-    ResourceID id = m_materials.size();
-    m_materials.emplace_back(
-        m_standard_shader,
-        albedo_map,
-        normal_map,
-        roughness_map,
-        metallic_map,
-        material.albedo,
-        material.metallic,
-        material.roughness
-    );
-
-    return id;
 }

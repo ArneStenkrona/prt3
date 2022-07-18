@@ -20,9 +20,9 @@ void GLMesh::init(GLuint vao,
     m_initialized = true;
 }
 
-void GLMesh::draw(GLMaterial & material,
+void GLMesh::draw(GLMaterial const & material,
                   SceneRenderData const & scene_data,
-                  MeshRenderData const & mesh_data) {
+                  MeshRenderData const & mesh_data) const {
     glm::mat4 m_matrix = mesh_data.transform;
     glm::mat4 mv_matrix = scene_data.view_matrix * mesh_data.transform;
     glm::mat4 mvp_matrix = scene_data.projection_matrix * mv_matrix;

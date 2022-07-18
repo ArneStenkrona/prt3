@@ -24,8 +24,10 @@ include_directories(
 
 file(GLOB SOURCES
 "src/main/main.cpp"
+"src/driver/opengl/gl_material_manager.cpp"
 "src/driver/opengl/gl_material.cpp"
 "src/driver/opengl/gl_mesh.cpp"
+"src/driver/opengl/gl_model_manager.cpp"
 "src/driver/opengl/gl_renderer.cpp"
 "src/driver/opengl/gl_texture_manager.cpp"
 "src/driver/opengl/gl_utility.cpp"

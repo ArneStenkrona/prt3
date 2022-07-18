@@ -6,16 +6,14 @@
 #include "src/driver/opengl/gl_shader.h"
 #include "src/driver/opengl/gl_material.h"
 #include "src/driver/opengl/gl_texture_manager.h"
-#include "src/engine/rendering/resources.h"
+#include "src/driver/opengl/gl_material_manager.h"
+#include "src/driver/opengl/gl_model_manager.h"
 #include "src/engine/rendering/model_manager.h"
 
 #include <SDL.h>
 
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL_opengles2.h>
-
-#include <vector>
-#include <unordered_map>
 
 namespace prt3 {
 
@@ -27,24 +25,15 @@ public:
     virtual void render(RenderData const & render_data);
     virtual void upload_model(ModelManager::ModelHandle model_handle,
                               Model const & model,
-                              ModelResource & resource);
+                              ModelResource & resource)
+        { m_model_manager.upload_model(model_handle, model, resource); }
 private:
-    struct ModelBufferHandles {
-        GLuint vao;
-        GLuint vbo;
-        GLuint ebo;
-    };
     SDL_Window * m_window;
 
-    std::unordered_map<ModelManager::ModelHandle, ModelBufferHandles> m_buffer_handles;
-
-    GLShader m_standard_shader;
-    std::vector<GLMaterial> m_materials;
-    std::vector<GLMesh> m_meshes;
-
     GLTextureManager m_texture_manager;
+    GLMaterialManager m_material_manager;
+    GLModelManager m_model_manager;
 
-    ResourceID upload_material(Model::Material const & material);
 };
 
 } // namespace prt3
