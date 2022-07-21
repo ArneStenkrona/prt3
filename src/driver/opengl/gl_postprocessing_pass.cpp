@@ -57,7 +57,10 @@ void GLPostProcessingPass::set_shader(const char * fragment_shader_path) {
     glCheckError();
 }
 
-void GLPostProcessingPass::render(int w, int h, GLuint render_texture) {
+void GLPostProcessingPass::render(int w, int h,
+                                  SceneRenderData const & scene_data,
+                                  GLuint render_texture,
+                                  GLuint depth_texture) {
     /* Render to window */
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glCheckError();
@@ -67,10 +70,28 @@ void GLPostProcessingPass::render(int w, int h, GLuint render_texture) {
     glUseProgram(m_shader);
     glCheckError();
     GLint render_loc = glGetUniformLocation(m_shader, "u_RenderTexture");
-    glUniform1i(render_loc, 0);
-    glActiveTexture(GL_TEXTURE0);
+    GLenum tex_enum = GL_TEXTURE0;
+    if (render_loc != -1) {
+        glUniform1i(render_loc, 0);
+        glActiveTexture(tex_enum);
+        glCheckError();
+        glBindTexture(GL_TEXTURE_2D, render_texture);
+        glCheckError();
+        ++tex_enum;
+    }
+    GLint depth_loc = glGetUniformLocation(m_shader, "u_DepthBuffer");
+    if (depth_loc != -1) {
+        glUniform1i(depth_loc, 0);
+        glActiveTexture(tex_enum);
+        glCheckError();
+        glBindTexture(GL_TEXTURE_2D, depth_texture);
+        glCheckError();
+        ++tex_enum;
+    }
+
+    glshaderutility::set_float(m_shader, "u_NearPlane", scene_data.near_plane);
     glCheckError();
-    glBindTexture(GL_TEXTURE_2D, render_texture);
+    glshaderutility::set_float(m_shader, "u_FarPlane", scene_data.far_plane);
     glCheckError();
 
     glBindVertexArrayOES(m_screen_quad_vao);

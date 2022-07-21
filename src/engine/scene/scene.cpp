@@ -26,7 +26,7 @@ Scene::Scene(Context & context)
     m_component_manager.set_point_light_component(light_node, light);
     set_node_local_position(light_node, glm::vec3(2.1f, 2.1f, 2.1f));
 
-    m_context.renderer().set_postprocesing_shader("assets/shaders/opengl/sinusoidal.fs");
+    m_context.renderer().set_postprocesing_shader("assets/shaders/opengl/outline.fs");
     // <---- FOR DEBUGGING, WILL REMOVE
 
 }
@@ -60,6 +60,8 @@ void Scene::collect_render_data(RenderData & render_data) const {
     render_data.scene_data.view_matrix = m_camera.get_view_matrix();
     render_data.scene_data.projection_matrix = m_camera.get_projection_matrix();
     render_data.scene_data.view_position = m_camera.get_position();
+    render_data.scene_data.near_plane = m_camera.near_plane();
+    render_data.scene_data.far_plane = m_camera.far_plane();
 
     /* mesh data */
     struct QueueElement {

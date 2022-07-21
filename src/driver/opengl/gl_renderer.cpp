@@ -3,6 +3,8 @@
 #include "src/driver/opengl/gl_shader_utility.h"
 #include "src/driver/opengl/gl_utility.h"
 
+#include <emscripten.h>
+
 #include <vector>
 #include <unordered_map>
 #include <cassert>
@@ -46,7 +48,7 @@ GLRenderer::GLRenderer(SDL_Window * window)
     int w;
     int h;
     SDL_GetWindowSize(m_window, &w, &h);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0,GL_RGB, GL_UNSIGNED_BYTE, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
     glCheckError();
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -58,22 +60,32 @@ GLRenderer::GLRenderer(SDL_Window * window)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glCheckError();
 
-    glGenRenderbuffers(1, &m_depth_buffer);
+	glGenTextures(1, &m_depth_texture);
     glCheckError();
-    glBindRenderbuffer(GL_RENDERBUFFER, m_depth_buffer);
+	glBindTexture(GL_TEXTURE_2D, m_depth_texture);
     glCheckError();
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, w, h);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, 0);
     glCheckError();
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER,
-                              GL_DEPTH_ATTACHMENT,
-                              GL_RENDERBUFFER,
-                              m_depth_buffer);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glCheckError();
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glCheckError();
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glCheckError();
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glCheckError();
 
     glFramebufferTexture2D(GL_FRAMEBUFFER,
                            GL_COLOR_ATTACHMENT0,
                            GL_TEXTURE_2D,
                            m_render_texture,
+                           0);
+    glCheckError();
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER,
+                           GL_DEPTH_ATTACHMENT,
+                           GL_TEXTURE_2D,
+                           m_depth_texture,
                            0);
     glCheckError();
 
@@ -152,7 +164,10 @@ void GLRenderer::render(RenderData const & render_data) {
         glCheckError();
     }
 
-    m_postprocessing_pass.render(w, h, m_render_texture);
+    m_postprocessing_pass.render(w, h,
+                                 render_data.scene_data,
+                                 m_render_texture,
+                                 m_depth_texture);
 
     SDL_GL_SwapWindow(m_window);
     glCheckError();

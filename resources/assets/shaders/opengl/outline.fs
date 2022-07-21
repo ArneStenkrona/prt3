@@ -1,10 +1,18 @@
 precision mediump float;
 
-varying vec2 v_TexCoordinate;
+uniform float u_NearPlane;
+uniform float u_FarPlane;
 
 uniform sampler2D u_RenderTexture;
+uniform sampler2D u_DepthBuffer;
+
+varying vec2 v_TexCoordinate;
 
 void main() {
-    float time = 0.0;
-    gl_FragColor = texture2D( u_RenderTexture, v_TexCoordinate + 0.005*vec2( sin(time+1024.0*v_TexCoordinate.x),cos(time+768.0*v_TexCoordinate.y)) );
+    float z = texture2D(u_DepthBuffer, v_TexCoordinate).r;
+    float n = u_NearPlane;
+    float f = u_FarPlane;
+    float c = (2.0 * n) / (f + n - z * (f - n));
+
+    gl_FragColor = vec4(vec3(c), 1.0);
 }

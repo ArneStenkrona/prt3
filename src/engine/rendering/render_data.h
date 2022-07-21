@@ -20,6 +20,8 @@ struct SceneRenderData {
     glm::mat4 view_matrix;
     glm::mat4 projection_matrix;
     glm::vec3 view_position;
+    float near_plane;
+    float far_plane;
 };
 
 struct MeshRenderData {

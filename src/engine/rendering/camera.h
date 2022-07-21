@@ -58,6 +58,9 @@ public:
     inline glm::vec3 const & get_right() const { return m_right; }
     inline glm::vec3 const & get_world_up() const { return m_world_up; }
 
+    inline float near_plane() const {return m_near_plane; }
+    inline float far_plane() const {return m_far_plane; }
+
 private:
     // Camera Attributes
     glm::vec3 m_position;
