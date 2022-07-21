@@ -2,7 +2,7 @@
 
 using namespace prt3;
 
-GLMaterial::GLMaterial(GLShader & shader,
+GLMaterial::GLMaterial(GLuint & shader,
                        GLuint albedo_map,
                        GLuint normal_map,
                        GLuint metallic_map,

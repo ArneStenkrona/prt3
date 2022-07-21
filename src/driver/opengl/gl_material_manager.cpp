@@ -1,12 +1,16 @@
 #include "gl_material_manager.h"
 
+#include "src/driver/opengl/gl_shader_utility.h"
+
 using namespace prt3;
 
 GLMaterialManager::GLMaterialManager(GLTextureManager & texture_manager)
- : m_texture_manager{texture_manager},
-   m_standard_shader{"assets/shaders/opengl/standard.vs",
-                     "assets/shaders/opengl/standard.fs"} {
-
+ : m_texture_manager{texture_manager}
+{
+    m_standard_shader = glshaderutility::create_shader(
+        "assets/shaders/opengl/standard.vs",
+        "assets/shaders/opengl/standard.fs"
+    );
 }
 
 ResourceID GLMaterialManager::upload_material(Model::Material const & material) {

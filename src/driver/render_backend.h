@@ -18,6 +18,7 @@ public:
     virtual void upload_model(ModelManager::ModelHandle model_handle,
                               Model const & model,
                               ModelResource & resource) = 0;
+    virtual void set_postprocessing_shader(const char * fragment_shader_path) = 0;
 private:
 };
 

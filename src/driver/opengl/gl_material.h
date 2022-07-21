@@ -1,8 +1,6 @@
 #ifndef PRT3_GL_MATERIAL_H
 #define PRT3_GL_MATERIAL_H
 
-#include "src/driver/opengl/gl_shader.h"
-
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
@@ -17,7 +15,7 @@ namespace prt3 {
 
 class GLMaterial {
 public:
-    GLMaterial(GLShader & shader,
+    GLMaterial(GLuint & shader,
                GLuint albedo_map,
                GLuint normal_map,
                GLuint metallic_map,
@@ -26,7 +24,7 @@ public:
                float metallic,
                float roughness);
 
-    GLShader const & shader() const { return m_shader; }
+    GLuint const & shader() const { return m_shader; }
     GLuint albedo_map() const { return m_albedo_map; }
     GLuint normal_map() const { return m_normal_map; }
     GLuint metallic_map() const { return m_metallic_map; }
@@ -38,7 +36,7 @@ public:
     float roughness() const { return m_roughness; }
 
 private:
-    GLShader m_shader;
+    GLuint m_shader;
     GLuint m_albedo_map;
     GLuint m_normal_map;
     GLuint m_metallic_map;

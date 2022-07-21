@@ -3,11 +3,11 @@
 
 #include "src/driver/render_backend.h"
 #include "src/driver/opengl/gl_mesh.h"
-#include "src/driver/opengl/gl_shader.h"
 #include "src/driver/opengl/gl_material.h"
 #include "src/driver/opengl/gl_texture_manager.h"
 #include "src/driver/opengl/gl_material_manager.h"
 #include "src/driver/opengl/gl_model_manager.h"
+#include "src/driver/opengl/gl_postprocessing_pass.h"
 #include "src/engine/rendering/model_manager.h"
 
 #include <SDL.h>
@@ -27,6 +27,8 @@ public:
                               Model const & model,
                               ModelResource & resource)
         { m_model_manager.upload_model(model_handle, model, resource); }
+
+    virtual void set_postprocessing_shader(const char * fragment_shader_path);
 private:
     SDL_Window * m_window;
 
@@ -38,11 +40,13 @@ private:
     GLuint m_render_texture;
     GLuint m_depth_buffer;
 
-    // GLuint m_quad_vertexbuffer;
-    GLuint m_screen_quad_vao;
-    GLuint m_screen_quad_vbo;
+    GLPostProcessingPass m_postprocessing_pass;
 
-    GLShader m_passthrough_shader;
+    // GLuint m_quad_vertexbuffer;
+    // GLuint m_screen_quad_vao;
+    // GLuint m_screen_quad_vbo;
+
+    // GLShader m_passthrough_shader;
 };
 
 } // namespace prt3

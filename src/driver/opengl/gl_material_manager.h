@@ -1,8 +1,8 @@
 #ifndef PRT3_GL_MATERIAL_MANAGER_H
 #define PRT3_GL_MATERIAL_MANAGER_H
 
-#include "src/driver/opengl/gl_material.h"
 #include "src/driver/opengl/gl_texture_manager.h"
+#include "src/driver/opengl/gl_material.h"
 #include "src/engine/rendering/resources.h"
 #include "src/engine/rendering/model.h"
 
@@ -16,14 +16,14 @@ public:
 
     std::vector<GLMaterial> const & materials() const { return m_materials; }
 
-    GLShader const & standard_shader() const { return m_standard_shader; }
+    GLuint const & standard_shader() const { return m_standard_shader; }
 
 private:
     GLTextureManager & m_texture_manager;
 
     std::vector<GLMaterial> m_materials;
 
-    GLShader m_standard_shader;
+    GLuint m_standard_shader;
 };
 
 } // namespace prt3;

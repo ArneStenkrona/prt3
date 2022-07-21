@@ -25,6 +25,8 @@ Scene::Scene(Context & context)
     light.constant_term = 0.0f;
     m_component_manager.set_point_light_component(light_node, light);
     set_node_local_position(light_node, glm::vec3(2.1f, 2.1f, 2.1f));
+
+    m_context.renderer().set_postprocesing_shader("assets/shaders/opengl/sinusoidal.fs");
     // <---- FOR DEBUGGING, WILL REMOVE
 
 }
