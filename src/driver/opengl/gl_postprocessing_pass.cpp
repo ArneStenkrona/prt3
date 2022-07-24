@@ -94,6 +94,11 @@ void GLPostProcessingPass::render(int w, int h,
     glshaderutility::set_float(m_shader, "u_FarPlane", scene_data.far_plane);
     glCheckError();
 
+    glshaderutility::set_float(m_shader, "u_PixelUnitX", 1.0f / w);
+    glCheckError();
+    glshaderutility::set_float(m_shader, "u_PixelUnitY", 1.0f / h);
+    glCheckError();
+
     glBindVertexArrayOES(m_screen_quad_vao);
     glCheckError();
     glDrawArrays(GL_TRIANGLES, 0, 6);
