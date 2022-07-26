@@ -15,7 +15,7 @@ Scene::Scene(Context & context)
 
     // FOR DEBUGGING, WILL REMOVE ---->
     m_context.model_manager()
-        .add_model_to_scene_from_path("assets/models/debug/pbr_cube.fbx", *this, m_root_id);
+        .add_model_to_scene_from_path("assets/models/example/motorbike.fbx", *this, m_root_id);
 
     NodeID light_node = add_node_to_root();
     PointLight light;

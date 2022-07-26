@@ -61,6 +61,7 @@ void main()
     }
 
     gl_FragColor = vec4(lightContribution, 1.0) * albedo;
+    // gl_FragColor = vec4(albedo.rgb, 1.0);
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {

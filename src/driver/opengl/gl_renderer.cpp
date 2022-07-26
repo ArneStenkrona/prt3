@@ -17,6 +17,10 @@ GLRenderer::GLRenderer(SDL_Window * window)
    m_model_manager{m_material_manager},
    m_postprocessing_pass{}
   {
+    int w;
+    int h;
+    SDL_GetWindowSize(m_window, &w, &h);
+
     /* Set SDL attributes */
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
@@ -44,10 +48,6 @@ GLRenderer::GLRenderer(SDL_Window * window)
     glCheckError();
     glBindTexture(GL_TEXTURE_2D, m_render_texture);
     glCheckError();
-
-    int w;
-    int h;
-    SDL_GetWindowSize(m_window, &w, &h);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
     glCheckError();
 
@@ -64,8 +64,9 @@ GLRenderer::GLRenderer(SDL_Window * window)
     glCheckError();
 	glBindTexture(GL_TEXTURE_2D, m_depth_texture);
     glCheckError();
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, 0);
     glCheckError();
+
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glCheckError();
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

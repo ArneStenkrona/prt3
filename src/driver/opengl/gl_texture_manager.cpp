@@ -35,9 +35,8 @@ void GLTextureManager::load_texture(char const * path) {
     if (path[0] != '\0') {
         SDL_Surface * image = IMG_Load(path);
 
-
-        GLuint texture_handle;
         if (image) {
+            GLuint texture_handle;
             // TODO: proper format detection
             GLenum format = 0;
             switch (image->format->BytesPerPixel) {

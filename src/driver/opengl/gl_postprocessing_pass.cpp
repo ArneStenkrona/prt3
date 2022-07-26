@@ -70,23 +70,24 @@ void GLPostProcessingPass::render(int w, int h,
     glUseProgram(m_shader);
     glCheckError();
     GLint render_loc = glGetUniformLocation(m_shader, "u_RenderTexture");
-    GLenum tex_enum = GL_TEXTURE0;
+    GLenum tex_offset = 0;
     if (render_loc != -1) {
-        glUniform1i(render_loc, 0);
-        glActiveTexture(tex_enum);
+        glUniform1i(render_loc, tex_offset);
+        glActiveTexture(GL_TEXTURE0 + tex_offset);
         glCheckError();
         glBindTexture(GL_TEXTURE_2D, render_texture);
         glCheckError();
-        ++tex_enum;
+        ++tex_offset;
     }
+
     GLint depth_loc = glGetUniformLocation(m_shader, "u_DepthBuffer");
     if (depth_loc != -1) {
-        glUniform1i(depth_loc, 0);
-        glActiveTexture(tex_enum);
+        glUniform1i(depth_loc, tex_offset);
+        glActiveTexture(GL_TEXTURE0 + tex_offset);
         glCheckError();
         glBindTexture(GL_TEXTURE_2D, depth_texture);
         glCheckError();
-        ++tex_enum;
+        ++tex_offset;
     }
 
     glshaderutility::set_float(m_shader, "u_NearPlane", scene_data.near_plane);
