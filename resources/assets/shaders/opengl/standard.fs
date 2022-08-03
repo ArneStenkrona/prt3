@@ -18,6 +18,15 @@ struct PointLight {
 uniform PointLight u_PointLights[4]; // Point Lights
 uniform int u_NumberOfPointLights;
 
+struct DirectionalLight {
+    vec3 direction;
+    vec3 color;
+};
+uniform DirectionalLight u_DirectionalLight;
+uniform bool u_DirectionalLightOn;
+
+uniform vec3 u_AmbientLight;
+
 uniform vec3 u_ViewPosition;
 
 varying vec3 v_Position;
@@ -34,20 +43,25 @@ vec3 calculatePointLight(PointLight light,
                          float metallic,
                          float roughness);
 
+vec3 CalculateDirectionalLight(DirectionalLight light,
+                               vec3  albedo,
+                               vec3  normal,
+                               float metallic,
+                               float roughness);
+
 // The entry point for our fragment shader.
 void main()
 {
     vec4 albedo = u_Albedo * texture2D(u_AlbedoMap, v_TexCoordinate);
 
-    vec3 normal = normalize(v_InverseTBN *
-                    ((2.0 * texture2D(u_NormalMap, v_TexCoordinate).rgb) - 1.0));;
+    // vec3 normal = normalize(v_InverseTBN *
+    //                 ((2.0 * texture2D(u_NormalMap, v_TexCoordinate).rgb) - 1.0));
+    vec3 normal = v_Normal;
 
     float metallic = u_Metallic * texture2D(u_MetallicMap, v_TexCoordinate).r;
     float roughness = 1.0 - u_Roughness * texture2D(u_RoughnessMap, v_TexCoordinate).r;
 
-    vec3 lightContribution = vec3(0.0);
-    // Add ambient
-    lightContribution += 0.3;
+    vec3 lightContribution = u_AmbientLight;
     // Add point lights
     for (int i = 0; i < 4; ++i) {
         // Constant loop count work-around
@@ -60,8 +74,18 @@ void main()
         }
     }
 
+    if (u_DirectionalLightOn) {
+        lightContribution += CalculateDirectionalLight(
+            u_DirectionalLight,
+            albedo.rgb,
+            normal,
+            metallic,
+            roughness
+        );
+    }
+
     gl_FragColor = vec4(lightContribution, 1.0) * albedo;
-    // gl_FragColor = vec4(albedo.rgb, 1.0);
+    // gl_FragColor = vec4(normal, 1.0);
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
@@ -130,6 +154,43 @@ vec3 calculatePointLight(PointLight light,
     vec3 numerator = NDF * G * F;
     float denominator = 4.0 * max(dot(normal, V), 0.0) * max(dot(normal,L), 0.0);
     vec3 specular = numerator / max(denominator, 0.001);
+
+    float NdotL = max(dot(normal, L), 0.0);
+    vec3 contribution = (kD * albedo / PI + specular) * radiance * NdotL;
+
+    return contribution;
+}
+
+vec3 CalculateDirectionalLight(DirectionalLight light,
+                               vec3  albedo,
+                               vec3  normal,
+                               float metallic,
+                               float roughness) {
+    vec3 direction = light.direction;
+    vec3 color = 10.0 * light.color;
+
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, albedo, metallic);
+
+    vec3 V = normalize(u_ViewPosition - v_Position);
+    vec3 L = normalize(-direction);
+    vec3 H = normalize(V + L);
+
+    vec3 radiance = color;
+
+    vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+    float NDF = DistributionGGX(normal, H, roughness);
+    float G = GeometrySmith(normal, V, L, roughness);
+
+    vec3 numerator = NDF * G * F;
+    float denominator = 4.0 * max(dot(normal, V), 0.0) * max(dot(normal, L), 0.0);
+    vec3 specular = numerator / max(denominator, 0.001);
+
+    vec3 kS = F;
+    vec3 kD = vec3(1.0) - kS;
+
+    kD *= 1.0 - metallic;
 
     float NdotL = max(dot(normal, L), 0.0);
     vec3 contribution = (kD * albedo / PI + specular) * radiance * NdotL;

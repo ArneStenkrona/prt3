@@ -134,6 +134,16 @@ Model::Model(char const * path) {
                 m_vertex_buffer[vert].normal.y = norm.y;
                 m_vertex_buffer[vert].normal.z = norm.z;
 
+                aiVector3D tan = (invtpos * aiMesh->mTangents[j]).Normalize();
+                m_vertex_buffer[vert].tangent.x = tan.x;
+                m_vertex_buffer[vert].tangent.y = tan.y;
+                m_vertex_buffer[vert].tangent.z = tan.z;
+
+                aiVector3D bitan = (invtpos * aiMesh->mBitangents[j]).Normalize();
+                m_vertex_buffer[vert].bitangent.x = bitan.x;
+                m_vertex_buffer[vert].bitangent.y = bitan.y;
+                m_vertex_buffer[vert].bitangent.z = bitan.z;
+
                 if (has_texture_coordinates) {
                     m_vertex_buffer[vert].texture_coordinate.x =
                         aiMesh->mTextureCoords[0][j].x;
@@ -274,7 +284,7 @@ Model::Model(char const * path) {
         }
     }
 
-    calculate_tangent_space();
+    // calculate_tangent_space();
 }
 
 int Model::get_animation_index(char const * name) const {

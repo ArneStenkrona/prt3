@@ -3,7 +3,7 @@
 #include "src/driver/opengl/gl_shader_utility.h"
 #include "src/driver/opengl/gl_utility.h"
 
-#include <emscripten.h>
+#include "glm/gtx/string_cast.hpp"
 
 #include <vector>
 #include <unordered_map>
@@ -152,6 +152,16 @@ void GLRenderer::render(RenderData const & render_data) {
         glshaderutility::set_float(shader_id, "u_PointLights[3].a", light_data.point_lights[3].light.quadratic_term);
         glshaderutility::set_float(shader_id, "u_PointLights[3].b", light_data.point_lights[3].light.linear_term);
         glshaderutility::set_float(shader_id, "u_PointLights[3].c", light_data.point_lights[3].light.constant_term);
+        glCheckError();
+
+        glshaderutility::set_vec3(shader_id,
+                                  "u_DirectionalLight.direction",
+                                  glm::normalize(light_data.directional_light.direction));
+        glshaderutility::set_vec3(shader_id, "u_DirectionalLight.color", light_data.directional_light.color);
+        glshaderutility::set_bool(shader_id, "u_DirectionalLightOn", light_data.directional_light_on);
+        glCheckError();
+
+        glshaderutility::set_vec3(shader_id, "u_AmbientLight", light_data.ambient_light.color);
         glCheckError();
 
         std::vector<GLMesh> const & meshes = m_model_manager.meshes();

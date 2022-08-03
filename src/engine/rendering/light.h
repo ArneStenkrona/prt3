@@ -9,10 +9,19 @@
 namespace prt3 {
 
 struct PointLight {
+    alignas(16) glm::vec3 color;
+    alignas(4) float quadratic_term;
+    alignas(4) float linear_term;
+    alignas(4) float constant_term;
+};
+
+struct DirectionalLight {
+    alignas(16) glm::vec3 direction;
+    alignas(16) glm::vec3 color;
+};
+
+struct AmbientLight {
     glm::vec3 color;
-    float quadratic_term;
-    float linear_term;
-    float constant_term;
 };
 
 } // namespace prt3

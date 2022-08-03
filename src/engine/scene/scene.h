@@ -30,6 +30,10 @@ public:
     void set_node_local_position(NodeID node_id, glm::vec3 const & local_position)
         { m_nodes[node_id].local_transform.position = local_position; }
 
+    void set_directional_light(DirectionalLight light) { m_directional_light = light; }
+    void set_directional_light_on(bool on) { m_directional_light_on = on; }
+    void set_ambient_light(glm::vec3 color) { m_ambient_light.color = color; }
+
 private:
     Context & m_context;
 
@@ -39,6 +43,11 @@ private:
     std::vector<Node> m_nodes;
 
     ComponentManager m_component_manager;
+
+    DirectionalLight m_directional_light;
+    bool m_directional_light_on = false;
+
+    AmbientLight m_ambient_light;
 
     void update(float delta_time);
     void render();

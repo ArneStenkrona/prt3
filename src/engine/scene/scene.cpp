@@ -17,16 +17,19 @@ Scene::Scene(Context & context)
     m_context.model_manager()
         .add_model_to_scene_from_path("assets/models/example/motorbike.fbx", *this, m_root_id);
 
-    NodeID light_node = add_node_to_root();
-    PointLight light;
-    light.color = glm::vec3(1.0f, 1.0f, 1.0f);
-    light.quadratic_term = 0.01f;
-    light.linear_term = 0.01f;
-    light.constant_term = 0.0f;
-    m_component_manager.set_point_light_component(light_node, light);
-    set_node_local_position(light_node, glm::vec3(2.1f, 2.1f, 2.1f));
+    // NodeID light_node = add_node_to_root();
+    // PointLight light;
+    // light.color = glm::vec3(1.0f, 1.0f, 1.0f);
+    // light.quadratic_term = 0.01f;
+    // light.linear_term = 0.01f;
+    // light.constant_term = 0.0f;
+    // m_component_manager.set_point_light_component(light_node, light);
+    // set_node_local_position(light_node, glm::vec3(2.1f, 2.1f, 2.1f));
 
     m_context.renderer().set_postprocesing_shader("assets/shaders/opengl/outline.fs");
+
+    set_directional_light({{1.0f, -1.0f, 1.0f}, {0.8f, 0.8f, 0.8f}});
+    set_directional_light_on(true);
     // <---- FOR DEBUGGING, WILL REMOVE
 
 }
@@ -124,6 +127,11 @@ void Scene::collect_render_data(RenderData & render_data) const {
     for (size_t i = 0; i < render_data.light_data.number_of_point_lights; ++i) {
         render_data.light_data.point_lights[i] = point_lights[i];
     }
+
+    render_data.light_data.directional_light = m_directional_light;
+    render_data.light_data.directional_light_on = m_directional_light_on;
+
+    render_data.light_data.ambient_light = m_ambient_light;
 }
 
 void Scene::update_window_size(int w, int h) {

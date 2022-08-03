@@ -39,6 +39,9 @@ struct LightRenderData {
     static constexpr size_t MAX_NUMBER_OF_POINT_LIGHTS = 4;
     size_t number_of_point_lights;
     std::array<PointLightRenderData, MAX_NUMBER_OF_POINT_LIGHTS> point_lights;
+    DirectionalLight directional_light;
+    bool directional_light_on;
+    AmbientLight ambient_light;
 };
 
 struct RenderData {
