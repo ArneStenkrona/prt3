@@ -18,10 +18,26 @@ namespace prt3 {
 typedef int NodeID;
 constexpr NodeID NO_NODE = -1;
 
-struct Node {
-    Transform local_transform;
-    NodeID parent = NO_NODE;
-    std::vector<NodeID> children;
+class Scene;
+class Node {
+public:
+    Node(Scene & scene);
+
+    Transform get_global_transform() const;
+    void set_global_transform(Transform const & transform);
+    Transform const & local_transform() const { return m_local_transform; }
+    Transform & local_transform() { return m_local_transform; }
+
+    NodeID parent_id() { return m_parent_id; }
+    std::vector<NodeID> const & children_ids() const { return m_children_ids; }
+private:
+    Scene & m_scene;
+
+    Transform m_local_transform;
+    NodeID m_parent_id = NO_NODE;
+    std::vector<NodeID> m_children_ids;
+
+    friend class Scene;
 };
 
 } // namespace prt3

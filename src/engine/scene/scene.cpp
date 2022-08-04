@@ -11,7 +11,7 @@ Scene::Scene(Context & context)
  : m_context{context},
    m_camera{context.input(), context.renderer().window_width(), context.renderer().window_height()} {
     m_root_id = m_nodes.size();
-    m_nodes.push_back({});
+    m_nodes.emplace_back(*this);
 
     // FOR DEBUGGING, WILL REMOVE ---->
     m_context.model_manager()
@@ -26,12 +26,20 @@ Scene::Scene(Context & context)
     // m_component_manager.set_point_light_component(light_node, light);
     // set_node_local_position(light_node, glm::vec3(2.1f, 2.1f, 2.1f));
 
+    set_ambient_light(glm::vec3{0.09f, 0.11f, 0.34f});
+
     m_context.renderer().set_postprocesing_shader("assets/shaders/opengl/outline.fs");
 
     set_directional_light({{1.0f, -1.0f, -1.0f}, {0.8f, 0.8f, 0.8f}});
     set_directional_light_on(true);
     // <---- FOR DEBUGGING, WILL REMOVE
 
+}
+
+Scene::~Scene() {
+    for (Script * script : m_scripts) {
+        delete script;
+    }
 }
 
 void Scene::update(float delta_time) {
@@ -49,10 +57,10 @@ void Scene::render() {
 NodeID Scene::add_node(NodeID parent_id) {
     Node & parent = m_nodes[parent_id];
     NodeID id = m_nodes.size();
-    parent.children.push_back(id);
+    parent.m_children_ids.push_back(id);
 
-    m_nodes.push_back({});
-    m_nodes[id].parent = parent_id;
+    m_nodes.emplace_back(*this);
+    m_nodes[id].m_parent_id = parent_id;
 
     return id;
 }
@@ -73,7 +81,7 @@ void Scene::collect_render_data(RenderData & render_data) const {
     };
 
     std::vector<QueueElement> queue{{m_root_id,
-                                     m_nodes[m_root_id].local_transform.to_transform_matrix()}};
+                                     m_nodes[m_root_id].m_local_transform.to_transform_matrix()}};
 
     std::unordered_map<NodeID, glm::mat4> global_transforms;
 
@@ -84,10 +92,10 @@ void Scene::collect_render_data(RenderData & render_data) const {
         global_transforms.insert({node_id, node_transform});
         queue.pop_back();
 
-        for (NodeID const & child_id : node.children) {
+        for (NodeID const & child_id : node.children_ids()) {
             Node const & child = m_nodes[child_id];
             glm::mat4 child_transform =
-                child.local_transform.to_transform_matrix() * node_transform;
+                child.m_local_transform.to_transform_matrix() * node_transform;
             queue.push_back({child_id, child_transform});
         }
     }

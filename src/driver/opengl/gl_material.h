@@ -36,7 +36,7 @@ public:
     float roughness()  const { return m_roughness; }
 
     /* Per-material attribute locations */
-    GLint view_position_loc()                    const { return m_view_position_loc; }
+    GLint view_position_loc()               const { return m_view_position_loc; }
     GLint number_of_point_lights()          const { return m_number_of_point_lights; }
     GLint point_lights_0_color_loc()        const { return m_point_lights_0_color_loc; }
     GLint point_lights_0_position_loc()     const { return m_point_lights_0_position_loc; }

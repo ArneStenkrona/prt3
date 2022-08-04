@@ -19,7 +19,8 @@ namespace prt3 {
 
 class GLRenderer : public RenderBackend {
 public:
-    GLRenderer(SDL_Window * window);
+    GLRenderer(SDL_Window * window,
+               unsigned int scale_factor);
     virtual ~GLRenderer();
 
     virtual void render(RenderData const & render_data);
@@ -31,6 +32,7 @@ public:
     virtual void set_postprocessing_shader(const char * fragment_shader_path);
 private:
     SDL_Window * m_window;
+    unsigned int m_scale_factor;
 
     GLTextureManager m_texture_manager;
     GLMaterialManager m_material_manager;

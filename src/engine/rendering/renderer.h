@@ -18,7 +18,10 @@ class Context;
 
 class Renderer {
 public:
-    Renderer(Context & context);
+    Renderer(Context & context,
+             unsigned int width,
+             unsigned int height,
+             unsigned int scale_factor);
     Renderer(Renderer const &) = delete;
     ~Renderer();
 
@@ -43,10 +46,11 @@ private:
 
     int m_window_width;
     int m_window_height;
+    // unsigned int m_scale_factor;
 
     void set_window_size(int w, int h);
 };
 
-}
+} // namespace prt3
 
 #endif

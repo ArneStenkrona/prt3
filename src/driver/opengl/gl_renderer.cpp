@@ -11,8 +11,10 @@
 
 using namespace prt3;
 
-GLRenderer::GLRenderer(SDL_Window * window)
+GLRenderer::GLRenderer(SDL_Window * window,
+                       unsigned int scale_factor)
  : m_window{window},
+   m_scale_factor{scale_factor},
    m_material_manager{m_texture_manager},
    m_model_manager{m_material_manager},
    m_postprocessing_pass{}
@@ -20,6 +22,9 @@ GLRenderer::GLRenderer(SDL_Window * window)
     int w;
     int h;
     SDL_GetWindowSize(m_window, &w, &h);
+
+    assert(w % static_cast<int>(m_scale_factor) != 0 && "Width not divisible by scale factor.");
+    assert(h % static_cast<int>(m_scale_factor) != 0 && "Height not divisible by scale factor.");
 
     /* Set SDL attributes */
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
@@ -48,7 +53,7 @@ GLRenderer::GLRenderer(SDL_Window * window)
     glCheckError();
     glBindTexture(GL_TEXTURE_2D, m_render_texture);
     glCheckError();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w / m_scale_factor, h / m_scale_factor, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
     glCheckError();
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -64,7 +69,15 @@ GLRenderer::GLRenderer(SDL_Window * window)
     glCheckError();
 	glBindTexture(GL_TEXTURE_2D, m_depth_texture);
     glCheckError();
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, 0);
+	glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_DEPTH_COMPONENT,
+                 w / m_scale_factor,
+                 h / m_scale_factor,
+                 0,
+                 GL_DEPTH_COMPONENT,
+                 GL_UNSIGNED_INT,
+                 0);
     glCheckError();
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -106,7 +119,7 @@ void GLRenderer::render(RenderData const & render_data) {
     SDL_GetWindowSize(m_window, &w, &h);
     glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
     glCheckError();
-    glViewport(0, 0, w, h);
+    glViewport(0, 0, w / m_scale_factor, h / m_scale_factor);
     glCheckError();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

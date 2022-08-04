@@ -83,8 +83,49 @@ void main()
             roughness
         );
     }
+    vec4 rawColor = vec4(lightContribution, 1.0) * albedo;
 
-    gl_FragColor = vec4(lightContribution, 1.0) * albedo;
+    // mat4 bayer4x4 = mat4(
+    //     0.0, 8.0, 2.0, 10.0,
+    //     12.0, 4.0, 14.0, 6.0,
+    //     3.0, 11.0, 1.0, 9.0,
+    //     15.0, 7.0, 13.0, 5.0
+    // );
+    float x = gl_FragCoord.x;
+    x = x - (4.0 * floor(x/4.0));
+    float y = gl_FragCoord.y;
+    y = y - (4.0 * floor(y/4.0));
+
+    int index = int(x + y * 4.0);
+    float M = 0.0;
+
+    if (index == 0) M = 0.0625;
+    if (index == 1) M = 0.5625;
+    if (index == 2) M = 0.1875;
+    if (index == 3) M = 0.6875;
+    if (index == 4) M = 0.8125;
+    if (index == 5) M = 0.3125;
+    if (index == 6) M = 0.9375;
+    if (index == 7) M = 0.4375;
+    if (index == 8) M = 0.25;
+    if (index == 9) M = 0.75;
+    if (index == 10) M = 0.125;
+    if (index == 11) M = 0.625;
+    if (index == 12) M = 1.0;
+    if (index == 13) M = 0.5;
+    if (index == 14) M = 0.875;
+    if (index == 15) M = 0.375;
+
+    // float M = bayer4x4[int(x)][int(y)];
+    // float noise = M * (1.0/16.0) - 0.5;
+    float noise = M;
+    float spread = 0.05;
+
+    vec3 dithered_color = rawColor.rgb + spread * M;
+
+    float n = 8.0;
+    vec3 compressed_color = floor(dithered_color * (n - 1.0) + 0.5) / (n - 1.0);
+    gl_FragColor = vec4(compressed_color, rawColor.a);
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
