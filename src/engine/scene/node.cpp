@@ -18,6 +18,7 @@ Transform Node::get_global_transform() const {
     while (curr_id != NO_NODE) {
         Node const & curr = m_scene.get_node(curr_id);
         curr_tform = curr_tform * curr.local_transform().to_transform_matrix();
+        curr_id = curr.m_parent_id;
     }
 
     Transform transform;

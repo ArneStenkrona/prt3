@@ -28,9 +28,9 @@ public:
 
     template<class T>
     void add_script(NodeID node_id) {
-        static_assert(std::is_base_of<T, Script>::value, "Type must inherit from prt3::Script");
         T * script = new T(*this, node_id);
         m_scripts.push_back(static_cast<Script *>(script));
+        m_init_queue.push_back(static_cast<Script *>(script));
     }
 
     void set_node_mesh(NodeID node_id, ResourceID mesh_id)
@@ -58,6 +58,7 @@ private:
     NodeID m_root_id;
     std::vector<Node> m_nodes;
     std::vector<Script *> m_scripts;
+    std::vector<Script *> m_init_queue;
 
     ComponentManager m_component_manager;
 

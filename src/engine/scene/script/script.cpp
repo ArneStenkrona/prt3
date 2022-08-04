@@ -4,9 +4,10 @@
 
 using namespace prt3;
 
-Script::Script(Scene & scene)
- : m_scene{scene} {
+Script::Script(Scene & scene, NodeID node_id)
+ : m_scene{scene},
+   m_node_id{node_id} {
 
 }
 
-Node & Script::node() { return *m_scene.get_node(m_node_id); }
+Node & Script::node() { return m_scene.get_node(m_node_id); }

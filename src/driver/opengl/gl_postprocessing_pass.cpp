@@ -7,8 +7,19 @@
 
 using namespace prt3;
 
-GLPostProcessingPass::GLPostProcessingPass()
- : m_shader{0} {
+GLPostProcessingPass::GLPostProcessingPass(
+    const char * fragment_shader_path,
+    unsigned int width,
+    unsigned int height,
+    GLuint source_color_texture,
+    GLuint source_depth_texture,
+    GLuint target_framebuffer)
+ : m_shader{0},
+   m_width{width},
+   m_height{height},
+   m_source_color_texture{source_color_texture},
+   m_source_depth_texture{source_depth_texture},
+   m_target_framebuffer{target_framebuffer} {
     static const GLfloat g_quad_vertex_buffer_data[] = {
         -1.0f, -1.0f, 0.0f,
         1.0f, -1.0f, 0.0f,
@@ -35,7 +46,7 @@ GLPostProcessingPass::GLPostProcessingPass()
                  GL_STATIC_DRAW);
     glCheckError();
 
-    set_shader("assets/shaders/opengl/passthrough.fs");
+    set_shader(fragment_shader_path);
 }
 
 void GLPostProcessingPass::set_shader(const char * fragment_shader_path) {
@@ -57,12 +68,11 @@ void GLPostProcessingPass::set_shader(const char * fragment_shader_path) {
     glCheckError();
 }
 
-void GLPostProcessingPass::render(int w, int h,
-                                  SceneRenderData const & scene_data,
-                                  GLuint render_texture,
-                                  GLuint depth_texture) {
-    /* Render to window */
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+void GLPostProcessingPass::render(SceneRenderData const & scene_data) {
+    GLint w = static_cast<GLint>(m_width);
+    GLint h = static_cast<GLint>(m_height);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_target_framebuffer);
     glCheckError();
     glViewport(0, 0, w, h);
     glCheckError();
@@ -75,7 +85,7 @@ void GLPostProcessingPass::render(int w, int h,
         glUniform1i(render_loc, tex_offset);
         glActiveTexture(GL_TEXTURE0 + tex_offset);
         glCheckError();
-        glBindTexture(GL_TEXTURE_2D, render_texture);
+        glBindTexture(GL_TEXTURE_2D, m_source_color_texture);
         glCheckError();
         ++tex_offset;
     }
@@ -85,7 +95,7 @@ void GLPostProcessingPass::render(int w, int h,
         glUniform1i(depth_loc, tex_offset);
         glActiveTexture(GL_TEXTURE0 + tex_offset);
         glCheckError();
-        glBindTexture(GL_TEXTURE_2D, depth_texture);
+        glBindTexture(GL_TEXTURE_2D, m_source_depth_texture);
         glCheckError();
         ++tex_offset;
     }

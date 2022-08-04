@@ -12,20 +12,12 @@
 using namespace prt3;
 
 GLRenderer::GLRenderer(SDL_Window * window,
-                       unsigned int scale_factor)
+                       float downscale_factor)
  : m_window{window},
-   m_scale_factor{scale_factor},
+   m_downscale_factor{downscale_factor},
    m_material_manager{m_texture_manager},
-   m_model_manager{m_material_manager},
-   m_postprocessing_pass{}
+   m_model_manager{m_material_manager}
   {
-    int w;
-    int h;
-    SDL_GetWindowSize(m_window, &w, &h);
-
-    assert(w % static_cast<int>(m_scale_factor) != 0 && "Width not divisible by scale factor.");
-    assert(h % static_cast<int>(m_scale_factor) != 0 && "Height not divisible by scale factor.");
-
     /* Set SDL attributes */
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
@@ -42,74 +34,105 @@ GLRenderer::GLRenderer(SDL_Window * window,
     glCheckError();
     glCullFace(GL_BACK);
     glCheckError();
-
-    /* Generate framebuffer */
-    glGenFramebuffers(1, &m_framebuffer);
-    glCheckError();
-    glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
-    glCheckError();
-
-    glGenTextures(1, &m_render_texture);
-    glCheckError();
-    glBindTexture(GL_TEXTURE_2D, m_render_texture);
-    glCheckError();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w / m_scale_factor, h / m_scale_factor, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-    glCheckError();
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glCheckError();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glCheckError();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glCheckError();
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glCheckError();
-
-	glGenTextures(1, &m_depth_texture);
-    glCheckError();
-	glBindTexture(GL_TEXTURE_2D, m_depth_texture);
-    glCheckError();
-	glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_DEPTH_COMPONENT,
-                 w / m_scale_factor,
-                 h / m_scale_factor,
-                 0,
-                 GL_DEPTH_COMPONENT,
-                 GL_UNSIGNED_INT,
-                 0);
-    glCheckError();
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glCheckError();
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glCheckError();
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glCheckError();
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glCheckError();
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER,
-                           GL_COLOR_ATTACHMENT0,
-                           GL_TEXTURE_2D,
-                           m_render_texture,
-                           0);
-    glCheckError();
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER,
-                           GL_DEPTH_ATTACHMENT,
-                           GL_TEXTURE_2D,
-                           m_depth_texture,
-                           0);
-    glCheckError();
-
-    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        assert(false && "Failed to create framebuffer!");
-    }
 }
 
 GLRenderer::~GLRenderer() {
     // TODO: implement
+}
+
+void GLRenderer::set_postprocessing_chain(
+        std::vector<PostProcessingPass> const & chain_info) {
+    if (chain_info.empty()) {
+        if (m_framebuffer != 0) {
+            glDeleteFramebuffers(1, &m_framebuffer);
+            glDeleteTextures(1, &m_render_texture);
+            glDeleteTextures(1, &m_depth_texture);
+        }
+        m_framebuffer = 0;
+        m_render_texture = 0;
+        m_depth_texture = 0;
+
+    } else {
+        int w;
+        int h;
+        SDL_GetWindowSize(m_window, &w, &h);
+
+        glGenFramebuffers(1, &m_framebuffer);
+        glCheckError();
+        glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+        glCheckError();
+
+        glGenTextures(1, &m_render_texture);
+        glCheckError();
+        glBindTexture(GL_TEXTURE_2D, m_render_texture);
+        glCheckError();
+        glTexImage2D(GL_TEXTURE_2D,
+                     0,
+                     GL_RGB,
+                     static_cast<GLint>(w / m_downscale_factor),
+                     static_cast<GLint>(h / m_downscale_factor),
+                     0,
+                     GL_RGB,
+                     GL_UNSIGNED_BYTE,
+                     0);
+        glCheckError();
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glCheckError();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glCheckError();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glCheckError();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glCheckError();
+
+        glGenTextures(1, &m_depth_texture);
+        glCheckError();
+        glBindTexture(GL_TEXTURE_2D, m_depth_texture);
+        glCheckError();
+        glTexImage2D(GL_TEXTURE_2D,
+                    0,
+                    GL_DEPTH_COMPONENT,
+                    static_cast<GLint>(w / m_downscale_factor),
+                    static_cast<GLint>(h / m_downscale_factor),
+                    0,
+                    GL_DEPTH_COMPONENT,
+                    GL_UNSIGNED_INT,
+                    0);
+        glCheckError();
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glCheckError();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glCheckError();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glCheckError();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glCheckError();
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER,
+                            GL_COLOR_ATTACHMENT0,
+                            GL_TEXTURE_2D,
+                            m_render_texture,
+                            0);
+        glCheckError();
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER,
+                            GL_DEPTH_ATTACHMENT,
+                            GL_TEXTURE_2D,
+                            m_depth_texture,
+                            0);
+        glCheckError();
+
+        if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            assert(false && "Failed to create framebuffer!");
+        }
+
+        m_postprocessing_chain.set_chain(chain_info,
+                                         m_render_texture,
+                                         m_depth_texture,
+                                         w, h);
+    }
 }
 
 void GLRenderer::render(RenderData const & render_data) {
@@ -119,7 +142,9 @@ void GLRenderer::render(RenderData const & render_data) {
     SDL_GetWindowSize(m_window, &w, &h);
     glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
     glCheckError();
-    glViewport(0, 0, w / m_scale_factor, h / m_scale_factor);
+    glViewport(0, 0,
+               static_cast<GLint>(w / m_downscale_factor),
+               static_cast<GLint>(h / m_downscale_factor));
     glCheckError();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -185,15 +210,8 @@ void GLRenderer::render(RenderData const & render_data) {
         glCheckError();
     }
 
-    m_postprocessing_pass.render(w, h,
-                                 render_data.scene_data,
-                                 m_render_texture,
-                                 m_depth_texture);
+    m_postprocessing_chain.render(render_data.scene_data);
 
     SDL_GL_SwapWindow(m_window);
     glCheckError();
-}
-
-void GLRenderer::set_postprocessing_shader(const char * fragment_shader_path) {
-    m_postprocessing_pass.set_shader(fragment_shader_path);
 }

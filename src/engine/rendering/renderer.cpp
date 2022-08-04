@@ -9,18 +9,18 @@ using namespace prt3;
 Renderer::Renderer(Context & context,
                    unsigned int width,
                    unsigned int height,
-                   unsigned int scale_factor)
+                   float downscale_factor)
  : m_context{context},
-   m_window_width{static_cast<int>(width * scale_factor)},
-   m_window_height{static_cast<int>(height * scale_factor)}
-   /*, m_scale_factor{scale_factor} */{
+   m_window_width{static_cast<int>(width)},
+   m_window_height{static_cast<int>(height)},
+   m_downscale_factor{downscale_factor} {
     SDL_CreateWindowAndRenderer(m_window_width,
                                 m_window_height,
                                 0,
                                 &m_window,
                                 nullptr);
 
-    m_render_backend = new GLRenderer(m_window, scale_factor);
+    m_render_backend = new GLRenderer(m_window, downscale_factor);
     m_input.init(m_window);
 }
 

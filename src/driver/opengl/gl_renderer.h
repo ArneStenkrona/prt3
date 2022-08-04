@@ -7,7 +7,8 @@
 #include "src/driver/opengl/gl_texture_manager.h"
 #include "src/driver/opengl/gl_material_manager.h"
 #include "src/driver/opengl/gl_model_manager.h"
-#include "src/driver/opengl/gl_postprocessing_pass.h"
+#include "src/driver/opengl/gl_postprocessing_chain.h"
+// #include "src/driver/opengl/gl_postprocessing_pass.h"
 #include "src/engine/rendering/model_manager.h"
 
 #include <SDL.h>
@@ -20,7 +21,7 @@ namespace prt3 {
 class GLRenderer : public RenderBackend {
 public:
     GLRenderer(SDL_Window * window,
-               unsigned int scale_factor);
+               float downscale_factor);
     virtual ~GLRenderer();
 
     virtual void render(RenderData const & render_data);
@@ -29,10 +30,12 @@ public:
                               ModelResource & resource)
         { m_model_manager.upload_model(model_handle, model, resource); }
 
-    virtual void set_postprocessing_shader(const char * fragment_shader_path);
+    // virtual void set_postprocessing_shader(const char * fragment_shader_path);
+    virtual void set_postprocessing_chain(
+        std::vector<PostProcessingPass> const & chain_info);
 private:
     SDL_Window * m_window;
-    unsigned int m_scale_factor;
+    float m_downscale_factor;
 
     GLTextureManager m_texture_manager;
     GLMaterialManager m_material_manager;
@@ -42,7 +45,8 @@ private:
     GLuint m_render_texture;
     GLuint m_depth_texture;
 
-    GLPostProcessingPass m_postprocessing_pass;
+    // GLPostProcessingPass m_postprocessing_pass;
+    GLPostProcessingChain m_postprocessing_chain;
 };
 
 } // namespace prt3

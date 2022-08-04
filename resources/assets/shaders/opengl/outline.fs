@@ -47,8 +47,9 @@ void main() {
         vertical = 0.0;
     }
     float robert_cross = sqrt(dot(horizontal, horizontal) + dot(vertical, vertical));
-    float outline_factor = robert_cross > 0.5 ? 0.0 : 1.0;
-
+    vec3 outline_color = vec3(1.0);
     vec3 render_color = texture2D(u_RenderTexture, v_TexCoordinate).rgb;
-    gl_FragColor = vec4(outline_factor * render_color, 1.0);
+    vec3 color = robert_cross > 0.5 ? outline_color : render_color;
+
+    gl_FragColor = vec4(color, 1.0);
 }

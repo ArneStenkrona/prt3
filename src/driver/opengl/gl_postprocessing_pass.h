@@ -10,18 +10,28 @@ namespace prt3 {
 
 class GLPostProcessingPass {
 public:
-    GLPostProcessingPass();
+    GLPostProcessingPass(const char * fragment_shader_path,
+                         unsigned int width,
+                         unsigned int height,
+                         GLuint source_color_texture,
+                         GLuint source_depth_texture,
+                         GLuint target_framebuffer);
 
-    void set_shader(const char * fragment_shader_path);
-    void render(int w, int h,
-                SceneRenderData const & scene_data,
-                GLuint render_texture,
-                GLuint depth_texture);
+    void render(SceneRenderData const & scene_data);
 private:
     GLuint m_screen_quad_vao;
     GLuint m_screen_quad_vbo;
 
     GLuint m_shader;
+
+    unsigned int m_width;
+    unsigned int m_height;
+
+    GLuint m_source_color_texture;
+    GLuint m_source_depth_texture;
+    GLuint m_target_framebuffer;
+
+    void set_shader(const char * fragment_shader_path);
 };
 
 } // namespace prt3

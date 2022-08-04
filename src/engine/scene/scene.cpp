@@ -3,6 +3,8 @@
 #include "src/engine/rendering/render_data.h"
 #include "src/engine/core/context.h"
 
+#include "src/engine/scene/script/camera_controller.h"
+
 #include <algorithm>
 
 using namespace prt3;
@@ -17,21 +19,32 @@ Scene::Scene(Context & context)
     m_context.model_manager()
         .add_model_to_scene_from_path("assets/models/corner/building.fbx", *this, m_root_id);
 
-    // NodeID light_node = add_node_to_root();
-    // PointLight light;
-    // light.color = glm::vec3(1.0f, 1.0f, 1.0f);
-    // light.quadratic_term = 0.01f;
-    // light.linear_term = 0.01f;
-    // light.constant_term = 0.0f;
-    // m_component_manager.set_point_light_component(light_node, light);
-    // set_node_local_position(light_node, glm::vec3(2.1f, 2.1f, 2.1f));
+    NodeID light_node = add_node_to_root();
+    PointLight light;
+    light.color = glm::vec3(1.0f, 1.0f, 1.0f);
+    light.quadratic_term = 0.002f;
+    light.linear_term = 0.002f;
+    light.constant_term = 0.1f;
+    m_component_manager.set_point_light_component(light_node, light);
+    set_node_local_position(light_node, glm::vec3(2.1f, 2.1f, 2.1f));
 
     set_ambient_light(glm::vec3{0.09f, 0.11f, 0.34f});
 
-    m_context.renderer().set_postprocesing_shader("assets/shaders/opengl/outline.fs");
+    PostProcessingPass outline_pass_info;
+    outline_pass_info.fragment_shader_path = "assets/shaders/opengl/outline.fs";
+    outline_pass_info.downscale_factor = m_context.renderer().downscale_factor();
+    PostProcessingPass upscale_pass_info;
+    upscale_pass_info.fragment_shader_path = "assets/shaders/opengl/passthrough.fs";
+    upscale_pass_info.downscale_factor = 1.0f;
+
+    m_context.renderer().set_postprocessing_chain(
+        {outline_pass_info, upscale_pass_info}
+    );
 
     set_directional_light({{1.0f, -1.0f, -1.0f}, {0.8f, 0.8f, 0.8f}});
     set_directional_light_on(true);
+
+    add_script<CameraController>(light_node);
     // <---- FOR DEBUGGING, WILL REMOVE
 
 }
@@ -44,6 +57,16 @@ Scene::~Scene() {
 
 void Scene::update(float delta_time) {
     m_camera.update(delta_time, true, true);
+
+    for (Script * script : m_init_queue) {
+        script->on_init();
+    }
+    m_init_queue.clear();
+
+    for (Script * script : m_scripts) {
+        script->on_update();
+    }
+
     render();
 }
 

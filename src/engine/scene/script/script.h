@@ -8,7 +8,7 @@ namespace prt3 {
 class Scene;
 class Script {
 public:
-    Script(Scene & scene, NodeID m_node_id);
+    explicit Script(Scene & scene, NodeID node_id);
     virtual ~Script() {}
 
     virtual void on_init() = 0;
