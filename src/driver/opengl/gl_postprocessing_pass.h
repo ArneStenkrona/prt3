@@ -14,6 +14,7 @@ public:
                          unsigned int width,
                          unsigned int height,
                          GLuint source_color_texture,
+                         GLuint source_normal_texture,
                          GLuint source_depth_texture,
                          GLuint target_framebuffer);
 
@@ -28,6 +29,7 @@ private:
     unsigned int m_height;
 
     GLuint m_source_color_texture;
+    GLuint m_source_normal_texture;
     GLuint m_source_depth_texture;
     GLuint m_target_framebuffer;
 

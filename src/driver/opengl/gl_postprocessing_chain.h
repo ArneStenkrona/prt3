@@ -15,6 +15,7 @@ class GLPostProcessingChain {
 public:
     void set_chain(std::vector<PostProcessingPass> const & chain_info,
                    GLuint source_color_texture,
+                   GLuint source_normal_texture,
                    GLuint source_depth_texture,
                    int window_width,
                    int window_height);

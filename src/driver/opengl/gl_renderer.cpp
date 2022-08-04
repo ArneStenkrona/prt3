@@ -41,30 +41,78 @@ GLRenderer::~GLRenderer() {
 }
 
 void GLRenderer::set_postprocessing_chain(
-        std::vector<PostProcessingPass> const & chain_info) {
+    std::vector<PostProcessingPass> const & chain_info) {
+    int w;
+    int h;
+    SDL_GetWindowSize(m_window, &w, &h);
+
     if (chain_info.empty()) {
         if (m_framebuffer != 0) {
             glDeleteFramebuffers(1, &m_framebuffer);
-            glDeleteTextures(1, &m_render_texture);
+            glDeleteTextures(1, &m_color_texture);
             glDeleteTextures(1, &m_depth_texture);
+
+            glDeleteFramebuffers(1, &m_normal_framebuffer);
+            glDeleteTextures(1, &m_normal_texture);
+            glDeleteTextures(1, &m_normal_depth_texture);
         }
         m_framebuffer = 0;
-        m_render_texture = 0;
+        m_color_texture = 0;
+        m_normal_texture = 0;
         m_depth_texture = 0;
 
     } else {
+        generate_framebuffer(m_framebuffer,
+                             m_color_texture,
+                             m_depth_texture);
+
+    }
+    generate_framebuffer(m_normal_framebuffer,
+                         m_normal_texture,
+                         m_normal_depth_texture);
+
+    m_postprocessing_chain.set_chain(chain_info,
+                                     m_color_texture,
+                                     m_normal_texture,
+                                     m_depth_texture,
+                                     w, h);
+}
+
+void GLRenderer::render(RenderData const & render_data) {
+    render_framebuffer(render_data,
+                       m_framebuffer,
+                       false);
+
+    if (m_framebuffer != 0) {
+        // m_framebuffer != 0 implies we have
+        // post-processing, so we need to render
+        // normal data
+        render_framebuffer(render_data,
+                           m_normal_framebuffer,
+                           true);
+    }
+
+    m_postprocessing_chain.render(render_data.scene_data);
+
+    SDL_GL_SwapWindow(m_window);
+    glCheckError();
+}
+
+void GLRenderer::generate_framebuffer(GLuint & framebuffer,
+                                      GLuint & render_texture,
+                                      GLuint & depth_texture) {
         int w;
         int h;
         SDL_GetWindowSize(m_window, &w, &h);
 
-        glGenFramebuffers(1, &m_framebuffer);
+        glGenFramebuffers(1, &framebuffer);
         glCheckError();
-        glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
         glCheckError();
 
-        glGenTextures(1, &m_render_texture);
+        glGenTextures(1, &render_texture);
         glCheckError();
-        glBindTexture(GL_TEXTURE_2D, m_render_texture);
+        glBindTexture(GL_TEXTURE_2D, render_texture);
         glCheckError();
         glTexImage2D(GL_TEXTURE_2D,
                      0,
@@ -86,19 +134,28 @@ void GLRenderer::set_postprocessing_chain(
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glCheckError();
 
-        glGenTextures(1, &m_depth_texture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glCheckError();
-        glBindTexture(GL_TEXTURE_2D, m_depth_texture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glCheckError();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glCheckError();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glCheckError();
+
+        glGenTextures(1, &depth_texture);
+        glCheckError();
+        glBindTexture(GL_TEXTURE_2D, depth_texture);
         glCheckError();
         glTexImage2D(GL_TEXTURE_2D,
-                    0,
-                    GL_DEPTH_COMPONENT,
-                    static_cast<GLint>(w / m_downscale_factor),
-                    static_cast<GLint>(h / m_downscale_factor),
-                    0,
-                    GL_DEPTH_COMPONENT,
-                    GL_UNSIGNED_INT,
-                    0);
+                     0,
+                     GL_DEPTH_COMPONENT,
+                     static_cast<GLint>(w / m_downscale_factor),
+                     static_cast<GLint>(h / m_downscale_factor),
+                     0,
+                     GL_DEPTH_COMPONENT,
+                     GL_UNSIGNED_INT,
+                     0);
         glCheckError();
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -111,36 +168,32 @@ void GLRenderer::set_postprocessing_chain(
         glCheckError();
 
         glFramebufferTexture2D(GL_FRAMEBUFFER,
-                            GL_COLOR_ATTACHMENT0,
-                            GL_TEXTURE_2D,
-                            m_render_texture,
-                            0);
+                               GL_COLOR_ATTACHMENT0,
+                               GL_TEXTURE_2D,
+                               render_texture,
+                               0);
         glCheckError();
 
         glFramebufferTexture2D(GL_FRAMEBUFFER,
                             GL_DEPTH_ATTACHMENT,
                             GL_TEXTURE_2D,
-                            m_depth_texture,
+                            depth_texture,
                             0);
         glCheckError();
 
         if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
             assert(false && "Failed to create framebuffer!");
         }
-
-        m_postprocessing_chain.set_chain(chain_info,
-                                         m_render_texture,
-                                         m_depth_texture,
-                                         w, h);
-    }
 }
 
-void GLRenderer::render(RenderData const & render_data) {
+void GLRenderer::render_framebuffer(RenderData const & render_data,
+                                    GLuint framebuffer,
+                                    bool normal_pass) {
     // Bind the framebuffer
     int w;
- 	int h;
+    int h;
     SDL_GetWindowSize(m_window, &w, &h);
-    glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
     glCheckError();
     glViewport(0, 0,
                static_cast<GLint>(w / m_downscale_factor),
@@ -155,9 +208,10 @@ void GLRenderer::render(RenderData const & render_data) {
         m_material_queues[mesh_data.material_id].push_back(mesh_data);
     }
 
-    std::vector<GLMaterial> const & materials = m_material_manager.materials();
+    std::vector<GLMaterial> const & materials = normal_pass ?
+     m_material_manager.normal_materials() : m_material_manager.materials();
     for (auto const & pair : m_material_queues) {
-        GLMaterial material = materials[pair.first];
+        GLMaterial const & material = materials[pair.first];
         GLuint shader_id = material.shader();
         glUseProgram(shader_id);
         glCheckError();
@@ -209,9 +263,4 @@ void GLRenderer::render(RenderData const & render_data) {
         }
         glCheckError();
     }
-
-    m_postprocessing_chain.render(render_data.scene_data);
-
-    SDL_GL_SwapWindow(m_window);
-    glCheckError();
 }

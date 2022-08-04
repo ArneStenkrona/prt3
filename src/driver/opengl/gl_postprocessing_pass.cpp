@@ -12,12 +12,14 @@ GLPostProcessingPass::GLPostProcessingPass(
     unsigned int width,
     unsigned int height,
     GLuint source_color_texture,
+    GLuint source_normal_texture,
     GLuint source_depth_texture,
     GLuint target_framebuffer)
  : m_shader{0},
    m_width{width},
    m_height{height},
    m_source_color_texture{source_color_texture},
+   m_source_normal_texture{source_normal_texture},
    m_source_depth_texture{source_depth_texture},
    m_target_framebuffer{target_framebuffer} {
     static const GLfloat g_quad_vertex_buffer_data[] = {
@@ -86,6 +88,16 @@ void GLPostProcessingPass::render(SceneRenderData const & scene_data) {
         glActiveTexture(GL_TEXTURE0 + tex_offset);
         glCheckError();
         glBindTexture(GL_TEXTURE_2D, m_source_color_texture);
+        glCheckError();
+        ++tex_offset;
+    }
+
+    GLint normal_loc = glGetUniformLocation(m_shader, "u_NormalTexture");
+    if (normal_loc != -1) {
+        glUniform1i(normal_loc, tex_offset);
+        glActiveTexture(GL_TEXTURE0 + tex_offset);
+        glCheckError();
+        glBindTexture(GL_TEXTURE_2D, m_source_normal_texture);
         glCheckError();
         ++tex_offset;
     }

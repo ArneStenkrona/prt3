@@ -7,6 +7,7 @@ using namespace prt3;
 void GLPostProcessingChain::set_chain(
         std::vector<PostProcessingPass> const & chain_info,
         GLuint source_color_texture,
+        GLuint source_normal_texture,
         GLuint source_depth_texture,
         int window_width,
         int window_height) {
@@ -75,6 +76,7 @@ void GLPostProcessingChain::set_chain(
             width,
             height,
             m_color_textures[i],
+            source_normal_texture,
             source_depth_texture,
             m_framebuffers[i]
         );

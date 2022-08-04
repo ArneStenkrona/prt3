@@ -11,6 +11,11 @@ GLMaterialManager::GLMaterialManager(GLTextureManager & texture_manager)
         "assets/shaders/opengl/standard.vs",
         "assets/shaders/opengl/pixelate.fs"
     );
+
+    m_normal_shader = glshaderutility::create_shader(
+        "assets/shaders/opengl/standard.vs",
+        "assets/shaders/opengl/normal_pass.fs"
+    );
 }
 
 ResourceID GLMaterialManager::upload_material(Model::Material const & material) {
@@ -27,6 +32,16 @@ ResourceID GLMaterialManager::upload_material(Model::Material const & material) 
     ResourceID id = m_materials.size();
     m_materials.emplace_back(
         m_standard_shader,
+        albedo_map,
+        normal_map,
+        roughness_map,
+        metallic_map,
+        material.albedo,
+        material.metallic,
+        material.roughness
+    );
+    m_normal_materials.emplace_back(
+        m_normal_shader,
         albedo_map,
         normal_map,
         roughness_map,

@@ -30,7 +30,6 @@ public:
                               ModelResource & resource)
         { m_model_manager.upload_model(model_handle, model, resource); }
 
-    // virtual void set_postprocessing_shader(const char * fragment_shader_path);
     virtual void set_postprocessing_chain(
         std::vector<PostProcessingPass> const & chain_info);
 private:
@@ -42,11 +41,22 @@ private:
     GLModelManager m_model_manager;
 
     GLuint m_framebuffer;
-    GLuint m_render_texture;
+    GLuint m_color_texture;
     GLuint m_depth_texture;
 
-    // GLPostProcessingPass m_postprocessing_pass;
+    GLuint m_normal_framebuffer;
+    GLuint m_normal_texture;
+    GLuint m_normal_depth_texture;
+
     GLPostProcessingChain m_postprocessing_chain;
+
+    void generate_framebuffer(GLuint & framebuffer,
+                              GLuint & render_texture,
+                              GLuint & depth_texture);
+
+    void render_framebuffer(RenderData const & render_data,
+                            GLuint framebuffer,
+                            bool normal_pass);
 };
 
 } // namespace prt3

@@ -7,6 +7,7 @@ uniform float u_PixelUnitX;
 uniform float u_PixelUnitY;
 
 uniform sampler2D u_RenderTexture;
+uniform sampler2D u_NormalTexture;
 uniform sampler2D u_DepthBuffer;
 
 varying vec2 v_TexCoordinate;
@@ -49,7 +50,8 @@ void main() {
     float robert_cross = sqrt(dot(horizontal, horizontal) + dot(vertical, vertical));
     vec3 outline_color = vec3(1.0);
     vec3 render_color = texture2D(u_RenderTexture, v_TexCoordinate).rgb;
-    vec3 color = robert_cross > 0.5 ? outline_color : render_color;
+    float threshold = 0.01;
+    vec3 color = robert_cross > threshold ? outline_color : render_color;
 
     gl_FragColor = vec4(color, 1.0);
 }
