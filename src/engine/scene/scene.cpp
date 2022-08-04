@@ -15,7 +15,7 @@ Scene::Scene(Context & context)
 
     // FOR DEBUGGING, WILL REMOVE ---->
     m_context.model_manager()
-        .add_model_to_scene_from_path("assets/models/example/motorbike.fbx", *this, m_root_id);
+        .add_model_to_scene_from_path("assets/models/corner/building.fbx", *this, m_root_id);
 
     // NodeID light_node = add_node_to_root();
     // PointLight light;
@@ -28,7 +28,7 @@ Scene::Scene(Context & context)
 
     m_context.renderer().set_postprocesing_shader("assets/shaders/opengl/outline.fs");
 
-    set_directional_light({{1.0f, -1.0f, 1.0f}, {0.8f, 0.8f, 0.8f}});
+    set_directional_light({{1.0f, -1.0f, -1.0f}, {0.8f, 0.8f, 0.8f}});
     set_directional_light_on(true);
     // <---- FOR DEBUGGING, WILL REMOVE
 

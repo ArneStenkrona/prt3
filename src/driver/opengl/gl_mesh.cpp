@@ -27,49 +27,47 @@ void GLMesh::draw(GLMaterial const & material,
     glm::mat4 m_matrix = mesh_data.transform;
     glm::mat4 mv_matrix = scene_data.view_matrix * mesh_data.transform;
     glm::mat4 mvp_matrix = scene_data.projection_matrix * mv_matrix;
+    glm::mat3 inv_tpos_matrix = glm::inverse(glm::transpose(m_matrix));
 
-    glshaderutility::set_mat4(material.shader(), "u_MMatrix", m_matrix);
+    glUniformMatrix4fv(material.mmatrix_loc(), 1, GL_FALSE, &m_matrix[0][0]);
     glCheckError();
-    glshaderutility::set_mat4(material.shader(), "u_MVMatrix", mv_matrix);
+    glUniformMatrix4fv(material.mvmatrix_loc(), 1, GL_FALSE, &mv_matrix[0][0]);
     glCheckError();
-    glshaderutility::set_mat4(material.shader(), "u_MVPMatrix", mvp_matrix);
+    glUniformMatrix4fv(material.mvpmatrix_loc(), 1, GL_FALSE, &mvp_matrix[0][0]);
     glCheckError();
-    glshaderutility::set_mat3(material.shader(), "u_InvTposMMatrix", glm::inverse(glm::transpose(m_matrix)));
+    glUniformMatrix3fv(material.inv_tpos_matrix_loc(), 1, GL_FALSE, &inv_tpos_matrix[0][0]);
     glCheckError();
 
-    GLint albedo_loc = glGetUniformLocation(material.shader(), "u_AlbedoMap");
-    glUniform1i(albedo_loc, 0);
+    glUniform1i(material.albedo_map_loc(), 0);
     glActiveTexture(GL_TEXTURE0);
     glCheckError();
     glBindTexture(GL_TEXTURE_2D, material.albedo_map());
     glCheckError();
 
-    GLint normal_loc = glGetUniformLocation(material.shader(), "u_NormalMap");
-    glUniform1i(normal_loc, 1);
+    glUniform1i(material.normal_map_loc(), 1);
     glActiveTexture(GL_TEXTURE1);
     glCheckError();
     glBindTexture(GL_TEXTURE_2D, material.normal_map());
     glCheckError();
 
-    GLint metallic_loc = glGetUniformLocation(material.shader(), "u_MetallicMap");
-    glUniform1i(metallic_loc, 2);
+    glUniform1i(material.metallic_map_loc(), 2);
     glActiveTexture(GL_TEXTURE2);
     glCheckError();
     glBindTexture(GL_TEXTURE_2D, material.metallic_map());
     glCheckError();
 
-    GLint roughness_loc = glGetUniformLocation(material.shader(), "u_RoughnessMap");
-    glUniform1i(roughness_loc, 3);
+    glUniform1i(material.roughness_map_loc(), 3);
     glActiveTexture(GL_TEXTURE3);
     glCheckError();
     glBindTexture(GL_TEXTURE_2D, material.roughness_map());
     glCheckError();
 
-    glshaderutility::set_vec4(material.shader(), "u_Albedo", material.albedo());
+    glm::vec4 albedo = material.albedo();
+    glUniform4fv(material.albedo_loc(), 1, &albedo[0]);
     glCheckError();
-    glshaderutility::set_float(material.shader(), "u_Metallic", material.metallic());
+    glUniform1f(material.metallic_loc(), material.metallic());
     glCheckError();
-    glshaderutility::set_float(material.shader(), "u_Roughness", material.roughness());
+    glUniform1f(material.roughness_loc(), material.roughness());
     glCheckError();
 
     // draw mesh

@@ -9,6 +9,7 @@ namespace prt3 {
 GLenum glCheckError_(const char *file, int line);
 
 } // namespace prt3
-#define glCheckError() glCheckError_(__FILE__, __LINE__)
+// #define glCheckError() glCheckError_(__FILE__, __LINE__)
+#define glCheckError()
 
 #endif

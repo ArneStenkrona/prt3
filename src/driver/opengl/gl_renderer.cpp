@@ -31,7 +31,7 @@ GLRenderer::GLRenderer(SDL_Window * window)
     glCheckError();
     glDepthFunc(GL_LESS);
     glCheckError();
-    glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glCheckError();
     glEnable(GL_CULL_FACE);
     glCheckError();
@@ -123,46 +123,43 @@ void GLRenderer::render(RenderData const & render_data) {
         GLuint shader_id = material.shader();
         glUseProgram(shader_id);
         glCheckError();
-        glshaderutility::set_vec3(shader_id, "u_ViewPosition", render_data.scene_data.view_position);
-        glCheckError();
+
         // Light data
         LightRenderData const & light_data = render_data.light_data;
-        glshaderutility::set_int(shader_id, "u_NumberOfPointLights", static_cast<int>(light_data.number_of_point_lights));
 
-        glshaderutility::set_vec3(shader_id, "u_PointLights[0].color", light_data.point_lights[0].light.color);
-        glshaderutility::set_vec3(shader_id, "u_PointLights[0].position", light_data.point_lights[0].position);
-        glshaderutility::set_float(shader_id, "u_PointLights[0].a", light_data.point_lights[0].light.quadratic_term);
-        glshaderutility::set_float(shader_id, "u_PointLights[0].b", light_data.point_lights[0].light.linear_term);
-        glshaderutility::set_float(shader_id, "u_PointLights[0].c", light_data.point_lights[0].light.constant_term);
+        glUniform3fv(material.view_position_loc(), 1, &render_data.scene_data.view_position[0]);
+        glUniform1i(material.number_of_point_lights(), static_cast<int>(light_data.number_of_point_lights));
 
-        glshaderutility::set_vec3(shader_id, "u_PointLights[1].position", light_data.point_lights[1].position);
-        glshaderutility::set_vec3(shader_id, "u_PointLights[1].color", light_data.point_lights[1].light.color);
-        glshaderutility::set_float(shader_id, "u_PointLights[1].a", light_data.point_lights[1].light.quadratic_term);
-        glshaderutility::set_float(shader_id, "u_PointLights[1].b", light_data.point_lights[1].light.linear_term);
-        glshaderutility::set_float(shader_id, "u_PointLights[1].c", light_data.point_lights[1].light.constant_term);
+        glUniform3fv(material.point_lights_0_position_loc(), 1, &light_data.point_lights[0].position[0]);
+        glUniform3fv(material.point_lights_0_color_loc(), 1, &light_data.point_lights[0].light.color[0]);
+        glUniform1f(material.point_lights_0_quadratic_loc(), light_data.point_lights[0].light.quadratic_term);
+        glUniform1f(material.point_lights_0_linear_loc(), light_data.point_lights[0].light.linear_term);
+        glUniform1f(material.point_lights_0_constant_loc(), light_data.point_lights[0].light.constant_term);
 
-        glshaderutility::set_vec3(shader_id, "u_PointLights[2].position", light_data.point_lights[2].position);
-        glshaderutility::set_vec3(shader_id, "u_PointLights[2].color", light_data.point_lights[2].light.color);
-        glshaderutility::set_float(shader_id, "u_PointLights[2].a", light_data.point_lights[2].light.quadratic_term);
-        glshaderutility::set_float(shader_id, "u_PointLights[2].b", light_data.point_lights[2].light.linear_term);
-        glshaderutility::set_float(shader_id, "u_PointLights[2].c", light_data.point_lights[2].light.constant_term);
+        glUniform3fv(material.point_lights_1_position_loc(), 1, &light_data.point_lights[1].position[0]);
+        glUniform3fv(material.point_lights_1_color_loc(), 1, &light_data.point_lights[1].light.color[0]);
+        glUniform1f(material.point_lights_1_quadratic_loc(), light_data.point_lights[1].light.quadratic_term);
+        glUniform1f(material.point_lights_1_linear_loc(), light_data.point_lights[1].light.linear_term);
+        glUniform1f(material.point_lights_1_constant_loc(), light_data.point_lights[1].light.constant_term);
 
-        glshaderutility::set_vec3(shader_id, "u_PointLights[3].position", light_data.point_lights[3].position);
-        glshaderutility::set_vec3(shader_id, "u_PointLights[3].color", light_data.point_lights[3].light.color);
-        glshaderutility::set_float(shader_id, "u_PointLights[3].a", light_data.point_lights[3].light.quadratic_term);
-        glshaderutility::set_float(shader_id, "u_PointLights[3].b", light_data.point_lights[3].light.linear_term);
-        glshaderutility::set_float(shader_id, "u_PointLights[3].c", light_data.point_lights[3].light.constant_term);
-        glCheckError();
+        glUniform3fv(material.point_lights_2_position_loc(), 1, &light_data.point_lights[2].position[0]);
+        glUniform3fv(material.point_lights_2_color_loc(), 1, &light_data.point_lights[2].light.color[0]);
+        glUniform1f(material.point_lights_2_quadratic_loc(), light_data.point_lights[2].light.quadratic_term);
+        glUniform1f(material.point_lights_2_linear_loc(), light_data.point_lights[2].light.linear_term);
+        glUniform1f(material.point_lights_2_constant_loc(), light_data.point_lights[2].light.constant_term);
 
-        glshaderutility::set_vec3(shader_id,
-                                  "u_DirectionalLight.direction",
-                                  glm::normalize(light_data.directional_light.direction));
-        glshaderutility::set_vec3(shader_id, "u_DirectionalLight.color", light_data.directional_light.color);
-        glshaderutility::set_bool(shader_id, "u_DirectionalLightOn", light_data.directional_light_on);
-        glCheckError();
+        glUniform3fv(material.point_lights_3_position_loc(), 1, &light_data.point_lights[3].position[0]);
+        glUniform3fv(material.point_lights_3_color_loc(), 1, &light_data.point_lights[3].light.color[0]);
+        glUniform1f(material.point_lights_3_quadratic_loc(), light_data.point_lights[3].light.quadratic_term);
+        glUniform1f(material.point_lights_3_linear_loc(), light_data.point_lights[3].light.linear_term);
+        glUniform1f(material.point_lights_3_constant_loc(), light_data.point_lights[3].light.constant_term);
 
-        glshaderutility::set_vec3(shader_id, "u_AmbientLight", light_data.ambient_light.color);
-        glCheckError();
+        glm::vec3 dir_light_dir = glm::normalize(light_data.directional_light.direction);
+        glUniform3fv(material.directional_light_direction_loc(), 1, &dir_light_dir[0]);
+        glUniform3fv(material.directional_light_color_loc(), 1, &light_data.directional_light.color[0]);
+        glUniform1i(material.directional_light_on_loc(), static_cast<int>(light_data.directional_light_on));
+
+        glUniform3fv(material.ambient_light_loc(), 1, &light_data.ambient_light.color[0]);
 
         std::vector<GLMesh> const & meshes = m_model_manager.meshes();
         for (MeshRenderData const & mesh_data : pair.second) {
