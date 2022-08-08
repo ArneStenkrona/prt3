@@ -94,6 +94,7 @@ void Scene::collect_render_data(RenderData & render_data) const {
     render_data.scene_data.view_matrix = m_camera.get_view_matrix();
     render_data.scene_data.projection_matrix = m_camera.get_projection_matrix();
     render_data.scene_data.view_position = m_camera.get_position();
+    render_data.scene_data.view_direction = m_camera.get_front();
     render_data.scene_data.near_plane = m_camera.near_plane();
     render_data.scene_data.far_plane = m_camera.far_plane();
 

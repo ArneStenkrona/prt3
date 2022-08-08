@@ -1,5 +1,10 @@
 precision mediump float;
 
+uniform vec3 u_ViewPosition;
+uniform vec3 u_ViewDirection;
+uniform mat4 u_InvVMatrix;
+uniform mat4 u_InvPMatrix;
+
 uniform float u_NearPlane;
 uniform float u_FarPlane;
 

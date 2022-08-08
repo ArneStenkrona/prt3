@@ -112,6 +112,18 @@ void GLPostProcessingPass::render(SceneRenderData const & scene_data) {
         ++tex_offset;
     }
 
+    glshaderutility::set_vec3(m_shader, "u_ViewPosition", scene_data.view_position);
+    glCheckError();
+    glshaderutility::set_vec3(m_shader, "u_ViewDirection", scene_data.view_direction);
+    glCheckError();
+
+    glm::mat4 inv_v_matrix = glm::inverse(scene_data.view_matrix);
+    glm::mat4 inv_p_matrix = glm::inverse(scene_data.projection_matrix);
+    glshaderutility::set_mat4(m_shader, "u_InvVMatrix", inv_v_matrix);
+    glCheckError();
+    glshaderutility::set_mat4(m_shader, "u_InvPMatrix", inv_p_matrix);
+    glCheckError();
+
     glshaderutility::set_float(m_shader, "u_NearPlane", scene_data.near_plane);
     glCheckError();
     glshaderutility::set_float(m_shader, "u_FarPlane", scene_data.far_plane);
