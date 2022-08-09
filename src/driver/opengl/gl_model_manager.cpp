@@ -17,9 +17,9 @@ void GLModelManager::upload_model(ModelManager::ModelHandle model_handle,
     GLuint vbo;
     GLuint ebo;
 
-    glGenVertexArraysOES(1, &vao);
+    glGenVertexArrays(1, &vao);
     glCheckError();
-    glBindVertexArrayOES(vao);
+    glBindVertexArray(vao);
     glCheckError();
 
     glGenBuffers(1, &vbo);
@@ -118,6 +118,6 @@ void GLModelManager::upload_model(ModelManager::ModelHandle model_handle,
         ++mesh_index;
     }
 
-    glBindVertexArrayOES(0);
+    glBindVertexArray(0);
     glCheckError();
 }

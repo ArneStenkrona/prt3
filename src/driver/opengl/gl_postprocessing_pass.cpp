@@ -31,9 +31,9 @@ GLPostProcessingPass::GLPostProcessingPass(
         1.0f,  1.0f, 0.0f,
     };
 
-    glGenVertexArraysOES(1, &m_screen_quad_vao);
+    glGenVertexArrays(1, &m_screen_quad_vao);
     glCheckError();
-    glBindVertexArrayOES(m_screen_quad_vao);
+    glBindVertexArray(m_screen_quad_vao);
     glCheckError();
 
     glGenBuffers(1, &m_screen_quad_vbo);
@@ -77,6 +77,8 @@ void GLPostProcessingPass::render(SceneRenderData const & scene_data) {
     glBindFramebuffer(GL_FRAMEBUFFER, m_target_framebuffer);
     glCheckError();
     glViewport(0, 0, w, h);
+    glCheckError();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glCheckError();
 
     glUseProgram(m_shader);
@@ -134,10 +136,10 @@ void GLPostProcessingPass::render(SceneRenderData const & scene_data) {
     glshaderutility::set_float(m_shader, "u_PixelUnitY", 1.0f / h);
     glCheckError();
 
-    glBindVertexArrayOES(m_screen_quad_vao);
+    glBindVertexArray(m_screen_quad_vao);
     glCheckError();
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glCheckError();
-    glBindVertexArrayOES(0);
+    glBindVertexArray(0);
     glCheckError();
 }

@@ -6,11 +6,15 @@
 #include "src/engine/rendering/resources.h"
 #include "src/engine/rendering/model.h"
 
+#define GL_GLEXT_PROTOTYPES 1
+#include <GLES3/gl3.h>
+
 namespace prt3 {
 
 class GLMaterialManager {
 public:
     GLMaterialManager(GLTextureManager & texture_manager);
+    void init();
 
     ResourceID upload_material(Model::Material const & material);
 

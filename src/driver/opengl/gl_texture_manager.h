@@ -4,7 +4,7 @@
 #include <SDL.h>
 
 #define GL_GLEXT_PROTOTYPES 1
-#include <SDL_opengles2.h>
+#include <GLES3/gl3.h>
 
 #include <string>
 #include <unordered_map>
@@ -14,6 +14,7 @@ namespace prt3 {
 class GLTextureManager {
 public:
     GLTextureManager();
+    void init();
 
     GLuint retrieve_texture(char const * path, GLuint default_texture);
 

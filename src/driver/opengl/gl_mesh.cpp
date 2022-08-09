@@ -71,7 +71,7 @@ void GLMesh::draw(GLMaterial const & material,
     glCheckError();
 
     // draw mesh
-    glBindVertexArrayOES(m_vao);
+    glBindVertexArray(m_vao);
     glCheckError();
     glDrawElements(GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT,
                    reinterpret_cast<void*>(m_start_index * sizeof(GLuint)));

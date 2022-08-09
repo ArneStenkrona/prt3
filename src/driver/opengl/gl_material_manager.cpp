@@ -5,8 +5,9 @@
 using namespace prt3;
 
 GLMaterialManager::GLMaterialManager(GLTextureManager & texture_manager)
- : m_texture_manager{texture_manager}
-{
+ : m_texture_manager{texture_manager} {}
+
+void GLMaterialManager::init() {
     m_standard_shader = glshaderutility::create_shader(
         "assets/shaders/opengl/standard.vs",
         "assets/shaders/opengl/pixelate.fs"

@@ -9,6 +9,7 @@ namespace prt3
 class Engine {
 public:
     Engine();
+    void start();
 
     void execute_frame();
 private:

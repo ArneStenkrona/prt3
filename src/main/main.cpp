@@ -8,8 +8,7 @@
 prt3::Engine engine;
 void main_loop() { engine.execute_frame(); }
 
-int main(int, char**)
-{
+int main(int, char**) {
     emscripten_set_main_loop(main_loop, 0, true);
 
     return EXIT_SUCCESS;

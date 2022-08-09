@@ -4,7 +4,7 @@
 #include "src/engine/rendering/render_data.h"
 
 #define GL_GLEXT_PROTOTYPES 1
-#include <SDL_opengles2.h>
+#include <GLES3/gl3.h>
 
 namespace prt3 {
 

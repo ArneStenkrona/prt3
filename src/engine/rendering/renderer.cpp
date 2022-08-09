@@ -14,11 +14,22 @@ Renderer::Renderer(Context & context,
    m_window_width{static_cast<int>(width)},
    m_window_height{static_cast<int>(height)},
    m_downscale_factor{downscale_factor} {
-    SDL_CreateWindowAndRenderer(m_window_width,
-                                m_window_height,
-                                0,
-                                &m_window,
-                                nullptr);
+    /* Set SDL attributes */
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
+    m_window = SDL_CreateWindow(
+                "prt3",
+                SDL_WINDOWPOS_UNDEFINED,
+                SDL_WINDOWPOS_UNDEFINED,
+                width,
+                height,
+                SDL_WINDOW_OPENGL        |
+                    SDL_WINDOW_RESIZABLE |
+                    SDL_WINDOW_SHOWN/*     |
+                    SDL_WINDOW_ALLOW_HIGHDPI*/);
 
     m_render_backend = new GLRenderer(m_window, downscale_factor);
     m_input.init(m_window);

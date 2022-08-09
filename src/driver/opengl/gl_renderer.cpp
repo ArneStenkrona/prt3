@@ -5,6 +5,9 @@
 
 #include "glm/gtx/string_cast.hpp"
 
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+
 #include <vector>
 #include <unordered_map>
 #include <cassert>
@@ -18,11 +21,15 @@ GLRenderer::GLRenderer(SDL_Window * window,
    m_material_manager{m_texture_manager},
    m_model_manager{m_material_manager}
   {
-    /* Set SDL attributes */
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    EmscriptenWebGLContextAttributes attrs;
+	attrs.antialias = true;
+	attrs.majorVersion = 2;
+	attrs.minorVersion = 0;
+	attrs.alpha = false;
+	EMSCRIPTEN_WEBGL_CONTEXT_HANDLE webgl_context =
+        emscripten_webgl_create_context("#canvas", &attrs);
+	emscripten_webgl_make_context_current(webgl_context);
+
     /* Enable GL functionality */
     glEnable(GL_DEPTH_TEST);
     glCheckError();
@@ -34,6 +41,9 @@ GLRenderer::GLRenderer(SDL_Window * window,
     glCheckError();
     glCullFace(GL_BACK);
     glCheckError();
+
+    m_texture_manager.init();
+    m_material_manager.init();
 }
 
 GLRenderer::~GLRenderer() {
@@ -149,7 +159,7 @@ void GLRenderer::generate_framebuffer(GLuint & framebuffer,
         glCheckError();
         glTexImage2D(GL_TEXTURE_2D,
                      0,
-                     GL_DEPTH_COMPONENT,
+                     GL_DEPTH_COMPONENT24,
                      static_cast<GLint>(w / m_downscale_factor),
                      static_cast<GLint>(h / m_downscale_factor),
                      0,

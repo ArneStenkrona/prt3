@@ -4,7 +4,7 @@
 // Courtesy of https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/shader.h
 
 #define GL_GLEXT_PROTOTYPES 1
-#include <SDL_opengles2.h>
+#include <GLES3/gl3.h>
 
 #include <glm/glm.hpp>
 

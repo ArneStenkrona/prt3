@@ -5,7 +5,7 @@
 #include "src/driver/opengl/gl_postprocessing_pass.h"
 
 #define GL_GLEXT_PROTOTYPES 1
-#include <SDL_opengles2.h>
+#include <GLES3/gl3.h>
 
 #include <vector>
 

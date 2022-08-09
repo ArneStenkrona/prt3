@@ -7,7 +7,9 @@
 
 using namespace prt3;
 
-GLTextureManager::GLTextureManager() {
+GLTextureManager::GLTextureManager() {}
+
+void GLTextureManager::init() {
 
     unsigned char data_0xffffffff[4] = { 0xff, 0xff, 0xff, 0xff };
     m_texture_1x1_0xffffffff = load_texture(data_0xffffffff, 1, 1, GL_RGBA,
