@@ -17,7 +17,7 @@ ModelManager::ModelManager(Context & context)
 
 }
 
-void ModelManager::add_model_to_scene_from_path(std::string const & path,
+NodeID ModelManager::add_model_to_scene_from_path(std::string const & path,
                                                 Scene             & scene,
                                                 NodeID              parent_id) {
     if (m_path_to_model_handle.find(path) == m_path_to_model_handle.end())
@@ -29,10 +29,10 @@ void ModelManager::add_model_to_scene_from_path(std::string const & path,
     }
 
     ModelHandle handle = m_path_to_model_handle[path];
-    add_model_to_scene(scene, handle, parent_id);
+    return add_model_to_scene(scene, handle, parent_id);
 }
 
-void ModelManager::add_model_to_scene(Scene & scene, ModelHandle handle, NodeID parent_id) {
+NodeID ModelManager::add_model_to_scene(Scene & scene, ModelHandle handle, NodeID parent_id) {
     if (!model_is_uploaded(handle)) {
         upload_model(handle);
     }
@@ -44,6 +44,8 @@ void ModelManager::add_model_to_scene(Scene & scene, ModelHandle handle, NodeID 
         unsigned int model_node_index;
         NodeID parent_id;
     };
+
+    NodeID model_node_id = scene.get_next_available_node_id();
 
     std::vector<QueueElement> queue{ { 0, parent_id} };
 
@@ -66,6 +68,7 @@ void ModelManager::add_model_to_scene(Scene & scene, ModelHandle handle, NodeID 
             queue.push_back({static_cast<unsigned int>(index), node_id});
         }
     }
+    return model_node_id;
 }
 
 bool ModelManager::model_is_uploaded(ModelHandle handle) {

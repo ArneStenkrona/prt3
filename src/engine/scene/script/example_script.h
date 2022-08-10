@@ -16,7 +16,7 @@ public:
     virtual void on_init() {
         std::cout << "on_init()" << std::endl;
     }
-    virtual void on_update() {
+    virtual void on_update(float) {
         std::cout << "on_update()" << std::endl;
     }
 private:

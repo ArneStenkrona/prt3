@@ -11,9 +11,9 @@ public:
     explicit Script(Scene & scene, NodeID node_id);
     virtual ~Script() {}
 
-    virtual void on_init() = 0;
-    virtual void on_update() = 0;
-
+    virtual void on_init() {}
+    virtual void on_update(float /*delta_time*/) {}
+    virtual void on_late_update(float /*delta_time*/) {}
 protected:
     Scene & scene() { return m_scene; }
     Node & node();

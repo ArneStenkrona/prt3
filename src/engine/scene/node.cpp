@@ -13,11 +13,11 @@ Node::Node(Scene & scene)
 
 Transform Node::get_global_transform() const {
     NodeID curr_id = m_parent_id;
-    glm::mat4 curr_tform = m_local_transform.to_transform_matrix();
+    glm::mat4 curr_tform = m_local_transform.to_matrix();
 
     while (curr_id != NO_NODE) {
         Node const & curr = m_scene.get_node(curr_id);
-        curr_tform = curr_tform * curr.local_transform().to_transform_matrix();
+        curr_tform = curr_tform * curr.local_transform().to_matrix();
         curr_id = curr.m_parent_id;
     }
 

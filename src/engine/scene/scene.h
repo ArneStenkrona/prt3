@@ -6,6 +6,7 @@
 #include "src/engine/scene/script/script.h"
 #include "src/engine/rendering/renderer.h"
 #include "src/engine/rendering/camera.h"
+#include "src/engine/core/input.h"
 
 #include <vector>
 #include <type_traits>
@@ -25,12 +26,14 @@ public:
 
     NodeID add_node(NodeID parent_id);
     NodeID add_node_to_root() { return add_node(m_root_id); }
+    NodeID get_next_available_node_id() const { return m_nodes.size(); }
 
     template<class T>
-    void add_script(NodeID node_id) {
+    T * add_script(NodeID node_id) {
         T * script = new T(*this, node_id);
         m_scripts.push_back(static_cast<Script *>(script));
         m_init_queue.push_back(static_cast<Script *>(script));
+        return script;
     }
 
     void set_node_mesh(NodeID node_id, ResourceID mesh_id)
@@ -49,6 +52,7 @@ public:
 
     Node & get_node(NodeID id) { return m_nodes[id]; }
     Camera & get_camera() { return m_camera; }
+    Input & get_input();
 
 private:
     Context & m_context;

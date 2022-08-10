@@ -36,7 +36,7 @@ public:
 
     ModelManager(Context & context);
 
-    void add_model_to_scene_from_path(std::string const & path, Scene & scene, NodeID parent_id);
+    NodeID add_model_to_scene_from_path(std::string const & path, Scene & scene, NodeID parent_id);
 
 private:
     typedef int ModelResourceIndex;
@@ -49,7 +49,7 @@ private:
     std::unordered_map<ModelHandle, ModelResourceIndex> m_handle_to_resource_index;
     std::unordered_map<std::string, ModelHandle> m_path_to_model_handle;
 
-    void add_model_to_scene(Scene & scene, ModelHandle handle, NodeID parent_id);
+    NodeID add_model_to_scene(Scene & scene, ModelHandle handle, NodeID parent_id);
     bool model_is_uploaded(ModelHandle handle);
     /* upload to graphics device */
     void upload_model(ModelHandle handle);
