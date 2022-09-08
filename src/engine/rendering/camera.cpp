@@ -12,7 +12,10 @@ Camera::Camera(Input & input,
       m_height(static_cast<float>(height)),
       m_near_plane(0.3f),
       m_far_plane(1000.0f),
-      m_input(input) {}
+      m_orthographic(false),
+      m_input(input)
+{
+}
 
 void Camera::set_projection(float width, float height, float near, float far) {
     assert(width > 0 && height > 0);
@@ -27,6 +30,9 @@ glm::mat4 Camera::get_projection_matrix() const {
 }
 
 glm::mat4 Camera::get_projection_matrix(float near, float far) const {
+    if (m_orthographic) {
+        return glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near, far);
+    }
     return glm::perspective(glm::radians(m_field_of_view), m_width / m_height, near, far);
 }
 

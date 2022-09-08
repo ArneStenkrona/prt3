@@ -53,6 +53,11 @@ public:
     inline float near_plane() const {return m_near_plane; }
     inline float far_plane() const {return m_far_plane; }
 
+    inline void set_orthographic_projection(bool orthographic)
+        { m_orthographic = orthographic; }
+    inline bool get_orthographic_projection() const
+        { return m_orthographic; }
+
     static constexpr glm::vec3 WORLD_UP{ 0.0f, 1.0f, 0.0f };
 
 private:
@@ -62,6 +67,7 @@ private:
     float m_height;
     float m_near_plane;
     float m_far_plane;
+    float m_orthographic;
 
     Input & m_input;
 

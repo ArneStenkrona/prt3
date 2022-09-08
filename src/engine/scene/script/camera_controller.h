@@ -32,6 +32,7 @@ public:
 
         if (input.get_key_down(KeyCode::KEY_CODE_TAB)) {
             m_free_cam_mode = !m_free_cam_mode;
+            camera.set_orthographic_projection(!m_free_cam_mode);
         }
 
         if (!m_free_cam_mode || input.get_key(KeyCode::KEY_CODE_MOUSE_LEFT)) {
@@ -44,10 +45,12 @@ public:
             m_pitch -= dy;
 
             // constrainPitch should have its effect here
-            if (m_pitch > 89.0f)
+            if (m_pitch > 89.0f) {
                 m_pitch = 89.0f;
-            if (m_pitch < -89.0f)
+            }
+            if (m_pitch < -89.0f) {
                 m_pitch = -89.0f;
+            }
 
             cam_tform.rotation = glm::quat_cast(
                 glm::eulerAngleYXZ(glm::radians(m_yaw), glm::radians(-m_pitch), 0.0f)
@@ -95,7 +98,7 @@ private:
 
 
     NodeID m_target = NO_NODE;
-    float m_target_distance = 5.0f;
+    float m_target_distance = 25.0f;
 
     bool m_free_cam_mode = true;
 };

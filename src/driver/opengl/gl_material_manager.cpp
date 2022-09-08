@@ -10,7 +10,7 @@ GLMaterialManager::GLMaterialManager(GLTextureManager & texture_manager)
 void GLMaterialManager::init() {
     m_standard_shader = glshaderutility::create_shader(
         "assets/shaders/opengl/standard.vs",
-        "assets/shaders/opengl/pixelate.fs"
+        "assets/shaders/opengl/toon.fs"
     );
 
     m_normal_shader = glshaderutility::create_shader(

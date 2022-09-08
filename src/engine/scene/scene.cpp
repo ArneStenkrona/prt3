@@ -18,13 +18,13 @@ Scene::Scene(Context & context)
 
     // FOR DEBUGGING, WILL REMOVE ---->
     m_context.model_manager()
-        .add_model_to_scene_from_path("assets/models/corner/building.fbx", *this, m_root_id);
+        .add_model_to_scene_from_path("assets/models/moon_island/moon_island.fbx", *this, m_root_id);
 
     NodeID light_node = add_node_to_root();
     PointLight light;
     light.color = glm::vec3(1.0f, 1.0f, 1.0f);
-    light.quadratic_term = 0.002f;
-    light.linear_term = 0.002f;
+    light.quadratic_term = 0.1f;
+    light.linear_term = 0.2f;
     light.constant_term = 0.1f;
     m_component_manager.set_point_light_component(light_node, light);
     set_node_local_position(light_node, glm::vec3(2.1f, 2.1f, 2.1f));
@@ -32,7 +32,7 @@ Scene::Scene(Context & context)
     set_ambient_light(glm::vec3{0.09f, 0.11f, 0.34f});
 
     PostProcessingPass outline_pass_info;
-    outline_pass_info.fragment_shader_path = "assets/shaders/opengl/outline.fs";
+    outline_pass_info.fragment_shader_path = "assets/shaders/opengl/pixel_postprocess.fs";
     outline_pass_info.downscale_factor = m_context.renderer().downscale_factor();
     PostProcessingPass upscale_pass_info;
     upscale_pass_info.fragment_shader_path = "assets/shaders/opengl/passthrough.fs";

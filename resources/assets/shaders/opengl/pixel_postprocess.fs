@@ -90,7 +90,39 @@ void main() {
         color = texture2D(u_RenderTexture, v_TexCoordinate).rgb;
     // }
 
-    float outline = max(depth_outline, normal_outline);
-    // gl_FragColor = vec4(vec3(outline), 1.0);
-    gl_FragColor = vec4(color, 1.0);
+    float x = gl_FragCoord.x;
+    x = x - (4.0 * floor(x/4.0));
+    float y = gl_FragCoord.y;
+    y = y - (4.0 * floor(y/4.0));
+
+    int index = int(x + y * 4.0);
+    float M = 0.0;
+
+    if (index == 0) M = 0.0625;
+    if (index == 1) M = 0.5625;
+    if (index == 2) M = 0.1875;
+    if (index == 3) M = 0.6875;
+    if (index == 4) M = 0.8125;
+    if (index == 5) M = 0.3125;
+    if (index == 6) M = 0.9375;
+    if (index == 7) M = 0.4375;
+    if (index == 8) M = 0.25;
+    if (index == 9) M = 0.75;
+    if (index == 10) M = 0.125;
+    if (index == 11) M = 0.625;
+    if (index == 12) M = 1.0;
+    if (index == 13) M = 0.5;
+    if (index == 14) M = 0.875;
+    if (index == 15) M = 0.375;
+
+    float noise = M;
+    float spread = 0.05;
+
+    vec3 dithered_color = color + spread * M;
+
+    float n = 16.0;
+    vec3 compressed_color = floor(dithered_color * (n - 1.0) + 0.5) / (n - 1.0);
+    gl_FragColor = vec4(compressed_color, 1.0);
+
+    // gl_FragColor = vec4(color, 1.0);
 }

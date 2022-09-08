@@ -65,6 +65,10 @@ void GLTextureManager::load_texture(char const * path) {
 
             glGenTextures(1, &texture_handle);
             glBindTexture(GL_TEXTURE_2D, texture_handle);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
             glTexImage2D(GL_TEXTURE_2D, 0, format, image->w, image->h, 0,
                          format, GL_UNSIGNED_BYTE, image->pixels);
             glGenerateMipmap(GL_TEXTURE_2D);

@@ -83,49 +83,7 @@ void main()
             roughness
         );
     }
-    vec4 rawColor = vec4(lightContribution, 1.0) * albedo;
-
-    // mat4 bayer4x4 = mat4(
-    //     0.0, 8.0, 2.0, 10.0,
-    //     12.0, 4.0, 14.0, 6.0,
-    //     3.0, 11.0, 1.0, 9.0,
-    //     15.0, 7.0, 13.0, 5.0
-    // );
-    float x = gl_FragCoord.x;
-    x = x - (4.0 * floor(x/4.0));
-    float y = gl_FragCoord.y;
-    y = y - (4.0 * floor(y/4.0));
-
-    int index = int(x + y * 4.0);
-    float M = 0.0;
-
-    if (index == 0) M = 0.0625;
-    if (index == 1) M = 0.5625;
-    if (index == 2) M = 0.1875;
-    if (index == 3) M = 0.6875;
-    if (index == 4) M = 0.8125;
-    if (index == 5) M = 0.3125;
-    if (index == 6) M = 0.9375;
-    if (index == 7) M = 0.4375;
-    if (index == 8) M = 0.25;
-    if (index == 9) M = 0.75;
-    if (index == 10) M = 0.125;
-    if (index == 11) M = 0.625;
-    if (index == 12) M = 1.0;
-    if (index == 13) M = 0.5;
-    if (index == 14) M = 0.875;
-    if (index == 15) M = 0.375;
-
-    // float M = bayer4x4[int(x)][int(y)];
-    // float noise = M * (1.0/16.0) - 0.5;
-    float noise = M;
-    float spread = 0.05;
-
-    vec3 dithered_color = rawColor.rgb + spread * M;
-
-    float n = 8.0;
-    vec3 compressed_color = floor(dithered_color * (n - 1.0) + 0.5) / (n - 1.0);
-    gl_FragColor = vec4(compressed_color, rawColor.a);
+    gl_FragColor = vec4(lightContribution, 1.0) * albedo;
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
@@ -169,36 +127,36 @@ vec3 calculatePointLight(PointLight light,
                          vec3 normal,
                          float metallic,
                          float roughness) {
-    vec3 F0 = vec3(0.04);
-    F0 = mix(F0, albedo, metallic);
+    // float stepWidth = 1.0;
+    // float stepAmount = 2.0;
+    float specularSize = 0.1;
+    float specularFalloff = 0.5;
 
-    vec3 V = normalize(u_ViewPosition - v_Position);
-    vec3 L = normalize(light.position - v_Position);
-    vec3 H = normalize(V + L);
+    vec3 lightDir = normalize(light.position - v_Position);
 
-    float dist = length(light.position  - v_Position);
-    float a =  light.a * dist * dist;
-    float b =  light.b * dist;
-    float c =  light.c;
-    float attenuation = 1.0 / (a + b + c);
-    vec3 radiance = light.color * attenuation;
+    float ndl = dot(normal, lightDir);
+    // ndl = ndl / stepWidth;
 
-    float NDF = DistributionGGX(normal, H, roughness);
-    float G = GeometrySmith(normal, V, L, roughness);
-    vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+    float intensity  = floor(ndl);
+    // intensity = intensity / stepAmount;
+    intensity = clamp(intensity, 0.0, 1.0);
 
-    vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
-    kD *= 1.0 - metallic;
+    vec3 r = reflect(lightDir, normal);
+    vec3 viewDir = normalize(u_ViewPosition - v_Position);
+    float vdr = dot(viewDir, -r);
+    float specFalloff = dot(viewDir, normal);
+    specFalloff = pow(specFalloff, specularFalloff);
+    vdr = vdr * specFalloff;
 
-    vec3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(normal, V), 0.0) * max(dot(normal,L), 0.0);
-    vec3 specular = numerator / max(denominator, 0.001);
+    float dist = distance(light.position, v_Position);
+    float attenuation = min(1.0 / (light.c + light.b * dist + light.a * dist * dist), 1.0);
 
-    float NdotL = max(dot(normal, L), 0.0);
-    vec3 contribution = (kD * albedo / PI + specular) * radiance * NdotL;
+    float spec = min(pow((1.0 - roughness) * 5.0 * vdr, 16.0), 1.0);
 
-    return contribution;
+    float lightVal = clamp(intensity + spec, 0.0, 1.0);
+    lightVal = lightVal > 0.5 ? 1.0 : 0.0;
+
+    return lightVal * light.color * attenuation * albedo;
 }
 
 vec3 CalculateDirectionalLight(DirectionalLight light,
@@ -206,34 +164,20 @@ vec3 CalculateDirectionalLight(DirectionalLight light,
                                vec3  normal,
                                float metallic,
                                float roughness) {
-    vec3 direction = light.direction;
-    vec3 color = 10.0 * light.color;
+    // diffuse shading
+    float diff = max(dot(normal, -light.direction), 0.0) < 0.5 ? 0.0 : 1.0;
+    // specular shading
+    vec3 r = reflect(light.direction, normal);
+    float shininess = 8.0;
 
-    vec3 F0 = vec3(0.04);
-    F0 = mix(F0, albedo, metallic);
+    vec3 viewDir = normalize(u_ViewPosition - v_Position);
+    float spec = (1.0 - roughness) * pow(max(dot(r, viewDir), 0.0), shininess) < 0.5 ? 0.0 : 1.0;
+    // combine results
+    vec3 diffuse  = light.color * diff * albedo;
+    vec3 specular = vec3(1) * spec;
 
-    vec3 V = normalize(u_ViewPosition - v_Position);
-    vec3 L = normalize(-direction);
-    vec3 H = normalize(V + L);
+    // float lightVal = clamp(diffuse + spec, 0.0, 1.0);
+    // lightVal = lightVal > 0.5 ? 1.0 : 0.0;
 
-    vec3 radiance = color;
-
-    vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-
-    float NDF = DistributionGGX(normal, H, roughness);
-    float G = GeometrySmith(normal, V, L, roughness);
-
-    vec3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(normal, V), 0.0) * max(dot(normal, L), 0.0);
-    vec3 specular = numerator / max(denominator, 0.001);
-
-    vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
-
-    kD *= 1.0 - metallic;
-
-    float NdotL = max(dot(normal, L), 0.0);
-    vec3 contribution = (kD * albedo / PI + specular) * radiance * NdotL;
-
-    return contribution;
+    return diffuse + specular;
 }
