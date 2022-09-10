@@ -4,7 +4,7 @@
 #include "src/engine/scene/script/script.h"
 #include "src/engine/scene/scene.h"
 
-#include <iostream>
+#include "src/engine/physics/gjk.h"
 
 namespace prt3 {
 
@@ -47,7 +47,6 @@ public:
                 glm::normalize(raw_input.x * glm::vec3{cf.x, 0.0f, cf.z} + raw_input.y * glm::vec3{cr.x, 0.0f, cr.z});
         }
         position += translation;
-
     }
 private:
 };

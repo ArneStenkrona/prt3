@@ -53,6 +53,10 @@ Scene::Scene(Context & context)
     add_script<CharacterController>(character);
 
     cam_controller->set_target(character);
+
+    NodeID cube = m_context.model_manager()
+        .add_model_to_scene_from_path("assets/models/debug/character_cube.fbx", *this, m_root_id);
+    get_node(cube).set_global_position(glm::vec3(2.0f, 0.0f, 0.0f));
     // <---- FOR DEBUGGING, WILL REMOVE
 
 }

@@ -38,9 +38,30 @@ void Node::set_global_transform(Transform const & transform) {
     glm::vec3 delta_pos = transform.position - global.position;
     glm::vec3 delta_scale = transform.scale / global.scale;
     glm::quat delta_rot = transform.rotation
-        * glm::inverse(transform.rotation);
+        * glm::inverse(global.rotation);
 
     m_local_transform.position = m_local_transform.position + delta_pos;
     m_local_transform.scale = m_local_transform.scale * delta_scale;
     m_local_transform.rotation = delta_rot * m_local_transform.rotation;
+}
+
+void Node::set_global_position(glm::vec3 const & position) {
+    Transform global = get_global_transform();
+    glm::vec3 delta_pos = position - global.position;
+
+    m_local_transform.position = m_local_transform.position + delta_pos;
+}
+
+void Node::set_global_rotation(glm::quat const & rotation) {
+    Transform global = get_global_transform();
+    glm::quat delta_rot = rotation
+        * glm::inverse(global.rotation);
+
+    m_local_transform.rotation = delta_rot * m_local_transform.rotation;
+}
+void Node::set_global_scale(glm::vec3 scale) {
+    Transform global = get_global_transform();
+    glm::vec3 delta_scale = scale / global.scale;
+
+    m_local_transform.scale = m_local_transform.scale * delta_scale;
 }

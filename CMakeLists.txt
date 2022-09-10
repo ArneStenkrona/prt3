@@ -34,6 +34,8 @@ file(GLOB SOURCES
 "src/driver/opengl/gl_texture_manager.cpp"
 "src/driver/opengl/gl_shader_utility.cpp"
 "src/driver/opengl/gl_utility.cpp"
+"src/engine/physics/gjk.cpp"
+"src/engine/physics/support.cpp"
 "src/engine/core/context.cpp"
 "src/engine/core/engine.cpp"
 "src/engine/core/input.cpp"

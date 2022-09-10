@@ -25,6 +25,10 @@ public:
 
     Transform get_global_transform() const;
     void set_global_transform(Transform const & transform);
+    void set_global_position(glm::vec3 const & position);
+    void set_global_rotation(glm::quat const & rotation);
+    void set_global_scale(glm::vec3 scale);
+
     Transform const & local_transform() const { return m_local_transform; }
     Transform & local_transform() { return m_local_transform; }
 

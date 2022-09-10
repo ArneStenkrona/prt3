@@ -31,7 +31,9 @@ glm::mat4 Camera::get_projection_matrix() const {
 
 glm::mat4 Camera::get_projection_matrix(float near, float far) const {
     if (m_orthographic) {
-        return glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near, far);
+        float h = 10.0f;
+        float w = h * (m_width / m_height);
+        return glm::ortho(-w, w, -h, h, near, far);
     }
     return glm::perspective(glm::radians(m_field_of_view), m_width / m_height, near, far);
 }
