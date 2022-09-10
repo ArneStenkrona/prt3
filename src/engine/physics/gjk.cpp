@@ -98,3 +98,49 @@ bool prt3::collision_util::next_simplex_tetrahedron(
 
     return true;
 }
+
+std::pair<std::vector<glm::vec4>, size_t> prt3::collision_util::get_face_normals(
+    std::vector<glm::vec3> const & polytope,
+    std::vector<unsigned int> const & faces) {
+    std::vector<glm::vec4> normals;
+    size_t min_triangle = 0;
+    float min_distance = std::numeric_limits<float>::max();
+
+    for (size_t i = 0; i < faces.size(); i += 3) {
+        glm::vec3 a = polytope[faces[i]];
+        glm::vec3 b = polytope[faces[i + 1]];
+        glm::vec3 c = polytope[faces[i + 2]];
+
+        glm::vec3 normal = glm::normalize(glm::cross(b - a, c - a));
+        float distance = glm::dot(normal, a);
+
+        if (distance < 0) {
+            normal *= -1.0f;
+            distance *= -1.0f;
+        }
+
+        normals.emplace_back(normal, distance);
+
+        if (distance < min_distance) {
+            min_triangle = i / 3;
+            min_distance = distance;
+        }
+    }
+
+    return { normals, min_triangle };
+}
+
+void prt3::collision_util::add_if_unique_edge(
+    std::vector<std::pair<unsigned int, unsigned int>> & edges,
+    std::vector<unsigned int> const & faces,
+    size_t a,
+    size_t b) {
+    auto reverse = std::find(edges.begin(), edges.end(),
+                             std::make_pair(faces[b], faces[a]));
+
+    if (reverse != edges.end()) {
+        edges.erase(reverse);
+    } else {
+        edges.emplace_back(faces[a], faces[b]);
+    }
+}
