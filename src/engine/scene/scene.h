@@ -2,14 +2,14 @@
 #define PRT3_SCENE_H
 
 #include "src/engine/scene/node.h"
-#include "src/engine/scene/component_manager.h"
-#include "src/engine/scene/script/script.h"
+#include "src/engine/component/component_manager.h"
+#include "src/engine/component/script/script.h"
+#include "src/engine/physics/physics_system.h"
 #include "src/engine/rendering/renderer.h"
 #include "src/engine/rendering/camera.h"
 #include "src/engine/core/input.h"
 
 #include <vector>
-#include <type_traits>
 
 namespace prt3
 {
@@ -43,6 +43,9 @@ public:
     void set_node_point_light(NodeID node_id, PointLight const & light)
         { m_component_manager.set_point_light_component(node_id, light); }
 
+    void set_node_collider(NodeID node_id, Sphere const & sphere)
+        { m_physics_system.add_sphere_collider(node_id, sphere); }
+
     void set_node_local_position(NodeID node_id, glm::vec3 const & local_position)
         { m_nodes[node_id].m_local_transform.position = local_position; }
 
@@ -65,6 +68,7 @@ private:
     std::vector<Script *> m_init_queue;
 
     ComponentManager m_component_manager;
+    PhysicsSystem m_physics_system;
 
     DirectionalLight m_directional_light;
     bool m_directional_light_on = false;
@@ -78,6 +82,7 @@ private:
 
     friend class Engine;
     friend class Renderer;
+    friend class Node;
 };
 
 } // namespace prt3

@@ -1,7 +1,5 @@
-#ifndef PRT3_COLLISION_H
-#define PRT3_COLLISION_H
-
-#include "src/engine/physics/support.h"
+#ifndef PRT3_GJK_H
+#define PRT3_GJK_H
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -41,18 +39,10 @@ void add_if_unique_edge(
     size_t a,
     size_t b);
 
-template<typename ShapeA, typename ShapeB>
-glm::vec3 calculate_support(ShapeA const & a,
-                            ShapeB const & b,
-                            glm::vec3 direction) {
-    return calculate_furthest_point(a, direction)
-         - calculate_furthest_point(b, -direction);
-}
-
 struct CollisionResult {
     glm::vec3 normal;
     float penetration_depth;
-    bool collided;
+    bool collided = false;
 };
 
 template<typename ShapeA, typename ShapeB>
@@ -71,23 +61,23 @@ CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
     auto [normals, min_face] = get_face_normals(polytope, faces);
 
     glm::vec3 min_normal;
-    float curr_min_distance = std::numeric_limits<float>::max();
     float min_distance = std::numeric_limits<float>::max();
 
     unsigned int iteration = 0;
-    static constexpr unsigned int max_iter = 5;
-    while (curr_min_distance == std::numeric_limits<float>::max() &&
-           iteration < max_iter) {
+    static constexpr unsigned int max_iter = 32;
+    while (min_distance == std::numeric_limits<float>::max()) {
         min_normal = glm::vec3(normals[min_face]);
-        curr_min_distance = normals[min_face].w;
-        min_distance = curr_min_distance < min_distance ?
-                        curr_min_distance : min_distance;
+        min_distance = normals[min_face].w;
+
+        if (iteration >= max_iter) {
+            break;
+        }
 
         glm::vec3 support = calculate_support(a, b, min_normal);
         float signed_distance = glm::dot(min_normal, support);
 
-        if (glm::abs(signed_distance - curr_min_distance) > 0.001f) {
-            curr_min_distance = std::numeric_limits<float>::max();
+        if (glm::abs(signed_distance - min_distance) > 0.001f) {
+            min_distance = std::numeric_limits<float>::max();
 
             std::vector<std::pair<unsigned int, unsigned int>> unique_edges;
 
@@ -128,15 +118,15 @@ CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
 
             auto [new_normals, new_min_face] = get_face_normals(polytope, new_faces);
 
-            float old_curr_min_distance = std::numeric_limits<float>::max();
+            float old_min_distance = std::numeric_limits<float>::max();
             for (size_t i = 0; i < normals.size(); ++i) {
-                if (normals[i].w < old_curr_min_distance) {
-                    old_curr_min_distance = normals[i].w;
+                if (normals[i].w < old_min_distance) {
+                    old_min_distance = normals[i].w;
                     min_face = i;
                 }
             }
 
-            if (new_normals[new_min_face].w < old_curr_min_distance) {
+            if (new_normals[new_min_face].w < old_min_distance) {
                 min_face = new_min_face + normals.size();
             }
 
@@ -145,6 +135,10 @@ CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
         }
 
         ++iteration;
+    }
+
+    if (min_distance == std::numeric_limits<float>::max()) {
+        return {};
     }
 
     CollisionResult collision_res;

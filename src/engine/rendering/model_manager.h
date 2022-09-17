@@ -45,8 +45,10 @@ private:
 
     std::vector<Model> m_models; // models imported into memory
     std::unordered_map<ModelHandle, ModelResource> m_model_resources; // models uploaded to graphics device
+    std::unordered_map<ResourceID, ModelHandle> m_mesh_id_to_model;
+    std::unordered_map<ResourceID, ModelHandle> m_material_id_to_model;
 
-    std::unordered_map<ModelHandle, ModelResourceIndex> m_handle_to_resource_index;
+    // std::unordered_map<ModelHandle, ModelResourceIndex> m_handle_to_resource_index;
     std::unordered_map<std::string, ModelHandle> m_path_to_model_handle;
 
     NodeID add_model_to_scene(Scene & scene, ModelHandle handle, NodeID parent_id);
@@ -54,6 +56,7 @@ private:
     /* upload to graphics device */
     void upload_model(ModelHandle handle);
 
+    friend class MeshManager;
 };
 
 } // namespace prt3

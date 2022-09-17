@@ -1,7 +1,7 @@
 #ifndef PRT3_CAMERA_CONTROLLER_H
 #define PRT3_CAMERA_CONTROLLER_H
 
-#include "src/engine/scene/script/script.h"
+#include "src/engine/component/script/script.h"
 #include "src/engine/scene/scene.h"
 
 #include <glm/gtx/euler_angles.hpp>
@@ -88,7 +88,7 @@ public:
         glm::vec3 pos = camera.get_position();
         Transform tform;
         tform.position = pos;
-        node().set_global_transform(tform);
+        get_node().set_global_transform(tform);
     }
 private:
     float m_yaw;

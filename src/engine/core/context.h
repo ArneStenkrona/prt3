@@ -4,6 +4,7 @@
 #include "src/engine/scene/scene.h"
 #include "src/engine/rendering/renderer.h"
 #include "src/engine/rendering/model_manager.h"
+#include "src/engine/physics/physics_system.h"
 #include "src/engine/core/input.h"
 
 namespace prt3 {

@@ -3,8 +3,8 @@
 #include "src/engine/rendering/render_data.h"
 #include "src/engine/core/context.h"
 
-#include "src/engine/scene/script/camera_controller.h"
-#include "src/engine/scene/script/character_controller.h"
+#include "src/engine/component/script/camera_controller.h"
+#include "src/engine/component/script/character_controller.h"
 
 #include <algorithm>
 
@@ -12,13 +12,17 @@ using namespace prt3;
 
 Scene::Scene(Context & context)
  : m_context{context},
-   m_camera{context.input(), context.renderer().window_width(), context.renderer().window_height()} {
+   m_camera{context.input(),
+            context.renderer().window_width(),
+            context.renderer().window_height()},
+   m_physics_system{*this} {
     m_root_id = m_nodes.size();
-    m_nodes.emplace_back(*this);
+    m_nodes.emplace_back(m_root_id, *this);
 
     // FOR DEBUGGING, WILL REMOVE ---->
-    m_context.model_manager()
+    NodeID island = m_context.model_manager()
         .add_model_to_scene_from_path("assets/models/moon_island/moon_island.fbx", *this, m_root_id);
+    m_physics_system.add_mesh_collider(island, "assets/models/moon_island/moon_island.fbx");
 
     NodeID light_node = add_node_to_root();
     PointLight light;
@@ -51,6 +55,7 @@ Scene::Scene(Context & context)
         .add_model_to_scene_from_path("assets/models/debug/character_cube.fbx", *this, m_root_id);
 
     add_script<CharacterController>(character);
+    m_physics_system.add_sphere_collider(character, {{}, 1.0f});
 
     cam_controller->set_target(character);
 
@@ -96,7 +101,7 @@ NodeID Scene::add_node(NodeID parent_id) {
     NodeID id = m_nodes.size();
     parent.m_children_ids.push_back(id);
 
-    m_nodes.emplace_back(*this);
+    m_nodes.emplace_back(id, *this);
     m_nodes[id].m_parent_id = parent_id;
 
     return id;

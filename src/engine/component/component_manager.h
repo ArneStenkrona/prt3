@@ -3,6 +3,7 @@
 
 #include "src/engine/scene/node.h"
 
+#include "src/engine/physics/physics_system.h"
 #include "src/engine/rendering/light.h"
 #include "src/engine/rendering/resources.h"
 

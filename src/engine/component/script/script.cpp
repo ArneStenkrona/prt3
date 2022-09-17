@@ -10,4 +10,4 @@ Script::Script(Scene & scene, NodeID node_id)
 
 }
 
-Node & Script::node() { return m_scene.get_node(m_node_id); }
+Node & Script::get_node() { return m_scene.get_node(m_node_id); }

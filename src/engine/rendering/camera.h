@@ -2,7 +2,7 @@
 #define PRT3_CAMERA_H
 
 #include "src/engine/core/input.h"
-#include "src/engine/scene/transform.h"
+#include "src/engine/component/transform.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE

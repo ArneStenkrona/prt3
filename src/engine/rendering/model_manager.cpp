@@ -18,8 +18,8 @@ ModelManager::ModelManager(Context & context)
 }
 
 NodeID ModelManager::add_model_to_scene_from_path(std::string const & path,
-                                                Scene             & scene,
-                                                NodeID              parent_id) {
+                                                Scene               & scene,
+                                                NodeID                parent_id) {
     if (m_path_to_model_handle.find(path) == m_path_to_model_handle.end())
     {
         // load from file

@@ -15,8 +15,9 @@ public:
     virtual void on_update(float /*delta_time*/) {}
     virtual void on_late_update(float /*delta_time*/) {}
 protected:
-    Scene & scene() { return m_scene; }
-    Node & node();
+    Scene & scene() const { return m_scene; }
+    NodeID node_id() const { return m_node_id; }
+    Node & get_node();
 
 private:
     Scene & m_scene;

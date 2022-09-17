@@ -6,8 +6,8 @@
 
 using namespace prt3;
 
-Node::Node(Scene & scene)
- : m_scene{scene} {
+Node::Node(NodeID id, Scene & scene)
+ : m_id{id}, m_scene{scene} {
 
 }
 
@@ -64,4 +64,9 @@ void Node::set_global_scale(glm::vec3 scale) {
     glm::vec3 delta_scale = scale / global.scale;
 
     m_local_transform.scale = m_local_transform.scale * delta_scale;
+}
+
+
+collision_util::CollisionResult Node::move_and_collide(glm::vec3 const & movement) {
+    return m_scene.m_physics_system.move_and_collide(m_id, movement);
 }

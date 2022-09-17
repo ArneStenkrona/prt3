@@ -30,8 +30,6 @@ public:
     void upload_model(ModelManager::ModelHandle handle,
                       Model const & model,
                       ModelResource & resource);
-    // void set_postprocesing_shader(const char * fragment_shader_path)
-    //     { m_render_backend->set_postprocessing_shader(fragment_shader_path); }
 
     void set_postprocessing_chain(
         std::vector<PostProcessingPass> const & chain_info)
