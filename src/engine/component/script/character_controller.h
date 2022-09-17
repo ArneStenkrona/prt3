@@ -57,10 +57,10 @@ public:
         if (input.get_key(KeyCode::KEY_CODE_D)) {
             raw_input += glm::vec3{0.0f, 0.0f, 1.0f};
         }
-        if (input.get_key(KeyCode::KEY_CODE_Q)) {
+        if (input.get_key(KeyCode::KEY_CODE_E)) {
             raw_input += glm::vec3{0.0f, 1.0f, 0.0f};
         }
-        if (input.get_key(KeyCode::KEY_CODE_E)) {
+        if (input.get_key(KeyCode::KEY_CODE_Q)) {
             raw_input -= glm::vec3{0.0f, 1.0f, 0.0f};
         }
         glm::vec3 translation = { 0.0f, 0.0f, 0.0f };
