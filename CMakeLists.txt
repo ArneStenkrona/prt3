@@ -70,8 +70,8 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
 endif ()
 
 # Set compiler flags
-target_compile_options(prt3 PUBLIC -Wall -Wextra -o2 -g -fsanitize=address)
-target_link_options(prt3 PUBLIC -Wall -Wextra -o2 -g -fsanitize=address)
+target_compile_options(prt3 PUBLIC -Wall -Wextra -o2 -g -fsanitize=address -fno-omit-frame-pointer)
+target_link_options(prt3 PUBLIC -Wall -Wextra -o2 -g -fsanitize=address -fno-omit-frame-pointer)
 # Link libraries
 target_link_libraries(prt3 assimp::assimp)
 target_link_libraries(prt3 glm)

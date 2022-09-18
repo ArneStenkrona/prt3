@@ -99,14 +99,15 @@ bool prt3::collision_util::next_simplex_tetrahedron(
     return true;
 }
 
-std::pair<std::vector<glm::vec4>, size_t> prt3::collision_util::get_face_normals(
-    std::vector<glm::vec3> const & polytope,
-    std::vector<unsigned int> const & faces) {
-    std::vector<glm::vec4> normals;
-    size_t min_triangle = 0;
+void prt3::collision_util::get_face_normals(glm::vec3 const * polytope,
+                                            uint8_t const * faces,
+                                            unsigned int n_faces,
+                                            glm::vec4 * normals,
+                                            unsigned int & min_triangle) {
+    min_triangle = 0;
     float min_distance = std::numeric_limits<float>::max();
-
-    for (size_t i = 0; i < faces.size(); i += 3) {
+    unsigned int n_normals = 0;
+    for (unsigned int i = 0; i < n_faces; i += 3) {
         glm::vec3 a = polytope[faces[i]];
         glm::vec3 b = polytope[faces[i + 1]];
         glm::vec3 c = polytope[faces[i + 2]];
@@ -119,28 +120,34 @@ std::pair<std::vector<glm::vec4>, size_t> prt3::collision_util::get_face_normals
             distance *= -1.0f;
         }
 
-        normals.emplace_back(normal, distance);
+        new (normals + n_normals) glm::vec4(normal, distance);
 
         if (distance < min_distance) {
-            min_triangle = i / 3;
+            min_triangle = n_normals;
             min_distance = distance;
         }
+        ++n_normals;
     }
-
-    return { normals, min_triangle };
 }
 
 void prt3::collision_util::add_if_unique_edge(
-    std::vector<std::pair<unsigned int, unsigned int>> & edges,
-    std::vector<unsigned int> const & faces,
-    size_t a,
-    size_t b) {
-    auto reverse = std::find(edges.begin(), edges.end(),
+    std::pair<uint8_t, uint8_t> * edges,
+    unsigned int & n_edges,
+    uint8_t const * faces,
+    unsigned int a,
+    unsigned int b) {
+    auto reverse = std::find(edges, edges + n_edges,
                              std::make_pair(faces[b], faces[a]));
 
-    if (reverse != edges.end()) {
-        edges.erase(reverse);
+    if (reverse != edges + n_edges) {
+        auto curr = reverse;
+        --n_edges;
+        while (curr != edges + n_edges) {
+            *curr = *(curr+1);
+            ++curr;
+        }
     } else {
-        edges.emplace_back(faces[a], faces[b]);
+        new (edges + n_edges) std::pair(faces[a], faces[b]);
+        ++n_edges;
     }
 }

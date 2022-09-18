@@ -11,6 +11,7 @@
 #include <vector>
 #include <cassert>
 #include <utility>
+#include <algorithm>
 
 // Thanks https://blog.winter.dev/2020/gjk-algorithm/ for
 // wonderful implementation reference of GJK/EPA
@@ -29,15 +30,18 @@ bool next_simplex_tetrahedron(std::array<glm::vec3, 4> & points,
                               unsigned int & n_points,
                               glm::vec3 & direction);
 
-std::pair<std::vector<glm::vec4>, size_t> get_face_normals(
-    std::vector<glm::vec3> const & polytope,
-    std::vector<unsigned int> const & faces);
+void get_face_normals(glm::vec3 const * polytope,
+                      uint8_t const * faces,
+                      unsigned int n_faces,
+                      glm::vec4 * normals,
+                      unsigned int & min_triangle);
 
 void add_if_unique_edge(
-    std::vector<std::pair<unsigned int, unsigned int>> & edges,
-    std::vector<unsigned int> const & faces,
-    size_t a,
-    size_t b);
+    std::pair<uint8_t, uint8_t> * edges,
+    unsigned int & n_edges,
+    uint8_t const * faces,
+    unsigned int a,
+    unsigned int b);
 
 struct CollisionResult {
     glm::vec3 normal;
@@ -47,24 +51,51 @@ struct CollisionResult {
 
 template<typename ShapeA, typename ShapeB>
 CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
-                    size_t n_simplex,
+                    unsigned int n_simplex,
                     ShapeA const & a,
                     ShapeB const & b) {
-    std::vector<glm::vec3> polytope(simplex.begin(), simplex.begin() + n_simplex);
-    std::vector<unsigned int> faces = {
-        0, 1, 2,
-        0, 3, 1,
-        0, 2, 3,
-        1, 3, 2
-    };
+    // Note: If you increase max_iter you need to
+    //       increase the size of all arrays in this
+    //       function. The array sizes are based on
+    //       the number of vertices that the polytope
+    //       can reach if the maximum number of
+    //       iterations is reached.
+    //       The memory allocated assumes a worst case
+    //       of a complete graph of V={4+max_iter} vertices
+    //       and assumes that each edge belongs to 2
+    //       triangles. This gives us E=V(V-1)/2 edges and
+    //       at most F=3E triangluar faces, if each face
+    //       shares no edge with any other (which it
+    //       actually does).
+    static constexpr unsigned int max_iter = 5;
 
-    auto [normals, min_face] = get_face_normals(polytope, faces);
+    std::array<glm::vec3, 9/*4 + max_iter*/> polytope;
+    unsigned int n_polytope = n_simplex;
+    polytope[0] = simplex[0];
+    polytope[1] = simplex[1];
+    polytope[2] = simplex[2];
+    polytope[3] = simplex[3];
+
+    std::array<uint8_t, 108/*Euler characteristic for 9V complete graph*/> faces;
+    faces[0] = 0; faces[ 1] = 1; faces[ 2] = 2;
+    faces[3] = 0; faces[ 4] = 3; faces[ 5] = 1;
+    faces[6] = 0; faces[ 7] = 2; faces[ 8] = 3;
+    faces[9] = 1; faces[10] = 3; faces[11] = 2;
+    unsigned int n_faces = 12;
+
+    std::array<glm::vec4, 29> normals;
+    unsigned int n_normals = n_faces / 3;
+    unsigned int min_face = 0;
+    get_face_normals(polytope.data(),
+                     faces.data(),
+                     n_faces,
+                     normals.data(),
+                     min_face);
 
     glm::vec3 min_normal;
     float min_distance = std::numeric_limits<float>::max();
 
     unsigned int iteration = 0;
-    static constexpr unsigned int max_iter = 32;
     while (min_distance == std::numeric_limits<float>::max()) {
         min_normal = glm::vec3(normals[min_face]);
         min_distance = normals[min_face].w;
@@ -79,47 +110,54 @@ CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
         if (glm::abs(signed_distance - min_distance) > 0.001f) {
             min_distance = std::numeric_limits<float>::max();
 
-            std::vector<std::pair<unsigned int, unsigned int>> unique_edges;
-
-            for (size_t i = 0; i < normals.size(); ++i) {
+            std::array<std::pair<uint8_t, uint8_t>, 36/*Euler*/> unique_edges;
+            unsigned int n_ue = 0;
+            for (unsigned int i = 0; i < n_normals; ++i) {
                 if (glm::dot(glm::vec3(normals[i]), support) > 0.0f) {
-                    size_t f = i * 3;
+                    unsigned int f = i * 3;
 
-                    add_if_unique_edge(unique_edges, faces, f    , f + 1);
-                    add_if_unique_edge(unique_edges, faces, f + 1, f + 2);
-                    add_if_unique_edge(unique_edges, faces, f + 2, f);
 
-                    faces[f + 2] = faces.back();
-                    faces.pop_back();
-                    faces[f + 1] = faces.back();
-                    faces.pop_back();
-                    faces[f] = faces.back();
-                    faces.pop_back();
+                    add_if_unique_edge(unique_edges.data(), n_ue, faces.data(), f    , f + 1);
 
-                    normals[i] = normals.back();
-                    normals.pop_back();
+                    add_if_unique_edge(unique_edges.data(), n_ue, faces.data(), f + 1, f + 2);
 
+                    add_if_unique_edge(unique_edges.data(), n_ue, faces.data(), f + 2, f);
+                    faces[f + 2] = faces[--n_faces];
+                    faces[f + 1] = faces[--n_faces];
+                    faces[f] = faces[--n_faces];
+
+                    normals[i] = normals[--n_normals];
                     --i;
                 }
             }
 
-            if (unique_edges.empty()) {
+            if (n_ue == 0) {
                 break;
             }
 
-            std::vector<unsigned int> new_faces;
-            for (auto [edge_index1, edge_index2] : unique_edges) {
-                new_faces.push_back(edge_index1);
-                new_faces.push_back(edge_index2);
-                new_faces.push_back(polytope.size());
+            std::array<uint8_t, 108> new_faces;
+            unsigned int n_new_faces = n_ue * 3;
+            for (unsigned int i = 0; i < n_ue; ++i) {
+                auto const & edge = unique_edges[i];
+                new_faces[3*i] = edge.first;
+                new_faces[3*i+1] = edge.second;
+                new_faces[3*i+2] = n_polytope;
             }
 
-            polytope.push_back(support);
+            polytope[n_polytope] = support;
+            ++n_polytope;
 
-            auto [new_normals, new_min_face] = get_face_normals(polytope, new_faces);
+            std::array<glm::vec4, 29> new_normals;
+            unsigned int n_new_normals = n_new_faces / 3;
+            unsigned int new_min_face = 0;
+            get_face_normals(polytope.data(),
+                             new_faces.data(),
+                             n_new_faces,
+                             new_normals.data(),
+                             new_min_face);
 
             float old_min_distance = std::numeric_limits<float>::max();
-            for (size_t i = 0; i < normals.size(); ++i) {
+            for (unsigned int i = 0; i < n_normals; ++i) {
                 if (normals[i].w < old_min_distance) {
                     old_min_distance = normals[i].w;
                     min_face = i;
@@ -127,11 +165,17 @@ CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
             }
 
             if (new_normals[new_min_face].w < old_min_distance) {
-                min_face = new_min_face + normals.size();
+                min_face = new_min_face + n_normals;
             }
 
-            faces.insert(faces.end(), new_faces.begin(), new_faces.end());
-            normals.insert(normals.end(), new_normals.begin(), new_normals.end());
+            for (unsigned int i = 0; i < n_new_faces; ++i) {
+                faces[n_faces + i] = new_faces[i];
+            }
+            n_faces += n_new_faces;
+            for (unsigned int i = 0; i < n_new_normals; ++i) {
+                normals[n_normals + i] = new_normals[i];
+            }
+            n_normals += n_new_normals;
         }
 
         ++iteration;
