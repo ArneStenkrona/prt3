@@ -102,10 +102,10 @@ private:
             }
 
             if (res.collided) {
-                transform.position -= res.normal * res.penetration_depth;
+                glm::vec3 nudge = res.normal * res.penetration_depth;
+                transform.position += nudge;;
                 curr_movement = glm::vec3{0.0f};
                 ret = res;
-                break;
             } else {
                 break;
             }

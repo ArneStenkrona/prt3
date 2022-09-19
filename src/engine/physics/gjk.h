@@ -186,7 +186,7 @@ CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
     }
 
     CollisionResult collision_res;
-    collision_res.normal = min_normal;
+    collision_res.normal = -min_normal;
     float eps = 0.001f;
     collision_res.penetration_depth = min_distance + eps;
     collision_res.collided = min_distance != std::numeric_limits<float>::max();
