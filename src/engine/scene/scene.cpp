@@ -24,15 +24,6 @@ Scene::Scene(Context & context)
         .add_model_to_scene_from_path("assets/models/moon_island/moon_island.fbx", *this, m_root_id);
     m_physics_system.add_mesh_collider(island, "assets/models/moon_island/moon_island.fbx");
 
-    NodeID light_node = add_node_to_root();
-    PointLight light;
-    light.color = glm::vec3(1.0f, 1.0f, 1.0f);
-    light.quadratic_term = 0.1f;
-    light.linear_term = 0.2f;
-    light.constant_term = 0.1f;
-    m_component_manager.set_point_light_component(light_node, light);
-    set_node_local_position(light_node, glm::vec3(2.1f, 2.1f, 2.1f));
-
     set_ambient_light(glm::vec3{0.09f, 0.11f, 0.34f});
 
     PostProcessingPass outline_pass_info;
@@ -49,13 +40,21 @@ Scene::Scene(Context & context)
     set_directional_light({{1.0f, -1.0f, -1.0f}, {0.8f, 0.8f, 0.8f}});
     set_directional_light_on(true);
 
-    CameraController * cam_controller = add_script<CameraController>(light_node);
+    NodeID cam_node = add_node_to_root();
+    set_node_local_position(cam_node, glm::vec3(2.1f, 2.1f, 2.1f));
+    CameraController * cam_controller = add_script<CameraController>(cam_node);
 
     NodeID character = m_context.model_manager()
         .add_model_to_scene_from_path("assets/models/debug/character_cube.fbx", *this, m_root_id);
+    PointLight light;
+    light.color = glm::vec3(1.0f, 1.0f, 1.0f);
+    light.quadratic_term = 0.1f;
+    light.linear_term = 0.2f;
+    light.constant_term = 0.1f;
+    m_component_manager.set_point_light_component(character, light);
 
     add_script<CharacterController>(character);
-    m_physics_system.add_sphere_collider(character, {{}, 1.0f});
+    m_physics_system.add_sphere_collider(character, {{0.0f, 0.25f, 0.0f}, 0.80f});
 
     cam_controller->set_target(character);
 

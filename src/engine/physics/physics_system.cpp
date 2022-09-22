@@ -21,10 +21,9 @@ void PhysicsSystem::add_sphere_collider(NodeID node_id,
     m_node_ids[tag] = node_id;
 }
 
-collision_util::CollisionResult PhysicsSystem::move_and_collide(
-    NodeID node_id,
-    glm::vec3 const & movement) {
-    collision_util::CollisionResult res{};
+Collision PhysicsSystem::move_and_collide(NodeID node_id,
+                                          glm::vec3 const & movement) {
+    Collision res{};
 
     ColliderTag const & tag = m_tags[node_id];
     Node & node = m_scene.get_node(node_id);

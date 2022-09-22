@@ -8,6 +8,15 @@
 
 namespace prt3 {
 
+struct Collision {
+    glm::vec3 normal;
+    float penetration_depth;
+    // glm::vec3 impluse;
+    bool collided = false;
+    // float t = std::numeric_limits<float>::max();
+    // TODO: collided nodes
+};
+
 enum ColliderType : uint8_t {
     collider_type_none,
     collider_type_mesh,
@@ -31,10 +40,13 @@ public:
     void set_triangles(std::vector<Triangle> && triangles);
     void collect_triangles(AABB const & aabb,
                            std::vector<Triangle> & triangles) const;
-
+    void collect_triangles(AABB const & aabb,
+                           glm::vec3 const & movement_vector,
+                           std::vector<Triangle> & triangles) const;
 private:
     std::vector<Triangle> m_triangles;
     std::vector<AABB> m_aabbs;
+    std::vector<glm::vec3> m_normals;
 
 };
 

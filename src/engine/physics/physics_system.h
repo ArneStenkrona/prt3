@@ -18,9 +18,8 @@ class PhysicsSystem {
 public:
     PhysicsSystem(Scene & scene);
 
-    collision_util::CollisionResult move_and_collide(
-        NodeID node_id,
-        glm::vec3 const & movement);
+    Collision move_and_collide(NodeID node_id,
+                               glm::vec3 const & movement);
 
     void add_mesh_collider(NodeID node_id,
                            Model const & model);
@@ -46,7 +45,7 @@ private:
     Node & get_node(NodeID node_id);
 
     template<typename Collider>
-    collision_util::CollisionResult move_and_collide(
+    Collision move_and_collide(
         ColliderTag tag,
         Collider const & collider,
         glm::vec3 const & movement,
@@ -54,17 +53,18 @@ private:
     ) {
         unsigned int iteration = 0;
         unsigned int max_iter = 5;
-        collision_util::CollisionResult ret{};
+        Collision ret{};
 
         glm::vec3 curr_movement = movement;
 
+        glm::vec3 original_pos = transform.position;
         while (iteration < max_iter) {
             auto shape = collider.get_shape(transform);
             auto swept_shape = shape.sweep(curr_movement);
             AABB aabb = swept_shape.aabb();
             transform.position += curr_movement;
 
-            collision_util::CollisionResult res{};
+            Collision res{};
 
             for (auto const & pair : m_sphere_colliders) {
                 if (pair.first == tag) continue;
@@ -72,11 +72,16 @@ private:
                 Node const & other = get_node(other_id);
                 Transform other_transform = other.get_global_transform();
 
-                res = collision_util::gjk(
+                collision_util::CollisionResult cand = collision_util::gjk(
                     swept_shape,
-                    pair.second.get_shape(other_transform)
+                    pair.second.get_shape(other_transform),
+                    original_pos,
+                    transform.position
                 );
-                if (res.collided) {
+                if (cand.collided) {
+                    res.collided = cand.collided;
+                    res.normal = cand.normal;
+                    res.penetration_depth = cand.penetration_depth;
                     break;
                 }
             }
@@ -87,10 +92,19 @@ private:
                     MeshCollider const & mesh_collider = pair.second;
 
                     std::vector<Triangle> tris;
-                    mesh_collider.collect_triangles(aabb, tris);
+                    mesh_collider.collect_triangles(
+                                    aabb,
+                                    tris);
                     for (Triangle tri : tris) {
-                        res = collision_util::gjk(swept_shape, tri);
-                        if (res.collided) {
+                        collision_util::CollisionResult cand
+                            = collision_util::gjk(swept_shape,
+                                                  tri,
+                                                  original_pos,
+                                                  transform.position);
+                        if (cand.collided) {
+                            res.collided = cand.collided;
+                            res.normal = cand.normal;
+                            res.penetration_depth = cand.penetration_depth;
                             break;
                         }
                     }
@@ -103,7 +117,7 @@ private:
 
             if (res.collided) {
                 glm::vec3 nudge = res.normal * res.penetration_depth;
-                transform.position += nudge;;
+                transform.position += nudge;
                 curr_movement = glm::vec3{0.0f};
                 ret = res;
             } else {

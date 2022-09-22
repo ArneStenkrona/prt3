@@ -34,7 +34,9 @@ void get_face_normals(glm::vec3 const * polytope,
                       uint8_t const * faces,
                       unsigned int n_faces,
                       glm::vec4 * normals,
-                      unsigned int & min_triangle);
+                      unsigned int & min_triangle,
+                      glm::vec3 const & a_start,
+                      glm::vec3 const & a_dest);
 
 void add_if_unique_edge(
     std::pair<uint8_t, uint8_t> * edges,
@@ -53,44 +55,43 @@ template<typename ShapeA, typename ShapeB>
 CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
                     unsigned int n_simplex,
                     ShapeA const & a,
-                    ShapeB const & b) {
-    // Note: If you increase max_iter you need to
-    //       increase the size of all arrays in this
-    //       function. The array sizes are based on
-    //       the number of vertices that the polytope
-    //       can reach if the maximum number of
-    //       iterations is reached.
+                    ShapeB const & b,
+                    glm::vec3 const & a_start,
+                    glm::vec3 const & a_dest) {
     //       The memory allocated assumes a worst case
     //       of a complete graph of V={4+max_iter} vertices
-    //       and assumes that each edge belongs to 2
-    //       triangles. This gives us E=V(V-1)/2 edges and
-    //       at most F=3E triangluar faces, if each face
-    //       shares no edge with any other (which it
-    //       actually does).
+    //       This gives us E=V(V-1)/2 edges and
+    //       at most F=2E triangluar faces, if each edge
+    //       is always shared by two triangles
     static constexpr unsigned int max_iter = 5;
+    static constexpr size_t V = 4 + max_iter;
+    static constexpr size_t E = V * (V-1) / 2;
+    static constexpr size_t F = 2 * E;
 
-    std::array<glm::vec3, 9/*4 + max_iter*/> polytope;
+    std::array<glm::vec3, V> polytope;
     unsigned int n_polytope = n_simplex;
     polytope[0] = simplex[0];
     polytope[1] = simplex[1];
     polytope[2] = simplex[2];
     polytope[3] = simplex[3];
 
-    std::array<uint8_t, 108/*Euler characteristic for 9V complete graph*/> faces;
+    std::array<uint8_t, 3 * F> faces;
     faces[0] = 0; faces[ 1] = 1; faces[ 2] = 2;
     faces[3] = 0; faces[ 4] = 3; faces[ 5] = 1;
     faces[6] = 0; faces[ 7] = 2; faces[ 8] = 3;
     faces[9] = 1; faces[10] = 3; faces[11] = 2;
     unsigned int n_faces = 12;
 
-    std::array<glm::vec4, 29> normals;
+    std::array<glm::vec4, F> normals;
     unsigned int n_normals = n_faces / 3;
     unsigned int min_face = 0;
     get_face_normals(polytope.data(),
                      faces.data(),
                      n_faces,
                      normals.data(),
-                     min_face);
+                     min_face,
+                     a_start,
+                     a_dest);
 
     glm::vec3 min_normal;
     float min_distance = std::numeric_limits<float>::max();
@@ -110,12 +111,11 @@ CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
         if (glm::abs(signed_distance - min_distance) > 0.001f) {
             min_distance = std::numeric_limits<float>::max();
 
-            std::array<std::pair<uint8_t, uint8_t>, 36/*Euler*/> unique_edges;
+            std::array<std::pair<uint8_t, uint8_t>, E> unique_edges;
             unsigned int n_ue = 0;
             for (unsigned int i = 0; i < n_normals; ++i) {
                 if (glm::dot(glm::vec3(normals[i]), support) > 0.0f) {
                     unsigned int f = i * 3;
-
 
                     add_if_unique_edge(unique_edges.data(), n_ue, faces.data(), f    , f + 1);
 
@@ -135,7 +135,7 @@ CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
                 break;
             }
 
-            std::array<uint8_t, 108> new_faces;
+            std::array<uint8_t, 3 * F> new_faces;
             unsigned int n_new_faces = n_ue * 3;
             for (unsigned int i = 0; i < n_ue; ++i) {
                 auto const & edge = unique_edges[i];
@@ -147,14 +147,16 @@ CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
             polytope[n_polytope] = support;
             ++n_polytope;
 
-            std::array<glm::vec4, 29> new_normals;
+            std::array<glm::vec4, F> new_normals;
             unsigned int n_new_normals = n_new_faces / 3;
             unsigned int new_min_face = 0;
             get_face_normals(polytope.data(),
                              new_faces.data(),
                              n_new_faces,
                              new_normals.data(),
-                             new_min_face);
+                             new_min_face,
+                             a_start,
+                             a_dest);
 
             float old_min_distance = std::numeric_limits<float>::max();
             for (unsigned int i = 0; i < n_normals; ++i) {
@@ -185,10 +187,14 @@ CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
         return {};
     }
 
+    glm::vec3 point = polytope[faces[3 * min_face]];
+    float depth = glm::abs(glm::dot(min_normal, point));
+
     CollisionResult collision_res;
     collision_res.normal = -min_normal;
     float eps = 0.001f;
-    collision_res.penetration_depth = min_distance + eps;
+    // collision_res.penetration_depth = min_distance + eps;
+    collision_res.penetration_depth = depth + eps;
     collision_res.collided = min_distance != std::numeric_limits<float>::max();
 
     return collision_res;
@@ -196,7 +202,9 @@ CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
 
 template<typename ShapeA, typename ShapeB>
 CollisionResult gjk(ShapeA const & a,
-                    ShapeB const & b) {
+                    ShapeB const & b,
+                    glm::vec3 const & a_start,
+                    glm::vec3 const & a_dest) {
     glm::vec3 support = calculate_support(a, b, glm::vec3{1.0f, 0.0f, 0.0f});
 
     unsigned int n_points = 1;
@@ -246,7 +254,7 @@ CollisionResult gjk(ShapeA const & a,
         }
 
         if (res_simplex) {
-            return epa(points, n_points, a, b);
+            return epa(points, n_points, a, b, a_start, a_dest);
         }
     }
 }

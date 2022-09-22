@@ -37,8 +37,7 @@ public:
     NodeID parent_id() { return m_parent_id; }
     std::vector<NodeID> const & children_ids() const { return m_children_ids; }
 
-    collision_util::CollisionResult move_and_collide(
-        glm::vec3 const & movement);
+    Collision move_and_collide(glm::vec3 const & movement);
 private:
     Transform m_local_transform;
     NodeID m_id;

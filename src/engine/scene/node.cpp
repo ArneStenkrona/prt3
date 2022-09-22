@@ -67,6 +67,6 @@ void Node::set_global_scale(glm::vec3 scale) {
 }
 
 
-collision_util::CollisionResult Node::move_and_collide(glm::vec3 const & movement) {
+Collision Node::move_and_collide(glm::vec3 const & movement) {
     return m_scene.m_physics_system.move_and_collide(m_id, movement);
 }
