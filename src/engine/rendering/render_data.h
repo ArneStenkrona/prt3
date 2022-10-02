@@ -49,6 +49,12 @@ struct RenderData {
     SceneRenderData scene_data;
     std::vector<MeshRenderData> mesh_data;
     LightRenderData light_data;
+
+    void clear() {
+        mesh_data.resize(0);
+        scene_data = {};
+        light_data = {};
+    }
 };
 
 }

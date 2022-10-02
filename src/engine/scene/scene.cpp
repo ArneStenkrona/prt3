@@ -37,7 +37,7 @@ Scene::Scene(Context & context)
         {outline_pass_info, upscale_pass_info}
     );
 
-    set_directional_light({{1.0f, -1.0f, -1.0f}, {0.8f, 0.8f, 0.8f}});
+    set_directional_light({{0.0f, -1.0f, 0.0f}, {0.8f, 0.8f, 0.8f}});
     set_directional_light_on(true);
 
     NodeID cam_node = add_node_to_root();
@@ -45,16 +45,20 @@ Scene::Scene(Context & context)
     CameraController * cam_controller = add_script<CameraController>(cam_node);
 
     NodeID character = m_context.model_manager()
-        .add_model_to_scene_from_path("assets/models/debug/character_cube.fbx", *this, m_root_id);
+        .add_model_to_scene_from_path("assets/models/character/character.fbx", *this, m_root_id);
+    get_node(character).local_transform().scale = glm::vec3(0.45f);
+
+    NodeID light_id = add_node(character);
+    get_node(light_id).local_transform().position = glm::vec3{0.0f, 1.0f, 0.0f};
     PointLight light;
     light.color = glm::vec3(1.0f, 1.0f, 1.0f);
     light.quadratic_term = 0.1f;
     light.linear_term = 0.2f;
     light.constant_term = 0.1f;
-    m_component_manager.set_point_light_component(character, light);
+    m_component_manager.set_point_light_component(light_id, light);
 
     add_script<CharacterController>(character);
-    m_physics_system.add_sphere_collider(character, {{0.0f, 0.25f, 0.0f}, 0.80f});
+    m_physics_system.add_sphere_collider(character, {{0.0f, 2.1f, 0.0f}, 0.9f});
 
     cam_controller->set_target(character);
 
@@ -89,10 +93,9 @@ void Scene::update(float delta_time) {
 }
 
 void Scene::render() {
-    RenderData render_data;
-    collect_render_data(render_data);
+    collect_render_data(m_render_data);
 
-    m_context.renderer().render(render_data);
+    m_context.renderer().render(m_render_data);
 }
 
 NodeID Scene::add_node(NodeID parent_id) {
@@ -111,7 +114,7 @@ Input & Scene::get_input() {
 }
 
 void Scene::collect_render_data(RenderData & render_data) const {
-    assert(render_data.mesh_data.size() = 0);
+    render_data.clear();
     /* scene data */
     render_data.scene_data.view_matrix = m_camera.get_view_matrix();
     render_data.scene_data.projection_matrix = m_camera.get_projection_matrix();
@@ -120,16 +123,13 @@ void Scene::collect_render_data(RenderData & render_data) const {
     render_data.scene_data.near_plane = m_camera.near_plane();
     render_data.scene_data.far_plane = m_camera.far_plane();
 
-    /* mesh data */
-    struct QueueElement {
-        NodeID node_id;
-        glm::mat4 global_transform;
-    };
-
-    std::vector<QueueElement> queue{{m_root_id,
-                                     m_nodes[m_root_id].m_local_transform.to_matrix()}};
-
-    std::unordered_map<NodeID, glm::mat4> global_transforms;
+    m_transform_collection.clear();
+    auto & queue = m_transform_collection.queue;
+    auto & global_transforms = m_transform_collection.global_transforms;
+    queue.push_back({
+        m_root_id,
+        m_nodes[m_root_id].m_local_transform.to_matrix()
+    });
 
     while (!queue.empty()) {
         NodeID node_id = queue.back().node_id;

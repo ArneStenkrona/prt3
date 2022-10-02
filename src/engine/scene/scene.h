@@ -75,6 +75,26 @@ private:
 
     AmbientLight m_ambient_light;
 
+    // re-use same object to avoid too many heap allocations
+    mutable RenderData m_render_data;
+
+    struct TransformQueueElement {
+        NodeID node_id;
+        glm::mat4 global_transform;
+    };
+
+    struct TransformCollection {
+        std::vector<TransformQueueElement> queue;
+        std::unordered_map<NodeID, glm::mat4> global_transforms;
+
+        void clear() {
+            queue.resize(0);
+            global_transforms.clear();
+        }
+    };
+
+    mutable TransformCollection m_transform_collection;
+
     void update(float delta_time);
     void render();
     void collect_render_data(RenderData & render_data) const;

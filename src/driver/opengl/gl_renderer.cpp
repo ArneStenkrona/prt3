@@ -212,8 +212,10 @@ void GLRenderer::render_framebuffer(RenderData const & render_data,
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glCheckError();
-    std::unordered_map<ResourceID, std::vector<MeshRenderData>> m_material_queues;
     // Render meshes
+    for (auto & pair : m_material_queues) {
+        pair.second.resize(0);
+    }
     for (MeshRenderData const & mesh_data : render_data.mesh_data) {
         m_material_queues[mesh_data.material_id].push_back(mesh_data);
     }

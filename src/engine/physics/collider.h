@@ -56,7 +56,7 @@ public:
     SphereCollider(Sphere const & sphere)
      : m_base_shape{sphere} {}
 
-    Sphere get_shape(Transform const &  transform) const {
+    Sphere get_shape(Transform const & transform) const {
         glm::mat4 mat = transform.to_matrix();
         return { glm::vec3{mat * glm::vec4{m_base_shape.position, 1.0f}},
                  m_base_shape.radius };

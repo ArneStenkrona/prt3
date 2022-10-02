@@ -13,26 +13,28 @@ Node::Node(NodeID id, Scene & scene)
 
 Transform Node::get_global_transform() const {
     NodeID curr_id = m_parent_id;
-    glm::mat4 curr_tform = m_local_transform.to_matrix();
+
+    Transform tform;
+    tform.position = m_local_transform.position;
+    tform.scale = m_local_transform.scale;
+    tform.rotation = m_local_transform.rotation;
 
     while (curr_id != NO_NODE) {
         Node const & curr = m_scene.get_node(curr_id);
-        curr_tform = curr_tform * curr.local_transform().to_matrix();
+        Transform const & curr_tform = curr.local_transform();
+        tform.position = curr_tform.position +
+            glm::rotate(
+                curr_tform.rotation,
+                curr_tform.scale * tform.position
+            );
+        tform.scale = tform.scale * curr_tform.scale;
+        tform.rotation = tform.rotation * curr_tform.rotation;
         curr_id = curr.m_parent_id;
     }
 
-    Transform transform;
-    glm::vec3 skew;
-    glm::vec4 perspective;
-    glm::decompose(curr_tform,
-                   transform.scale,
-                   transform.rotation,
-                   transform.position,
-                   skew,
-                   perspective);
-
-    return transform;
+    return tform;
 }
+
 void Node::set_global_transform(Transform const & transform) {
     Transform global = get_global_transform();
     glm::vec3 delta_pos = transform.position - global.position;
@@ -46,26 +48,53 @@ void Node::set_global_transform(Transform const & transform) {
 }
 
 void Node::set_global_position(glm::vec3 const & position) {
-    Transform global = get_global_transform();
-    glm::vec3 delta_pos = position - global.position;
+    NodeID curr_id = m_parent_id;
 
-    m_local_transform.position = m_local_transform.position + delta_pos;
+    glm::vec3 pos_p{0.0f};
+
+    while (curr_id != NO_NODE) {
+        Node const & curr = m_scene.get_node(curr_id);
+        Transform const & curr_tform = curr.local_transform();
+        pos_p = curr_tform.position +
+            glm::rotate(
+                curr_tform.rotation,
+                curr_tform.scale * pos_p
+            );
+        curr_id = curr.m_parent_id;
+    }
+
+    m_local_transform.position = position - pos_p;
 }
 
 void Node::set_global_rotation(glm::quat const & rotation) {
-    Transform global = get_global_transform();
-    glm::quat delta_rot = rotation
-        * glm::inverse(global.rotation);
+    NodeID curr_id = m_parent_id;
 
-    m_local_transform.rotation = delta_rot * m_local_transform.rotation;
+    glm::quat rot_p{1.0f, 0.0f, 0.0f, 0.0f};
+
+    while (curr_id != NO_NODE) {
+        Node const & curr = m_scene.get_node(curr_id);
+        rot_p = rot_p * curr.local_transform().rotation;
+
+        curr_id = curr.m_parent_id;
+    }
+
+    m_local_transform.rotation = rotation * glm::inverse(rot_p);
 }
+
 void Node::set_global_scale(glm::vec3 scale) {
-    Transform global = get_global_transform();
-    glm::vec3 delta_scale = scale / global.scale;
+    NodeID curr_id = m_parent_id;
 
-    m_local_transform.scale = m_local_transform.scale * delta_scale;
+    glm::vec3 scale_p{1.0f};
+
+    while (curr_id != NO_NODE) {
+        Node const & curr = m_scene.get_node(curr_id);
+        scale_p = scale_p * curr.local_transform().scale;
+
+        curr_id = curr.m_parent_id;
+    }
+
+    m_local_transform.scale = scale / scale_p;
 }
-
 
 Collision Node::move_and_collide(glm::vec3 const & movement) {
     return m_scene.m_physics_system.move_and_collide(m_id, movement);
