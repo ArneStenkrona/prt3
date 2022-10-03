@@ -68,9 +68,26 @@ public:
                 get_node().set_global_rotation(rot);
             }
         }
-        get_node().move_and_collide(translation);
+
+        translation += m_gravity_velocity * m_gravity_direction;
+
+        auto res = get_node().move_and_collide(translation);
+        if (res.grounded) {
+            m_gravity_velocity = 0.0f;
+            m_gravity_direction = -res.ground_normal;
+        } else {
+            m_gravity_direction = glm::vec3{0.0f, -1.0f, 0.0f};
+        }
+        m_gravity_velocity = glm::min(
+            m_gravity_velocity + gravity_constant * delta_time,
+            terminal_velocity * delta_time
+        );
     }
 private:
+    static constexpr float gravity_constant = 2.0f;
+    static constexpr float terminal_velocity = 35.0f;
+    float m_gravity_velocity = 0.0f;
+    glm::vec3 m_gravity_direction{0.0f, -1.0f, 0.0f};
 };
 
 } // namespace prt3

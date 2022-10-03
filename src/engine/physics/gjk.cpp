@@ -103,9 +103,7 @@ void prt3::collision_util::get_face_normals(glm::vec3 const * polytope,
                                             uint8_t const * faces,
                                             unsigned int n_faces,
                                             glm::vec4 * normals,
-                                            unsigned int & min_triangle,
-                                            glm::vec3 const & a_start,
-                                            glm::vec3 const & a_dest) {
+                                            unsigned int & min_triangle) {
     min_triangle = 0;
     float min_distance = std::numeric_limits<float>::max();
     unsigned int n_normals = 0;
@@ -121,14 +119,6 @@ void prt3::collision_util::get_face_normals(glm::vec3 const * polytope,
             normal *= -1.0f;
             distance *= -1.0f;
         }
-
-        glm::vec3 nudge = distance * -normal;
-        distance = glm::length((a_dest + nudge) - a_start);
-        // distance = glm::dot(normal, a_dest - a_start);
-
-        // if (movement != glm::vec3{0.0f}) {
-        //     distance = glm::dot(normal, movement);
-        // }
 
         new (normals + n_normals) glm::vec4(normal, distance);
 

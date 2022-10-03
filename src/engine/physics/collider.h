@@ -10,11 +10,9 @@ namespace prt3 {
 
 struct Collision {
     glm::vec3 normal;
-    float penetration_depth;
-    // glm::vec3 impluse;
     bool collided = false;
-    // float t = std::numeric_limits<float>::max();
-    // TODO: collided nodes
+    bool grounded = false;
+    glm::vec3 ground_normal;
 };
 
 enum ColliderType : uint8_t {

@@ -34,9 +34,7 @@ void get_face_normals(glm::vec3 const * polytope,
                       uint8_t const * faces,
                       unsigned int n_faces,
                       glm::vec4 * normals,
-                      unsigned int & min_triangle,
-                      glm::vec3 const & a_start,
-                      glm::vec3 const & a_dest);
+                      unsigned int & min_triangle);
 
 void add_if_unique_edge(
     std::pair<uint8_t, uint8_t> * edges,
@@ -46,18 +44,29 @@ void add_if_unique_edge(
     unsigned int b);
 
 struct CollisionResult {
+    std::array<glm::vec3, 4> simplex;
+    bool collided = false;
+    float t;
+    unsigned int n_simplex;
+};
+
+struct GJKRes {
+    std::array<glm::vec3, 4> simplex;
+    unsigned int n_simplex;
+    bool collided = false;
+};
+
+struct EPARes {
     glm::vec3 normal;
     float penetration_depth;
     bool collided = false;
 };
 
 template<typename ShapeA, typename ShapeB>
-CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
-                    unsigned int n_simplex,
-                    ShapeA const & a,
-                    ShapeB const & b,
-                    glm::vec3 const & a_start,
-                    glm::vec3 const & a_dest) {
+EPARes epa(std::array<glm::vec3, 4> const & simplex,
+           unsigned int n_simplex,
+           ShapeA const & a,
+           ShapeB const & b) {
     //       The memory allocated assumes a worst case
     //       of a complete graph of V={4+max_iter} vertices
     //       This gives us E=V(V-1)/2 edges and
@@ -89,9 +98,7 @@ CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
                      faces.data(),
                      n_faces,
                      normals.data(),
-                     min_face,
-                     a_start,
-                     a_dest);
+                     min_face);
 
     glm::vec3 min_normal;
     float min_distance = std::numeric_limits<float>::max();
@@ -154,9 +161,7 @@ CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
                              new_faces.data(),
                              n_new_faces,
                              new_normals.data(),
-                             new_min_face,
-                             a_start,
-                             a_dest);
+                             new_min_face);
 
             float old_min_distance = std::numeric_limits<float>::max();
             for (unsigned int i = 0; i < n_normals; ++i) {
@@ -187,28 +192,25 @@ CollisionResult epa(std::array<glm::vec3, 4> const & simplex,
         return {};
     }
 
-    glm::vec3 point = polytope[faces[3 * min_face]];
-    float depth = glm::abs(glm::dot(min_normal, point));
-
-    CollisionResult collision_res;
-    collision_res.normal = -min_normal;
+    EPARes res;
+    res.normal = -min_normal;
     float eps = 0.001f;
-    // collision_res.penetration_depth = min_distance + eps;
-    collision_res.penetration_depth = depth + eps;
-    collision_res.collided = min_distance != std::numeric_limits<float>::max();
+    res.penetration_depth = min_distance + eps;
+    res.collided = min_distance != std::numeric_limits<float>::max();
 
-    return collision_res;
+    return res;
 }
 
 template<typename ShapeA, typename ShapeB>
-CollisionResult gjk(ShapeA const & a,
-                    ShapeB const & b,
-                    glm::vec3 const & a_start,
-                    glm::vec3 const & a_dest) {
+GJKRes gjk(ShapeA const & a,
+           ShapeB const & b) {
+    GJKRes res;
+
     glm::vec3 support = calculate_support(a, b, glm::vec3{1.0f, 0.0f, 0.0f});
 
-    unsigned int n_points = 1;
-    std::array<glm::vec3, 4> points;
+    unsigned int & n_points = res.n_simplex;
+    n_points = 1;
+    std::array<glm::vec3, 4> & points = res.simplex;
     points[0] = support;
 
     glm::vec3 direction = -support;
@@ -216,7 +218,7 @@ CollisionResult gjk(ShapeA const & a,
     while (true) {
         support = calculate_support(a, b, direction);
         if (glm::dot(support, direction) <= 0.0f) {
-            CollisionResult res;
+            // CollisionResult res;
             res.collided = false;
             return res;
         }
@@ -254,9 +256,55 @@ CollisionResult gjk(ShapeA const & a,
         }
 
         if (res_simplex) {
-            return epa(points, n_points, a, b, a_start, a_dest);
+            res.collided = true;
+            return res;
         }
     }
+}
+
+template<typename ShapeA, typename ShapeB>
+CollisionResult find_collision(ShapeA const & a,
+                               ShapeB const & b,
+                               glm::vec3 const & velocity) {
+    static constexpr unsigned int max_iter = 10;
+
+    CollisionResult res;
+
+    unsigned int iter = 0;
+
+    float l = 0.0f;
+    float r = 1.0f;
+    float m;
+    float eps = 0.001f;
+    float len = glm::length(velocity);
+    float t_eps = len != 0.0f ? eps / len : 1.0f;
+
+    GJKRes gjk_res;
+    do {
+        m = (l + r) / 2.0f;
+
+        glm::vec3 vel = m * velocity;
+        auto swept = a.sweep(vel);
+
+        gjk_res = gjk(swept, b);
+
+        if (!gjk_res.collided) {
+            l = m;
+        } else {
+            r = m;
+        }
+
+        ++iter;
+    } while (iter < max_iter && r - l >= t_eps);
+
+    if (gjk_res.collided) {
+        res.simplex = gjk_res.simplex;
+        res.n_simplex = gjk_res.n_simplex;
+        res.collided = true;
+        res.t = l;
+    }
+
+    return res;
 }
 
 } // namespace prt3::collision_util

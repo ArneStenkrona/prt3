@@ -53,18 +53,22 @@ private:
     ) {
         unsigned int iteration = 0;
         unsigned int max_iter = 5;
+
         Collision ret{};
 
         glm::vec3 curr_movement = movement;
-
-        glm::vec3 original_pos = transform.position;
         while (iteration < max_iter) {
             auto shape = collider.get_shape(transform);
             auto swept_shape = shape.sweep(curr_movement);
             AABB aabb = swept_shape.aabb();
+            glm::vec3 start_pos = transform.position;
             transform.position += curr_movement;
 
-            Collision res{};
+            collision_util::CollisionResult res{};
+            res.t = std::numeric_limits<float>::max();
+            ColliderTag res_other;
+            Sphere sphere_other;
+            Triangle tri_other;
 
             for (auto const & pair : m_sphere_colliders) {
                 if (pair.first == tag) continue;
@@ -72,17 +76,16 @@ private:
                 Node const & other = get_node(other_id);
                 Transform other_transform = other.get_global_transform();
 
-                collision_util::CollisionResult cand = collision_util::gjk(
-                    swept_shape,
-                    pair.second.get_shape(other_transform),
-                    original_pos,
-                    transform.position
-                );
-                if (cand.collided) {
-                    res.collided = cand.collided;
-                    res.normal = cand.normal;
-                    res.penetration_depth = cand.penetration_depth;
-                    break;
+                collision_util::CollisionResult cand =
+                    collision_util::find_collision(
+                        shape,
+                        pair.second.get_shape(other_transform),
+                        curr_movement
+                    );
+                if (cand.collided && cand.t < res.t) {
+                    res = cand;
+                    res_other = pair.first;
+                    sphere_other = pair.second.get_shape(other_transform);
                 }
             }
 
@@ -96,30 +99,58 @@ private:
                                     aabb,
                                     tris);
                     for (Triangle tri : tris) {
-                        collision_util::CollisionResult cand
-                            = collision_util::gjk(swept_shape,
-                                                  tri,
-                                                  original_pos,
-                                                  transform.position);
-                        if (cand.collided) {
-                            res.collided = cand.collided;
-                            res.normal = cand.normal;
-                            res.penetration_depth = cand.penetration_depth;
-                            break;
+                        collision_util::CollisionResult cand =
+                            collision_util::find_collision(
+                                shape,
+                                tri,
+                                curr_movement
+                            );
+                        if (cand.collided && cand.t < res.t) {
+                            res = cand;
+                            res_other = pair.first;
+                            tri_other = tri;
                         }
-                    }
-
-                    if (res.collided) {
-                        break;
                     }
                 }
             }
 
             if (res.collided) {
-                glm::vec3 nudge = res.normal * res.penetration_depth;
-                transform.position += nudge;
-                curr_movement = glm::vec3{0.0f};
-                ret = res;
+                collision_util::EPARes epa_res;
+                switch (res_other.type) {
+                    case ColliderType::collider_type_sphere: {
+                        epa_res = collision_util::epa(
+                            res.simplex,
+                            res.n_simplex,
+                            shape,
+                            sphere_other
+                        );
+                    }
+                    case ColliderType::collider_type_mesh: {
+                        epa_res = collision_util::epa(
+                            res.simplex,
+                            res.n_simplex,
+                            shape,
+                            tri_other
+                        );
+                    }
+                    default: {}
+                }
+
+                glm::vec3 nudge = epa_res.normal * epa_res.penetration_depth;
+
+                transform.position = start_pos + res.t * curr_movement + nudge;
+
+                glm::vec3 remain = (1.0f - res.t) * curr_movement;
+
+                curr_movement = remain - glm::dot(remain, epa_res.normal) * epa_res.normal;
+
+                ret.collided = true;
+                ret.normal = epa_res.normal;
+
+                if (glm::dot(epa_res.normal, glm::vec3{0.0f, 1.0f, 0.0f}) > 0.707) {
+                    ret.grounded = true;
+                    ret.ground_normal = epa_res.normal;
+                }
             } else {
                 break;
             }
