@@ -215,7 +215,9 @@ GJKRes gjk(ShapeA const & a,
 
     glm::vec3 direction = -support;
 
-    while (true) {
+    static constexpr unsigned int max_iter = 64;
+    unsigned int iter = 0;
+    while (iter < max_iter) {
         support = calculate_support(a, b, direction);
         if (glm::dot(support, direction) <= 0.0f) {
             // CollisionResult res;
@@ -259,7 +261,10 @@ GJKRes gjk(ShapeA const & a,
             res.collided = true;
             return res;
         }
+        ++iter;
     }
+    res.collided = false;
+    return res;
 }
 
 template<typename ShapeA, typename ShapeB>
@@ -267,41 +272,67 @@ CollisionResult find_collision(ShapeA const & a,
                                ShapeB const & b,
                                glm::vec3 const & velocity) {
     static constexpr unsigned int max_iter = 10;
-
-    CollisionResult res;
-
-    unsigned int iter = 0;
-
-    float l = 0.0f;
-    float r = 1.0f;
-    float m;
-    float eps = 0.001f;
+    static constexpr float eps = 0.001f;
     float len = glm::length(velocity);
     float t_eps = len != 0.0f ? eps / len : 1.0f;
 
+    CollisionResult res;
     GJKRes gjk_res;
-    do {
-        m = (l + r) / 2.0f;
 
-        glm::vec3 vel = m * velocity;
-        auto swept = a.sweep(vel);
-
-        gjk_res = gjk(swept, b);
-
-        if (!gjk_res.collided) {
-            l = m;
-        } else {
-            r = m;
-        }
-
-        ++iter;
-    } while (iter < max_iter && r - l >= t_eps);
-
+    gjk_res = gjk(a,
+                  b);
     if (gjk_res.collided) {
+        // try t = 0
         res.simplex = gjk_res.simplex;
         res.n_simplex = gjk_res.n_simplex;
         res.collided = true;
-        res.t = l;
+        res.t = 0.0f;
+    }
+
+    if (!gjk_res.collided) {
+        // try t = 1
+        gjk_res = gjk(a.sweep(velocity),
+                    b);
+        if (gjk_res.collided) {
+            res.simplex = gjk_res.simplex;
+            res.n_simplex = gjk_res.n_simplex;
+            res.collided = true;
+            res.t = 1.0f;
+        }
+    }
+
+    // try to refine with binary search
+    unsigned int iter = 0;
+
+    if (res.t != 0.0f) {
+        float l = 0.0f;
+        float r = 1.0f;
+        float m;
+
+        do {
+            m = (l + r) / 2.0f;
+
+            glm::vec3 vel = m * velocity;
+            auto swept = a.sweep(vel);
+
+            GJKRes gjk_cand = gjk(swept, b);
+
+            if (!gjk_cand.collided) {
+                l = m;
+            } else {
+                gjk_res = gjk_cand;
+                r = m;
+            }
+
+            ++iter;
+        } while (iter < max_iter && r - l >= t_eps);
+
+        if (gjk_res.collided) {
+            res.simplex = gjk_res.simplex;
+            res.n_simplex = gjk_res.n_simplex;
+            res.collided = true;
+            res.t = l;
+        }
     }
 
     return res;

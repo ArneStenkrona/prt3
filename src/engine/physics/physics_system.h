@@ -52,7 +52,7 @@ private:
         Transform & transform
     ) {
         unsigned int iteration = 0;
-        unsigned int max_iter = 5;
+        unsigned int max_iter = 10;
 
         Collision ret{};
 
@@ -116,12 +116,13 @@ private:
 
             if (res.collided) {
                 collision_util::EPARes epa_res;
+                auto swept = shape.sweep(curr_movement * res.t);
                 switch (res_other.type) {
                     case ColliderType::collider_type_sphere: {
                         epa_res = collision_util::epa(
                             res.simplex,
                             res.n_simplex,
-                            shape,
+                            swept,
                             sphere_other
                         );
                     }
@@ -129,7 +130,7 @@ private:
                         epa_res = collision_util::epa(
                             res.simplex,
                             res.n_simplex,
-                            shape,
+                            swept,
                             tri_other
                         );
                     }
