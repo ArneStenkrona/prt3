@@ -16,9 +16,9 @@ struct Collision {
 };
 
 enum ColliderType : uint8_t {
-    collider_type_none,
     collider_type_mesh,
-    collider_type_sphere
+    collider_type_sphere,
+    collider_type_none,
 };
 
 typedef uint16_t ColliderID;
@@ -28,24 +28,29 @@ struct ColliderTag {
     ColliderID   id;
 };
 
-inline bool operator==(const ColliderTag& lhs, const ColliderTag& rhs)
-{
+inline bool operator==(ColliderTag const & lhs, ColliderTag const & rhs) {
     return lhs.type == rhs.type && lhs.id == rhs.id;
+}
+
+inline bool operator!=(ColliderTag const & lhs, ColliderTag const & rhs) {
+    return lhs.type != rhs.type || lhs.id != rhs.id;
 }
 
 class MeshCollider {
 public:
-    void set_triangles(std::vector<Triangle> && triangles);
+    void set_triangles(std::vector<glm::vec3> && triangles);
     void collect_triangles(AABB const & aabb,
                            std::vector<Triangle> & triangles) const;
-    void collect_triangles(AABB const & aabb,
-                           glm::vec3 const & movement_vector,
-                           std::vector<Triangle> & triangles) const;
+    void set_transform(Transform const & transform);
+    AABB const & aabb() const { return m_aabb; };
 private:
-    std::vector<Triangle> m_triangles;
+    std::vector<glm::vec3> m_triangles;
+    std::vector<glm::vec3> m_triangle_cache;
     std::vector<AABB> m_aabbs;
-    std::vector<glm::vec3> m_normals;
+    Transform m_transform;
+    AABB m_aabb;
 
+    void update_triangle_cache();
 };
 
 class SphereCollider {

@@ -213,16 +213,18 @@ void GLRenderer::render_framebuffer(RenderData const & render_data,
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glCheckError();
     // Render meshes
-    for (auto & pair : m_material_queues) {
+    static std::unordered_map<ResourceID, std::vector<MeshRenderData>>
+        material_queues;
+    for (auto & pair : material_queues) {
         pair.second.resize(0);
     }
     for (MeshRenderData const & mesh_data : render_data.mesh_data) {
-        m_material_queues[mesh_data.material_id].push_back(mesh_data);
+        material_queues[mesh_data.material_id].push_back(mesh_data);
     }
 
     std::vector<GLMaterial> const & materials = normal_pass ?
      m_material_manager.normal_materials() : m_material_manager.materials();
-    for (auto const & pair : m_material_queues) {
+    for (auto const & pair : material_queues) {
         GLMaterial const & material = materials[pair.first];
         GLuint shader_id = material.shader();
         glUseProgram(shader_id);

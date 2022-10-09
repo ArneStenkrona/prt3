@@ -1,6 +1,6 @@
 #include "gjk.h"
 
-bool prt3::collision_util::next_simplex_line(
+bool prt3::next_simplex_line(
                        std::array<glm::vec3, 4> & points,
                        unsigned int & n_points,
                        glm::vec3 & direction) {
@@ -20,7 +20,7 @@ bool prt3::collision_util::next_simplex_line(
     return false;
 }
 
-bool prt3::collision_util::next_simplex_triangle(
+bool prt3::next_simplex_triangle(
                            std::array<glm::vec3, 4> & points,
                            unsigned int & n_points,
                            glm::vec3 & direction) {
@@ -61,7 +61,7 @@ bool prt3::collision_util::next_simplex_triangle(
     return false;
 }
 
-bool prt3::collision_util::next_simplex_tetrahedron(
+bool prt3::next_simplex_tetrahedron(
                               std::array<glm::vec3, 4> & points,
                               unsigned int & n_points,
                               glm::vec3 & direction) {
@@ -99,7 +99,7 @@ bool prt3::collision_util::next_simplex_tetrahedron(
     return true;
 }
 
-void prt3::collision_util::get_face_normals(glm::vec3 const * polytope,
+void prt3::get_face_normals(glm::vec3 const * polytope,
                                             uint8_t const * faces,
                                             unsigned int n_faces,
                                             glm::vec4 * normals,
@@ -130,7 +130,7 @@ void prt3::collision_util::get_face_normals(glm::vec3 const * polytope,
     }
 }
 
-void prt3::collision_util::add_if_unique_edge(
+void prt3::add_if_unique_edge(
     std::pair<uint8_t, uint8_t> * edges,
     unsigned int & n_edges,
     uint8_t const * faces,

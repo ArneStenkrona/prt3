@@ -27,6 +27,18 @@ struct Transform {
     }
 };
 
+inline bool operator==(Transform const & lhs, Transform const & rhs) {
+    return lhs.rotation == rhs.rotation &&
+           lhs.position == rhs.position &&
+           lhs.scale    == rhs.scale;
+}
+
+inline bool operator!=(Transform const & lhs, Transform const & rhs) {
+    return lhs.rotation != rhs.rotation ||
+           lhs.position != rhs.position ||
+           lhs.scale    != rhs.scale;
+}
+
 } // namespace prt3
 
 #endif

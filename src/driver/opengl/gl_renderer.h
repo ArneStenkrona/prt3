@@ -50,10 +50,6 @@ private:
 
     GLPostProcessingChain m_postprocessing_chain;
 
-    // re-use same object to avoid too many heap allocations
-    mutable std::unordered_map<ResourceID, std::vector<MeshRenderData>>
-        m_material_queues;
-
     void generate_framebuffer(GLuint & framebuffer,
                               GLuint & render_texture,
                               GLuint & depth_texture);

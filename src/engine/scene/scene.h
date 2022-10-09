@@ -2,6 +2,7 @@
 #define PRT3_SCENE_H
 
 #include "src/engine/scene/node.h"
+#include "src/engine/scene/transform_cache.h"
 #include "src/engine/component/component_manager.h"
 #include "src/engine/component/script/script.h"
 #include "src/engine/physics/physics_system.h"
@@ -64,8 +65,10 @@ private:
 
     NodeID m_root_id;
     std::vector<Node> m_nodes;
+
     std::vector<Script *> m_scripts;
     std::vector<Script *> m_init_queue;
+
 
     ComponentManager m_component_manager;
     PhysicsSystem m_physics_system;
@@ -75,25 +78,7 @@ private:
 
     AmbientLight m_ambient_light;
 
-    // re-use same object to avoid too many heap allocations
-    mutable RenderData m_render_data;
-
-    struct TransformQueueElement {
-        NodeID node_id;
-        glm::mat4 global_transform;
-    };
-
-    struct TransformCollection {
-        std::vector<TransformQueueElement> queue;
-        std::unordered_map<NodeID, glm::mat4> global_transforms;
-
-        void clear() {
-            queue.resize(0);
-            global_transforms.clear();
-        }
-    };
-
-    mutable TransformCollection m_transform_collection;
+    TransformCache m_transform_cache;
 
     void update(float delta_time);
     void render();

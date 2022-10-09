@@ -21,16 +21,27 @@ Scene::Scene(Context & context)
 
     // FOR DEBUGGING, WILL REMOVE ---->
     NodeID island = m_context.model_manager()
-        .add_model_to_scene_from_path("assets/models/moon_island/moon_island.fbx", *this, m_root_id);
-    m_physics_system.add_mesh_collider(island, "assets/models/moon_island/moon_island.fbx");
+        .add_model_to_scene_from_path(
+            "assets/models/moon_island/moon_island.fbx",
+            *this,
+            m_root_id
+        );
+
+    m_physics_system.add_mesh_collider(
+        island,
+        "assets/models/moon_island/moon_island.fbx"
+    );
 
     set_ambient_light(glm::vec3{0.09f, 0.11f, 0.34f});
 
     PostProcessingPass outline_pass_info;
-    outline_pass_info.fragment_shader_path = "assets/shaders/opengl/pixel_postprocess.fs";
-    outline_pass_info.downscale_factor = m_context.renderer().downscale_factor();
+    outline_pass_info.fragment_shader_path =
+        "assets/shaders/opengl/pixel_postprocess.fs";
+    outline_pass_info.downscale_factor =
+        m_context.renderer().downscale_factor();
     PostProcessingPass upscale_pass_info;
-    upscale_pass_info.fragment_shader_path = "assets/shaders/opengl/passthrough.fs";
+    upscale_pass_info.fragment_shader_path =
+        "assets/shaders/opengl/passthrough.fs";
     upscale_pass_info.downscale_factor = 1.0f;
 
     m_context.renderer().set_postprocessing_chain(
@@ -45,7 +56,11 @@ Scene::Scene(Context & context)
     CameraController * cam_controller = add_script<CameraController>(cam_node);
 
     NodeID character = m_context.model_manager()
-        .add_model_to_scene_from_path("assets/models/character/character.fbx", *this, m_root_id);
+        .add_model_to_scene_from_path(
+            "assets/models/character/character.fbx",
+            *this,
+            m_root_id
+        );
     get_node(character).local_transform().scale = glm::vec3(0.45f);
 
     NodeID light_id = add_node(character);
@@ -63,8 +78,19 @@ Scene::Scene(Context & context)
     cam_controller->set_target(character);
 
     NodeID cube = m_context.model_manager()
-        .add_model_to_scene_from_path("assets/models/debug/character_cube.fbx", *this, m_root_id);
+        .add_model_to_scene_from_path("assets/models/debug/character_cube.fbx",
+        *this,
+        m_root_id
+    );
     get_node(cube).set_global_position(glm::vec3(2.0f, 0.0f, 0.0f));
+
+    m_physics_system.add_sphere_collider(cube, {{0.0f, 1.0f, 0.0f}, 0.9f});
+
+    m_transform_cache.collect_global_transforms(
+        m_nodes.data(),
+        m_nodes.size(),
+        m_root_id
+    );
     // <---- FOR DEBUGGING, WILL REMOVE
 
 }
@@ -89,13 +115,27 @@ void Scene::update(float delta_time) {
         script->on_late_update(delta_time);
     }
 
+    m_transform_cache.collect_global_transforms(
+        m_nodes.data(),
+        m_nodes.size(),
+        m_root_id
+    );
+
     render();
+
+    m_physics_system.update(
+        m_transform_cache.global_transforms().data(),
+        m_transform_cache.global_transforms_history().data()
+    );
 }
 
 void Scene::render() {
-    collect_render_data(m_render_data);
+    static RenderData render_data;
+    render_data.clear();
 
-    m_context.renderer().render(m_render_data);
+    collect_render_data(render_data);
+
+    m_context.renderer().render(render_data);
 }
 
 NodeID Scene::add_node(NodeID parent_id) {
@@ -114,7 +154,6 @@ Input & Scene::get_input() {
 }
 
 void Scene::collect_render_data(RenderData & render_data) const {
-    render_data.clear();
     /* scene data */
     render_data.scene_data.view_matrix = m_camera.get_view_matrix();
     render_data.scene_data.projection_matrix = m_camera.get_projection_matrix();
@@ -123,35 +162,15 @@ void Scene::collect_render_data(RenderData & render_data) const {
     render_data.scene_data.near_plane = m_camera.near_plane();
     render_data.scene_data.far_plane = m_camera.far_plane();
 
-    m_transform_collection.clear();
-    auto & queue = m_transform_collection.queue;
-    auto & global_transforms = m_transform_collection.global_transforms;
-    queue.push_back({
-        m_root_id,
-        m_nodes[m_root_id].m_local_transform.to_matrix()
-    });
-
-    while (!queue.empty()) {
-        NodeID node_id = queue.back().node_id;
-        Node const & node = m_nodes[node_id];
-        glm::mat4 node_transform = queue.back().global_transform;
-        global_transforms.insert({node_id, node_transform});
-        queue.pop_back();
-
-        for (NodeID const & child_id : node.children_ids()) {
-            Node const & child = m_nodes[child_id];
-            glm::mat4 child_transform =
-                child.m_local_transform.to_matrix() * node_transform;
-            queue.push_back({child_id, child_transform});
-        }
-    }
+    std::vector<Transform> const & global_transforms =
+        m_transform_cache.global_transforms();
 
     auto material_components = m_component_manager.get_material_components();
     for (auto const & pair : m_component_manager.get_mesh_components()) {
         MeshRenderData mesh_data;
         mesh_data.mesh_id = pair.second;
         mesh_data.material_id = NO_RESOURCE;
-        mesh_data.transform = global_transforms[pair.first];
+        mesh_data.transform = global_transforms[pair.first].to_matrix();
         if (material_components.find(pair.first) != material_components.end()) {
             mesh_data.material_id = material_components[pair.first];
         }
@@ -162,7 +181,7 @@ void Scene::collect_render_data(RenderData & render_data) const {
     for (auto const & pair : m_component_manager.get_point_light_components()) {
         PointLightRenderData point_light_data;
         point_light_data.light = pair.second;
-        point_light_data.position = global_transforms[pair.first]
+        point_light_data.position = global_transforms[pair.first].to_matrix()
                                         * glm::vec4(0.0f,0.0f,0.0f,1.0f);
 
         point_lights.push_back(point_light_data);

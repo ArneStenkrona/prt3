@@ -16,7 +16,7 @@
 // Thanks https://blog.winter.dev/2020/gjk-algorithm/ for
 // wonderful implementation reference of GJK/EPA
 
-namespace prt3::collision_util {
+namespace prt3 {
 
 bool next_simplex_line(std::array<glm::vec3, 4> & points,
                        unsigned int & n_points,

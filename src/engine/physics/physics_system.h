@@ -3,6 +3,7 @@
 
 #include "src/engine/physics/gjk.h"
 
+#include "src/engine/physics/aabb_tree.h"
 #include "src/engine/physics/collider.h"
 #include "src/engine/geometry/shapes.h"
 #include "src/engine/rendering/model.h"
@@ -21,6 +22,9 @@ public:
     Collision move_and_collide(NodeID node_id,
                                glm::vec3 const & movement);
 
+    void update(Transform const * transforms,
+                Transform const * transforms_history);
+
     void add_mesh_collider(NodeID node_id,
                            Model const & model);
 
@@ -31,16 +35,20 @@ private:
     std::unordered_map<NodeID, ColliderTag> m_tags;
     std::unordered_map<ColliderTag, NodeID> m_node_ids;
 
-    std::unordered_map<ColliderTag, MeshCollider> m_mesh_colliders;
+    std::unordered_map<ColliderID, MeshCollider> m_mesh_colliders;
     ColliderID m_next_mesh_id;
-    std::unordered_map<ColliderTag, SphereCollider> m_sphere_colliders;
+    std::unordered_map<ColliderID, SphereCollider> m_sphere_colliders;
     ColliderID m_next_sphere_id;
 
     Scene & m_scene;
 
-    ColliderTag create_collider_from_model(Model const & model);
+    DynamicAABBTree m_aabb_tree;
 
-    ColliderTag create_sphere_collider(Sphere const & sphere);
+    ColliderTag create_collider_from_model(Model const & model,
+                                           Transform const & transform);
+
+    ColliderTag create_sphere_collider(Sphere const & sphere,
+                                       Transform const & transform);
 
     Node & get_node(NodeID node_id);
 
@@ -64,50 +72,69 @@ private:
             glm::vec3 start_pos = transform.position;
             transform.position += curr_movement;
 
-            collision_util::CollisionResult res{};
+            static std::array<std::vector<ColliderID>,
+                ColliderType::collider_type_none> candidates;
+            // clear before use since variable is static
+            for (auto & candidate : candidates) {
+                candidate.resize(0);
+            }
+            m_aabb_tree.query(tag, aabb, candidates);
+
+            CollisionResult res{};
             res.t = std::numeric_limits<float>::max();
             ColliderTag res_other;
             Sphere sphere_other;
             Triangle tri_other;
 
-            for (auto const & pair : m_sphere_colliders) {
-                if (pair.first == tag) continue;
-                NodeID other_id = m_node_ids[pair.first];
-                Node const & other = get_node(other_id);
-                Transform other_transform = other.get_global_transform();
 
-                collision_util::CollisionResult cand =
-                    collision_util::find_collision(
+
+            for (auto const & id :
+                 candidates[ColliderType::collider_type_sphere]) {
+                ColliderTag other_tag;
+                other_tag.id = id;
+                other_tag.type = ColliderType::collider_type_sphere;
+                NodeID node_id = m_node_ids[other_tag];
+
+                Node const & other = get_node(node_id);
+                Transform other_transform = other.get_global_transform();
+                Sphere other_shape =
+                    m_sphere_colliders[id].get_shape(other_transform);
+
+                CollisionResult cand =
+                    find_collision(
                         shape,
-                        pair.second.get_shape(other_transform),
+                        other_shape,
                         curr_movement
                     );
                 if (cand.collided && cand.t < res.t) {
                     res = cand;
-                    res_other = pair.first;
-                    sphere_other = pair.second.get_shape(other_transform);
+                    res_other = other_tag;
+                    sphere_other = other_shape;
                 }
             }
 
             if (!res.collided) {
-                for (auto const & pair : m_mesh_colliders) {
-                    if (pair.first == tag) continue;
-                    MeshCollider const & mesh_collider = pair.second;
+                for (auto const & id :
+                     candidates[ColliderType::collider_type_mesh]) {
+                    MeshCollider const & mesh_collider = m_mesh_colliders[id];
 
-                    std::vector<Triangle> tris;
+                    static std::vector<Triangle> tris;
+                    tris.resize(0);
                     mesh_collider.collect_triangles(
-                                    aabb,
-                                    tris);
+                        aabb,
+                        tris
+                    );
                     for (Triangle tri : tris) {
-                        collision_util::CollisionResult cand =
-                            collision_util::find_collision(
+                        CollisionResult cand =
+                            find_collision(
                                 shape,
                                 tri,
                                 curr_movement
                             );
                         if (cand.collided && cand.t < res.t) {
                             res = cand;
-                            res_other = pair.first;
+                            res_other.id = id;
+                            res_other.type = ColliderType::collider_type_mesh;
                             tri_other = tri;
                         }
                     }
@@ -115,11 +142,11 @@ private:
             }
 
             if (res.collided) {
-                collision_util::EPARes epa_res;
+                EPARes epa_res;
                 auto swept = shape.sweep(curr_movement * res.t);
                 switch (res_other.type) {
                     case ColliderType::collider_type_sphere: {
-                        epa_res = collision_util::epa(
+                        epa_res = epa(
                             res.simplex,
                             res.n_simplex,
                             swept,
@@ -127,7 +154,7 @@ private:
                         );
                     }
                     case ColliderType::collider_type_mesh: {
-                        epa_res = collision_util::epa(
+                        epa_res = epa(
                             res.simplex,
                             res.n_simplex,
                             swept,

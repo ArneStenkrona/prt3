@@ -16,17 +16,9 @@
 namespace prt3 {
 
 struct Triangle {
-    Triangle() : a{0.0f}, b{0.0f}, c{0.0f} {}
-    union {
-        struct {
-            glm::vec3 a;
-            glm::vec3 b;
-            glm::vec3 c;
-        };
-        glm::vec3 data[3];
-    };
-
-    glm::vec3 & operator[](unsigned i) { return data[i]; }
+    glm::vec3 a;
+    glm::vec3 b;
+    glm::vec3 c;
 };
 
 struct SweptSphere {

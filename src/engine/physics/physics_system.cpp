@@ -9,14 +9,19 @@ PhysicsSystem::PhysicsSystem(Scene & scene)
 
 void PhysicsSystem::add_mesh_collider(NodeID node_id,
                                       Model const & model) {
-    ColliderTag tag = create_collider_from_model(model);
+    ColliderTag tag = create_collider_from_model(
+                        model,
+                        m_scene.get_node(node_id).get_global_transform());
     m_tags[node_id] = tag;
     m_node_ids[tag] = node_id;
 }
 
 void PhysicsSystem::add_sphere_collider(NodeID node_id,
                                         Sphere const & sphere) {
-    ColliderTag tag = create_sphere_collider(sphere);
+    ColliderTag tag = create_sphere_collider(
+        sphere,
+        m_scene.get_node(node_id).get_global_transform()
+    );
     m_tags[node_id] = tag;
     m_node_ids[tag] = node_id;
 }
@@ -29,57 +34,123 @@ Collision PhysicsSystem::move_and_collide(NodeID node_id,
     Node & node = m_scene.get_node(node_id);
 
     Transform transform = node.get_global_transform();
+    Transform start_transform = transform;
 
     switch (tag.type) {
         case ColliderType::collider_type_sphere: {
-            SphereCollider const & col = m_sphere_colliders[tag];
+            SphereCollider const & col = m_sphere_colliders[tag.id];
             res = move_and_collide(tag, col, movement, transform);
             break;
         }
+        // TODO: mesh
         default: {}
     }
     node.set_global_transform(transform);
+
+    if (transform != start_transform) {
+        AABB aabb;
+        switch (tag.type) {
+            case ColliderType::collider_type_sphere: {
+                aabb = m_sphere_colliders[tag.id].get_shape(transform).aabb();
+                break;
+            }
+            // TODO: mesh
+            default: {}
+        }
+        m_aabb_tree.update(tag, aabb);
+    }
     return res;
 }
 
 ColliderTag PhysicsSystem::create_collider_from_model(
-    Model const & model) {
+    Model const & model,
+    Transform const & transform) {
 
     std::vector<Model::Vertex> v_buf = model.vertex_buffer();
     std::vector<uint32_t> i_buf = model.index_buffer();
 
-    std::vector<Triangle> tris;
-    tris.resize(i_buf.size() / 3);
+    std::vector<glm::vec3> tris;
+    tris.resize(i_buf.size());
 
     for (size_t i = 0; i < tris.size(); ++i) {
-        size_t ii = 3 * i;
-        tris[i].a = v_buf[i_buf[ii]].position;
-        tris[i].b = v_buf[i_buf[ii + 1]].position;
-        tris[i].c = v_buf[i_buf[ii + 2]].position;
+        tris[i] = v_buf[i_buf[i]].position;
     }
 
     ColliderTag tag;
+    tag.type = ColliderType::collider_type_mesh;
     tag.id = m_next_mesh_id;
     ++m_next_mesh_id;
-    tag.type = ColliderType::collider_type_mesh;
 
-    MeshCollider & col = m_mesh_colliders[tag];
+    MeshCollider & col = m_mesh_colliders[tag.id];
+    col.set_transform(transform);
     col.set_triangles(std::move(tris));
+
+    m_aabb_tree.insert(tag, col.aabb());
 
     return tag;
 }
 
-ColliderTag PhysicsSystem::create_sphere_collider(Sphere const & sphere) {
+ColliderTag PhysicsSystem::create_sphere_collider(
+    Sphere const & sphere,
+    Transform const & transform) {
     ColliderTag tag;
+    tag.type = ColliderType::collider_type_sphere;
     tag.id = m_next_sphere_id;
     ++m_next_sphere_id;
-    tag.type = ColliderType::collider_type_sphere;
 
-    m_sphere_colliders[tag] = SphereCollider{sphere};
+    m_sphere_colliders[tag.id] = SphereCollider{sphere};
+
+    m_aabb_tree.insert(
+        tag,
+        m_sphere_colliders[tag.id].get_shape(transform).aabb()
+    );
 
     return tag;
 }
 
 Node & PhysicsSystem::get_node(NodeID node_id) {
     return m_scene.get_node(node_id);
+}
+
+void PhysicsSystem::update(Transform const * transforms,
+                           Transform const * transforms_history) {
+    static std::vector<ColliderTag> stale_tags;
+    stale_tags.resize(0);
+    static std::vector<AABB> new_aabbs;
+    new_aabbs.resize(0);
+
+    for (auto const & pair : m_tags) {
+        NodeID id = pair.first;
+        ColliderTag tag = pair.second;
+        Transform const & t_curr = transforms[id];
+        Transform const & t_hist = transforms_history[id];
+
+        // TODO: add tolerance to aabbs
+        bool stale = t_curr != t_hist;
+
+        if (stale) {
+            stale_tags.push_back(tag);
+            switch (tag.type) {
+                case ColliderType::collider_type_sphere: {
+                    AABB aabb = m_sphere_colliders[tag.id].get_shape(t_curr).aabb();
+                    new_aabbs.push_back(aabb);
+                    break;
+                }
+                case ColliderType::collider_type_mesh: {
+                    MeshCollider & col = m_mesh_colliders[tag.id];
+                    col.set_transform(t_curr);
+                    AABB aabb = col.aabb();
+                    new_aabbs.push_back(aabb);
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+        }
+    }
+
+    m_aabb_tree.update(stale_tags.data(),
+                       new_aabbs.data(),
+                       new_aabbs.size());
 }

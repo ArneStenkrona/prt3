@@ -36,6 +36,7 @@ file(GLOB SOURCES
 "src/driver/opengl/gl_utility.cpp"
 "src/engine/component/script/script.cpp"
 "src/engine/component/component_manager.cpp"
+"src/engine/physics/aabb_tree.cpp"
 "src/engine/physics/aabb.cpp"
 "src/engine/physics/collider.cpp"
 "src/engine/physics/gjk.cpp"
@@ -50,6 +51,7 @@ file(GLOB SOURCES
 "src/engine/rendering/renderer.cpp"
 "src/engine/scene/node.cpp"
 "src/engine/scene/scene.cpp"
+"src/engine/scene/transform_cache.cpp"
 )
 
 add_subdirectory(lib/glm EXCLUDE_FROM_ALL)
