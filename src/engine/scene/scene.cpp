@@ -15,6 +15,7 @@ Scene::Scene(Context & context)
    m_camera{context.input(),
             context.renderer().window_width(),
             context.renderer().window_height()},
+   m_component_manager{*this},
    m_physics_system{*this} {
     m_root_id = m_nodes.size();
     m_nodes.emplace_back(m_root_id, *this);
@@ -53,7 +54,7 @@ Scene::Scene(Context & context)
 
     NodeID cam_node = add_node_to_root();
     set_node_local_position(cam_node, glm::vec3(2.1f, 2.1f, 2.1f));
-    CameraController * cam_controller = add_script<CameraController>(cam_node);
+    ScriptID cam_controller = add_script<CameraController>(cam_node);
 
     NodeID character = m_context.model_manager()
         .add_model_to_scene_from_path(
@@ -76,7 +77,7 @@ Scene::Scene(Context & context)
     add_script<CharacterController>(character);
     m_physics_system.add_sphere_collider(character, {{0.0f, 2.1f, 0.0f}, 0.9f});
 
-    cam_controller->set_target(character);
+    get_script<CameraController>(cam_controller)->set_target(character);
 
     NodeID cube = m_context.model_manager()
         .add_model_to_scene_from_path("assets/models/debug/character_cube.fbx",

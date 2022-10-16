@@ -36,6 +36,7 @@ file(GLOB SOURCES
 "src/driver/opengl/gl_utility.cpp"
 "src/engine/component/script/script.cpp"
 "src/engine/component/component_manager.cpp"
+"src/engine/component/script_set.cpp"
 "src/engine/physics/aabb_tree.cpp"
 "src/engine/physics/aabb.cpp"
 "src/engine/physics/collider.cpp"

@@ -5,6 +5,9 @@
 
 namespace prt3 {
 
+typedef unsigned int ScriptID;
+static constexpr ScriptID NO_SCRIPT = -1;
+
 class Scene;
 class Script {
 public:
