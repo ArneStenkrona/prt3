@@ -17,8 +17,8 @@ void GLTextureManager::init() {
     unsigned char data_0x000000ff[3] = { 0x00, 0x00, 0xff };
     m_texture_1x1_0x0000ff = load_texture(data_0x000000ff, 1, 1, GL_RGB,
                                           false);
-    unsigned char data_0x80[3] = { 0x80 };
-    m_texture_1x1_0x80 = load_texture(data_0x80, 1, 1, GL_LUMINANCE,
+    unsigned char data_0xff[3] = { 0xff };
+    m_texture_1x1_0xff = load_texture(data_0xff, 1, 1, GL_LUMINANCE,
                                       false);
 }
 

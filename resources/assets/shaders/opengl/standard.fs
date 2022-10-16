@@ -59,7 +59,7 @@ void main()
     vec3 normal = v_Normal;
 
     float metallic = u_Metallic * texture2D(u_MetallicMap, v_TexCoordinate).r;
-    float roughness = 1.0 - u_Roughness * texture2D(u_RoughnessMap, v_TexCoordinate).r;
+    float roughness = u_Roughness * texture2D(u_RoughnessMap, v_TexCoordinate).r;
 
     vec3 lightContribution = u_AmbientLight;
     // Add point lights

@@ -20,12 +20,12 @@ public:
 
     GLuint texture_1x1_0xffffffff() const {return m_texture_1x1_0xffffffff; }
     GLuint texture_1x1_0x0000ff() const {return m_texture_1x1_0x0000ff; }
-    GLuint texture_1x1_0x80() const {return m_texture_1x1_0x80; }
+    GLuint texture_1x1_0xff() const {return m_texture_1x1_0xff; }
 private:
     /* Defaults for materials without texture bindings */
     GLuint m_texture_1x1_0xffffffff;
     GLuint m_texture_1x1_0x0000ff;
-    GLuint m_texture_1x1_0x80;
+    GLuint m_texture_1x1_0xff;
 
     std::unordered_map<std::string, GLuint> m_textures;
 

@@ -22,17 +22,17 @@ Scene::Scene(Context & context)
     // FOR DEBUGGING, WILL REMOVE ---->
     NodeID island = m_context.model_manager()
         .add_model_to_scene_from_path(
-            "assets/models/moon_island/moon_island.fbx",
+            "assets/models/test_room/test_room.fbx",
             *this,
             m_root_id
         );
 
     m_physics_system.add_mesh_collider(
         island,
-        "assets/models/moon_island/moon_island.fbx"
+        "assets/models/test_room/test_room.fbx"
     );
 
-    set_ambient_light(glm::vec3{0.09f, 0.11f, 0.34f});
+    set_ambient_light(glm::vec3{0.1f, 0.1f, 0.1f});
 
     PostProcessingPass outline_pass_info;
     outline_pass_info.fragment_shader_path =
@@ -48,8 +48,8 @@ Scene::Scene(Context & context)
         {outline_pass_info, upscale_pass_info}
     );
 
-    set_directional_light({{0.0f, -1.0f, 0.0f}, {0.8f, 0.8f, 0.8f}});
-    set_directional_light_on(true);
+    // set_directional_light({{0.0f, -1.0f, 0.0f}, {0.8f, 0.8f, 0.8f}});
+    // set_directional_light_on(true);
 
     NodeID cam_node = add_node_to_root();
     set_node_local_position(cam_node, glm::vec3(2.1f, 2.1f, 2.1f));
@@ -57,18 +57,19 @@ Scene::Scene(Context & context)
 
     NodeID character = m_context.model_manager()
         .add_model_to_scene_from_path(
-            "assets/models/character/character.fbx",
+            "assets/models/stranger/stranger.fbx",
             *this,
             m_root_id
         );
     get_node(character).local_transform().scale = glm::vec3(0.45f);
+    get_node(character).local_transform().position.y = 1.0f;
 
     NodeID light_id = add_node(character);
-    get_node(light_id).local_transform().position = glm::vec3{0.0f, 1.0f, 0.0f};
+    get_node(light_id).local_transform().position = glm::vec3{0.0f, 7.0f, 0.0f};
     PointLight light;
     light.color = glm::vec3(1.0f, 1.0f, 1.0f);
-    light.quadratic_term = 0.1f;
-    light.linear_term = 0.2f;
+    light.quadratic_term = 0.02f;
+    light.linear_term = 0.01f;
     light.constant_term = 0.1f;
     m_component_manager.set_point_light_component(light_id, light);
 

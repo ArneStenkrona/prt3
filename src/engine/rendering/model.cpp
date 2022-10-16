@@ -52,9 +52,10 @@ Model::Model(char const * path) {
 
         aiColor3D color;
         scene->mMaterials[i]->Get(AI_MATKEY_COLOR_DIFFUSE, color);
-        scene->mMaterials[i]->Get(AI_MATKEY_COLOR_SPECULAR, m_materials[i].roughness);
         scene->mMaterials[i]->Get(AI_MATKEY_COLOR_AMBIENT, m_materials[i].ao);
         scene->mMaterials[i]->Get(AI_MATKEY_COLOR_EMISSIVE, m_materials[i].emissive);
+
+
 
         m_materials[i].albedo = { color.r, color.g, color.b, 1.0f };
 
@@ -66,8 +67,6 @@ Model::Model(char const * path) {
         m_materials[i].metallic_map = get_texture(*scene->mMaterials[i], aiTextureType_METALNESS, path);
         m_materials[i].roughness_map = get_texture(*scene->mMaterials[i], aiTextureType_SHININESS, path);
         m_materials[i].ambient_occlusion_map = get_texture(*scene->mMaterials[i], aiTextureType_AMBIENT, path);
-
-        m_materials[i].metallic = m_materials[i].metallic_map == "" ? 0.0 : 1.0;
     }
 
     /* Process node hierarchy */

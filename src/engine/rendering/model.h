@@ -113,7 +113,7 @@ struct Model::Material {
     std::string name;
     glm::vec4 albedo{1.0f, 1.0f, 1.0f, 1.0f};
     float metallic = 0.0f;
-    float roughness = 0.5f;
+    float roughness = 1.0f;
     float ao = 1.0f;
     float emissive = 0.0f;
     std::string albedo_map;
@@ -121,11 +121,6 @@ struct Model::Material {
     std::string metallic_map;
     std::string roughness_map;
     std::string ambient_occlusion_map;
-    // int32_t albedoIndex = -1;
-    // int32_t metallicIndex = -1;
-    // int32_t roughnessIndex = -1;
-    // int32_t aoIndex = -1;
-    // int32_t normalIndex = -1;
     bool twosided = false;
 };
 

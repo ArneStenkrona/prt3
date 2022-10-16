@@ -10,7 +10,7 @@ GLMaterialManager::GLMaterialManager(GLTextureManager & texture_manager)
 void GLMaterialManager::init() {
     m_standard_shader = glshaderutility::create_shader(
         "assets/shaders/opengl/standard.vs",
-        "assets/shaders/opengl/toon.fs"
+        "assets/shaders/opengl/standard.fs"
     );
 
     m_normal_shader = glshaderutility::create_shader(
@@ -26,9 +26,9 @@ ResourceID GLMaterialManager::upload_material(Model::Material const & material) 
     GLuint normal_map = tm.retrieve_texture(material.normal_map.c_str(),
                                             tm.texture_1x1_0x0000ff());
     GLuint roughness_map = tm.retrieve_texture(material.roughness_map.c_str(),
-                                               tm.texture_1x1_0x80());
+                                               tm.texture_1x1_0xff());
     GLuint metallic_map = tm.retrieve_texture(material.metallic_map.c_str(),
-                                              tm.texture_1x1_0x80());
+                                              tm.texture_1x1_0xff());
 
     ResourceID id = m_materials.size();
     m_materials.emplace_back(
