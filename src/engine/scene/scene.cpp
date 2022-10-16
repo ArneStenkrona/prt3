@@ -212,3 +212,9 @@ void Scene::collect_render_data(RenderData & render_data) const {
 void Scene::update_window_size(int w, int h) {
     m_camera.set_size(w, h);
 }
+
+void Scene::emit_signal(SignalString const & signal, void * data) {
+    for (Script * script : m_signal_connections[signal]) {
+        script->on_signal(signal, data);
+    }
+}

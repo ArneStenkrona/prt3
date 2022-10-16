@@ -11,6 +11,7 @@
 #include "src/engine/physics/gjk.h"
 
 #include <utility>
+#include <iostream>
 
 namespace prt3 {
 
@@ -20,6 +21,7 @@ public:
         : Script(scene, m_node_id) {}
 
     virtual void on_init() {
+        scene().connect_signal("CHANGE_CAMERA_MODE", this);
     }
 
     virtual void on_update(float delta_time) {
@@ -29,23 +31,25 @@ public:
         float speed = 20.0f * delta_time;
 
         glm::vec3 raw_input{ 0.0f, 0.0f, 0.0f };
-        if (input.get_key(KeyCode::KEY_CODE_W)) {
-            raw_input += glm::vec3{1.0f, 0.0f, 0.0f};
-        }
-        if (input.get_key(KeyCode::KEY_CODE_S)) {
-            raw_input -= glm::vec3{1.0f, 0.0f, 0.0f};
-        }
-        if (input.get_key(KeyCode::KEY_CODE_A)) {
-            raw_input -= glm::vec3{0.0f, 0.0f, 1.0f};
-        }
-        if (input.get_key(KeyCode::KEY_CODE_D)) {
-            raw_input += glm::vec3{0.0f, 0.0f, 1.0f};
-        }
-        if (input.get_key(KeyCode::KEY_CODE_E)) {
-            raw_input += glm::vec3{0.0f, 1.0f, 0.0f};
-        }
-        if (input.get_key(KeyCode::KEY_CODE_Q)) {
-            raw_input -= glm::vec3{0.0f, 1.0f, 0.0f};
+        if (controllable) {
+            if (input.get_key(KeyCode::KEY_CODE_W)) {
+                raw_input += glm::vec3{1.0f, 0.0f, 0.0f};
+            }
+            if (input.get_key(KeyCode::KEY_CODE_S)) {
+                raw_input -= glm::vec3{1.0f, 0.0f, 0.0f};
+            }
+            if (input.get_key(KeyCode::KEY_CODE_A)) {
+                raw_input -= glm::vec3{0.0f, 0.0f, 1.0f};
+            }
+            if (input.get_key(KeyCode::KEY_CODE_D)) {
+                raw_input += glm::vec3{0.0f, 0.0f, 1.0f};
+            }
+            if (input.get_key(KeyCode::KEY_CODE_E)) {
+                raw_input += glm::vec3{0.0f, 1.0f, 0.0f};
+            }
+            if (input.get_key(KeyCode::KEY_CODE_Q)) {
+                raw_input -= glm::vec3{0.0f, 1.0f, 0.0f};
+            }
         }
         glm::vec3 translation = { 0.0f, 0.0f, 0.0f };
         // project input according to camera
@@ -83,11 +87,19 @@ public:
             terminal_velocity * delta_time
         );
     }
+
+    virtual void on_signal(SignalString const & signal, void * data) {
+        if (signal == "CHANGE_CAMERA_MODE") {
+            bool val = *reinterpret_cast<bool*>(data);
+            controllable = !val;
+        }
+    }
 private:
     static constexpr float gravity_constant = 2.0f;
     static constexpr float terminal_velocity = 35.0f;
     float m_gravity_velocity = 0.0f;
     glm::vec3 m_gravity_direction{0.0f, -1.0f, 0.0f};
+    bool controllable = true;
 };
 
 } // namespace prt3

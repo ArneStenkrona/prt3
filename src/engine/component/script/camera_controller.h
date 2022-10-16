@@ -23,6 +23,7 @@ public:
     inline void set_target_distance(float distance) { m_target_distance = distance; }
 
     virtual void on_init() {
+
     }
 
     virtual void on_late_update(float delta_time) {
@@ -33,6 +34,8 @@ public:
         if (input.get_key_down(KeyCode::KEY_CODE_TAB)) {
             m_free_cam_mode = !m_free_cam_mode;
             camera.set_orthographic_projection(!m_free_cam_mode);
+            scene().emit_signal("CHANGE_CAMERA_MODE",
+                                static_cast<void*>(&m_free_cam_mode));
         }
 
         if (!m_free_cam_mode || input.get_key(KeyCode::KEY_CODE_MOUSE_LEFT)) {

@@ -2,6 +2,7 @@
 #define PRT3_SCENE_H
 
 #include "src/engine/scene/node.h"
+#include "src/engine/scene/signal.h"
 #include "src/engine/scene/transform_cache.h"
 #include "src/engine/component/component_manager.h"
 #include "src/engine/component/script_set.h"
@@ -12,6 +13,8 @@
 #include "src/engine/core/input.h"
 
 #include <vector>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace prt3
 {
@@ -87,6 +90,13 @@ public:
         return dynamic_cast<T*>(m_scripts[id]);
     }
 
+    void connect_signal(SignalString const & signal,
+                        Script * script) {
+        m_signal_connections[signal].insert(script);
+    }
+
+    void emit_signal(SignalString const & signal, void * data);
+
 private:
     Context & m_context;
 
@@ -98,6 +108,8 @@ private:
     std::vector<Script *> m_scripts;
     std::vector<Script *> m_init_queue;
 
+    std::unordered_map<SignalString, std::unordered_set<Script *> >
+        m_signal_connections;
 
     ComponentManager m_component_manager;
     PhysicsSystem m_physics_system;
@@ -114,14 +126,6 @@ private:
     void collect_render_data(RenderData & render_data) const;
     void update_window_size(int w, int h);
 
-    // template<class T>
-    // ScriptID internal_add_script(NodeID node_id) {
-    //     ScriptID id = m_scripts.size();
-    //     T * script = new T(*this, node_id);
-    //     m_scripts.push_back(static_cast<Script *>(script));
-    //     m_init_queue.push_back(static_cast<Script *>(script));
-    //     return id;
-    // }
     ScriptID internal_add_script(Script * script) {
         ScriptID id = m_scripts.size();
         m_scripts.push_back(script);

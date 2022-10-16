@@ -2,6 +2,7 @@
 #define PRT3_SCRIPT_H
 
 #include "src/engine/scene/node.h"
+#include "src/engine/scene/signal.h"
 
 namespace prt3 {
 
@@ -17,6 +18,7 @@ public:
     virtual void on_init() {}
     virtual void on_update(float /*delta_time*/) {}
     virtual void on_late_update(float /*delta_time*/) {}
+    virtual void on_signal(SignalString const & /*signal*/, void * /*data*/) {}
 protected:
     Scene & scene() const { return m_scene; }
     NodeID node_id() const { return m_node_id; }
