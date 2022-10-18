@@ -22,7 +22,7 @@ public:
               uint32_t num_indices);
 
     void draw(GLMaterial const & material,
-              SceneRenderData const & scene_data,
+              CameraRenderData const & camera_data,
               MeshRenderData const & mesh_data) const;
 
 private:

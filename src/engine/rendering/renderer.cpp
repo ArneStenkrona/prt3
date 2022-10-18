@@ -32,15 +32,16 @@ Renderer::Renderer(Context & context,
                     SDL_WINDOW_ALLOW_HIGHDPI*/);
 
     m_render_backend = new GLRenderer(m_window, downscale_factor);
-    m_input.init(m_window);
+    m_input.init(m_window, m_render_backend);
 }
 
 Renderer::~Renderer() {
     delete m_render_backend;
 }
 
-void Renderer::render(RenderData const & render_data) {
-    m_render_backend->render(render_data);
+void Renderer::render(RenderData const & render_data,
+                      bool render_gui) {
+    m_render_backend->render(render_data, render_gui);
 }
 
 void Renderer::upload_model(ModelManager::ModelHandle handle,

@@ -16,7 +16,7 @@
 
 namespace prt3 {
 
-struct SceneRenderData {
+struct CameraRenderData {
     glm::mat4 view_matrix;
     glm::mat4 projection_matrix;
     glm::vec3 view_position;
@@ -45,15 +45,19 @@ struct LightRenderData {
     AmbientLight ambient_light;
 };
 
-struct RenderData {
-    SceneRenderData scene_data;
+struct WorldRenderData {
     std::vector<MeshRenderData> mesh_data;
     LightRenderData light_data;
+};
+
+struct RenderData {
+    CameraRenderData camera_data;
+    WorldRenderData world;
 
     void clear() {
-        mesh_data.resize(0);
-        scene_data = {};
-        light_data = {};
+        camera_data = {};
+        world.light_data = {};
+        world.mesh_data.resize(0);
     }
 };
 

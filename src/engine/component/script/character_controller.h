@@ -21,7 +21,6 @@ public:
         : Script(scene, m_node_id) {}
 
     virtual void on_init() {
-        scene().connect_signal("CHANGE_CAMERA_MODE", this);
     }
 
     virtual void on_update(float delta_time) {
@@ -86,13 +85,6 @@ public:
             m_gravity_velocity + gravity_constant * delta_time,
             terminal_velocity * delta_time
         );
-    }
-
-    virtual void on_signal(SignalString const & signal, void * data) {
-        if (signal == "CHANGE_CAMERA_MODE") {
-            bool val = *reinterpret_cast<bool*>(data);
-            controllable = !val;
-        }
     }
 private:
     static constexpr float gravity_constant = 2.0f;

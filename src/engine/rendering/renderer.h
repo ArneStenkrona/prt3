@@ -26,7 +26,10 @@ public:
     Renderer(Renderer const &) = delete;
     ~Renderer();
 
-    void render(RenderData const & render_data);
+    void prepare_gui_rendering() { m_render_backend->prepare_gui_rendering(); }
+
+    void render(RenderData const & render_data,
+                bool render_gui);
     void upload_model(ModelManager::ModelHandle handle,
                       Model const & model,
                       ModelResource & resource);

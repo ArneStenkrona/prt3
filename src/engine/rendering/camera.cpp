@@ -4,17 +4,14 @@
 
 using namespace prt3;
 
-Camera::Camera(Input & input,
-               int width,
+Camera::Camera(int width,
                int height)
     : m_field_of_view(45.0f),
       m_width(static_cast<float>(width)),
       m_height(static_cast<float>(height)),
       m_near_plane(0.3f),
       m_far_plane(1000.0f),
-      m_orthographic(false),
-      m_input(input)
-{
+      m_orthographic(false) {
 }
 
 void Camera::set_projection(float width, float height, float near, float far) {
@@ -51,4 +48,13 @@ void Camera::get_camera_corners(glm::vec3 & topleft,
     topright     = tr / tl.w;
     bottomleft   = bl / tl.w;
     bottomright  = br / tl.w;
+}
+
+void Camera::collect_camera_render_data(CameraRenderData & camera_data) const {
+    camera_data.view_matrix = get_view_matrix();
+    camera_data.projection_matrix = get_projection_matrix();
+    camera_data.view_position = get_position();
+    camera_data.view_direction = get_front();
+    camera_data.near_plane = near_plane();
+    camera_data.far_plane = far_plane();
 }

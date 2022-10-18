@@ -9,26 +9,28 @@ Input::Input() {
     }
 }
 
-void Input::init(SDL_Window * window) {
+void Input::init(SDL_Window * window,
+                 RenderBackend * render_backend) {
     m_window = window;
+    m_render_backend = render_backend;
 }
 
-bool Input::get_key(KeyCode key_code) {
+bool Input::get_key(KeyCode key_code) const {
     return m_current_key_states[key_code];
 }
-bool Input::get_key_down(KeyCode key_code) {
+bool Input::get_key_down(KeyCode key_code) const {
     return m_current_key_states[key_code] && !m_previous_key_states[key_code];
 }
-bool Input::get_key_up(KeyCode key_code) {
+bool Input::get_key_up(KeyCode key_code) const {
     return !m_current_key_states[key_code] && m_previous_key_states[key_code];
 }
 
-void Input::get_cursor_position(int & x, int & y) {
+void Input::get_cursor_position(int & x, int & y) const {
     x = m_cursor_x;
     y = m_cursor_y;
 }
 
-void Input::get_cursor_delta(int & dx, int & dy) {
+void Input::get_cursor_delta(int & dx, int & dy) const {
     dx = m_cursor_dx;
     dy = m_cursor_dy;
 }
@@ -40,6 +42,8 @@ void Input::update() {
     SDL_Event e;
     uint32_t window_id = SDL_GetWindowID(m_window);
     while (SDL_PollEvent(&e) != 0) {
+        m_render_backend->process_input_event(&e);
+
         if (e.type == SDL_WINDOWEVENT && e.window.windowID == window_id) {
             switch (e.window.event) {
                 case SDL_WINDOWEVENT_ENTER:

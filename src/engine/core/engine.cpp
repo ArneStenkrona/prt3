@@ -8,7 +8,8 @@ using namespace prt3;
 using time_point = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
 Engine::Engine()
- : m_last_frame_time_point{std::chrono::high_resolution_clock::now()} {
+ : m_editor{m_context},
+   m_last_frame_time_point{std::chrono::high_resolution_clock::now()} {
 
 }
 
@@ -16,7 +17,46 @@ void Engine::execute_frame() {
     // loop begin
     float fixed_delta_time = 1.0f / 60.0f;
     m_context.input().update();
-    m_context.current_scene().update(fixed_delta_time);
+
+    if (m_context.input().get_key_down(KEY_CODE_TAB)) {
+        switch (m_mode) {
+            case EngineMode::game: {
+                m_mode = EngineMode::editor;
+                break;
+            }
+            case EngineMode::editor: {
+                m_mode = EngineMode::game;
+                break;
+            }
+        }
+    }
+
+    Scene & scene = m_context.current_scene();
+
+    static RenderData render_data;
+    render_data.clear();
+    switch (m_mode) {
+        case EngineMode::game: {
+            scene.update(fixed_delta_time);
+            scene.collect_world_render_data(render_data.world);
+            scene.get_camera().collect_camera_render_data(
+                render_data.camera_data
+            );
+            m_context.renderer().render(render_data, false);
+            break;
+        }
+        case EngineMode::editor: {
+            m_context.renderer().prepare_gui_rendering();
+            m_editor.update(fixed_delta_time);
+            scene.collect_world_render_data(render_data.world);
+            m_editor.get_camera().collect_camera_render_data(
+                render_data.camera_data
+            );
+            m_context.renderer().render(render_data, true);
+            break;
+        }
+    }
+
     // loop end
     measure_duration();
 

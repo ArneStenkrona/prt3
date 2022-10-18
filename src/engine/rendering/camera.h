@@ -14,21 +14,8 @@ namespace prt3 {
 
 class Camera {
 public:
-    // Constructor with vectors
-    Camera(Input & input,
-           int width,
-           int height);
-    // Constructor with scalar values
-    Camera(Input& input, float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch);
+    Camera(int width, int height);
 
-    /**
-     * Retrieve world-space coordinates of camera
-     * corners
-     * @param topleft top left corner, returned by reference
-     * @param topleft top right corner, returned by reference
-     * @param topleft bottom left corner, returned by reference
-     * @param topleft bottom right corner, returned by reference
-     */
     void get_camera_corners(glm::vec3 & topleft,
                             glm::vec3 & topright,
                             glm::vec3 & bottomleft,
@@ -50,6 +37,8 @@ public:
     inline glm::vec3 get_up() const { return m_transform.get_up(); }
     inline glm::vec3 get_right() const { return m_transform.get_right(); }
 
+    void collect_camera_render_data(CameraRenderData & camera_data) const;
+
     inline float near_plane() const {return m_near_plane; }
     inline float far_plane() const {return m_far_plane; }
 
@@ -68,8 +57,6 @@ private:
     float m_near_plane;
     float m_far_plane;
     float m_orthographic;
-
-    Input & m_input;
 
     void set_size(int w, int h)
         { m_width = static_cast<float>(w); m_height = static_cast<float>(h); }

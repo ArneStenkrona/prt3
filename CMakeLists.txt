@@ -20,6 +20,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include_directories(
   "${PROJECT_BINARY_DIR}"
   "${PROJECT_SOURCE_DIR}"
+  "${PROJECT_SOURCE_DIR}/lib/imgui"
 )
 
 file(GLOB SOURCES
@@ -45,6 +46,8 @@ file(GLOB SOURCES
 "src/engine/core/context.cpp"
 "src/engine/core/engine.cpp"
 "src/engine/core/input.cpp"
+"src/engine/editor/editor_camera.cpp"
+"src/engine/editor/editor.cpp"
 "src/engine/geometry/shapes.cpp"
 "src/engine/rendering/camera.cpp"
 "src/engine/rendering/model_manager.cpp"
@@ -53,6 +56,10 @@ file(GLOB SOURCES
 "src/engine/scene/node.cpp"
 "src/engine/scene/scene.cpp"
 "src/engine/scene/transform_cache.cpp"
+# libs
+"lib/imgui/*.cpp"
+"lib/imgui/backends/imgui_impl_sdl.cpp"
+"lib/imgui/backends/imgui_impl_opengl3.cpp"
 )
 
 add_subdirectory(lib/glm EXCLUDE_FROM_ALL)

@@ -1,6 +1,5 @@
 #include "scene.h"
 
-#include "src/engine/rendering/render_data.h"
 #include "src/engine/core/context.h"
 
 #include "src/engine/component/script/camera_controller.h"
@@ -12,8 +11,7 @@ using namespace prt3;
 
 Scene::Scene(Context & context)
  : m_context{context},
-   m_camera{context.input(),
-            context.renderer().window_width(),
+   m_camera{context.renderer().window_width(),
             context.renderer().window_height()},
    m_component_manager{*this},
    m_physics_system{*this} {
@@ -104,6 +102,11 @@ Scene::~Scene() {
 }
 
 void Scene::update(float delta_time) {
+    m_physics_system.update(
+        m_transform_cache.global_transforms().data(),
+        m_transform_cache.global_transforms_history().data()
+    );
+
     for (Script * script : m_init_queue) {
         script->on_init();
     }
@@ -122,22 +125,6 @@ void Scene::update(float delta_time) {
         m_nodes.size(),
         m_root_id
     );
-
-    render();
-
-    m_physics_system.update(
-        m_transform_cache.global_transforms().data(),
-        m_transform_cache.global_transforms_history().data()
-    );
-}
-
-void Scene::render() {
-    static RenderData render_data;
-    render_data.clear();
-
-    collect_render_data(render_data);
-
-    m_context.renderer().render(render_data);
 }
 
 NodeID Scene::add_node(NodeID parent_id) {
@@ -155,15 +142,7 @@ Input & Scene::get_input() {
     return m_context.input();
 }
 
-void Scene::collect_render_data(RenderData & render_data) const {
-    /* scene data */
-    render_data.scene_data.view_matrix = m_camera.get_view_matrix();
-    render_data.scene_data.projection_matrix = m_camera.get_projection_matrix();
-    render_data.scene_data.view_position = m_camera.get_position();
-    render_data.scene_data.view_direction = m_camera.get_front();
-    render_data.scene_data.near_plane = m_camera.near_plane();
-    render_data.scene_data.far_plane = m_camera.far_plane();
-
+void Scene::collect_world_render_data(WorldRenderData & world_data) const {
     std::vector<Transform> const & global_transforms =
         m_transform_cache.global_transforms();
 
@@ -176,7 +155,7 @@ void Scene::collect_render_data(RenderData & render_data) const {
         if (material_components.find(pair.first) != material_components.end()) {
             mesh_data.material_id = material_components[pair.first];
         }
-        render_data.mesh_data.push_back(mesh_data);
+        world_data.mesh_data.push_back(mesh_data);
     }
 
     std::vector<PointLightRenderData> point_lights;
@@ -196,17 +175,17 @@ void Scene::collect_render_data(RenderData & render_data) const {
                    glm::distance2(b.position, camera_position);
         });
 
-    render_data.light_data.number_of_point_lights =
+    world_data.light_data.number_of_point_lights =
         point_lights.size() < LightRenderData::MAX_NUMBER_OF_POINT_LIGHTS ?
             point_lights.size() : LightRenderData::MAX_NUMBER_OF_POINT_LIGHTS;
-    for (size_t i = 0; i < render_data.light_data.number_of_point_lights; ++i) {
-        render_data.light_data.point_lights[i] = point_lights[i];
+    for (size_t i = 0; i < world_data.light_data.number_of_point_lights; ++i) {
+        world_data.light_data.point_lights[i] = point_lights[i];
     }
 
-    render_data.light_data.directional_light = m_directional_light;
-    render_data.light_data.directional_light_on = m_directional_light_on;
+    world_data.light_data.directional_light = m_directional_light;
+    world_data.light_data.directional_light_on = m_directional_light_on;
 
-    render_data.light_data.ambient_light = m_ambient_light;
+    world_data.light_data.ambient_light = m_ambient_light;
 }
 
 void Scene::update_window_size(int w, int h) {

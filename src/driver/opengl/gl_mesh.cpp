@@ -22,11 +22,11 @@ void GLMesh::init(GLuint vao,
 }
 
 void GLMesh::draw(GLMaterial const & material,
-                  SceneRenderData const & scene_data,
+                  CameraRenderData const & camera_data,
                   MeshRenderData const & mesh_data) const {
     glm::mat4 m_matrix = mesh_data.transform;
-    glm::mat4 mv_matrix = scene_data.view_matrix * mesh_data.transform;
-    glm::mat4 mvp_matrix = scene_data.projection_matrix * mv_matrix;
+    glm::mat4 mv_matrix = camera_data.view_matrix * mesh_data.transform;
+    glm::mat4 mvp_matrix = camera_data.projection_matrix * mv_matrix;
     glm::mat3 inv_tpos_matrix = glm::inverse(glm::transpose(m_matrix));
 
     glUniformMatrix4fv(material.mmatrix_loc(), 1, GL_FALSE, &m_matrix[0][0]);

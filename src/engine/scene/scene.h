@@ -122,8 +122,7 @@ private:
     TransformCache m_transform_cache;
 
     void update(float delta_time);
-    void render();
-    void collect_render_data(RenderData & render_data) const;
+    void collect_world_render_data(WorldRenderData & world_data) const;
     void update_window_size(int w, int h);
 
     ScriptID internal_add_script(Script * script) {

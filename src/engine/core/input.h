@@ -1,6 +1,8 @@
 #ifndef PRT3_INPUT_H
 #define PRT3_INPUT_H
 
+#include "src/driver/render_backend.h"
+
 #include <SDL.h>
 
 #include <array>
@@ -260,14 +262,15 @@ class Input {
 public:
     Input();
 
-    bool get_key(KeyCode key_code);
-    bool get_key_down(KeyCode key_code);
-    bool get_key_up(KeyCode key_code);
+    bool get_key(KeyCode key_code) const;
+    bool get_key_down(KeyCode key_code) const;
+    bool get_key_up(KeyCode key_code) const;
 
-    void get_cursor_position(int & x, int & y);
-    void get_cursor_delta(int & dx, int & dy);
+    void get_cursor_position(int & x, int & y) const;
+    void get_cursor_delta(int & dx, int & dy) const;
 private:
     SDL_Window * m_window;
+    RenderBackend * m_render_backend;
 
     std::array<bool, TOTAL_NUM_KEY_CODES> m_current_key_states;
     std::array<bool, TOTAL_NUM_KEY_CODES> m_previous_key_states;
@@ -283,7 +286,8 @@ private:
     int m_cursor_dx;
     int m_cursor_dy;
 
-    void init(SDL_Window * window);
+    void init(SDL_Window * window,
+              RenderBackend * render_backend);
     void update();
 
     friend class Renderer;

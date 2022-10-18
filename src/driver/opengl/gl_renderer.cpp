@@ -5,6 +5,9 @@
 
 #include "glm/gtx/string_cast.hpp"
 
+#include "imgui.h"
+#include "backends/imgui_impl_opengl3.h"
+
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 
@@ -44,10 +47,17 @@ GLRenderer::GLRenderer(SDL_Window * window,
 
     m_texture_manager.init();
     m_material_manager.init();
+
+    ImGui::CreateContext();
+    ImGui_ImplSDL2_InitForOpenGL(window, SDL_GL_GetCurrentContext());
+    ImGui_ImplOpenGL3_Init();
 }
 
 GLRenderer::~GLRenderer() {
     // TODO: implement
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
 }
 
 void GLRenderer::set_postprocessing_chain(
@@ -88,7 +98,13 @@ void GLRenderer::set_postprocessing_chain(
                                      w, h);
 }
 
-void GLRenderer::render(RenderData const & render_data) {
+void GLRenderer::prepare_gui_rendering() {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+}
+
+void GLRenderer::render(RenderData const & render_data,
+                        bool gui) {
     render_framebuffer(render_data,
                        m_framebuffer,
                        false);
@@ -102,7 +118,11 @@ void GLRenderer::render(RenderData const & render_data) {
                            true);
     }
 
-    m_postprocessing_chain.render(render_data.scene_data);
+    m_postprocessing_chain.render(render_data.camera_data);
+
+    if (gui) {
+        render_gui();
+    }
 
     SDL_GL_SwapWindow(m_window);
     glCheckError();
@@ -218,7 +238,7 @@ void GLRenderer::render_framebuffer(RenderData const & render_data,
     for (auto & pair : material_queues) {
         pair.second.resize(0);
     }
-    for (MeshRenderData const & mesh_data : render_data.mesh_data) {
+    for (MeshRenderData const & mesh_data : render_data.world.mesh_data) {
         material_queues[mesh_data.material_id].push_back(mesh_data);
     }
 
@@ -231,9 +251,9 @@ void GLRenderer::render_framebuffer(RenderData const & render_data,
         glCheckError();
 
         // Light data
-        LightRenderData const & light_data = render_data.light_data;
+        LightRenderData const & light_data = render_data.world.light_data;
 
-        glUniform3fv(material.view_position_loc(), 1, &render_data.scene_data.view_position[0]);
+        glUniform3fv(material.view_position_loc(), 1, &render_data.camera_data.view_position[0]);
         glUniform1i(material.number_of_point_lights(), static_cast<int>(light_data.number_of_point_lights));
 
         glUniform3fv(material.point_lights_0_position_loc(), 1, &light_data.point_lights[0].position[0]);
@@ -271,10 +291,14 @@ void GLRenderer::render_framebuffer(RenderData const & render_data,
         for (MeshRenderData const & mesh_data : pair.second) {
             meshes[mesh_data.mesh_id].draw(
                 materials[mesh_data.material_id],
-                render_data.scene_data,
+                render_data.camera_data,
                 mesh_data
             );
         }
         glCheckError();
     }
+}
+
+void GLRenderer::render_gui() {
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }

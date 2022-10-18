@@ -18,7 +18,7 @@ public:
                          GLuint source_depth_texture,
                          GLuint target_framebuffer);
 
-    void render(SceneRenderData const & scene_data);
+    void render(CameraRenderData const & camera_data);
 private:
     GLuint m_screen_quad_vao;
     GLuint m_screen_quad_vbo;

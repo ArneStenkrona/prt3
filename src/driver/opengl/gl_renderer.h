@@ -11,6 +11,8 @@
 // #include "src/driver/opengl/gl_postprocessing_pass.h"
 #include "src/engine/rendering/model_manager.h"
 
+#include "backends/imgui_impl_sdl.h"
+
 #include <SDL.h>
 
 #define GL_GLEXT_PROTOTYPES 1
@@ -24,7 +26,10 @@ public:
                float downscale_factor);
     virtual ~GLRenderer();
 
-    virtual void render(RenderData const & render_data);
+    virtual void prepare_gui_rendering();
+
+    virtual void render(RenderData const & render_data,
+                        bool gui);
     virtual void upload_model(ModelManager::ModelHandle model_handle,
                               Model const & model,
                               ModelResource & resource)
@@ -32,6 +37,11 @@ public:
 
     virtual void set_postprocessing_chain(
         std::vector<PostProcessingPass> const & chain_info);
+
+    virtual void process_input_event(void const * event) {
+        ImGui_ImplSDL2_ProcessEvent(static_cast<SDL_Event const*>(event));
+    }
+
 private:
     SDL_Window * m_window;
     float m_downscale_factor;
@@ -57,6 +67,8 @@ private:
     void render_framebuffer(RenderData const & render_data,
                             GLuint framebuffer,
                             bool normal_pass);
+
+    void render_gui();
 };
 
 } // namespace prt3

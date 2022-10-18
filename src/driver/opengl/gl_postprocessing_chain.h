@@ -20,7 +20,7 @@ public:
                    int window_width,
                    int window_height);
 
-    void render(SceneRenderData const & scene_data);
+    void render(CameraRenderData const & camera_data);
 private:
     std::vector<GLPostProcessingPass> m_passes;
     std::vector<GLuint> m_framebuffers;
