@@ -75,6 +75,8 @@ public:
     char * data() { return m_data; }
     char const * data() const { return m_data; }
 
+    size_t size() const { return Size; }
+
 private:
     char m_data[N] = { 0 };
 

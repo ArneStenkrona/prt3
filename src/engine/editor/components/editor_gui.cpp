@@ -1,6 +1,7 @@
 #include "editor_gui.h"
 
 #include "src/engine/editor/components/scene_hierarchy.h"
+#include "src/engine/editor/components/node_inspector.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
@@ -65,6 +66,8 @@ void prt3::editor_gui(EditorContext & context) {
     ImGui::End();
 
     ImGui::Begin("Inspector");
-    // TODO
+    node_inspector(context);
     ImGui::End();
+
+    context.commit_frame();
 }

@@ -129,6 +129,7 @@ private:
 
     void update(float delta_time);
     void collect_world_render_data(WorldRenderData & world_data) const;
+    void update_transform_cache();
     void update_window_size(int w, int h);
 
     ScriptID internal_add_script(Script * script) {

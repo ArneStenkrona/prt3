@@ -129,6 +129,14 @@ void Scene::update(float delta_time) {
     );
 }
 
+void Scene::update_transform_cache() {
+    m_transform_cache.collect_global_transforms(
+        m_nodes.data(),
+        m_nodes.size(),
+        m_root_id
+    );
+}
+
 NodeID Scene::add_node(NodeID parent_id, const char * name) {
     Node & parent = m_nodes[parent_id];
     NodeID id = m_nodes.size();

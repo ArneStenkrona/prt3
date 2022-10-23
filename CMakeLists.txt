@@ -47,6 +47,7 @@ file(GLOB SOURCES
 "src/engine/core/engine.cpp"
 "src/engine/core/input.cpp"
 "src/engine/editor/components/editor_gui.cpp"
+"src/engine/editor/components/node_inspector.cpp"
 "src/engine/editor/components/panel.cpp"
 "src/engine/editor/components/scene_hierarchy.cpp"
 "src/engine/editor/editor_camera.cpp"

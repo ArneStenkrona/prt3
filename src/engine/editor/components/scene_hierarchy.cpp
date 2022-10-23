@@ -68,7 +68,7 @@ void prt3::scene_hierarchy(EditorContext & context) {
         strncpy(
             begin,
             context.context().scene().get_node_name(id).data(),
-            N - (indent_len + 2)
+            N - (indent_len + 2) - 1 // -1 is to ensure null-termination
         );
 
         if (expanded[id]) {

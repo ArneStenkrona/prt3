@@ -14,15 +14,22 @@ class EditorContext {
 public:
     EditorContext(Editor & editor, Context & context);
 
+    void commit_frame();
+
     Editor & editor() { return m_editor; }
     Context & context() { return m_context; }
 
     std::vector<Node> & get_scene_nodes() { return context().scene().m_nodes; }
 
+    NodeID get_selected_node() const { return m_selected_node; }
     void set_selected_node(NodeID id) { m_selected_node = id; }
+
+    void invalidate_transform_cache() { m_stale_transform_cache = true; }
 private:
     Editor & m_editor;
     Context & m_context;
+
+    bool m_stale_transform_cache;
 
     NodeID m_selected_node = NO_NODE;
 };

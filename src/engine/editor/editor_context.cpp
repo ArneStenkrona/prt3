@@ -8,3 +8,10 @@ EditorContext::EditorContext(Editor & editor, Context & context)
  : m_editor{editor}, m_context{context} {
 
 }
+
+void EditorContext::commit_frame() {
+    if (m_stale_transform_cache) {
+        m_context.scene().update_transform_cache();
+    }
+    m_stale_transform_cache = false;
+}
