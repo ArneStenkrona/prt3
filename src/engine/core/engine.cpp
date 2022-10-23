@@ -31,7 +31,7 @@ void Engine::execute_frame() {
         }
     }
 
-    Scene & scene = m_context.current_scene();
+    Scene & scene = m_context.scene();
 
     static RenderData render_data;
     render_data.clear();

@@ -29,9 +29,11 @@ public:
     Scene(Scene const & other) = delete;
     Scene & operator=(Scene const & other) = delete;
 
-    NodeID add_node(NodeID parent_id);
-    NodeID add_node_to_root() { return add_node(m_root_id); }
+    NodeID add_node(NodeID parent_id, const char * name);
+    NodeID add_node_to_root(const char * name) { return add_node(m_root_id, name); }
     NodeID get_next_available_node_id() const { return m_nodes.size(); }
+
+    NodeID get_root_id() const { return m_root_id; }
 
     void set_node_mesh(NodeID node_id, ResourceID mesh_id)
         { m_component_manager.set_mesh_component(node_id, mesh_id); }
@@ -97,6 +99,9 @@ public:
 
     void emit_signal(SignalString const & signal, void * data);
 
+    NodeName const & get_node_name(NodeID id) const { return m_node_names[id]; }
+    NodeName & get_node_name(NodeID id) { return m_node_names[id]; }
+
 private:
     Context & m_context;
 
@@ -104,6 +109,7 @@ private:
 
     NodeID m_root_id;
     std::vector<Node> m_nodes;
+    std::vector<NodeName> m_node_names;
 
     std::vector<Script *> m_scripts;
     std::vector<Script *> m_init_queue;
@@ -140,6 +146,7 @@ private:
     friend class Renderer;
     friend class Node;
     friend class ScriptSet;
+    friend class EditorContext;
 };
 
 } // namespace prt3

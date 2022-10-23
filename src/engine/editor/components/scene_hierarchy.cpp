@@ -1,0 +1,112 @@
+#include "scene_hierarchy.h"
+
+#include "src/util/fixed_string.h"
+#include "src/engine/editor/components/panel.h"
+
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include "imgui.h"
+#include "imgui_internal.h"
+
+#include <vector>
+#include <cstring>
+#include <algorithm>
+
+void prt3::scene_hierarchy(EditorContext & context) {
+    Scene & scene = context.context().scene();
+    NodeID root_id = scene.get_root_id();
+    std::vector<Node> & nodes = context.get_scene_nodes();
+
+    static std::vector<NodeID> node_ids;
+    node_ids.resize(nodes.size());
+    static std::vector<bool> expanded = { true };
+    expanded.resize(nodes.size());
+
+    static constexpr size_t max_depth = 32;
+    static constexpr size_t N = NodeName::Size + 2 * (max_depth + 1);
+    static std::vector<FixedString<N> > display_names;
+    display_names.resize(nodes.size());
+
+    struct QueueElement {
+        NodeID id;
+        unsigned int depth;
+    };
+
+    static std::vector<QueueElement> queue;
+    if (root_id != NO_NODE) {
+        queue.push_back({root_id, 0});
+    }
+
+    unsigned int n_displayed = 0;
+    static int32_t selected = 0;
+
+    while (!queue.empty()) {
+        NodeID id = queue.back().id;
+        unsigned int depth = queue.back().depth;
+        queue.pop_back();
+        Node & node = nodes[id];
+
+        node_ids[n_displayed] = id;
+
+        char * begin = display_names[n_displayed].data();
+
+        size_t indent_len =  2 * std::min(size_t(depth), max_depth);
+        for (size_t i = 0; i < indent_len; ++i) {
+            *begin = ' ';
+            ++begin;
+        }
+        if (node.children_ids().empty()) {
+            *begin = ' ';
+            ++begin;
+            *begin = ' ';
+            ++begin;
+        } else {
+            *begin = expanded[id] ? 'v' : '>';
+            ++begin;
+            *begin = ' ';
+            ++begin;
+        }
+        strncpy(
+            begin,
+            context.context().scene().get_node_name(id).data(),
+            N - (indent_len + 2)
+        );
+
+        if (expanded[id]) {
+            for (NodeID child_id : node.children_ids()) {
+                queue.push_back({child_id, depth + 1});
+            }
+        }
+
+        if (id == node_ids[selected]) {
+            selected = n_displayed;
+        }
+        ++n_displayed;
+    }
+
+    begin_group_panel("Nodes");
+
+    ImGui::SetNextItemWidth(ImGui::GetWindowWidth() - 40);
+
+
+    static std::vector<char*> name_data;
+    name_data.resize(n_displayed);
+    for (unsigned int i = 0; i < name_data.size(); ++i) {
+        name_data[i] = display_names[i].data();
+    }
+
+    ImGui::ListBox(
+        "##Nodes",
+        &selected,
+        name_data.data(),
+        name_data.size(),
+        name_data.size()
+    );
+
+    NodeID selected_id = node_ids[selected];
+    context.set_selected_node(node_ids[selected]);
+    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
+        expanded[selected_id] = !expanded[selected_id];
+    }
+
+    end_group_panel();
+}

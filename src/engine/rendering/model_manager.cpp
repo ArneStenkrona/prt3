@@ -54,9 +54,9 @@ NodeID ModelManager::add_model_to_scene(Scene & scene, ModelHandle handle, NodeI
         NodeID parent_id = queue.back().parent_id;
         queue.pop_back();
 
-        NodeID node_id = scene.add_node(parent_id);
-
         Model::Node const & model_node = model.nodes()[model_node_index];
+        NodeID node_id = scene.add_node(parent_id, model_node.name.c_str());
+
         if (model_node.mesh_index != -1) {
             ResourceID mesh_id = resource.mesh_resource_ids[model_node.mesh_index];
             ResourceID material_id = resource.material_resource_ids[model_node.mesh_index];

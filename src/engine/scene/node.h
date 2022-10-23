@@ -6,6 +6,7 @@
 #include "src/engine/component/transform.h"
 #include "src/engine/physics/gjk.h"
 #include "src/engine/physics/collider.h"
+#include "src/util/fixed_string.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -19,6 +20,8 @@ namespace prt3 {
 
 typedef int NodeID;
 constexpr NodeID NO_NODE = -1;
+
+typedef FixedString<64> NodeName;
 
 class Scene;
 class Node {
@@ -34,7 +37,8 @@ public:
     Transform const & local_transform() const { return m_local_transform; }
     Transform & local_transform() { return m_local_transform; }
 
-    NodeID parent_id() { return m_parent_id; }
+    NodeID id() const { return m_id; }
+    NodeID parent_id() const { return m_parent_id; }
     std::vector<NodeID> const & children_ids() const { return m_children_ids; }
 
     Collision move_and_collide(glm::vec3 const & movement);

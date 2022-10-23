@@ -31,6 +31,9 @@ Renderer::Renderer(Context & context,
                     SDL_WINDOW_SHOWN/*     |
                     SDL_WINDOW_ALLOW_HIGHDPI*/);
 
+    ImGui::CreateContext();
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
     m_render_backend = new GLRenderer(m_window, downscale_factor);
     m_input.init(m_window, m_render_backend);
 }
@@ -52,7 +55,7 @@ void Renderer::upload_model(ModelManager::ModelHandle handle,
 
 void Renderer::set_window_size(int w, int h) {
     SDL_SetWindowSize(m_window, w, h);
-    m_context.current_scene().update_window_size(w, h);
+    m_context.scene().update_window_size(w, h);
     m_window_width = w;
     m_window_height = h;
 }

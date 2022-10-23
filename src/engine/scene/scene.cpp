@@ -16,7 +16,9 @@ Scene::Scene(Context & context)
    m_component_manager{*this},
    m_physics_system{*this} {
     m_root_id = m_nodes.size();
+
     m_nodes.emplace_back(m_root_id, *this);
+    m_node_names.emplace_back("root");
 
     // FOR DEBUGGING, WILL REMOVE ---->
     NodeID island = m_context.model_manager()
@@ -50,7 +52,7 @@ Scene::Scene(Context & context)
     // set_directional_light({{0.0f, -1.0f, 0.0f}, {0.8f, 0.8f, 0.8f}});
     // set_directional_light_on(true);
 
-    NodeID cam_node = add_node_to_root();
+    NodeID cam_node = add_node_to_root("camera");
     set_node_local_position(cam_node, glm::vec3(2.1f, 2.1f, 2.1f));
     ScriptID cam_controller = add_script<CameraController>(cam_node);
 
@@ -63,7 +65,7 @@ Scene::Scene(Context & context)
     get_node(character).local_transform().scale = glm::vec3(0.45f);
     get_node(character).local_transform().position.y = 1.0f;
 
-    NodeID light_id = add_node(character);
+    NodeID light_id = add_node(character, "point_light");
     get_node(light_id).local_transform().position = glm::vec3{0.0f, 7.0f, 0.0f};
     PointLight light;
     light.color = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -127,13 +129,15 @@ void Scene::update(float delta_time) {
     );
 }
 
-NodeID Scene::add_node(NodeID parent_id) {
+NodeID Scene::add_node(NodeID parent_id, const char * name) {
     Node & parent = m_nodes[parent_id];
     NodeID id = m_nodes.size();
     parent.m_children_ids.push_back(id);
 
     m_nodes.emplace_back(id, *this);
     m_nodes[id].m_parent_id = parent_id;
+
+    m_node_names.emplace_back(name);
 
     return id;
 }

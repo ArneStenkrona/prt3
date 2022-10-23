@@ -16,7 +16,7 @@ public:
     Renderer & renderer() { return m_renderer; }
     Input & input() { return m_renderer.input(); }
     ModelManager & model_manager() { return m_model_manager; }
-    Scene & current_scene() { return m_scene; }
+    Scene & scene() { return m_scene; }
 private:
     Renderer m_renderer;
     ModelManager m_model_manager;

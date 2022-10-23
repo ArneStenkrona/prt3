@@ -48,7 +48,6 @@ GLRenderer::GLRenderer(SDL_Window * window,
     m_texture_manager.init();
     m_material_manager.init();
 
-    ImGui::CreateContext();
     ImGui_ImplSDL2_InitForOpenGL(window, SDL_GL_GetCurrentContext());
     ImGui_ImplOpenGL3_Init();
 }
