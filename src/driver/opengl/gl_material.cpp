@@ -62,4 +62,5 @@ void GLMaterial::set_attribute_cache() {
     m_albedo_loc = glGetUniformLocation(m_shader, "u_Albedo");
     m_metallic_loc = glGetUniformLocation(m_shader, "u_Metallic");
     m_roughness_loc = glGetUniformLocation(m_shader, "u_Roughness");
+    m_input_value_loc = glGetUniformLocation(m_shader, "u_InputValue");
 }

@@ -34,9 +34,9 @@ public:
                       Model const & model,
                       ModelResource & resource);
 
-    void set_postprocessing_chain(
-        std::vector<PostProcessingPass> const & chain_info)
-        { m_render_backend->set_postprocessing_chain(chain_info); }
+    void set_postprocessing_chain(PostProcessingChain const & chain) {
+        m_render_backend->set_postprocessing_chain(chain);
+    }
 
     Input & input() { return m_input; }
 

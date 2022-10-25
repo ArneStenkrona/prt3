@@ -8,7 +8,7 @@
 #include "src/driver/opengl/gl_material_manager.h"
 #include "src/driver/opengl/gl_model_manager.h"
 #include "src/driver/opengl/gl_postprocessing_chain.h"
-// #include "src/driver/opengl/gl_postprocessing_pass.h"
+#include "src/driver/opengl/gl_source_buffers.h"
 #include "src/engine/rendering/model_manager.h"
 
 #include "backends/imgui_impl_sdl.h"
@@ -30,13 +30,15 @@ public:
 
     virtual void render(RenderData const & render_data,
                         bool gui);
-    virtual void upload_model(ModelManager::ModelHandle model_handle,
-                              Model const & model,
-                              ModelResource & resource)
-        { m_model_manager.upload_model(model_handle, model, resource); }
+    virtual void upload_model(
+        ModelManager::ModelHandle model_handle,
+        Model const & model,
+        ModelResource & resource) {
+        m_model_manager.upload_model(model_handle, model, resource);
+    }
 
     virtual void set_postprocessing_chain(
-        std::vector<PostProcessingPass> const & chain_info);
+        PostProcessingChain const & chain);
 
     virtual void process_input_event(void const * event) {
         ImGui_ImplSDL2_ProcessEvent(static_cast<SDL_Event const*>(event));
@@ -50,23 +52,14 @@ private:
     GLMaterialManager m_material_manager;
     GLModelManager m_model_manager;
 
-    GLuint m_framebuffer;
-    GLuint m_color_texture;
-    GLuint m_depth_texture;
-
-    GLuint m_normal_framebuffer;
-    GLuint m_normal_texture;
-    GLuint m_normal_depth_texture;
-
     GLPostProcessingChain m_postprocessing_chain;
 
-    void generate_framebuffer(GLuint & framebuffer,
-                              GLuint & render_texture,
-                              GLuint & depth_texture);
+    GLSourceBuffers m_source_buffers;
 
-    void render_framebuffer(RenderData const & render_data,
-                            GLuint framebuffer,
-                            bool normal_pass);
+    void render_framebuffer(
+        RenderData const & render_data,
+        GLuint framebuffer
+    );
 
     void render_gui();
 };

@@ -34,6 +34,7 @@ file(GLOB SOURCES
 "src/driver/opengl/gl_renderer.cpp"
 "src/driver/opengl/gl_texture_manager.cpp"
 "src/driver/opengl/gl_shader_utility.cpp"
+"src/driver/opengl/gl_source_buffers.cpp"
 "src/driver/opengl/gl_utility.cpp"
 "src/engine/component/script/script.cpp"
 "src/engine/component/component_manager.cpp"

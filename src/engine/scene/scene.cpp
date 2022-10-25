@@ -46,7 +46,9 @@ Scene::Scene(Context & context)
     upscale_pass_info.downscale_factor = 1.0f;
 
     m_context.renderer().set_postprocessing_chain(
-        {outline_pass_info, upscale_pass_info}
+        PostProcessingChain{
+            {outline_pass_info, upscale_pass_info}
+        }
     );
 
     // set_directional_light({{0.0f, -1.0f, 0.0f}, {0.8f, 0.8f, 0.8f}});
@@ -154,15 +156,37 @@ Input & Scene::get_input() {
     return m_context.input();
 }
 
-void Scene::collect_world_render_data(WorldRenderData & world_data) const {
+void Scene::collect_world_render_data(
+    WorldRenderData & world_data,
+    NodeID selected
+) const {
     std::vector<Transform> const & global_transforms =
         m_transform_cache.global_transforms();
+
+    static std::unordered_set<NodeID> selected_incl_children;
+    selected_incl_children.clear();
+    static std::vector<NodeID> queue;
+    queue.push_back(selected);
+    while (!queue.empty()) {
+        NodeID curr = queue.back();
+        Node const & curr_node = get_node(curr);
+        queue.pop_back();
+        selected_incl_children.insert(curr);
+
+        for (NodeID const & child_id : curr_node.children_ids()) {
+            queue.push_back(child_id);
+        }
+    }
 
     auto material_components = m_component_manager.get_material_components();
     for (auto const & pair : m_component_manager.get_mesh_components()) {
         MeshRenderData mesh_data;
         mesh_data.mesh_id = pair.second;
         mesh_data.material_id = NO_RESOURCE;
+        mesh_data.node = pair.first;
+        mesh_data.selected =
+            selected_incl_children.find(pair.first) !=
+            selected_incl_children.end();
         mesh_data.transform = global_transforms[pair.first].to_matrix();
         if (material_components.find(pair.first) != material_components.end()) {
             mesh_data.material_id = material_components[pair.first];

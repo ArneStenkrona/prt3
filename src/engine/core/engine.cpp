@@ -38,7 +38,10 @@ void Engine::execute_frame() {
     switch (m_mode) {
         case EngineMode::game: {
             scene.update(fixed_delta_time);
-            scene.collect_world_render_data(render_data.world);
+            scene.collect_world_render_data(
+                render_data.world,
+                m_editor.selected_node()
+            );
             scene.get_camera().collect_camera_render_data(
                 render_data.camera_data
             );
@@ -48,7 +51,10 @@ void Engine::execute_frame() {
         case EngineMode::editor: {
             m_context.renderer().prepare_gui_rendering();
             m_editor.update(fixed_delta_time);
-            scene.collect_world_render_data(render_data.world);
+            scene.collect_world_render_data(
+                render_data.world,
+                m_editor.selected_node()
+            );
             m_editor.get_camera().collect_camera_render_data(
                 render_data.camera_data
             );

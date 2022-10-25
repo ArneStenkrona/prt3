@@ -35,6 +35,19 @@ public:
         return *this;
     }
 
+    FixedString & operator=(char const * c) {
+        char const * curr_c = c;
+        char * curr_data = m_data;
+        char * data_end = m_data + Size;
+        while (curr_data < data_end &&
+               *curr_c != '\0') {
+            *curr_data = *curr_c;
+            ++curr_c;
+            ++curr_data;
+        }
+        return *this;
+    }
+
     bool operator ==(FixedString const & other) const {
         char const * curr_this = m_data;
         char const * curr_other = other.m_data;

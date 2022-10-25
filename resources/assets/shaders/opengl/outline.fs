@@ -11,8 +11,8 @@ uniform float u_FarPlane;
 uniform float u_PixelUnitX;
 uniform float u_PixelUnitY;
 
-uniform sampler2D u_RenderTexture;
-uniform sampler2D u_NormalTexture;
+uniform sampler2D u_PreviousColorBuffer;
+uniform sampler2D u_InputTexture;
 uniform sampler2D u_DepthBuffer;
 
 varying vec2 v_TexCoordinate;
@@ -55,13 +55,13 @@ void main() {
         depth_diff += -min(depth - d_up, 0.0);
     }
 
-    vec3 normal = 2.0 * texture2D(u_NormalTexture, v_TexCoordinate).rgb - 1.0;
+    vec3 normal = 2.0 * texture2D(u_InputTexture, v_TexCoordinate).rgb - 1.0;
     // Difference between depth of neighboring pixels and current.
     float normal_diff = 0.0;
-    vec3 n_right = 2.0 * texture2D(u_NormalTexture, v_TexCoordinate + vec2( w,  0.0)).rgb - 1.0;
-    vec3 n_left  = 2.0 * texture2D(u_NormalTexture, v_TexCoordinate + vec2(-w,  0.0)).rgb - 1.0;
-    vec3 n_down  = 2.0 * texture2D(u_NormalTexture, v_TexCoordinate + vec2(0.0,  h)).rgb - 1.0;
-    vec3 n_up    = 2.0 * texture2D(u_NormalTexture, v_TexCoordinate + vec2(0.0, -h)).rgb - 1.0;
+    vec3 n_right = 2.0 * texture2D(u_InputTexture, v_TexCoordinate + vec2( w,  0.0)).rgb - 1.0;
+    vec3 n_left  = 2.0 * texture2D(u_InputTexture, v_TexCoordinate + vec2(-w,  0.0)).rgb - 1.0;
+    vec3 n_down  = 2.0 * texture2D(u_InputTexture, v_TexCoordinate + vec2(0.0,  h)).rgb - 1.0;
+    vec3 n_up    = 2.0 * texture2D(u_InputTexture, v_TexCoordinate + vec2(0.0, -h)).rgb - 1.0;
     if (n_right.z > normal.z) {
         normal_diff += distance(normal, n_right);
     }
@@ -83,11 +83,11 @@ void main() {
 
     vec3 color;
     //if (normal_outline > depth_outline) {
-    //    color = 0.5 * texture2D(u_RenderTexture, v_TexCoordinate).rgb;
+    //    color = 0.5 * texture2D(u_PreviousColorBuffer, v_TexCoordinate).rgb;
     //} else if (depth_outline > 0.0) {
-    //    color = 0.3 * texture2D(u_RenderTexture, v_TexCoordinate).rgb;
+    //    color = 0.3 * texture2D(u_PreviousColorBuffer, v_TexCoordinate).rgb;
     // } else {
-        color = texture2D(u_RenderTexture, v_TexCoordinate).rgb;
+        color = texture2D(u_PreviousColorBuffer, v_TexCoordinate).rgb;
     // }
 
     float outline = max(depth_outline, normal_outline);

@@ -3,6 +3,7 @@
 
 #include "src/driver/opengl/gl_material.h"
 #include "src/engine/rendering/render_data.h"
+#include "src/engine/rendering/postprocessing_chain.h"
 
 #define GL_GLEXT_PROTOTYPES 1
 #include <GLES3/gl3.h>
@@ -17,13 +18,17 @@ class GLMesh {
 public:
     GLMesh();
 
-    void init(GLuint vao,
-              uint32_t start_index,
-              uint32_t num_indices);
+    void init(
+        GLuint vao,
+        uint32_t start_index,
+        uint32_t num_indices
+    );
 
-    void draw(GLMaterial const & material,
-              CameraRenderData const & camera_data,
-              MeshRenderData const & mesh_data) const;
+    void draw(
+        GLMaterial const & material,
+        CameraRenderData const & camera_data,
+        MeshRenderData const & mesh_data
+    ) const;
 
 private:
     bool m_initialized = false;

@@ -19,21 +19,16 @@ public:
     ResourceID upload_material(Model::Material const & material);
 
     std::vector<GLMaterial> const & materials() const
-        { return m_materials; }
-    std::vector<GLMaterial> const & normal_materials() const
-        { return m_normal_materials; }
+    { return m_materials; }
 
     GLuint standard_shader() const { return m_standard_shader; }
-    GLuint normal_shader() const { return m_normal_shader; }
 
 private:
     GLTextureManager & m_texture_manager;
 
     std::vector<GLMaterial> m_materials;
-    std::vector<GLMaterial> m_normal_materials;
 
     GLuint m_standard_shader;
-    GLuint m_normal_shader;
 };
 
 } // namespace prt3;

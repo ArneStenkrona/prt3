@@ -4,6 +4,7 @@
 #include "src/engine/core/context.h"
 #include "src/engine/editor/editor_camera.h"
 #include "src/engine/editor/editor_context.h"
+#include "src/engine/scene/node.h"
 
 namespace prt3 {
 
@@ -14,6 +15,9 @@ public:
     void update(float delta_time);
 
     Camera & get_camera() { return m_camera.get_camera(); }
+
+    NodeID selected_node() const
+    { return m_editor_context.get_selected_node(); }
 private:
     Context & m_context;
     EditorCamera m_camera;

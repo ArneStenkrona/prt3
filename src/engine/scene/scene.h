@@ -52,6 +52,7 @@ public:
     void set_directional_light_on(bool on) { m_directional_light_on = on; }
     void set_ambient_light(glm::vec3 color) { m_ambient_light.color = color; }
 
+    Node const & get_node(NodeID id) const { return m_nodes[id]; }
     Node & get_node(NodeID id) { return m_nodes[id]; }
     Camera & get_camera() { return m_camera; }
     Input & get_input();
@@ -128,7 +129,10 @@ private:
     TransformCache m_transform_cache;
 
     void update(float delta_time);
-    void collect_world_render_data(WorldRenderData & world_data) const;
+    void collect_world_render_data(
+        WorldRenderData & world_data,
+        NodeID selected
+    ) const;
     void update_transform_cache();
     void update_window_size(int w, int h);
 

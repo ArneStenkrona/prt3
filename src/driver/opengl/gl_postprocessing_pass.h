@@ -2,6 +2,7 @@
 #define PRT3_GL_POSTPROCESSING_PASS_H
 
 #include "src/engine/rendering/render_data.h"
+#include "src/driver/opengl/gl_source_buffers.h"
 
 #define GL_GLEXT_PROTOTYPES 1
 #include <GLES3/gl3.h>
@@ -10,13 +11,14 @@ namespace prt3 {
 
 class GLPostProcessingPass {
 public:
-    GLPostProcessingPass(const char * fragment_shader_path,
-                         unsigned int width,
-                         unsigned int height,
-                         GLuint source_color_texture,
-                         GLuint source_normal_texture,
-                         GLuint source_depth_texture,
-                         GLuint target_framebuffer);
+    GLPostProcessingPass(
+        const char * fragment_shader_path,
+        unsigned int width,
+        unsigned int height,
+        GLSourceBuffers const & source_buffer,
+        GLuint previous_color_buffer,
+        GLuint target_framebuffer
+    );
 
     void render(CameraRenderData const & camera_data);
 private:
@@ -28,9 +30,8 @@ private:
     unsigned int m_width;
     unsigned int m_height;
 
-    GLuint m_source_color_texture;
-    GLuint m_source_normal_texture;
-    GLuint m_source_depth_texture;
+    GLSourceBuffers const * m_source_buffer;
+    GLuint m_previous_color_buffer;
     GLuint m_target_framebuffer;
 
     void set_shader(const char * fragment_shader_path);

@@ -35,11 +35,15 @@ varying vec3 v_Normal;
 varying vec2 v_TexCoordinate;
 varying mat3 v_InverseTBN;
 
+uniform vec4 u_InputValue;
+
 // The entry point for our fragment shader.
 void main()
 {
-    // vec3 normal = normalize(v_InverseTBN *
-    //                 ((2.0 * texture2D(u_NormalMap, v_TexCoordinate).rgb) - 1.0));
-    vec3 normal = v_Normal;
-    gl_FragColor = vec4((normal + 1.0) * 0.5, 0.0);
+    if (u_InputValue.w != 0.0) {
+        gl_FragColor = vec4(u_InputValue.rgb, 0.0);
+    } else {
+        vec3 normal = v_Normal;
+        gl_FragColor = vec4((normal + 1.0) * 0.5, 0.0);
+    }
 }

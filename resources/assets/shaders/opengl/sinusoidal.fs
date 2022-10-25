@@ -8,8 +8,8 @@ uniform float u_PixelUnitY;
 
 varying vec2 v_TexCoordinate;
 
-uniform sampler2D u_RenderTexture;
+uniform sampler2D u_PreviousColorBuffer;
 
 void main() {
-    gl_FragColor = texture2D(u_RenderTexture, v_TexCoordinate + 0.005*vec2( sin(1024.0*v_TexCoordinate.x),cos(768.0*v_TexCoordinate.y)));
+    gl_FragColor = texture2D(u_PreviousColorBuffer, v_TexCoordinate + 0.005*vec2( sin(1024.0*v_TexCoordinate.x),cos(768.0*v_TexCoordinate.y)));
 }

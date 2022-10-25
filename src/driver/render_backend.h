@@ -5,6 +5,7 @@
 #include "src/engine/rendering/model_manager.h"
 #include "src/engine/rendering/render_data.h"
 #include "src/engine/rendering/resources.h"
+#include "src/engine/rendering/postprocessing_chain.h"
 #include "src/engine/rendering/postprocessing_pass.h"
 
 #include <vector>
@@ -23,7 +24,7 @@ public:
                               ModelResource & resource) = 0;
 
     virtual void set_postprocessing_chain(
-        std::vector<PostProcessingPass> const & chain_info) = 0;
+        PostProcessingChain const & chain) = 0;
 
     virtual void process_input_event(void const * event) = 0;
 private:

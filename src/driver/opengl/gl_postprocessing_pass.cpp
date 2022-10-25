@@ -5,22 +5,23 @@
 
 #include <SDL.h>
 
+#include <iostream>
+
 using namespace prt3;
 
 GLPostProcessingPass::GLPostProcessingPass(
     const char * fragment_shader_path,
     unsigned int width,
     unsigned int height,
-    GLuint source_color_texture,
-    GLuint source_normal_texture,
-    GLuint source_depth_texture,
-    GLuint target_framebuffer)
+    GLSourceBuffers const & source_buffer,
+    GLuint previous_color_buffer,
+    GLuint target_framebuffer
+)
  : m_shader{0},
    m_width{width},
    m_height{height},
-   m_source_color_texture{source_color_texture},
-   m_source_normal_texture{source_normal_texture},
-   m_source_depth_texture{source_depth_texture},
+   m_source_buffer{&source_buffer},
+   m_previous_color_buffer{previous_color_buffer},
    m_target_framebuffer{target_framebuffer} {
     static const GLfloat g_quad_vertex_buffer_data[] = {
         -1.0f, -1.0f, 0.0f,
@@ -42,10 +43,12 @@ GLPostProcessingPass::GLPostProcessingPass(
     glBindBuffer(GL_ARRAY_BUFFER, m_screen_quad_vbo);
     glCheckError();
 
-    glBufferData(GL_ARRAY_BUFFER,
-                 sizeof(g_quad_vertex_buffer_data),
-                 g_quad_vertex_buffer_data,
-                 GL_STATIC_DRAW);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        sizeof(g_quad_vertex_buffer_data),
+        g_quad_vertex_buffer_data,
+        GL_STATIC_DRAW
+    );
     glCheckError();
 
     set_shader(fragment_shader_path);
@@ -83,36 +86,30 @@ void GLPostProcessingPass::render(CameraRenderData const & camera_data) {
 
     glUseProgram(m_shader);
     glCheckError();
-    GLint render_loc = glGetUniformLocation(m_shader, "u_RenderTexture");
+
     GLenum tex_offset = 0;
-    if (render_loc != -1) {
-        glUniform1i(render_loc, tex_offset);
-        glActiveTexture(GL_TEXTURE0 + tex_offset);
-        glCheckError();
-        glBindTexture(GL_TEXTURE_2D, m_source_color_texture);
-        glCheckError();
-        ++tex_offset;
+    {
+        GLint loc = glGetUniformLocation(m_shader, "u_PreviousColorBuffer");
+        if (loc != -1) {
+            glUniform1i(loc, tex_offset);
+            glActiveTexture(GL_TEXTURE0 + tex_offset);
+            glCheckError();
+            glBindTexture(GL_TEXTURE_2D, m_previous_color_buffer);
+            glCheckError();
+            ++tex_offset;
+        }
     }
-
-    GLint normal_loc = glGetUniformLocation(m_shader, "u_NormalTexture");
-    if (normal_loc != -1) {
-        glUniform1i(normal_loc, tex_offset);
-        glActiveTexture(GL_TEXTURE0 + tex_offset);
-        glCheckError();
-        glBindTexture(GL_TEXTURE_2D, m_source_normal_texture);
-        glCheckError();
-        ++tex_offset;
-    }
-
-    GLint depth_loc = glGetUniformLocation(m_shader, "u_DepthBuffer");
-    if (depth_loc != -1) {
-        glUniform1i(depth_loc, tex_offset);
-        glActiveTexture(GL_TEXTURE0 + tex_offset);
-        glCheckError();
-        glBindTexture(GL_TEXTURE_2D, m_source_depth_texture);
-        glCheckError();
-        ++tex_offset;
-    }
+    // for (UniformName const & uniform_name : m_source_buffer->uniform_names()) {
+    //     GLint loc = glGetUniformLocation(m_shader, uniform_name.name.data());
+    //     if (loc != -1) {
+    //         glUniform1i(loc, tex_offset);
+    //         glActiveTexture(GL_TEXTURE0 + tex_offset);
+    //         glCheckError();
+    //         glBindTexture(GL_TEXTURE_2D, uniform_name.value);
+    //         glCheckError();
+    //         ++tex_offset;
+    //     }
+    // }
 
     glshaderutility::set_vec3(m_shader, "u_ViewPosition", camera_data.view_position);
     glCheckError();

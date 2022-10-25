@@ -3,6 +3,7 @@
 
 #include "src/engine/rendering/resources.h"
 #include "src/engine/rendering/light.h"
+#include "src/engine/scene/node.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -28,6 +29,8 @@ struct CameraRenderData {
 struct MeshRenderData {
     ResourceID mesh_id;
     ResourceID material_id;
+    NodeID node;
+    bool selected;
     glm::mat4 transform;
 };
 

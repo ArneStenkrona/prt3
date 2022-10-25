@@ -21,15 +21,16 @@ Renderer::Renderer(Context & context,
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
     m_window = SDL_CreateWindow(
-                "prt3",
-                SDL_WINDOWPOS_UNDEFINED,
-                SDL_WINDOWPOS_UNDEFINED,
-                width,
-                height,
-                SDL_WINDOW_OPENGL        |
-                    SDL_WINDOW_RESIZABLE |
-                    SDL_WINDOW_SHOWN/*     |
-                    SDL_WINDOW_ALLOW_HIGHDPI*/);
+        "prt3",
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
+        width,
+        height,
+        SDL_WINDOW_OPENGL    |
+        SDL_WINDOW_RESIZABLE |
+        SDL_WINDOW_SHOWN/*   |
+        SDL_WINDOW_ALLOW_HIGHDPI*/
+    );
 
     ImGui::CreateContext();
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;

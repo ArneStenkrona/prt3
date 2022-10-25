@@ -1,7 +1,6 @@
 #ifndef PRT3_NODE_H
 #define PRT3_NODE_H
 
-#include "src/engine/rendering/render_data.h"
 #include "src/engine/rendering/resources.h"
 #include "src/engine/component/transform.h"
 #include "src/engine/physics/gjk.h"
@@ -18,7 +17,7 @@
 
 namespace prt3 {
 
-typedef int NodeID;
+typedef int32_t NodeID;
 constexpr NodeID NO_NODE = -1;
 
 typedef FixedString<64> NodeName;

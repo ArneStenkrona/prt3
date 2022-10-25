@@ -84,7 +84,8 @@ void main()
         );
     }
 
-    gl_FragColor = vec4(lightContribution, 1.0) * albedo;
+    gl_FragData[0] = vec4(lightContribution, 1.0) * albedo;
+    // gl_FragData[1] = vec4(normal, 1.0);
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {

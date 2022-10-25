@@ -5,24 +5,23 @@
 using namespace prt3;
 
 void GLPostProcessingChain::set_chain(
-        std::vector<PostProcessingPass> const & chain_info,
-        GLuint source_color_texture,
-        GLuint source_normal_texture,
-        GLuint source_depth_texture,
-        int window_width,
-        int window_height) {
+    PostProcessingChain const & chain,
+    GLSourceBuffers const & source_buffers,
+    int window_width,
+    int window_height
+) {
     clear_chain();
-    if (chain_info.empty()) {
+    if (chain.passes.empty()) {
         return;
     }
 
-    m_framebuffers.resize(chain_info.size());
-    m_color_textures.resize(chain_info.size());
-    m_color_textures[0] = source_color_texture;
+    m_framebuffers.resize(chain.passes.size());
+    m_color_textures.resize(chain.passes.size());
+    m_color_textures[0] = source_buffers.color_texture();
 
-    for (size_t i = 0; i < chain_info.size() - 1; ++i) {
-        int width = static_cast<int>(window_width / chain_info[i].downscale_factor);
-        int height = static_cast<int>(window_height / chain_info[i].downscale_factor);
+    for (size_t i = 0; i < chain.passes.size() - 1; ++i) {
+        int width = static_cast<int>(window_width / chain.passes[i].downscale_factor);
+        int height = static_cast<int>(window_height / chain.passes[i].downscale_factor);
 
         GLuint & framebuffer = m_framebuffers[i];
         glGenFramebuffers(1, &framebuffer);
@@ -35,15 +34,17 @@ void GLPostProcessingChain::set_chain(
         glCheckError();
         glBindTexture(GL_TEXTURE_2D, color_texture);
         glCheckError();
-        glTexImage2D(GL_TEXTURE_2D,
-                     0,
-                     GL_RGB,
-                     width,
-                     height,
-                     0,
-                     GL_RGB,
-                     GL_UNSIGNED_BYTE,
-                     0);
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGB,
+            width,
+            height,
+            0,
+            GL_RGB,
+            GL_UNSIGNED_BYTE,
+            0
+        );
         glCheckError();
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -55,11 +56,13 @@ void GLPostProcessingChain::set_chain(
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glCheckError();
 
-        glFramebufferTexture2D(GL_FRAMEBUFFER,
-                               GL_COLOR_ATTACHMENT0,
-                               GL_TEXTURE_2D,
-                               color_texture,
-                               0);
+        glFramebufferTexture2D(
+            GL_FRAMEBUFFER,
+            GL_COLOR_ATTACHMENT0,
+            GL_TEXTURE_2D,
+            color_texture,
+            0
+        );
         glCheckError();
 
         if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -69,15 +72,14 @@ void GLPostProcessingChain::set_chain(
     m_framebuffers.back() = 0;
 
     for (size_t i = 0; i < m_framebuffers.size(); ++i) {
-        int width = static_cast<int>(window_width / chain_info[i].downscale_factor);
-        int height = static_cast<int>(window_height / chain_info[i].downscale_factor);
+        int width = static_cast<int>(window_width / chain.passes[i].downscale_factor);
+        int height = static_cast<int>(window_height / chain.passes[i].downscale_factor);
         m_passes.emplace_back(
-            chain_info[i].fragment_shader_path.c_str(),
+            chain.passes[i].fragment_shader_path.c_str(),
             width,
             height,
+            source_buffers,
             m_color_textures[i],
-            source_normal_texture,
-            source_depth_texture,
             m_framebuffers[i]
         );
     }

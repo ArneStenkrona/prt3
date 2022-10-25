@@ -75,6 +75,7 @@ public:
     GLint albedo_loc()          const { return m_albedo_loc; }
     GLint metallic_loc()        const { return m_metallic_loc; }
     GLint roughness_loc()       const { return m_roughness_loc; }
+    GLint input_value_loc()         const { return m_input_value_loc; }
 
 private:
     GLuint m_shader;
@@ -122,6 +123,7 @@ private:
     GLint m_albedo_loc;
     GLint m_metallic_loc;
     GLint m_roughness_loc;
+    GLint m_input_value_loc;
 
     glm::vec4 m_albedo;
     float m_metallic;

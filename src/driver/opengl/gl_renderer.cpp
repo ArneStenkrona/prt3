@@ -14,6 +14,7 @@
 #include <vector>
 #include <unordered_map>
 #include <cassert>
+#include <iostream>
 
 using namespace prt3;
 
@@ -29,9 +30,19 @@ GLRenderer::GLRenderer(SDL_Window * window,
 	attrs.majorVersion = 2;
 	attrs.minorVersion = 0;
 	attrs.alpha = false;
+    attrs.enableExtensionsByDefault = true;
 	EMSCRIPTEN_WEBGL_CONTEXT_HANDLE webgl_context =
         emscripten_webgl_create_context("#canvas", &attrs);
-	emscripten_webgl_make_context_current(webgl_context);
+
+	if (emscripten_webgl_make_context_current(webgl_context) !=
+        EMSCRIPTEN_RESULT_SUCCESS) {
+        std::cout << "Failed to make context current." << std::endl;
+    }
+
+    // if (emscripten_webgl_enable_extension(webgl_context, "WEBGL_draw_buffers") !=
+    //     EM_TRUE) {
+    //     std::cout << "WEBGL_draw_buffers not supported!" << std::endl;
+    // }
 
     /* Enable GL functionality */
     glEnable(GL_DEPTH_TEST);
@@ -50,6 +61,13 @@ GLRenderer::GLRenderer(SDL_Window * window,
 
     ImGui_ImplSDL2_InitForOpenGL(window, SDL_GL_GetCurrentContext());
     ImGui_ImplOpenGL3_Init();
+
+    int w;
+    int h;
+    SDL_GetWindowSize(m_window, &w, &h);
+    GLint buffer_width = static_cast<GLint>(w / m_downscale_factor);
+    GLint buffer_height = static_cast<GLint>(h / m_downscale_factor);
+    m_source_buffers.init(buffer_width, buffer_height);
 }
 
 GLRenderer::~GLRenderer() {
@@ -60,41 +78,16 @@ GLRenderer::~GLRenderer() {
 }
 
 void GLRenderer::set_postprocessing_chain(
-    std::vector<PostProcessingPass> const & chain_info) {
+    PostProcessingChain const & chain) {
     int w;
     int h;
     SDL_GetWindowSize(m_window, &w, &h);
 
-    if (chain_info.empty()) {
-        if (m_framebuffer != 0) {
-            glDeleteFramebuffers(1, &m_framebuffer);
-            glDeleteTextures(1, &m_color_texture);
-            glDeleteTextures(1, &m_depth_texture);
-
-            glDeleteFramebuffers(1, &m_normal_framebuffer);
-            glDeleteTextures(1, &m_normal_texture);
-            glDeleteTextures(1, &m_normal_depth_texture);
-        }
-        m_framebuffer = 0;
-        m_color_texture = 0;
-        m_normal_texture = 0;
-        m_depth_texture = 0;
-
-    } else {
-        generate_framebuffer(m_framebuffer,
-                             m_color_texture,
-                             m_depth_texture);
-
-    }
-    generate_framebuffer(m_normal_framebuffer,
-                         m_normal_texture,
-                         m_normal_depth_texture);
-
-    m_postprocessing_chain.set_chain(chain_info,
-                                     m_color_texture,
-                                     m_normal_texture,
-                                     m_depth_texture,
-                                     w, h);
+    m_postprocessing_chain.set_chain(
+        chain,
+        m_source_buffers,
+        w, h
+    );
 }
 
 void GLRenderer::prepare_gui_rendering() {
@@ -102,20 +95,10 @@ void GLRenderer::prepare_gui_rendering() {
     ImGui_ImplSDL2_NewFrame();
 }
 
-void GLRenderer::render(RenderData const & render_data,
-                        bool gui) {
-    render_framebuffer(render_data,
-                       m_framebuffer,
-                       false);
-
-    if (m_framebuffer != 0) {
-        // m_framebuffer != 0 implies we have
-        // post-processing, so we need to render
-        // normal data
-        render_framebuffer(render_data,
-                           m_normal_framebuffer,
-                           true);
-    }
+void GLRenderer::render(RenderData const & render_data, bool gui) {
+    GLuint framebuffer = m_postprocessing_chain.empty() ?
+        0 : m_source_buffers.framebuffer();
+    render_framebuffer(render_data, framebuffer);
 
     m_postprocessing_chain.render(render_data.camera_data);
 
@@ -127,97 +110,10 @@ void GLRenderer::render(RenderData const & render_data,
     glCheckError();
 }
 
-void GLRenderer::generate_framebuffer(GLuint & framebuffer,
-                                      GLuint & render_texture,
-                                      GLuint & depth_texture) {
-        int w;
-        int h;
-        SDL_GetWindowSize(m_window, &w, &h);
-
-        glGenFramebuffers(1, &framebuffer);
-        glCheckError();
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-        glCheckError();
-
-        glGenTextures(1, &render_texture);
-        glCheckError();
-        glBindTexture(GL_TEXTURE_2D, render_texture);
-        glCheckError();
-        glTexImage2D(GL_TEXTURE_2D,
-                     0,
-                     GL_RGB,
-                     static_cast<GLint>(w / m_downscale_factor),
-                     static_cast<GLint>(h / m_downscale_factor),
-                     0,
-                     GL_RGB,
-                     GL_UNSIGNED_BYTE,
-                     0);
-        glCheckError();
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glCheckError();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glCheckError();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glCheckError();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glCheckError();
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glCheckError();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glCheckError();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glCheckError();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glCheckError();
-
-        glGenTextures(1, &depth_texture);
-        glCheckError();
-        glBindTexture(GL_TEXTURE_2D, depth_texture);
-        glCheckError();
-        glTexImage2D(GL_TEXTURE_2D,
-                     0,
-                     GL_DEPTH_COMPONENT24,
-                     static_cast<GLint>(w / m_downscale_factor),
-                     static_cast<GLint>(h / m_downscale_factor),
-                     0,
-                     GL_DEPTH_COMPONENT,
-                     GL_UNSIGNED_INT,
-                     0);
-        glCheckError();
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glCheckError();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glCheckError();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glCheckError();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glCheckError();
-
-        glFramebufferTexture2D(GL_FRAMEBUFFER,
-                               GL_COLOR_ATTACHMENT0,
-                               GL_TEXTURE_2D,
-                               render_texture,
-                               0);
-        glCheckError();
-
-        glFramebufferTexture2D(GL_FRAMEBUFFER,
-                            GL_DEPTH_ATTACHMENT,
-                            GL_TEXTURE_2D,
-                            depth_texture,
-                            0);
-        glCheckError();
-
-        if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            assert(false && "Failed to create framebuffer!");
-        }
-}
-
-void GLRenderer::render_framebuffer(RenderData const & render_data,
-                                    GLuint framebuffer,
-                                    bool normal_pass) {
+void GLRenderer::render_framebuffer(
+    RenderData const & render_data,
+    GLuint framebuffer
+) {
     // Bind the framebuffer
     int w;
     int h;
@@ -241,8 +137,7 @@ void GLRenderer::render_framebuffer(RenderData const & render_data,
         material_queues[mesh_data.material_id].push_back(mesh_data);
     }
 
-    std::vector<GLMaterial> const & materials = normal_pass ?
-     m_material_manager.normal_materials() : m_material_manager.materials();
+    std::vector<GLMaterial> const & materials = m_material_manager.materials();
     for (auto const & pair : material_queues) {
         GLMaterial const & material = materials[pair.first];
         GLuint shader_id = material.shader();
