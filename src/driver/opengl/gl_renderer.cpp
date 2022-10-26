@@ -39,10 +39,6 @@ GLRenderer::GLRenderer(SDL_Window * window,
         std::cout << "Failed to make context current." << std::endl;
     }
 
-    // if (emscripten_webgl_enable_extension(webgl_context, "WEBGL_draw_buffers") !=
-    //     EM_TRUE) {
-    //     std::cout << "WEBGL_draw_buffers not supported!" << std::endl;
-    // }
 
     /* Enable GL functionality */
     glEnable(GL_DEPTH_TEST);

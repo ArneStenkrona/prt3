@@ -1,3 +1,5 @@
+#version 300 es
+
 precision mediump float;
 
 uniform sampler2D u_AlbedoMap;
@@ -29,11 +31,10 @@ uniform vec3 u_AmbientLight;
 
 uniform vec3 u_ViewPosition;
 
-varying vec3 v_Position;
-
-varying vec3 v_Normal;
-varying vec2 v_TexCoordinate;
-varying mat3 v_InverseTBN;
+in vec3 v_Position;
+in vec3 v_Normal;
+in vec2 v_TexCoordinate;
+in mat3 v_InverseTBN;
 
 const float PI = 3.14159265359;
 
@@ -49,17 +50,22 @@ vec3 CalculateDirectionalLight(DirectionalLight light,
                                float metallic,
                                float roughness);
 
+layout(location = 0) out vec3 outColor;
+layout(location = 1) out vec3 outNormal;
+layout(location = 2) out vec4 outID;
+layout(location = 3) out float outSelected;
+
 // The entry point for our fragment shader.
 void main()
 {
-    vec4 albedo = u_Albedo * texture2D(u_AlbedoMap, v_TexCoordinate);
+    vec4 albedo = u_Albedo * texture(u_AlbedoMap, v_TexCoordinate);
 
     // vec3 normal = normalize(v_InverseTBN *
-    //                 ((2.0 * texture2D(u_NormalMap, v_TexCoordinate).rgb) - 1.0));
+    //                 ((2.0 * texture(u_NormalMap, v_TexCoordinate).rgb) - 1.0));
     vec3 normal = v_Normal;
 
-    float metallic = u_Metallic * texture2D(u_MetallicMap, v_TexCoordinate).r;
-    float roughness = u_Roughness * texture2D(u_RoughnessMap, v_TexCoordinate).r;
+    float metallic = u_Metallic * texture(u_MetallicMap, v_TexCoordinate).r;
+    float roughness = u_Roughness * texture(u_RoughnessMap, v_TexCoordinate).r;
 
     vec3 lightContribution = u_AmbientLight;
     // Add point lights
@@ -84,8 +90,10 @@ void main()
         );
     }
 
-    gl_FragData[0] = vec4(lightContribution, 1.0) * albedo;
-    // gl_FragData[1] = vec4(normal, 1.0);
+    outColor = lightContribution * albedo.rgb;
+    outNormal = normal;
+    outID = vec4(0.0);
+    outSelected = 0.0;
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {

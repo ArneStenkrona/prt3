@@ -99,17 +99,18 @@ void GLPostProcessingPass::render(CameraRenderData const & camera_data) {
             ++tex_offset;
         }
     }
-    // for (UniformName const & uniform_name : m_source_buffer->uniform_names()) {
-    //     GLint loc = glGetUniformLocation(m_shader, uniform_name.name.data());
-    //     if (loc != -1) {
-    //         glUniform1i(loc, tex_offset);
-    //         glActiveTexture(GL_TEXTURE0 + tex_offset);
-    //         glCheckError();
-    //         glBindTexture(GL_TEXTURE_2D, uniform_name.value);
-    //         glCheckError();
-    //         ++tex_offset;
-    //     }
-    // }
+
+    for (UniformName const & uniform_name : m_source_buffer->uniform_names()) {
+        GLint loc = glGetUniformLocation(m_shader, uniform_name.name.data());
+        if (loc != -1) {
+            glUniform1i(loc, tex_offset);
+            glActiveTexture(GL_TEXTURE0 + tex_offset);
+            glCheckError();
+            glBindTexture(GL_TEXTURE_2D, uniform_name.value);
+            glCheckError();
+            ++tex_offset;
+        }
+    }
 
     glshaderutility::set_vec3(m_shader, "u_ViewPosition", camera_data.view_position);
     glCheckError();

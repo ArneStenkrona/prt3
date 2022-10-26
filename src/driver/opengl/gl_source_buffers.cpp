@@ -107,6 +107,15 @@ void GLSourceBuffers::init(GLint width, GLint height) {
         assert(false && "Failed to create framebuffer!");
     }
 
+    GLenum attachments[4] = {
+        GL_COLOR_ATTACHMENT0,
+        GL_COLOR_ATTACHMENT1,
+        GL_COLOR_ATTACHMENT2,
+        GL_COLOR_ATTACHMENT3
+    };
+
+    glDrawBuffers(4, attachments);
+
     m_uniform_names.emplace_back("u_ColorBuffer", m_color_texture);
     m_uniform_names.emplace_back("u_NormalBuffer", m_normal_texture);
     m_uniform_names.emplace_back("u_IDBuffer", m_id_texture);

@@ -1,18 +1,20 @@
+#version 300 es
+
 uniform mat4 u_MMatrix;
 uniform mat4 u_MVPMatrix;
 uniform mat4 u_MVMatrix;
 uniform mat3 u_InvTposMMatrix;
 
-attribute vec3 a_Position;
-attribute vec3 a_Normal;
-attribute vec2 a_TexCoordinate;
-attribute vec3 a_Tangent;
-attribute vec3 a_Bitangent;
+layout(location = 0) in vec3 a_Position;
+layout(location = 1) in vec3 a_Normal;
+layout(location = 2) in vec2 a_TexCoordinate;
+layout(location = 3) in vec3 a_Tangent;
+layout(location = 4) in vec3 a_Bitangent;
 
-varying vec3 v_Position;
-varying vec3 v_Normal;
-varying vec2 v_TexCoordinate;
-varying mat3 v_InverseTBN;
+out vec3 v_Position;
+out vec3 v_Normal;
+out vec2 v_TexCoordinate;
+out mat3 v_InverseTBN;
 
 // The entry point for our vertex shader.
 void main()
