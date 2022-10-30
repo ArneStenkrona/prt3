@@ -31,7 +31,7 @@ uniform vec3 u_AmbientLight;
 
 uniform vec3 u_ViewPosition;
 
-uniform int u_ID;
+uniform uint u_ID;
 uniform bool u_Selected;
 
 in vec3 v_Position;
@@ -56,15 +56,6 @@ vec3 CalculateDirectionalLight(DirectionalLight light,
 layout(location = 0) out vec3 outColor;
 layout(location = 1) out vec3 outNormal;
 layout(location = 2) out vec4 outID;
-
-vec4 EncodeFloatRGBA(float v) {
-    vec4 kEncodeMul = vec4(1.0, 255.0, 65025.0, 16581375.0);
-    float kEncodeBit = 1.0/255.0;
-    vec4 enc = kEncodeMul * v;
-    enc = fract(enc);
-    enc -= enc.yzww * kEncodeBit;
-    return enc;
-}
 
 void main() {
     vec4 albedo = u_Albedo * texture(u_AlbedoMap, v_TexCoordinate);
@@ -101,7 +92,11 @@ void main() {
 
     outColor = lightContribution * albedo.rgb;
     outNormal = normal;
-    outID = EncodeFloatRGBA(intBitsToFloat(u_ID));
+
+    outID.r = float(u_ID % uint(255)) / 255.0;
+    outID.g = float((u_ID / uint(255)) % uint(255)) / 255.0;
+    outID.b = float((u_ID / uint(65025)) % uint(255)) / 255.0;
+    outID.a = float((u_ID / uint(16581375))) / 255.0;
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {

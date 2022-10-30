@@ -38,6 +38,9 @@ public:
         m_render_backend->process_input_events(events);
     }
 
+    NodeID get_selected(int x, int y) {
+        return m_render_backend->get_selected(x, y);
+    }
 
     Input & input() { return m_input; }
 

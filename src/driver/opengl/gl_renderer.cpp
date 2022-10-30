@@ -45,7 +45,7 @@ GLRenderer::GLRenderer(SDL_Window * window,
     glCheckError();
     glDepthFunc(GL_LESS);
     glCheckError();
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glCheckError();
     glEnable(GL_CULL_FACE);
     glCheckError();
@@ -117,6 +117,38 @@ void GLRenderer::set_postprocessing_chains(
         m_source_buffers,
         w, h
     );
+}
+
+NodeID GLRenderer::get_selected(int x, int y) {
+    int w;
+    int h;
+    SDL_GetWindowSize(m_window, &w, &h);
+
+    glFlush();
+    glFinish();
+
+    glBindFramebuffer(
+        GL_FRAMEBUFFER,
+        m_source_buffers.framebuffer()
+    );
+
+    glReadBuffer(m_source_buffers.id_attachment());
+
+    NodeID id = NO_NODE;
+
+    GLubyte data[4];
+    glReadPixels(
+        x / m_downscale_factor,
+        (h - y) / m_downscale_factor,
+        1,
+        1,
+        GL_RGBA,
+        GL_UNSIGNED_BYTE,
+        &data
+    );
+
+    id = *reinterpret_cast<int32_t*>(data);
+    return id;
 }
 
 void GLRenderer::prepare_gui_rendering() {
@@ -319,7 +351,8 @@ void GLRenderer::bind_mesh_and_camera_data(
     static const UniformVarString inv_tpos_matrix_str = "u_InvTposMMatrix";
     glUniformMatrix3fv(s.get_uniform_loc(inv_tpos_matrix_str), 1, GL_FALSE, &inv_tpos_matrix[0][0]);
     static const UniformVarString node_str = "u_ID";
-    glUniform1i(s.get_uniform_loc(node_str), mesh_data.node);
+    GLuint u_node_id = static_cast<GLuint>(mesh_data.node);
+    glUniform1ui(s.get_uniform_loc(node_str), GLuint(u_node_id));
 }
 
 void GLRenderer::bind_material_data(

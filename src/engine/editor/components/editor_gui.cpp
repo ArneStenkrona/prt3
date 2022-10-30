@@ -32,6 +32,7 @@ void prt3::editor_gui(EditorContext & context) {
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::Begin("DockSpace", nullptr, window_flags);
+
     ImGui::PopStyleVar();
     ImGui::PopStyleVar(2);
 

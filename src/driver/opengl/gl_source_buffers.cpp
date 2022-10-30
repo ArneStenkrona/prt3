@@ -56,7 +56,7 @@ void GLSourceBuffers::init(GLint width, GLint height) {
         GL_RGB8,
         GL_RGB,
         GL_UNSIGNED_BYTE,
-        GL_COLOR_ATTACHMENT0
+        color_attachment()
     );
 
     generate_texture(
@@ -66,7 +66,7 @@ void GLSourceBuffers::init(GLint width, GLint height) {
         GL_RGB8,
         GL_RGB,
         GL_UNSIGNED_BYTE,
-        GL_COLOR_ATTACHMENT1
+        normal_attachment()
     );
 
     generate_texture(
@@ -76,7 +76,7 @@ void GLSourceBuffers::init(GLint width, GLint height) {
         GL_RGBA8, // GL_R32I?
         GL_RGBA, // GL_RED?
         GL_UNSIGNED_BYTE, // GL_INT?
-        GL_COLOR_ATTACHMENT2
+        id_attachment()
     );
 
     generate_texture(
@@ -113,7 +113,7 @@ void GLSourceBuffers::init(GLint width, GLint height) {
         GL_R8,
         GL_RED,
         GL_UNSIGNED_BYTE,
-        GL_COLOR_ATTACHMENT0
+        selected_attachment()
     );
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {

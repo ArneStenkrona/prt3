@@ -2,8 +2,11 @@
 
 #include "src/engine/editor/editor_context.h"
 #include "src/engine/editor/components/editor_gui.h"
+#include "src/engine/scene/node.h"
 
 #include "imgui.h"
+
+#include <iostream>
 
 using namespace prt3;
 
@@ -15,8 +18,18 @@ Editor::Editor(Context & context)
 }
 
 void Editor::update(float delta_time) {
-    m_camera.update(delta_time, m_context.input());
     ImGui::NewFrame();
     editor_gui(m_editor_context);
     ImGui::Render();
+
+    if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow)) {
+        m_camera.update(delta_time, m_context.input());
+        if (m_context.input().get_key_down(KEY_CODE_MOUSE_LEFT)) {
+            int x, y;
+            m_context.input().get_cursor_position(x, y);
+
+            NodeID id = m_context.renderer().get_selected(x, y);
+            m_editor_context.set_selected_node(id);
+        }
+    }
 }

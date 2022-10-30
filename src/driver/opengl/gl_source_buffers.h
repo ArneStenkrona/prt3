@@ -35,6 +35,11 @@ public:
     GLuint selected_texture()      const { return m_selected_texture;      }
     GLuint depth_texture()         const { return m_depth_texture;         }
 
+    GLenum color_attachment()    const { return GL_COLOR_ATTACHMENT0; }
+    GLenum normal_attachment()   const { return GL_COLOR_ATTACHMENT1; }
+    GLenum id_attachment()       const { return GL_COLOR_ATTACHMENT2; }
+    GLenum selected_attachment() const { return GL_COLOR_ATTACHMENT0; }
+
     std::vector<UniformName> const & uniform_names() const
     { return m_uniform_names; }
 private:

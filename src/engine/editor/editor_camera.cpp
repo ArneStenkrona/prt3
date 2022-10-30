@@ -47,8 +47,8 @@ void EditorCamera::update(float delta_time,
         cam_tform.position -= right * camera_speed;
     if (input.get_key(KeyCode::KEY_CODE_D))
         cam_tform.position += right * camera_speed;
-    if (input.get_key(KeyCode::KEY_CODE_SPACE))
+    if (input.get_key(KeyCode::KEY_CODE_E))
         cam_tform.position += Camera::WORLD_UP * camera_speed;
-    if (input.get_key(KeyCode::KEY_CODE_LCTRL))
+    if (input.get_key(KeyCode::KEY_CODE_Q))
         cam_tform.position -= Camera::WORLD_UP * camera_speed;
 }

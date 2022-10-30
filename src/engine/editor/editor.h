@@ -25,6 +25,6 @@ private:
     EditorContext m_editor_context;
 };
 
-};
+} // namespace prt3
 
 #endif

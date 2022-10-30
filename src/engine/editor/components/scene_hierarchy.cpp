@@ -36,6 +36,17 @@ void prt3::scene_hierarchy(EditorContext & context) {
         queue.push_back({root_id, 0});
     }
 
+    NodeID select_id = context.get_selected_node();
+    if (select_id != NO_NODE) {
+        NodeID curr = scene.get_node(select_id).parent_id();
+        while (curr != NO_NODE) {
+            Node const & node = scene.get_node(curr);
+            expanded[curr] = true;
+
+            curr = node.parent_id();
+        }
+    }
+
     unsigned int n_displayed = 0;
     static int32_t selected = 0;
 
@@ -77,10 +88,13 @@ void prt3::scene_hierarchy(EditorContext & context) {
             }
         }
 
-        if (id == node_ids[selected]) {
-            selected = n_displayed;
-        }
         ++n_displayed;
+    }
+
+    for (size_t i = 0; i < node_ids.size(); ++i) {
+        if (node_ids[i] == context.get_selected_node()) {
+            selected = i;
+        }
     }
 
     begin_group_panel("Nodes");

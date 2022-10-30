@@ -7,6 +7,7 @@
 #include "src/engine/rendering/resources.h"
 #include "src/engine/rendering/postprocessing_chain.h"
 #include "src/engine/rendering/postprocessing_pass.h"
+#include "src/engine/scene/node.h"
 
 #include <SDL.h>
 
@@ -31,6 +32,8 @@ public:
     ) = 0;
 
     virtual void process_input_events(std::vector<SDL_Event> const & events) = 0;
+
+    virtual NodeID get_selected(int x, int y) = 0;
 private:
 };
 

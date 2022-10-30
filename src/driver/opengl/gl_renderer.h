@@ -33,6 +33,7 @@ public:
         RenderData const & render_data,
         bool editor
     );
+
     virtual void upload_model(
         ModelManager::ModelHandle model_handle,
         Model const & model,
@@ -51,6 +52,7 @@ public:
         }
     }
 
+    virtual NodeID get_selected(int x, int y);
 
 private:
     SDL_Window * m_window;
