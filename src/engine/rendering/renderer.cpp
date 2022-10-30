@@ -38,7 +38,7 @@ Renderer::Renderer(
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     m_render_backend = new GLRenderer(m_window, downscale_factor);
-    m_input.init(m_window, m_render_backend);
+    m_input.init(m_window);
 }
 
 Renderer::~Renderer() {

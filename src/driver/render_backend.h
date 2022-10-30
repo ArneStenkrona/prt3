@@ -8,6 +8,8 @@
 #include "src/engine/rendering/postprocessing_chain.h"
 #include "src/engine/rendering/postprocessing_pass.h"
 
+#include <SDL.h>
+
 #include <vector>
 
 namespace prt3 {
@@ -28,7 +30,7 @@ public:
         PostProcessingChain const & editor_chain
     ) = 0;
 
-    virtual void process_input_event(void const * event) = 0;
+    virtual void process_input_events(std::vector<SDL_Event> const & events) = 0;
 private:
 };
 

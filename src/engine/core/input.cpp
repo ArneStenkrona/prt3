@@ -9,10 +9,8 @@ Input::Input() {
     }
 }
 
-void Input::init(SDL_Window * window,
-                 RenderBackend * render_backend) {
+void Input::init(SDL_Window * window) {
     m_window = window;
-    m_render_backend = render_backend;
 }
 
 bool Input::get_key(KeyCode key_code) const {
@@ -36,13 +34,15 @@ void Input::get_cursor_delta(int & dx, int & dy) const {
 }
 
 void Input::update() {
+    m_event_queue.clear();
+
     m_previous_key_states = m_current_key_states;
     /* mouse */
     /* poll events */
     SDL_Event e;
     uint32_t window_id = SDL_GetWindowID(m_window);
     while (SDL_PollEvent(&e) != 0) {
-        m_render_backend->process_input_event(&e);
+        m_event_queue.push_back(e);
 
         if (e.type == SDL_WINDOWEVENT && e.window.windowID == window_id) {
             switch (e.window.event) {

@@ -45,9 +45,12 @@ public:
         PostProcessingChain const & editor_chain
     );
 
-    virtual void process_input_event(void const * event) {
-        ImGui_ImplSDL2_ProcessEvent(static_cast<SDL_Event const*>(event));
+    virtual void process_input_events(std::vector<SDL_Event> const & events) {
+        for (SDL_Event const & event : events) {
+            ImGui_ImplSDL2_ProcessEvent(&event);
+        }
     }
+
 
 private:
     SDL_Window * m_window;

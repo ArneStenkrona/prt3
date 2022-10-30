@@ -34,6 +34,11 @@ public:
                       Model const & model,
                       ModelResource & resource);
 
+    void process_input_events(std::vector<SDL_Event> const & events) {
+        m_render_backend->process_input_events(events);
+    }
+
+
     Input & input() { return m_input; }
 
     int window_width() const { return m_window_width; }

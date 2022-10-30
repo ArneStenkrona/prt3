@@ -16,7 +16,10 @@ Engine::Engine()
 void Engine::execute_frame() {
     // loop begin
     float fixed_delta_time = 1.0f / 60.0f;
+
     m_context.input().update();
+
+    EngineMode prev_mode = m_mode;
 
     if (m_context.input().get_key_down(KEY_CODE_TAB)) {
         switch (m_mode) {
@@ -30,6 +33,14 @@ void Engine::execute_frame() {
             }
         }
     }
+
+    if (m_mode == EngineMode::editor &&
+        prev_mode == EngineMode::editor) {
+        m_context
+            .renderer()
+            .process_input_events(m_context.input().event_queue());
+    }
+
 
     Scene & scene = m_context.scene();
 

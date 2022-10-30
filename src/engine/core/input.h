@@ -6,6 +6,7 @@
 #include <SDL.h>
 
 #include <array>
+#include <vector>
 
 namespace prt3 {
 
@@ -268,9 +269,10 @@ public:
 
     void get_cursor_position(int & x, int & y) const;
     void get_cursor_delta(int & dx, int & dy) const;
+
+    std::vector<SDL_Event> const & event_queue() const { return m_event_queue; }
 private:
     SDL_Window * m_window;
-    RenderBackend * m_render_backend;
 
     std::array<bool, TOTAL_NUM_KEY_CODES> m_current_key_states;
     std::array<bool, TOTAL_NUM_KEY_CODES> m_previous_key_states;
@@ -286,8 +288,9 @@ private:
     int m_cursor_dx;
     int m_cursor_dy;
 
-    void init(SDL_Window * window,
-              RenderBackend * render_backend);
+    std::vector<SDL_Event> m_event_queue;
+
+    void init(SDL_Window * window);
     void update();
 
     friend class Renderer;
