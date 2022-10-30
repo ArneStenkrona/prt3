@@ -23,8 +23,10 @@ public:
                               Model const & model,
                               ModelResource & resource) = 0;
 
-    virtual void set_postprocessing_chain(
-        PostProcessingChain const & chain) = 0;
+    virtual void set_postprocessing_chains(
+        PostProcessingChain const & scene_chain,
+        PostProcessingChain const & editor_chain
+    ) = 0;
 
     virtual void process_input_event(void const * event) = 0;
 private:

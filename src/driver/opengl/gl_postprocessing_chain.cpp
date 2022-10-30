@@ -85,9 +85,12 @@ void GLPostProcessingChain::set_chain(
     }
 }
 
-void GLPostProcessingChain::render(CameraRenderData const & camera_data) {
+void GLPostProcessingChain::render(
+    CameraRenderData const & camera_data,
+    uint32_t frame
+) {
     for (GLPostProcessingPass pass : m_passes) {
-        pass.render(camera_data);
+        pass.render(camera_data, frame);
     }
 }
 

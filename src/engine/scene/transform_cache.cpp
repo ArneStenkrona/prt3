@@ -2,29 +2,6 @@
 
 using namespace prt3;
 
-
-    // NodeID curr_id = m_parent_id;
-
-    // Transform tform;
-    // tform.position = m_local_transform.position;
-    // tform.scale = m_local_transform.scale;
-    // tform.rotation = m_local_transform.rotation;
-
-    // while (curr_id != NO_NODE) {
-    //     Node const & curr = m_scene.get_node(curr_id);
-    //     Transform const & curr_tform = curr.local_transform();
-    //     tform.position = curr_tform.position +
-    //         glm::rotate(
-    //             curr_tform.rotation,
-    //             curr_tform.scale * tform.position
-    //         );
-    //     tform.scale = tform.scale * curr_tform.scale;
-    //     tform.rotation = tform.rotation * curr_tform.rotation;
-    //     curr_id = curr.m_parent_id;
-    // }
-
-    // return tform;
-
 void TransformCache::collect_global_transforms(Node const * nodes,
                                                size_t n_nodes,
                                                NodeID root_id) {

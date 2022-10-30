@@ -31,6 +31,9 @@ uniform vec3 u_AmbientLight;
 
 uniform vec3 u_ViewPosition;
 
+uniform int u_ID;
+uniform bool u_Selected;
+
 in vec3 v_Position;
 in vec3 v_Normal;
 in vec2 v_TexCoordinate;
@@ -53,11 +56,17 @@ vec3 CalculateDirectionalLight(DirectionalLight light,
 layout(location = 0) out vec3 outColor;
 layout(location = 1) out vec3 outNormal;
 layout(location = 2) out vec4 outID;
-layout(location = 3) out float outSelected;
 
-// The entry point for our fragment shader.
-void main()
-{
+vec4 EncodeFloatRGBA(float v) {
+    vec4 kEncodeMul = vec4(1.0, 255.0, 65025.0, 16581375.0);
+    float kEncodeBit = 1.0/255.0;
+    vec4 enc = kEncodeMul * v;
+    enc = fract(enc);
+    enc -= enc.yzww * kEncodeBit;
+    return enc;
+}
+
+void main() {
     vec4 albedo = u_Albedo * texture(u_AlbedoMap, v_TexCoordinate);
 
     // vec3 normal = normalize(v_InverseTBN *
@@ -92,8 +101,7 @@ void main()
 
     outColor = lightContribution * albedo.rgb;
     outNormal = normal;
-    outID = vec4(0.0);
-    outSelected = 0.0;
+    outID = EncodeFloatRGBA(intBitsToFloat(u_ID));
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {

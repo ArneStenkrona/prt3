@@ -2,6 +2,7 @@
 #define PRT3_GL_RENDERER_H
 
 #include "src/driver/render_backend.h"
+#include "src/driver/opengl/gl_shader.h"
 #include "src/driver/opengl/gl_mesh.h"
 #include "src/driver/opengl/gl_material.h"
 #include "src/driver/opengl/gl_texture_manager.h"
@@ -28,8 +29,10 @@ public:
 
     virtual void prepare_gui_rendering();
 
-    virtual void render(RenderData const & render_data,
-                        bool gui);
+    virtual void render(
+        RenderData const & render_data,
+        bool editor
+    );
     virtual void upload_model(
         ModelManager::ModelHandle model_handle,
         Model const & model,
@@ -37,8 +40,10 @@ public:
         m_model_manager.upload_model(model_handle, model, resource);
     }
 
-    virtual void set_postprocessing_chain(
-        PostProcessingChain const & chain);
+    virtual void set_postprocessing_chains(
+        PostProcessingChain const & scene_chain,
+        PostProcessingChain const & editor_chain
+    );
 
     virtual void process_input_event(void const * event) {
         ImGui_ImplSDL2_ProcessEvent(static_cast<SDL_Event const*>(event));
@@ -52,16 +57,38 @@ private:
     GLMaterialManager m_material_manager;
     GLModelManager m_model_manager;
 
-    GLPostProcessingChain m_postprocessing_chain;
+    GLPostProcessingChain m_scene_postprocessing_chain;
+    GLPostProcessingChain m_editor_postprocessing_chain;
 
     GLSourceBuffers m_source_buffers;
 
+    GLShader * m_selection_shader;
+
+    uint32_t m_frame = 0; // will overflow after a few years
+
     void render_framebuffer(
         RenderData const & render_data,
-        GLuint framebuffer
+        GLuint framebuffer,
+        bool selection_pass
     );
 
     void render_gui();
+
+    void bind_light_data(
+        GLShader const & shader,
+        LightRenderData const & light_data
+    );
+
+    void bind_mesh_and_camera_data(
+        GLShader const & shader,
+        MeshRenderData const & mesh_data,
+        CameraRenderData const & camera_data
+    );
+
+    void bind_material_data(
+        GLShader const & shader,
+        GLMaterial const & material
+    );
 };
 
 } // namespace prt3

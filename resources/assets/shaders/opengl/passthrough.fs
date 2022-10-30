@@ -1,3 +1,5 @@
+#version 300 es
+
 precision mediump float;
 
 uniform vec3 u_ViewPosition;
@@ -11,10 +13,14 @@ uniform float u_FarPlane;
 uniform float u_PixelUnitX;
 uniform float u_PixelUnitY;
 
-varying vec2 v_TexCoordinate;
+uniform uint u_Frame;
+
+in vec2 v_TexCoordinate;
 
 uniform sampler2D u_PreviousColorBuffer;
 
+layout(location = 0) out vec4 outColor;
+
 void main() {
-    gl_FragColor = texture2D(u_PreviousColorBuffer, v_TexCoordinate);
+    outColor = texture(u_PreviousColorBuffer, v_TexCoordinate);
 }

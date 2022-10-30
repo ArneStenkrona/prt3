@@ -35,22 +35,6 @@ Scene::Scene(Context & context)
 
     set_ambient_light(glm::vec3{0.1f, 0.1f, 0.1f});
 
-    PostProcessingPass outline_pass_info;
-    outline_pass_info.fragment_shader_path =
-        "assets/shaders/opengl/pixel_postprocess.fs";
-    outline_pass_info.downscale_factor =
-        m_context.renderer().downscale_factor();
-    PostProcessingPass upscale_pass_info;
-    upscale_pass_info.fragment_shader_path =
-        "assets/shaders/opengl/passthrough.fs";
-    upscale_pass_info.downscale_factor = 1.0f;
-
-    m_context.renderer().set_postprocessing_chain(
-        PostProcessingChain{
-            {outline_pass_info, upscale_pass_info}
-        }
-    );
-
     // set_directional_light({{0.0f, -1.0f, 0.0f}, {0.8f, 0.8f, 0.8f}});
     // set_directional_light_on(true);
 
@@ -184,14 +168,16 @@ void Scene::collect_world_render_data(
         mesh_data.mesh_id = pair.second;
         mesh_data.material_id = NO_RESOURCE;
         mesh_data.node = pair.first;
-        mesh_data.selected =
-            selected_incl_children.find(pair.first) !=
-            selected_incl_children.end();
+
         mesh_data.transform = global_transforms[pair.first].to_matrix();
         if (material_components.find(pair.first) != material_components.end()) {
             mesh_data.material_id = material_components[pair.first];
         }
         world_data.mesh_data.push_back(mesh_data);
+        if (selected_incl_children.find(pair.first) !=
+            selected_incl_children.end()) {
+            world_data.selected_mesh_data.push_back(mesh_data);
+        }
     }
 
     std::vector<PointLightRenderData> point_lights;

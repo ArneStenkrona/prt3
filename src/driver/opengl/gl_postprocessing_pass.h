@@ -3,6 +3,7 @@
 
 #include "src/engine/rendering/render_data.h"
 #include "src/driver/opengl/gl_source_buffers.h"
+#include "src/driver/opengl/gl_shader.h"
 
 #define GL_GLEXT_PROTOTYPES 1
 #include <GLES3/gl3.h>
@@ -20,12 +21,12 @@ public:
         GLuint target_framebuffer
     );
 
-    void render(CameraRenderData const & camera_data);
+    void render(CameraRenderData const & camera_data, uint32_t frame);
 private:
     GLuint m_screen_quad_vao;
     GLuint m_screen_quad_vbo;
 
-    GLuint m_shader;
+    GLShader m_shader;
 
     unsigned int m_width;
     unsigned int m_height;
@@ -33,8 +34,6 @@ private:
     GLSourceBuffers const * m_source_buffer;
     GLuint m_previous_color_buffer;
     GLuint m_target_framebuffer;
-
-    void set_shader(const char * fragment_shader_path);
 };
 
 } // namespace prt3

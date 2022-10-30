@@ -22,7 +22,7 @@ public:
         int window_height
     );
 
-    void render(CameraRenderData const & camera_data);
+    void render(CameraRenderData const & camera_data, uint32_t frame);
 
     bool empty() const { return m_passes.empty(); }
 private:

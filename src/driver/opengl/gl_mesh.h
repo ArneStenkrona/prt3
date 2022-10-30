@@ -24,11 +24,7 @@ public:
         uint32_t num_indices
     );
 
-    void draw(
-        GLMaterial const & material,
-        CameraRenderData const & camera_data,
-        MeshRenderData const & mesh_data
-    ) const;
+    void draw() const;
 
 private:
     bool m_initialized = false;

@@ -6,10 +6,12 @@
 
 using namespace prt3;
 
-Renderer::Renderer(Context & context,
-                   unsigned int width,
-                   unsigned int height,
-                   float downscale_factor)
+Renderer::Renderer(
+    Context & context,
+    unsigned int width,
+    unsigned int height,
+    float downscale_factor
+)
  : m_context{context},
    m_window_width{static_cast<int>(width)},
    m_window_height{static_cast<int>(height)},
@@ -43,9 +45,8 @@ Renderer::~Renderer() {
     delete m_render_backend;
 }
 
-void Renderer::render(RenderData const & render_data,
-                      bool render_gui) {
-    m_render_backend->render(render_data, render_gui);
+void Renderer::render(RenderData const & render_data, bool editor) {
+    m_render_backend->render(render_data, editor);
 }
 
 void Renderer::upload_model(ModelManager::ModelHandle handle,

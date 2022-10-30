@@ -1,6 +1,8 @@
-attribute vec3 a_Position;
+#version 300 es
 
-varying vec2 v_TexCoordinate;
+layout(location = 0) in vec3 a_Position;
+
+out vec2 v_TexCoordinate;
 
 void main(){
 	gl_Position = vec4(a_Position, 1);

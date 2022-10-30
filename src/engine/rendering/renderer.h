@@ -28,15 +28,11 @@ public:
 
     void prepare_gui_rendering() { m_render_backend->prepare_gui_rendering(); }
 
-    void render(RenderData const & render_data,
-                bool render_gui);
+    void render(RenderData const & render_data, bool editor);
+
     void upload_model(ModelManager::ModelHandle handle,
                       Model const & model,
                       ModelResource & resource);
-
-    void set_postprocessing_chain(PostProcessingChain const & chain) {
-        m_render_backend->set_postprocessing_chain(chain);
-    }
 
     Input & input() { return m_input; }
 

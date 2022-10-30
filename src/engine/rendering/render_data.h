@@ -30,7 +30,6 @@ struct MeshRenderData {
     ResourceID mesh_id;
     ResourceID material_id;
     NodeID node;
-    bool selected;
     glm::mat4 transform;
 };
 
@@ -50,6 +49,7 @@ struct LightRenderData {
 
 struct WorldRenderData {
     std::vector<MeshRenderData> mesh_data;
+    std::vector<MeshRenderData> selected_mesh_data;
     LightRenderData light_data;
 };
 
@@ -61,6 +61,7 @@ struct RenderData {
         camera_data = {};
         world.light_data = {};
         world.mesh_data.resize(0);
+        world.selected_mesh_data.resize(0);
     }
 };
 

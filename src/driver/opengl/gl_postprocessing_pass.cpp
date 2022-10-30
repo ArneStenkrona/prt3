@@ -5,8 +5,6 @@
 
 #include <SDL.h>
 
-#include <iostream>
-
 using namespace prt3;
 
 GLPostProcessingPass::GLPostProcessingPass(
@@ -17,7 +15,8 @@ GLPostProcessingPass::GLPostProcessingPass(
     GLuint previous_color_buffer,
     GLuint target_framebuffer
 )
- : m_shader{0},
+ : m_shader{"assets/shaders/opengl/passthrough.vs",
+            fragment_shader_path},
    m_width{width},
    m_height{height},
    m_source_buffer{&source_buffer},
@@ -51,19 +50,7 @@ GLPostProcessingPass::GLPostProcessingPass(
     );
     glCheckError();
 
-    set_shader(fragment_shader_path);
-}
-
-void GLPostProcessingPass::set_shader(const char * fragment_shader_path) {
-    glDeleteProgram(m_shader);
-    glCheckError();
-
-    m_shader = glshaderutility::create_shader(
-        "assets/shaders/opengl/passthrough.vs",
-        fragment_shader_path
-    );
-
-    GLint pos_attr = glGetAttribLocation(m_shader, "a_Position");
+    GLint pos_attr = glGetAttribLocation(m_shader.shader(), "a_Position");
     glCheckError();
     glEnableVertexAttribArray(pos_attr);
     glCheckError();
@@ -73,7 +60,10 @@ void GLPostProcessingPass::set_shader(const char * fragment_shader_path) {
     glCheckError();
 }
 
-void GLPostProcessingPass::render(CameraRenderData const & camera_data) {
+void GLPostProcessingPass::render(
+    CameraRenderData const & camera_data,
+    uint32_t frame
+) {
     GLint w = static_cast<GLint>(m_width);
     GLint h = static_cast<GLint>(m_height);
 
@@ -84,12 +74,13 @@ void GLPostProcessingPass::render(CameraRenderData const & camera_data) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glCheckError();
 
-    glUseProgram(m_shader);
+    glUseProgram(m_shader.shader());
     glCheckError();
 
     GLenum tex_offset = 0;
     {
-        GLint loc = glGetUniformLocation(m_shader, "u_PreviousColorBuffer");
+        static UniformVarString prev_color_buffer = "u_PreviousColorBuffer";
+        GLint loc = m_shader.get_uniform_loc(prev_color_buffer);
         if (loc != -1) {
             glUniform1i(loc, tex_offset);
             glActiveTexture(GL_TEXTURE0 + tex_offset);
@@ -101,7 +92,7 @@ void GLPostProcessingPass::render(CameraRenderData const & camera_data) {
     }
 
     for (UniformName const & uniform_name : m_source_buffer->uniform_names()) {
-        GLint loc = glGetUniformLocation(m_shader, uniform_name.name.data());
+        GLint loc = m_shader.get_uniform_loc(uniform_name.name);
         if (loc != -1) {
             glUniform1i(loc, tex_offset);
             glActiveTexture(GL_TEXTURE0 + tex_offset);
@@ -112,26 +103,46 @@ void GLPostProcessingPass::render(CameraRenderData const & camera_data) {
         }
     }
 
-    glshaderutility::set_vec3(m_shader, "u_ViewPosition", camera_data.view_position);
+    // TODO: utilize uniform loc cache in GLShader
+    glshaderutility::set_vec3(
+        m_shader.shader(),
+        "u_ViewPosition",
+        camera_data.view_position
+    );
     glCheckError();
-    glshaderutility::set_vec3(m_shader, "u_ViewDirection", camera_data.view_direction);
+    glshaderutility::set_vec3(
+        m_shader.shader(),
+        "u_ViewDirection",
+        camera_data.view_direction
+    );
     glCheckError();
 
     glm::mat4 inv_v_matrix = glm::inverse(camera_data.view_matrix);
     glm::mat4 inv_p_matrix = glm::inverse(camera_data.projection_matrix);
-    glshaderutility::set_mat4(m_shader, "u_InvVMatrix", inv_v_matrix);
+    glshaderutility::set_mat4(m_shader.shader(), "u_InvVMatrix", inv_v_matrix);
     glCheckError();
-    glshaderutility::set_mat4(m_shader, "u_InvPMatrix", inv_p_matrix);
-    glCheckError();
-
-    glshaderutility::set_float(m_shader, "u_NearPlane", camera_data.near_plane);
-    glCheckError();
-    glshaderutility::set_float(m_shader, "u_FarPlane", camera_data.far_plane);
+    glshaderutility::set_mat4(m_shader.shader(), "u_InvPMatrix", inv_p_matrix);
     glCheckError();
 
-    glshaderutility::set_float(m_shader, "u_PixelUnitX", 1.0f / w);
+    glshaderutility::set_float(
+        m_shader.shader(),
+        "u_NearPlane",
+        camera_data.near_plane
+    );
     glCheckError();
-    glshaderutility::set_float(m_shader, "u_PixelUnitY", 1.0f / h);
+    glshaderutility::set_float(
+        m_shader.shader(),
+        "u_FarPlane",
+        camera_data.far_plane
+    );
+    glCheckError();
+
+    glshaderutility::set_float(m_shader.shader(), "u_PixelUnitX", 1.0f / w);
+    glCheckError();
+    glshaderutility::set_float(m_shader.shader(), "u_PixelUnitY", 1.0f / h);
+    glCheckError();
+
+    glshaderutility::set_uint(m_shader.shader(), "u_Frame", frame);
     glCheckError();
 
     glBindVertexArray(m_screen_quad_vao);

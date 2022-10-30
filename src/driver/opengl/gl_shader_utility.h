@@ -8,6 +8,7 @@
 
 #include <glm/glm.hpp>
 
+#include <cstdint>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -22,7 +23,11 @@ namespace glshaderutility {
         glUniform1i(glGetUniformLocation(id, name.c_str()), (int)value);
     }
 
-    inline void set_int(GLuint id, const std::string &name, int value) {
+    inline void set_uint(GLuint id, const std::string &name, uint32_t value) {
+        glUniform1ui(glGetUniformLocation(id, name.c_str()), value);
+    }
+
+    inline void set_int(GLuint id, const std::string &name, int32_t value) {
         glUniform1i(glGetUniformLocation(id, name.c_str()), value);
     }
 

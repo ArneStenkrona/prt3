@@ -32,7 +32,7 @@ void GLModelManager::upload_model(ModelManager::ModelHandle model_handle,
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertices[0]), vertices.data(), GL_STATIC_DRAW);
     glCheckError();
 
-    GLuint shader_program = m_material_manager.standard_shader();
+    GLuint shader_program = m_material_manager.standard_shader().shader();
 
     GLint pos_attr = glGetAttribLocation(shader_program, "a_Position");
     glCheckError();

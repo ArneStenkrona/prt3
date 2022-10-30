@@ -5,10 +5,16 @@
 using namespace prt3;
 
 GLMaterialManager::GLMaterialManager(GLTextureManager & texture_manager)
- : m_texture_manager{texture_manager} {}
+ : m_texture_manager{texture_manager},
+   m_standard_shader{nullptr} {}
+
+GLMaterialManager::~GLMaterialManager() {
+    delete m_standard_shader;
+}
+
 
 void GLMaterialManager::init() {
-    m_standard_shader = glshaderutility::create_shader(
+    m_standard_shader = new GLShader(
         "assets/shaders/opengl/standard.vs",
         "assets/shaders/opengl/standard.fs"
     );
@@ -38,7 +44,7 @@ ResourceID GLMaterialManager::upload_material(Model::Material const & material) 
 
     ResourceID id = m_materials.size();
     m_materials.emplace_back(
-        m_standard_shader,
+        *m_standard_shader,
         albedo_map,
         normal_map,
         roughness_map,
