@@ -13,7 +13,7 @@ void EditorCamera::update(float delta_time,
                           Input const & input) {
     Transform & cam_tform = m_camera.transform();
 
-    if (input.get_key(KeyCode::KEY_CODE_MOUSE_LEFT)) {
+    if (input.get_key(KeyCode::KEY_CODE_MOUSE_RIGHT)) {
         //Mouse
         int x, y;
         input.get_cursor_delta(x, y);

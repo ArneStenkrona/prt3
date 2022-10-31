@@ -163,18 +163,20 @@ void Scene::collect_world_render_data(
     }
 
     auto material_components = m_component_manager.get_material_components();
-    for (auto const & pair : m_component_manager.get_mesh_components()) {
+    auto const & mesh_comps = m_component_manager.get_all_components<Mesh>();
+    for (auto const & mesh_comp : mesh_comps) {
+        NodeID id = mesh_comp.node_id();
         MeshRenderData mesh_data;
-        mesh_data.mesh_id = pair.second;
+        mesh_data.mesh_id = mesh_comp.resource_id();
         mesh_data.material_id = NO_RESOURCE;
-        mesh_data.node = pair.first;
+        mesh_data.node = id;
 
-        mesh_data.transform = global_transforms[pair.first].to_matrix();
-        if (material_components.find(pair.first) != material_components.end()) {
-            mesh_data.material_id = material_components[pair.first];
+        mesh_data.transform = global_transforms[id].to_matrix();
+        if (material_components.find(id) != material_components.end()) {
+            mesh_data.material_id = material_components[id];
         }
         world_data.mesh_data.push_back(mesh_data);
-        if (selected_incl_children.find(pair.first) !=
+        if (selected_incl_children.find(id) !=
             selected_incl_children.end()) {
             world_data.selected_mesh_data.push_back(mesh_data);
         }

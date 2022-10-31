@@ -32,7 +32,7 @@ struct ModelResource {
 class ModelManager {
 public:
 
-    typedef int ModelHandle;
+    typedef int32_t ModelHandle;
 
     ModelManager(Context & context);
 
@@ -54,8 +54,6 @@ private:
     bool model_is_uploaded(ModelHandle handle);
     /* upload to graphics device */
     void upload_model(ModelHandle handle);
-
-    friend class MeshManager;
 };
 
 } // namespace prt3

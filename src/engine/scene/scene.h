@@ -35,8 +35,6 @@ public:
 
     NodeID get_root_id() const { return m_root_id; }
 
-    void set_node_mesh(NodeID node_id, ResourceID mesh_id)
-        { m_component_manager.set_mesh_component(node_id, mesh_id); }
     void set_node_material(NodeID node_id, ResourceID material_id)
         { m_component_manager.set_material_component(node_id, material_id); }
     void set_node_point_light(NodeID node_id, PointLight const & light)
@@ -59,9 +57,9 @@ public:
 
     Script * get_script(ScriptID id) { return m_scripts[id]; }
 
-    template<typename ComponentType>
-    ComponentType & add_component(NodeID id) {
-        return m_component_manager.add_component<ComponentType>(id);
+    template<typename ComponentType, typename... ArgTypes>
+    ComponentType & add_component(NodeID id, ArgTypes... args) {
+        return m_component_manager.add_component<ComponentType>(id, args...);
     }
 
     /**
