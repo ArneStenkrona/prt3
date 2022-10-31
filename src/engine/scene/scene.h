@@ -35,9 +35,6 @@ public:
 
     NodeID get_root_id() const { return m_root_id; }
 
-    void set_node_collider(NodeID node_id, Sphere const & sphere)
-        { m_physics_system.add_sphere_collider(node_id, sphere); }
-
     void set_node_local_position(NodeID node_id, glm::vec3 const & local_position)
         { m_nodes[node_id].m_local_transform.position = local_position; }
 
@@ -100,6 +97,8 @@ public:
 
     NodeName const & get_node_name(NodeID id) const { return m_node_names[id]; }
     NodeName & get_node_name(NodeID id) { return m_node_names[id]; }
+
+    PhysicsSystem & physics_system() { return m_physics_system; }
 
 private:
     Context & m_context;

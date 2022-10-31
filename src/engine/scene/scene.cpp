@@ -21,17 +21,15 @@ Scene::Scene(Context & context)
     m_node_names.emplace_back("root");
 
     // FOR DEBUGGING, WILL REMOVE ---->
-    NodeID island = m_context.model_manager()
+    NodeID room = m_context.model_manager()
         .add_model_to_scene_from_path(
             "assets/models/test_room/test_room.fbx",
             *this,
             m_root_id
         );
 
-    m_physics_system.add_mesh_collider(
-        island,
-        "assets/models/test_room/test_room.fbx"
-    );
+    Model room_model{"assets/models/test_room/test_room.fbx"};
+    add_component<ColliderComponent>(room, room_model);
 
     set_ambient_light(glm::vec3{0.1f, 0.1f, 0.1f});
 
@@ -61,7 +59,8 @@ Scene::Scene(Context & context)
     add_component<PointLightComponent>(light_id, light);
 
     add_script<CharacterController>(character);
-    m_physics_system.add_sphere_collider(character, {{0.0f, 2.1f, 0.0f}, 0.9f});
+    Sphere sphere{{0.0f, 2.1f, 0.0f}, 0.9f};
+    add_component<ColliderComponent>(character, sphere);
 
     get_script<CameraController>(cam_controller)->set_target(character);
 

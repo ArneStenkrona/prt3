@@ -13,7 +13,7 @@ class Mesh {
 public:
     Mesh(Scene & scene, NodeID node_id, ResourceID resource_id);
 
-    ResourceID node_id() const { return m_node_id; }
+    NodeID node_id() const { return m_node_id; }
     ResourceID resource_id() const { return m_resource_id; }
 
 private:

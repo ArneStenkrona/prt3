@@ -5,6 +5,7 @@
 #include "src/engine/physics/physics_system.h"
 #include "src/engine/rendering/light.h"
 #include "src/engine/rendering/resources.h"
+#include "src/engine/component/collider_component.h"
 #include "src/engine/component/mesh.h"
 #include "src/engine/component/material.h"
 #include "src/engine/component/point_light.h"
@@ -92,6 +93,7 @@ private:
     ComponentStorage<Mesh> m_meshes;
     ComponentStorage<Material> m_materials;
     ComponentStorage<PointLightComponent> m_point_lights;
+    ComponentStorage<ColliderComponent> m_colliders;
     ComponentStorage<ScriptSet> m_script_sets;
 
     template<typename ComponentType>
@@ -116,6 +118,10 @@ private:
     template<>
     ComponentStorage<PointLightComponent> const & get_component_storage() const
     { return m_point_lights; }
+
+    template<>
+    ComponentStorage<ColliderComponent> const & get_component_storage() const
+    { return m_colliders; }
 
     template<>
     ComponentStorage<ScriptSet> const & get_component_storage() const

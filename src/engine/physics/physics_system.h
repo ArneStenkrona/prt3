@@ -19,17 +19,20 @@ class PhysicsSystem {
 public:
     PhysicsSystem(Scene & scene);
 
-    Collision move_and_collide(NodeID node_id,
-                               glm::vec3 const & movement);
+    Collision move_and_collide(
+        NodeID node_id,
+        glm::vec3 const & movement
+    );
 
-    void update(Transform const * transforms,
-                Transform const * transforms_history);
+    ColliderTag add_mesh_collider(
+        NodeID node_id,
+        Model const & model
+    );
 
-    void add_mesh_collider(NodeID node_id,
-                           Model const & model);
-
-    void add_sphere_collider(NodeID node_id,
-                             Sphere const & sphere);
+    ColliderTag add_sphere_collider(
+        NodeID node_id,
+        Sphere const & sphere
+    );
 
 private:
     std::unordered_map<NodeID, ColliderTag> m_tags;
@@ -43,6 +46,11 @@ private:
     Scene & m_scene;
 
     DynamicAABBTree m_aabb_tree;
+
+    void update(
+        Transform const * transforms,
+        Transform const * transforms_history
+    );
 
     ColliderTag create_collider_from_model(Model const & model,
                                            Transform const & transform);
@@ -187,6 +195,8 @@ private:
         }
         return ret;
     }
+
+    friend class Scene;
 };
 
 } // namespace prt3

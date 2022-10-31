@@ -7,23 +7,33 @@ using namespace prt3;
 PhysicsSystem::PhysicsSystem(Scene & scene)
  : m_scene{scene} {}
 
-void PhysicsSystem::add_mesh_collider(NodeID node_id,
-                                      Model const & model) {
+ColliderTag PhysicsSystem::add_mesh_collider(
+    NodeID node_id,
+    Model const & model
+) {
     ColliderTag tag = create_collider_from_model(
-                        model,
-                        m_scene.get_node(node_id).get_global_transform());
+        model,
+        m_scene.get_node(node_id).get_global_transform()
+    );
+
     m_tags[node_id] = tag;
     m_node_ids[tag] = node_id;
+
+    return tag;
 }
 
-void PhysicsSystem::add_sphere_collider(NodeID node_id,
-                                        Sphere const & sphere) {
+ColliderTag PhysicsSystem::add_sphere_collider(
+    NodeID node_id,
+    Sphere const & sphere
+) {
     ColliderTag tag = create_sphere_collider(
         sphere,
         m_scene.get_node(node_id).get_global_transform()
     );
     m_tags[node_id] = tag;
     m_node_ids[tag] = node_id;
+
+    return tag;
 }
 
 Collision PhysicsSystem::move_and_collide(NodeID node_id,
@@ -112,8 +122,10 @@ Node & PhysicsSystem::get_node(NodeID node_id) {
     return m_scene.get_node(node_id);
 }
 
-void PhysicsSystem::update(Transform const * transforms,
-                           Transform const * transforms_history) {
+void PhysicsSystem::update(
+    Transform const * transforms,
+    Transform const * transforms_history
+) {
     static std::vector<ColliderTag> stale_tags;
     stale_tags.resize(0);
     static std::vector<AABB> new_aabbs;

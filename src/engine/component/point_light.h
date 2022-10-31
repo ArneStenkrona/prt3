@@ -16,7 +16,7 @@ public:
         PointLight const & light
     );
 
-    ResourceID node_id() const { return m_node_id; }
+    NodeID node_id() const { return m_node_id; }
 
     PointLight const & light() const { return m_light; }
     PointLight & light() { return m_light; }
