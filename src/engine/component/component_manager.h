@@ -20,9 +20,6 @@ class ComponentManager {
 public:
     ComponentManager(Scene & scene);
 
-    template<class... Types>
-    void f(Types... args);
-
     template<typename ComponentType, typename... ArgTypes>
     ComponentType & add_component(NodeID id, ArgTypes... args) {
         return get_component_storage<ComponentType>().add(m_scene, id, args...);
