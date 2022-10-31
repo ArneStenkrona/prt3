@@ -35,8 +35,8 @@ public:
 
     NodeID get_root_id() const { return m_root_id; }
 
-    void set_node_material(NodeID node_id, ResourceID material_id)
-        { m_component_manager.set_material_component(node_id, material_id); }
+    // void set_node_material(NodeID node_id, ResourceID material_id)
+    //     { m_component_manager.set_material_component(node_id, material_id); }
     void set_node_point_light(NodeID node_id, PointLight const & light)
         { m_component_manager.set_point_light_component(node_id, light); }
 
@@ -73,7 +73,12 @@ public:
     }
 
     template<typename ComponentType>
-    bool has_component(NodeID id) {
+    ComponentType const & get_component(NodeID id) const {
+        return m_component_manager.get_component<ComponentType>(id);
+    }
+
+    template<typename ComponentType>
+    bool has_component(NodeID id) const {
         return m_component_manager.has_component<ComponentType>(id);
     }
 

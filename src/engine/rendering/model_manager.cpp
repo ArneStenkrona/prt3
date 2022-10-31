@@ -60,9 +60,8 @@ NodeID ModelManager::add_model_to_scene(Scene & scene, ModelHandle handle, NodeI
         if (model_node.mesh_index != -1) {
             ResourceID mesh_id = resource.mesh_resource_ids[model_node.mesh_index];
             ResourceID material_id = resource.material_resource_ids[model_node.mesh_index];
-            // scene.set_node_mesh(node_id, mesh_id);
             scene.add_component<Mesh>(node_id, mesh_id);
-            scene.set_node_material(node_id, material_id);
+            scene.add_component<Material>(node_id, material_id);
         }
 
         for (uint32_t const & index : model_node.child_indices) {

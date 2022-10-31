@@ -6,6 +6,7 @@
 #include "src/engine/rendering/light.h"
 #include "src/engine/rendering/resources.h"
 #include "src/engine/component/mesh.h"
+#include "src/engine/component/material.h"
 #include "src/engine/component/script_set.h"
 
 #include <unordered_map>
@@ -36,27 +37,27 @@ public:
     }
 
     template<typename ComponentType>
+    ComponentType const & get_component(NodeID id) const {
+        return get_component_storage<ComponentType>().get(id);
+    }
+
+    template<typename ComponentType>
     std::vector<ComponentType> const & get_all_components() const {
         return get_component_storage<ComponentType>().get_all_components();
     }
 
     template<typename ComponentType>
-    bool has_component(NodeID id) {
+    bool has_component(NodeID id) const {
         return get_component_storage<ComponentType>().has_component(id);
     }
      /* TODO: refactor legacy component system */
-    void set_material_component(NodeID node, ResourceID material)
-        { m_material_components[node] = material; }
     void set_point_light_component(NodeID node, PointLight const & light)
         { m_point_light_components[node] = light; }
 
-    std::unordered_map<NodeID, ResourceID> const & get_material_components() const
-        { return m_material_components; }
     std::unordered_map<NodeID, PointLight> const & get_point_light_components() const
         { return m_point_light_components; }
 
 private:
-    std::unordered_map<NodeID, ResourceID> m_material_components;
     std::unordered_map<NodeID, PointLight> m_point_light_components;
 
     template<typename ComponentType>
@@ -82,7 +83,11 @@ private:
             return components[node_map[id]];
         }
 
-        bool has_component(NodeID id) {
+        ComponentType const & get(NodeID id) const {
+            return components[node_map[id]];
+        }
+
+        bool has_component(NodeID id) const {
             return static_cast<NodeID>(node_map.size()) > id &&
                    node_map[id] != NO_COMPONENT;
         }
@@ -92,6 +97,7 @@ private:
     };
 
     ComponentStorage<Mesh> m_meshes;
+    ComponentStorage<Material> m_materials;
     ComponentStorage<ScriptSet> m_script_sets;
 
     template<typename ComponentType>
@@ -108,6 +114,10 @@ private:
     template<>
     ComponentStorage<Mesh> const & get_component_storage() const
     { return m_meshes; }
+
+    template<>
+    ComponentStorage<Material> const & get_component_storage() const
+    { return m_materials; }
 
     template<>
     ComponentStorage<ScriptSet> const & get_component_storage() const
