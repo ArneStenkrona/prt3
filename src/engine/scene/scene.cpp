@@ -58,7 +58,7 @@ Scene::Scene(Context & context)
     light.quadratic_term = 0.02f;
     light.linear_term = 0.01f;
     light.constant_term = 0.1f;
-    m_component_manager.set_point_light_component(light_id, light);
+    add_component<PointLightComponent>(light_id, light);
 
     add_script<CharacterController>(character);
     m_physics_system.add_sphere_collider(character, {{0.0f, 2.1f, 0.0f}, 0.9f});
@@ -180,10 +180,12 @@ void Scene::collect_world_render_data(
     }
 
     std::vector<PointLightRenderData> point_lights;
-    for (auto const & pair : m_component_manager.get_point_light_components()) {
+    auto const & lights
+        = m_component_manager.get_all_components<PointLightComponent>();
+    for (auto const & light : lights) {
         PointLightRenderData point_light_data;
-        point_light_data.light = pair.second;
-        point_light_data.position = global_transforms[pair.first].to_matrix()
+        point_light_data.light = light.light();
+        point_light_data.position = global_transforms[light.node_id()].to_matrix()
                                         * glm::vec4(0.0f,0.0f,0.0f,1.0f);
 
         point_lights.push_back(point_light_data);

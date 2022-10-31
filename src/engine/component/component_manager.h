@@ -7,6 +7,7 @@
 #include "src/engine/rendering/resources.h"
 #include "src/engine/component/mesh.h"
 #include "src/engine/component/material.h"
+#include "src/engine/component/point_light.h"
 #include "src/engine/component/script_set.h"
 
 #include <unordered_map>
@@ -50,16 +51,8 @@ public:
     bool has_component(NodeID id) const {
         return get_component_storage<ComponentType>().has_component(id);
     }
-     /* TODO: refactor legacy component system */
-    void set_point_light_component(NodeID node, PointLight const & light)
-        { m_point_light_components[node] = light; }
-
-    std::unordered_map<NodeID, PointLight> const & get_point_light_components() const
-        { return m_point_light_components; }
 
 private:
-    std::unordered_map<NodeID, PointLight> m_point_light_components;
-
     template<typename ComponentType>
     struct ComponentStorage {
         typedef size_t InternalID;
@@ -98,6 +91,7 @@ private:
 
     ComponentStorage<Mesh> m_meshes;
     ComponentStorage<Material> m_materials;
+    ComponentStorage<PointLightComponent> m_point_lights;
     ComponentStorage<ScriptSet> m_script_sets;
 
     template<typename ComponentType>
@@ -118,6 +112,10 @@ private:
     template<>
     ComponentStorage<Material> const & get_component_storage() const
     { return m_materials; }
+
+    template<>
+    ComponentStorage<PointLightComponent> const & get_component_storage() const
+    { return m_point_lights; }
 
     template<>
     ComponentStorage<ScriptSet> const & get_component_storage() const

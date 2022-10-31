@@ -41,6 +41,7 @@ file(GLOB SOURCES
 "src/engine/component/component_manager.cpp"
 "src/engine/component/material.cpp"
 "src/engine/component/mesh.cpp"
+"src/engine/component/point_light.cpp"
 "src/engine/component/script_set.cpp"
 "src/engine/physics/aabb_tree.cpp"
 "src/engine/physics/aabb.cpp"

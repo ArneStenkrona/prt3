@@ -35,11 +35,6 @@ public:
 
     NodeID get_root_id() const { return m_root_id; }
 
-    // void set_node_material(NodeID node_id, ResourceID material_id)
-    //     { m_component_manager.set_material_component(node_id, material_id); }
-    void set_node_point_light(NodeID node_id, PointLight const & light)
-        { m_component_manager.set_point_light_component(node_id, light); }
-
     void set_node_collider(NodeID node_id, Sphere const & sphere)
         { m_physics_system.add_sphere_collider(node_id, sphere); }
 
