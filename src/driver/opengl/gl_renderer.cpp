@@ -202,8 +202,12 @@ void GLRenderer::render_framebuffer(
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glCheckError();
+
+    auto const & meshes = m_model_manager.meshes();
+
     if (!selection_pass) {
         // Render meshes
+        // TODO: use a queue based on shaders instead, to reduce state changes
         static std::unordered_map<ResourceID, std::vector<MeshRenderData>>
             material_queues;
         for (auto & pair : material_queues) {
@@ -213,9 +217,12 @@ void GLRenderer::render_framebuffer(
             material_queues[mesh_data.material_id].push_back(mesh_data);
         }
 
-        std::vector<GLMaterial> const & materials = m_material_manager.materials();
+        auto const & materials = m_material_manager.materials();
+
         for (auto const & pair : material_queues) {
-            GLMaterial const & material = materials[pair.first];
+            if (pair.second.empty()) { continue; }
+
+            GLMaterial const & material = materials.at(pair.first);
             GLuint shader_id = material.shader().shader();
             glUseProgram(shader_id);
             glCheckError();
@@ -229,7 +236,6 @@ void GLRenderer::render_framebuffer(
             LightRenderData const & light_data = render_data.world.light_data;
             bind_light_data(material.shader(), light_data);
 
-            std::vector<GLMesh> const & meshes = m_model_manager.meshes();
             if (!selection_pass) {
                 for (MeshRenderData const & mesh_data : pair.second) {
                     bind_mesh_and_camera_data(
@@ -238,14 +244,13 @@ void GLRenderer::render_framebuffer(
                         render_data.camera_data
                     );
 
-                    meshes[mesh_data.mesh_id].draw();
+                    meshes.at(mesh_data.mesh_id).draw();
                 }
             }
             glCheckError();
         }
     } else {
         glUseProgram(m_selection_shader->shader());
-        std::vector<GLMesh> const & meshes = m_model_manager.meshes();
         auto const & selected_meshes = render_data.world.selected_mesh_data;
         for (MeshRenderData const & selected_mesh_data : selected_meshes) {
                 bind_mesh_and_camera_data(
@@ -254,7 +259,7 @@ void GLRenderer::render_framebuffer(
                     render_data.camera_data
                 );
 
-                meshes[selected_mesh_data.mesh_id].draw();
+                meshes.at(selected_mesh_data.mesh_id).draw();
             }
     }
 }

@@ -40,8 +40,8 @@ Model::Model(char const * path) {
         std::cout << importer.GetErrorString() << std::endl;
         assert(false && "failed to load file!");
     }
-
     m_name = std::strrchr(path, '/') + 1;
+    m_path = path;
 
     // parse materials
     m_materials.resize(scene->mNumMaterials);

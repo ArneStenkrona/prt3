@@ -15,6 +15,7 @@ public:
         NodeID node_id,
         PointLight const & light
     );
+    PointLightComponent(Scene & scene, NodeID node_id, std::istream & in);
 
     NodeID node_id() const { return m_node_id; }
 
@@ -24,6 +25,11 @@ private:
     NodeID m_node_id;
     PointLight m_light;
 };
+
+std::ostream & operator << (
+    std::ostream & out,
+    PointLightComponent const & component
+);
 
 } // namespace prt3
 

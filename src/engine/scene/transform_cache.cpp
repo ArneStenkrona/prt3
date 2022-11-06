@@ -16,7 +16,6 @@ void TransformCache::collect_global_transforms(Node const * nodes,
 
     m_global_transforms[root_id] = nodes[root_id].local_transform();
 
-
     while (!queue.empty()) {
         NodeID node_id = queue.back();
         Node const & node = nodes[node_id];
@@ -40,4 +39,9 @@ void TransformCache::collect_global_transforms(Node const * nodes,
             queue.push_back(child_id);
         }
     }
+}
+
+void TransformCache::clear() {
+    m_global_transforms.clear();
+    m_global_transforms_history.clear();
 }

@@ -16,11 +16,17 @@ class GLModelManager {
 public:
     GLModelManager(GLMaterialManager & material_manager);
 
-    void upload_model(ModelManager::ModelHandle model_handle,
+    void upload_model(ModelManager::ModelHandle handle,
                       Model const & model,
                       ModelResource & resource);
 
-    std::vector<GLMesh> const & meshes() const { return m_meshes; }
+    void free_model(
+        ModelManager::ModelHandle handle,
+        ModelResource const & resource
+    );
+
+    std::unordered_map<ResourceID, GLMesh> const & meshes() const
+    { return m_meshes; }
 
 private:
     struct ModelBufferHandles {
@@ -30,9 +36,11 @@ private:
     };
     GLMaterialManager & m_material_manager;
 
-    std::unordered_map<ModelManager::ModelHandle, ModelBufferHandles> m_buffer_handles;
+    std::unordered_map<ModelManager::ModelHandle, ModelBufferHandles>
+        m_buffer_handles;
 
-    std::vector<GLMesh> m_meshes;
+    std::unordered_map<ResourceID, GLMesh> m_meshes;
+    ResourceID m_next_mesh_id = 0;
 };
 
 } // namespace prt3

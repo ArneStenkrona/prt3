@@ -17,6 +17,7 @@ public:
     void init();
 
     GLuint retrieve_texture(char const * path, GLuint default_texture);
+    bool attempt_free_texture(GLuint handle);
 
     GLuint texture_1x1_0xffffffff() const {return m_texture_1x1_0xffffffff; }
     GLuint texture_1x1_0x0000ff() const {return m_texture_1x1_0x0000ff; }
@@ -28,6 +29,7 @@ private:
     GLuint m_texture_1x1_0xff;
 
     std::unordered_map<std::string, GLuint> m_textures;
+    std::unordered_map<GLuint, std::string> m_texture_handle_to_path;
 
     void load_texture(char const * path);
     GLuint load_texture(unsigned char * data,

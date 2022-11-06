@@ -2,6 +2,8 @@
 
 #include "src/engine/editor/editor.h"
 
+#include <sstream>
+
 using namespace prt3;
 
 EditorContext::EditorContext(Editor & editor, Context & context)

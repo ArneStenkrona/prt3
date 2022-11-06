@@ -22,6 +22,11 @@ public:
     inline float get_target_distance() const { return m_target_distance; }
     inline void set_target_distance(float distance) { m_target_distance = distance; }
 
+    virtual void on_late_init() {
+        NodeID player_id = scene().find_node_by_tag("player");
+        set_target(player_id);
+    }
+
     virtual void on_init() {
         scene().get_camera().set_orthographic_projection(true);
     }
@@ -64,6 +69,22 @@ public:
         tform.position = pos;
         get_node().set_global_transform(tform);
     }
+protected:
+    static constexpr UUID s_uuid = 17005293234220491566ull;
+    virtual UUID uuid() const {
+        return s_uuid;
+    }
+
+    static Script * deserialize(
+        std::istream &,
+        Scene & scene,
+        NodeID node_id
+    ) {
+        return new CameraController(scene, node_id);
+    }
+
+    inline static bool s_registered =
+        Script::Register(s_uuid, CameraController::deserialize);
 private:
     float m_yaw;
     float m_pitch;

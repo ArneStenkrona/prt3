@@ -75,7 +75,12 @@ void GLTextureManager::load_texture(char const * path) {
 
             SDL_FreeSurface(image);
 
-            m_textures[std::string(path)] = texture_handle;
+            m_textures.emplace(
+                std::make_pair(path, texture_handle)
+            );
+            m_texture_handle_to_path.emplace(
+                std::make_pair(texture_handle, path)
+            );
         } else {
             // TODO: proper error handling
             std::cout << "failed to load texture at path \"" << path << "\"." << std::endl;
@@ -99,4 +104,16 @@ GLuint GLTextureManager::load_texture(unsigned char * data,
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     return texture;
+}
+
+bool GLTextureManager::attempt_free_texture(GLuint handle) {
+    if (m_texture_handle_to_path.find(handle) !=
+        m_texture_handle_to_path.end()) {
+        std::string const & path = m_texture_handle_to_path.at(handle);
+        glDeleteTextures(1, &handle);
+        m_textures.erase(path);
+        m_texture_handle_to_path.erase(handle);
+        return true;
+    }
+    return false;
 }

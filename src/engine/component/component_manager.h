@@ -10,9 +10,12 @@
 #include "src/engine/component/material.h"
 #include "src/engine/component/point_light.h"
 #include "src/engine/component/script_set.h"
+#include "src/util/serialization_util.h"
 
 #include <unordered_map>
 #include <iostream>
+#include <cstddef>
+#include <tuple>
 
 namespace prt3 {
 
@@ -50,7 +53,30 @@ public:
         return get_component_storage<ComponentType>().has_component(id);
     }
 
+    void serialize(
+        std::ostream & out,
+        std::unordered_map<NodeID, NodeID> const & compacted_ids
+    ) const;
+
+    void deserialize(std::istream & in);
+
 private:
+    Scene & m_scene;
+
+    // Template meta programming utilities
+    template <class T, class Tuple>
+    struct Index;
+
+    template <class T, class... Types>
+    struct Index<T, std::tuple<T, Types...>> {
+        static const std::size_t value = 0;
+    };
+
+    template <class T, class U, class... Types>
+    struct Index<T, std::tuple<U, Types...>> {
+        static const std::size_t value = 1 + Index<T, std::tuple<Types...>>::value;
+    };
+
     template<typename ComponentType>
     struct ComponentStorage {
         typedef size_t InternalID;
@@ -59,7 +85,7 @@ private:
         std::vector<ComponentType> components;
 
         template<typename... ArgTypes>
-        ComponentType & add(Scene & scene, NodeID id, ArgTypes... args) {
+        ComponentType & add(Scene & scene, NodeID id, ArgTypes & ... args) {
             if (static_cast<NodeID>(node_map.size()) <= id) {
                 node_map.resize(id + 1);
                 node_map[id] = components.size();
@@ -75,56 +101,124 @@ private:
         }
 
         ComponentType const & get(NodeID id) const {
-            return components[node_map[id]];
+            return components.at(node_map.at(id));
         }
 
         bool has_component(NodeID id) const {
             return static_cast<NodeID>(node_map.size()) > id &&
-                   node_map[id] != NO_COMPONENT;
+                   node_map.at(id) != NO_COMPONENT;
         }
 
         std::vector<ComponentType> const & get_all_components() const
         { return components; }
+
+        void serialize(
+            std::ostream & out,
+            std::unordered_map<NodeID, NodeID> const & compacted_ids
+        ) const {
+            write_stream(out, components.size());
+            for (ComponentType const & component : components) {
+                write_stream(out, compacted_ids.at(component.node_id()));
+                out << component;
+            }
+        }
+
+        void deserialize(
+            std::istream & in,
+            Scene & scene
+        ) {
+            size_t n_components;
+            read_stream(in, n_components);
+            for (size_t i = 0; i < n_components; ++i) {
+                NodeID id;
+                read_stream(in, id);
+                add(scene, id, in);
+            }
+        }
+
+        void clear() {
+            node_map.clear();
+            components.clear();
+        }
     };
 
-    ComponentStorage<Mesh> m_meshes;
-    ComponentStorage<Material> m_materials;
-    ComponentStorage<PointLightComponent> m_point_lights;
-    ComponentStorage<ColliderComponent> m_colliders;
-    ComponentStorage<ScriptSet> m_script_sets;
+    typedef std::tuple<
+        ComponentStorage<Material>,
+        ComponentStorage<Mesh>,
+        ComponentStorage<PointLightComponent>,
+        ComponentStorage<ColliderComponent>,
+        ComponentStorage<ScriptSet>
+    > ComponentStorageTypes;
+
+    ComponentStorageTypes m_component_storages;
 
     template<typename ComponentType>
-    ComponentStorage<ComponentType> & get_component_storage() {
-        return const_cast<ComponentStorage<ComponentType>&>(
-            const_cast<const ComponentManager*>(this)
-                ->get_component_storage<ComponentType>()
-        );
+    ComponentStorage<ComponentType> const & get_component_storage() const {
+        return std::get<
+            Index<ComponentStorage<ComponentType>,
+                  ComponentStorageTypes>::value
+            >(m_component_storages);
     }
 
     template<typename ComponentType>
-    ComponentStorage<ComponentType> const & get_component_storage() const;
+    ComponentStorage<ComponentType> & get_component_storage() {
+        return std::get<
+            Index<ComponentStorage<ComponentType>,
+                  ComponentStorageTypes>::value
+            >(m_component_storages);
+    }
 
-    template<>
-    ComponentStorage<Mesh> const & get_component_storage() const
-    { return m_meshes; }
+    void clear();
 
-    template<>
-    ComponentStorage<Material> const & get_component_storage() const
-    { return m_materials; }
+    template<size_t I = 0, typename... Tp>
+    void clear_storage(
+        std::tuple<Tp...> & t
+    ) {
+        auto & storage = std::get<I>(t);
+        storage.clear();
 
-    template<>
-    ComponentStorage<PointLightComponent> const & get_component_storage() const
-    { return m_point_lights; }
+        if constexpr(I+1 != sizeof...(Tp))
+            clear_storage<I+1>(t);
+    }
 
-    template<>
-    ComponentStorage<ColliderComponent> const & get_component_storage() const
-    { return m_colliders; }
+    static constexpr uint64_t magic_num = 2407081819398577441ull;
+    template<size_t I = 0, typename... Tp>
+    void serialize_storage(
+        std::ostream & out,
+        std::unordered_map<NodeID, NodeID> const & compacted_ids,
+        std::tuple<Tp...> const & t
+    ) const {
+        uint64_t magic_num_i = magic_num + I;
+        write_stream(out, magic_num_i);
 
-    template<>
-    ComponentStorage<ScriptSet> const & get_component_storage() const
-    { return m_script_sets; }
+        auto const & storage = std::get<I>(t);
+        storage.serialize(out, compacted_ids);
 
-    Scene & m_scene;
+        if constexpr(I+1 != sizeof...(Tp))
+            serialize_storage<I+1>(out, compacted_ids, t);
+    }
+
+    template<size_t I = 0, typename... Tp>
+    void deserialize_storage(
+        std::istream & in,
+        std::tuple<Tp...> & t
+    ) {
+        uint64_t magic_num_i = magic_num + I;
+        uint64_t r_magic_num_i;
+        read_stream(in, r_magic_num_i);
+        if (r_magic_num_i != magic_num_i) {
+            // TODO: error handling
+            std::cout << "deserialize_storage(): error!" << std::endl;
+        }
+
+        auto & storage = std::get<I>(t);
+        storage.deserialize(in, m_scene);
+
+        if constexpr(I+1 != sizeof...(Tp))
+            deserialize_storage<I+1>(in, t);
+    }
+
+    friend class Scene;
 };
 
 } // namespace prt3

@@ -35,11 +35,17 @@ public:
     );
 
     virtual void upload_model(
-        ModelManager::ModelHandle model_handle,
+        ModelManager::ModelHandle handle,
         Model const & model,
-        ModelResource & resource) {
-        m_model_manager.upload_model(model_handle, model, resource);
-    }
+        ModelResource & resource)
+    { m_model_manager.upload_model(handle, model, resource); }
+
+    virtual void free_model(
+        ModelManager::ModelHandle handle,
+        ModelResource const & resource
+    )
+    { m_model_manager.free_model(handle, resource); }
+
 
     virtual void set_postprocessing_chains(
         PostProcessingChain const & scene_chain,

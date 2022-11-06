@@ -12,6 +12,7 @@ class Scene;
 class ScriptSet {
 public:
     ScriptSet(Scene & scene, NodeID node_id);
+    ScriptSet(Scene & scene, NodeID node_id, std::istream & in);
 
     template<class T>
     ScriptID add_script() {
@@ -48,6 +49,15 @@ public:
         return NO_SCRIPT;
     }
 
+    std::vector<ScriptID> const & get_all_scripts() const {
+        return m_script_ids;
+    }
+
+    Scene const & scene() const { return m_scene; }
+    Scene & scene() { return m_scene; }
+
+    NodeID node_id() const { return m_node_id; }
+
 private:
     std::vector<ScriptID> m_script_ids;
     Scene & m_scene;
@@ -56,6 +66,11 @@ private:
     ScriptID add_script_to_Scene(Script * script);
     Script * get_script_from_scene(ScriptID id);
 };
+
+std::ostream & operator << (
+    std::ostream & out,
+    ScriptSet const & component
+);
 
 } // namespace prt3
 

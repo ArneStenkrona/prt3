@@ -4,6 +4,7 @@
 #include "src/engine/physics/aabb.h"
 
 #include "src/engine/component/transform.h"
+#include "src/util/serialization_util.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -47,6 +48,25 @@ struct Sphere {
                      position + glm::vec3{radius} };
     }
 };
+
+inline std::ostream & operator << (
+    std::ostream & out,
+    Sphere const & sphere
+) {
+    write_stream(out, sphere.position);
+    write_stream(out, sphere.radius);
+    return out;
+}
+
+inline std::istream & operator >> (
+    std::istream & in,
+    Sphere & sphere
+) {
+    read_stream(in, sphere.position);
+    read_stream(in, sphere.radius);
+    return in;
+}
+
 
 glm::vec3 calculate_furthest_point(Triangle const & triangle,
                                    glm::vec3 const & direction);

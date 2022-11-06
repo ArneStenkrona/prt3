@@ -4,6 +4,7 @@
 
 #include "src/engine/component/script/camera_controller.h"
 #include "src/engine/component/script/character_controller.h"
+#include "src/util/serialization_util.h"
 
 #include <algorithm>
 
@@ -15,7 +16,7 @@ Scene::Scene(Context & context)
             context.renderer().window_height()},
    m_component_manager{*this},
    m_physics_system{*this} {
-    m_root_id = m_nodes.size();
+    // m_root_id = m_nodes.size();
 
     m_nodes.emplace_back(m_root_id, *this);
     m_node_names.emplace_back("root");
@@ -38,7 +39,7 @@ Scene::Scene(Context & context)
 
     NodeID cam_node = add_node_to_root("camera");
     set_node_local_position(cam_node, glm::vec3(2.1f, 2.1f, 2.1f));
-    ScriptID cam_controller = add_script<CameraController>(cam_node);
+    add_script<CameraController>(cam_node);
 
     NodeID character = m_context.model_manager()
         .add_model_to_scene_from_path(
@@ -62,8 +63,6 @@ Scene::Scene(Context & context)
     Sphere sphere{{0.0f, 2.1f, 0.0f}, 0.9f};
     add_component<ColliderComponent>(character, sphere);
 
-    get_script<CameraController>(cam_controller)->set_target(character);
-
     NodeID cube = m_context.model_manager()
         .add_model_to_scene_from_path("assets/models/debug/character_cube.fbx",
         *this,
@@ -71,7 +70,8 @@ Scene::Scene(Context & context)
     );
     get_node(cube).set_global_position(glm::vec3(2.0f, 0.0f, 0.0f));
 
-    m_physics_system.add_sphere_collider(cube, {{0.0f, 1.0f, 0.0f}, 0.9f});
+    add_component<ColliderComponent>(cube, Sphere{{0.0f, 1.0f, 0.0f}, 0.9f});
+
 
     m_transform_cache.collect_global_transforms(
         m_nodes.data(),
@@ -99,6 +99,11 @@ void Scene::update(float delta_time) {
     }
     m_init_queue.clear();
 
+    for (Script * script : m_late_init_queue) {
+        script->on_late_init();
+    }
+    m_late_init_queue.clear();
+
     for (Script * script : m_scripts) {
         script->on_update(delta_time);
     }
@@ -107,11 +112,7 @@ void Scene::update(float delta_time) {
         script->on_late_update(delta_time);
     }
 
-    m_transform_cache.collect_global_transforms(
-        m_nodes.data(),
-        m_nodes.size(),
-        m_root_id
-    );
+    update_transform_cache();
 }
 
 void Scene::update_transform_cache() {
@@ -218,4 +219,110 @@ void Scene::emit_signal(SignalString const & signal, void * data) {
     for (Script * script : m_signal_connections[signal]) {
         script->on_signal(signal, data);
     }
+}
+
+ModelManager const & Scene::model_manager() const {
+    return m_context.model_manager();
+}
+
+ModelManager & Scene::model_manager() {
+    return m_context.model_manager();
+}
+
+void Scene::serialize(std::ostream & out) const {
+    static std::unordered_map<NodeID, NodeID> compacted_ids;
+
+    NodeID n_compacted = 0;
+    for (Node const & node : m_nodes) {
+        if (node.id() != NO_NODE) {
+            compacted_ids[node.id()] = n_compacted;
+            ++n_compacted;
+        }
+    }
+
+    write_stream(out, n_compacted);
+
+    for (Node const & node : m_nodes) {
+        if (node.id() == NO_NODE) {
+            continue;
+        }
+        auto const & name = m_node_names[node.id()];
+        out.write(name.data(), name.size());
+        out << node.local_transform();
+        write_stream(out, node.parent_id());
+        NodeID id = node.children_ids().size();
+        write_stream(out, id);
+
+        for (NodeID const & child_id : node.children_ids()) {
+            write_stream(out, compacted_ids[child_id]);
+        }
+    }
+
+    out << m_directional_light;
+    write_stream(out, m_directional_light_on);
+    out << m_ambient_light;
+
+    m_component_manager.serialize(out, compacted_ids);
+}
+
+void Scene::deserialize(std::istream & in) {
+    internal_clear(false);
+
+    NodeID n_nodes;
+    read_stream(in, n_nodes);
+    for (NodeID id = 0; id < n_nodes; ++id) {
+        m_node_names.push_back({});
+        auto & name = m_node_names.back();
+        in.read(name.data(), name.size());
+
+        m_nodes.push_back({id, *this});
+        Node & node = m_nodes.back();
+
+        in >> node.local_transform();
+        read_stream(in, node.m_parent_id);
+
+        NodeID n_children;
+        read_stream(in, n_children);
+        node.m_children_ids.resize(n_children);
+        for (NodeID & child_id : node.m_children_ids) {
+            read_stream(in, child_id);
+        }
+    }
+
+    in >> m_directional_light;
+    read_stream(in, m_directional_light_on);
+    in >> m_ambient_light;
+
+    m_component_manager.deserialize(in);
+}
+
+void Scene::internal_clear(bool place_root) {
+    m_nodes.clear();
+    m_node_names.clear();
+    if (place_root) {
+        m_nodes.emplace_back(m_root_id, *this);
+        m_node_names.emplace_back("root");
+    }
+
+    m_component_manager.clear();
+    m_physics_system.clear();
+
+    m_directional_light = {};
+    m_directional_light_on = false;
+    m_ambient_light = {{0.5f, 0.5f, 0.05f}};
+
+    m_transform_cache.clear();
+
+    m_scripts.clear();
+    m_init_queue.clear();
+    m_late_init_queue.clear();
+
+    m_signal_connections.clear();
+
+    m_tags.clear();
+    m_node_to_tag.clear();
+
+    m_camera.transform() = {};
+
+    model_manager().clear();
 }

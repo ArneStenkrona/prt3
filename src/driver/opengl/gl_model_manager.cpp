@@ -2,6 +2,8 @@
 
 #include "src/driver/opengl/gl_utility.h"
 
+#include <unordered_set>
+
 using namespace prt3;
 
 GLModelManager::GLModelManager(GLMaterialManager & material_manager)
@@ -9,7 +11,7 @@ GLModelManager::GLModelManager(GLMaterialManager & material_manager)
 
 }
 
-void GLModelManager::upload_model(ModelManager::ModelHandle model_handle,
+void GLModelManager::upload_model(ModelManager::ModelHandle handle,
                                   Model const & model,
                                   ModelResource & resource) {
     // upload model buffers
@@ -92,7 +94,7 @@ void GLModelManager::upload_model(ModelManager::ModelHandle model_handle,
                  model.index_buffer().data(), GL_STATIC_DRAW);
     glCheckError();
 
-    m_buffer_handles[model_handle] = {vao, vbo, ebo};
+    m_buffer_handles[handle] = {vao, vbo, ebo};
 
     // Create gl materials
     resource.material_resource_ids.resize(model.meshes().size());
@@ -107,10 +109,10 @@ void GLModelManager::upload_model(ModelManager::ModelHandle model_handle,
     resource.mesh_resource_ids.resize(model.meshes().size());
     size_t mesh_index = 0;
     for (Model::Mesh const & mesh : model.meshes()) {
-        ResourceID id = m_meshes.size();
+        ResourceID id = m_next_mesh_id;
+        ++m_next_mesh_id;
 
-        m_meshes.push_back({});
-        GLMesh & gl_mesh = m_meshes.back();
+        GLMesh & gl_mesh = m_meshes[id];
         gl_mesh.init(vao, mesh.start_index, mesh.num_indices);
 
         resource.mesh_resource_ids[mesh_index] = id;
@@ -120,4 +122,39 @@ void GLModelManager::upload_model(ModelManager::ModelHandle model_handle,
 
     glBindVertexArray(0);
     glCheckError();
+}
+
+void GLModelManager::free_model(
+    ModelManager::ModelHandle handle,
+    ModelResource const & resource
+) {
+    glFinish();
+    glFlush();
+
+    ModelBufferHandles buffers = m_buffer_handles[handle];
+
+    glDeleteBuffers(1, &buffers.vbo);
+    glCheckError();
+    glDeleteBuffers(1, &buffers.ebo);
+    glCheckError();
+    glDeleteBuffers(1, &buffers.vao);
+    glCheckError();
+
+    m_buffer_handles.erase(handle);
+
+    for (auto const & id : resource.mesh_resource_ids) {
+        m_meshes.erase(id);
+    }
+
+    static std::unordered_set<ResourceID> free_set;
+    free_set.clear();
+
+    for (auto const & id : resource.material_resource_ids) {
+        if (free_set.find(id) != free_set.end()) {
+            continue;
+        }
+
+        m_material_manager.free_material(id);
+        free_set.insert(id);
+    }
 }

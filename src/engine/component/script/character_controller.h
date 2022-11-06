@@ -21,6 +21,7 @@ public:
         : Script(scene, m_node_id) {}
 
     virtual void on_init() {
+        add_tag("player");
     }
 
     virtual void on_update(float delta_time) {
@@ -86,6 +87,22 @@ public:
             terminal_velocity * delta_time
         );
     }
+protected:
+    static constexpr UUID s_uuid = 7387722065150816170ull;
+    virtual UUID uuid() const {
+        return s_uuid;
+    }
+
+    static Script * deserialize(
+        std::istream &,
+        Scene & scene,
+        NodeID node_id
+    ) {
+        return new CharacterController(scene, node_id);
+    }
+
+    inline static bool s_registered =
+        Script::Register(s_uuid, CharacterController::deserialize);
 private:
     static constexpr float gravity_constant = 2.0f;
     static constexpr float terminal_velocity = 35.0f;

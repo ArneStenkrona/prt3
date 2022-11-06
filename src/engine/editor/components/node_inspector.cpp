@@ -19,7 +19,6 @@ bool show_transform(Transform & transform) {
     glm::quat & rotation = transform.rotation;
     glm::vec3 & scale = transform.scale;
 
-
     float* vecp = reinterpret_cast<float*>(&position);
     ret |= ImGui::InputFloat3("pos", vecp, "%.2f");
 

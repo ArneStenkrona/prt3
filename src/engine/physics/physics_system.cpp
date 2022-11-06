@@ -9,6 +9,21 @@ PhysicsSystem::PhysicsSystem(Scene & scene)
 
 ColliderTag PhysicsSystem::add_mesh_collider(
     NodeID node_id,
+    std::vector<glm::vec3> && triangles
+) {
+    ColliderTag tag = create_collider_from_triangles(
+        std::move(triangles),
+        m_scene.get_node(node_id).get_global_transform()
+    );
+
+    m_tags[node_id] = tag;
+    m_node_ids[tag] = node_id;
+
+    return tag;
+}
+
+ColliderTag PhysicsSystem::add_mesh_collider(
+    NodeID node_id,
     Model const & model
 ) {
     ColliderTag tag = create_collider_from_model(
@@ -72,9 +87,28 @@ Collision PhysicsSystem::move_and_collide(NodeID node_id,
     return res;
 }
 
+ColliderTag PhysicsSystem::create_collider_from_triangles(
+        std::vector<glm::vec3> && triangles,
+        Transform const & transform
+) {
+    ColliderTag tag;
+    tag.type = ColliderType::collider_type_mesh;
+    tag.id = m_next_mesh_id;
+    ++m_next_mesh_id;
+
+    MeshCollider & col = m_mesh_colliders[tag.id];
+    col.set_transform(transform);
+    col.set_triangles(std::move(triangles));
+
+    m_aabb_tree.insert(tag, col.aabb());
+
+    return tag;
+}
+
 ColliderTag PhysicsSystem::create_collider_from_model(
     Model const & model,
-    Transform const & transform) {
+    Transform const & transform
+) {
 
     std::vector<Model::Vertex> v_buf = model.vertex_buffer();
     std::vector<uint32_t> i_buf = model.index_buffer();
@@ -120,6 +154,18 @@ ColliderTag PhysicsSystem::create_sphere_collider(
 
 Node & PhysicsSystem::get_node(NodeID node_id) {
     return m_scene.get_node(node_id);
+}
+
+void PhysicsSystem::clear() {
+    m_tags.clear();
+    m_node_ids.clear();
+
+    m_mesh_colliders.clear();
+    m_next_mesh_id = 0;
+    m_sphere_colliders.clear();
+    m_next_sphere_id = 0;
+
+    m_aabb_tree.clear();
 }
 
 void PhysicsSystem::update(

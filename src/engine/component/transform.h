@@ -8,6 +8,8 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include "src/util/serialization_util.h"
+
 namespace prt3 {
 
 struct Transform {
@@ -37,6 +39,23 @@ inline bool operator!=(Transform const & lhs, Transform const & rhs) {
     return lhs.rotation != rhs.rotation ||
            lhs.position != rhs.position ||
            lhs.scale    != rhs.scale;
+}
+
+inline std::ostream & operator << (
+    std::ostream & out,
+    Transform const & transform
+) {
+    write_stream(out, transform.rotation);
+    write_stream(out, transform.position);
+    write_stream(out, transform.scale);
+    return out;
+}
+
+inline std::istream & operator >> (std::istream & in, Transform & transform) {
+    read_stream(in, transform.rotation);
+    read_stream(in, transform.position);
+    read_stream(in, transform.scale);
+    return in;
 }
 
 } // namespace prt3

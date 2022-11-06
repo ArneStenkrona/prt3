@@ -21,15 +21,17 @@ public:
     void init();
 
     ResourceID upload_material(Model::Material const & material);
+    void free_material(ResourceID id);
 
-    std::vector<GLMaterial> const & materials() const
+    std::unordered_map<ResourceID, GLMaterial> const & materials() const
     { return m_materials; }
 
     GLShader const & standard_shader() const { return *m_standard_shader; }
 private:
     GLTextureManager & m_texture_manager;
 
-    std::vector<GLMaterial> m_materials;
+    std::unordered_map<ResourceID, GLMaterial> m_materials;
+    ResourceID m_next_material_id = 0;
 
     GLShader * m_standard_shader;
 };

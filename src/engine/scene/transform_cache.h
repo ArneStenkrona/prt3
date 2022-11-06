@@ -20,6 +20,8 @@ public:
     std::vector<Transform> const & global_transforms_history() const
         { return m_global_transforms_history; }
 
+    void clear();
+
 private:
     std::vector<Transform> m_global_transforms;
     std::vector<Transform> m_global_transforms_history;

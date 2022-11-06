@@ -12,8 +12,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
-#include <assimp/scene.h>
-
 #include <vector>
 #include <string>
 #include <unordered_map>
@@ -36,7 +34,44 @@ public:
 
     ModelManager(Context & context);
 
+    void clear();
+
+    ModelHandle upload_model(std::string const & path);
+
     NodeID add_model_to_scene_from_path(std::string const & path, Scene & scene, NodeID parent_id);
+
+    Model const & get_model_from_mesh_id(ResourceID id) const
+    { return m_models.at(m_mesh_id_to_model.at(id)); }
+    Model const & get_model_from_material_id(ResourceID id) const
+    { return m_models.at(m_material_id_to_model.at(id)); }
+
+    ModelHandle get_model_handle_from_mesh_id(ResourceID id) const
+    { return m_mesh_id_to_model.at(id); }
+    ModelHandle get_model_handle_from_material_id(ResourceID id) const
+    { return m_material_id_to_model.at(id); }
+
+    ModelHandle get_model_handle_from_path(std::string const & path) const
+    { return m_path_to_model_handle.at(path); }
+
+    int32_t get_mesh_index_from_mesh_id(ResourceID id) const
+    { return m_mesh_id_to_mesh_index.at(id); }
+
+    int32_t get_mesh_index_from_material_id(ResourceID id) const
+    { return m_material_id_to_mesh_index.at(id); }
+
+    ResourceID get_mesh_id_from_mesh_index(
+        ModelHandle handle,
+        int32_t mesh_index
+    ) const {
+        return m_model_resources.at(handle).mesh_resource_ids.at(mesh_index);
+    }
+
+    ResourceID get_material_id_from_mesh_index(
+        ModelHandle handle,
+        int32_t mesh_index
+    ) const {
+        return m_model_resources.at(handle).material_resource_ids.at(mesh_index);
+    }
 
 private:
     typedef int ModelResourceIndex;
@@ -47,6 +82,9 @@ private:
     std::unordered_map<ModelHandle, ModelResource> m_model_resources; // models uploaded to graphics device
     std::unordered_map<ResourceID, ModelHandle> m_mesh_id_to_model;
     std::unordered_map<ResourceID, ModelHandle> m_material_id_to_model;
+
+    std::unordered_map<ResourceID, int32_t> m_mesh_id_to_mesh_index;
+    std::unordered_map<ResourceID, int32_t> m_material_id_to_mesh_index;
 
     std::unordered_map<std::string, ModelHandle> m_path_to_model_handle;
 

@@ -34,12 +34,18 @@ public:
                       Model const & model,
                       ModelResource & resource);
 
-    void process_input_events(std::vector<SDL_Event> const & events) {
-        m_render_backend->process_input_events(events);
-    }
+    void free_model(
+        ModelManager::ModelHandle handle,
+        ModelResource const & resource
+    )
+    { m_render_backend->free_model(handle, resource); }
 
     NodeID get_selected(int x, int y) {
         return m_render_backend->get_selected(x, y);
+    }
+
+    void process_input_events(std::vector<SDL_Event> const & events) {
+        m_render_backend->process_input_events(events);
     }
 
     Input & input() { return m_input; }

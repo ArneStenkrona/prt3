@@ -17,6 +17,8 @@ typedef int32_t TreeIndex;
 // thank you Andy Gaul: https://www.randygaul.net/2013/08/06/dynamic-aabb-tree/
 class DynamicAABBTree {
 public:
+    void clear();
+
     /**
      * Finds all intersecting nodes for aabb
      * @param aabb aabb of query object

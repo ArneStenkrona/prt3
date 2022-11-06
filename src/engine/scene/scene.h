@@ -16,8 +16,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace prt3
-{
+namespace prt3 {
 
 class Context;
 
@@ -25,6 +24,10 @@ class Scene {
 public:
     Scene(Context & context);
     ~Scene();
+
+    void serialize(std::ostream & out) const;
+    void deserialize(std::istream & in);
+    void clear() { internal_clear(true); }
 
     Scene(Scene const & other) = delete;
     Scene & operator=(Scene const & other) = delete;
@@ -47,6 +50,7 @@ public:
     Camera & get_camera() { return m_camera; }
     Input & get_input();
 
+    Script const * get_script(ScriptID id) const { return m_scripts[id]; }
     Script * get_script(ScriptID id) { return m_scripts[id]; }
 
     template<typename ComponentType, typename... ArgTypes>
@@ -88,6 +92,11 @@ public:
         return dynamic_cast<T*>(m_scripts[id]);
     }
 
+    template<typename T>
+    T const * get_script(ScriptID id) const {
+        return dynamic_cast<T const *>(m_scripts[id]);
+    }
+
     void connect_signal(SignalString const & signal,
                         Script * script) {
         m_signal_connections[signal].insert(script);
@@ -95,25 +104,48 @@ public:
 
     void emit_signal(SignalString const & signal, void * data);
 
+    bool add_tag_to_node(NodeTag const & tag, NodeID id) {
+        if (m_tags.find(tag) != m_tags.end()) {
+            return false;
+        }
+        m_tags.emplace(std::make_pair(tag, id));
+        m_node_to_tag.emplace(std::make_pair(id, tag));
+        return true;
+    }
+
+    NodeID find_node_by_tag(NodeTag const & tag) const {
+        if (m_tags.find(tag) != m_tags.end()) {
+            return m_tags.at(tag);
+        }
+        return NO_NODE;
+    }
+
     NodeName const & get_node_name(NodeID id) const { return m_node_names[id]; }
     NodeName & get_node_name(NodeID id) { return m_node_names[id]; }
 
+    PhysicsSystem const & physics_system() const { return m_physics_system; }
     PhysicsSystem & physics_system() { return m_physics_system; }
+
+    ModelManager const & model_manager() const;
 
 private:
     Context & m_context;
 
     Camera m_camera;
 
-    NodeID m_root_id;
+    static constexpr NodeID m_root_id = 0;
     std::vector<Node> m_nodes;
     std::vector<NodeName> m_node_names;
 
     std::vector<Script *> m_scripts;
     std::vector<Script *> m_init_queue;
+    std::vector<Script *> m_late_init_queue;
 
     std::unordered_map<SignalString, std::unordered_set<Script *> >
         m_signal_connections;
+
+    std::unordered_map<NodeTag, NodeID> m_tags;
+    std::unordered_map<NodeID, NodeTag> m_node_to_tag;
 
     ComponentManager m_component_manager;
     PhysicsSystem m_physics_system;
@@ -137,18 +169,29 @@ private:
         ScriptID id = m_scripts.size();
         m_scripts.push_back(script);
         m_init_queue.push_back(script);
+        m_late_init_queue.push_back(script);
         return id;
+    }
+
+    Script const * internal_get_script(ScriptID id) const {
+        return m_scripts[id];
     }
 
     Script * internal_get_script(ScriptID id) {
         return m_scripts[id];
     }
 
+    void internal_clear(bool place_root);
+
+    ModelManager & model_manager();
+
     friend class Engine;
     friend class Renderer;
     friend class Node;
     friend class ScriptSet;
     friend class EditorContext;
+    friend Material::Material(Scene &, NodeID, std::istream &);
+    friend Mesh::Mesh(Scene &, NodeID, std::istream &);
 };
 
 } // namespace prt3

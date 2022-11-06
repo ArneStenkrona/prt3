@@ -22,9 +22,17 @@ public:
     virtual void prepare_gui_rendering() = 0;
     virtual void render(RenderData const & render_data,
                         bool gui) = 0;
-    virtual void upload_model(ModelManager::ModelHandle model_handle,
-                              Model const & model,
-                              ModelResource & resource) = 0;
+
+    virtual void upload_model(
+        ModelManager::ModelHandle handle,
+        Model const & model,
+        ModelResource & resource
+    ) = 0;
+
+    virtual void free_model(
+        ModelManager::ModelHandle handle,
+        ModelResource const & resource
+    ) = 0;
 
     virtual void set_postprocessing_chains(
         PostProcessingChain const & scene_chain,

@@ -74,10 +74,12 @@ public:
 
     inline bool is_animated() const { return m_animated; }
 
-    std::string const & get_name() const { return m_name; };
+    std::string const & name() const { return m_name; };
+    std::string const & path() const { return m_path; }
 
 private:
     std::string m_name;
+    std::string m_path;
     bool m_animated = false;
 
     std::vector<Node> m_nodes;
@@ -100,11 +102,11 @@ private:
 };
 
 struct Model::Node {
-    int parent_index = -1;
-    int mesh_index = -1;
+    int32_t parent_index = -1;
+    int32_t mesh_index = -1;
     std::vector<unsigned int> child_indices;
-    std::vector<int> bone_indices;
-    int channel_index = -1;
+    std::vector<int32_t> bone_indices;
+    int32_t channel_index = -1;
     glm::mat4 transform;
     std::string name;
 };

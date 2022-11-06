@@ -24,6 +24,38 @@ public:
         glm::vec3 const & movement
     );
 
+
+    MeshCollider const & get_mesh_collider(ColliderID id) const
+    { return m_mesh_colliders.at(id); }
+
+    SphereCollider const & get_sphere_collider(ColliderID id) const
+    { return m_sphere_colliders.at(id); }
+
+private:
+    std::unordered_map<NodeID, ColliderTag> m_tags;
+    std::unordered_map<ColliderTag, NodeID> m_node_ids;
+
+    std::unordered_map<ColliderID, MeshCollider> m_mesh_colliders;
+    ColliderID m_next_mesh_id = 0;
+    std::unordered_map<ColliderID, SphereCollider> m_sphere_colliders;
+    ColliderID m_next_sphere_id = 0;
+
+    Scene & m_scene;
+
+    DynamicAABBTree m_aabb_tree;
+
+    void clear();
+
+    void update(
+        Transform const * transforms,
+        Transform const * transforms_history
+    );
+
+    ColliderTag add_mesh_collider(
+        NodeID node_id,
+        std::vector<glm::vec3> && triangles
+    );
+
     ColliderTag add_mesh_collider(
         NodeID node_id,
         Model const & model
@@ -34,29 +66,20 @@ public:
         Sphere const & sphere
     );
 
-private:
-    std::unordered_map<NodeID, ColliderTag> m_tags;
-    std::unordered_map<ColliderTag, NodeID> m_node_ids;
-
-    std::unordered_map<ColliderID, MeshCollider> m_mesh_colliders;
-    ColliderID m_next_mesh_id;
-    std::unordered_map<ColliderID, SphereCollider> m_sphere_colliders;
-    ColliderID m_next_sphere_id;
-
-    Scene & m_scene;
-
-    DynamicAABBTree m_aabb_tree;
-
-    void update(
-        Transform const * transforms,
-        Transform const * transforms_history
+    ColliderTag create_collider_from_triangles(
+        std::vector<glm::vec3> && triangles,
+        Transform const & transform
     );
 
-    ColliderTag create_collider_from_model(Model const & model,
-                                           Transform const & transform);
+    ColliderTag create_collider_from_model(
+        Model const & model,
+        Transform const & transform
+    );
 
-    ColliderTag create_sphere_collider(Sphere const & sphere,
-                                       Transform const & transform);
+    ColliderTag create_sphere_collider(
+        Sphere const & sphere,
+        Transform const & transform
+    );
 
     Node & get_node(NodeID node_id);
 
@@ -197,6 +220,7 @@ private:
     }
 
     friend class Scene;
+    friend class ColliderComponent;
 };
 
 } // namespace prt3

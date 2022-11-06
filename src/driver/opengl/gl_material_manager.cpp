@@ -42,17 +42,48 @@ ResourceID GLMaterialManager::upload_material(Model::Material const & material) 
         tm.texture_1x1_0xff()
     );
 
-    ResourceID id = m_materials.size();
-    m_materials.emplace_back(
-        *m_standard_shader,
-        albedo_map,
-        normal_map,
-        roughness_map,
-        metallic_map,
-        material.albedo,
-        material.metallic,
-        material.roughness
+    ResourceID id = m_next_material_id;
+    ++m_next_material_id;
+
+    // m_materials.emplace_back(
+    //     *m_standard_shader,
+    //     albedo_map,
+    //     normal_map,
+    //     roughness_map,
+    //     metallic_map,
+    //     material.albedo,
+    //     material.metallic,
+    //     material.roughness
+    // );
+
+    m_materials.emplace(
+        std::make_pair(id,
+                GLMaterial{
+                *m_standard_shader,
+                albedo_map,
+                normal_map,
+                roughness_map,
+                metallic_map,
+                material.albedo,
+                material.metallic,
+                material.roughness
+            }
+        )
     );
 
+
     return id;
+}
+
+void GLMaterialManager::free_material(
+    ResourceID id
+) {
+    GLMaterial const & mat = m_materials.at(id);
+
+    m_texture_manager.attempt_free_texture(mat.albedo_map());
+    m_texture_manager.attempt_free_texture(mat.normal_map());
+    m_texture_manager.attempt_free_texture(mat.roughness_map());
+    m_texture_manager.attempt_free_texture(mat.metallic_map());
+
+    m_materials.erase(id);
 }

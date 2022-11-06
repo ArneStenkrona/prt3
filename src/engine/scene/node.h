@@ -21,6 +21,7 @@ typedef int32_t NodeID;
 constexpr NodeID NO_NODE = -1;
 
 typedef FixedString<64> NodeName;
+typedef FixedString<32> NodeTag;
 
 class Scene;
 class Node {
@@ -46,8 +47,6 @@ private:
     NodeID m_id;
     NodeID m_parent_id = NO_NODE;
     std::vector<NodeID> m_children_ids;
-
-    ColliderTag m_collider_tag;
 
     Scene & m_scene;
 

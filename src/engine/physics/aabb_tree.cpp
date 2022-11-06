@@ -6,6 +6,15 @@
 
 using namespace prt3;
 
+void DynamicAABBTree::clear() {
+    m_root_index = TreeNode::null_index;
+
+    m_free_head = TreeNode::null_index;
+    m_size = 0;
+    m_nodes.clear();
+    m_tag_to_index.clear();
+}
+
 void DynamicAABBTree::query(ColliderTag caller,
                             AABB const & aabb,
                             std::vector<ColliderTag> & tags) {

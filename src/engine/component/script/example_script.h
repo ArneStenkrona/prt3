@@ -10,8 +10,8 @@ namespace prt3 {
 
 class ExampleScript : public Script {
 public:
-    explicit ExampleScript(Scene & scene, NodeID m_node_id)
-        : Script(scene, m_node_id) {}
+    explicit ExampleScript(Scene & scene, NodeID node_id)
+        : Script(scene, node_id) {}
 
     virtual void on_init() {
         std::cout << "on_init()" << std::endl;
@@ -19,6 +19,23 @@ public:
     virtual void on_update(float) {
         std::cout << "on_update()" << std::endl;
     }
+
+protected:
+    static constexpr UUID s_uuid = 10447271495191217112ull;
+    virtual UUID uuid() const {
+        return s_uuid;
+    }
+
+    static Script * deserialize(
+        std::istream &,
+        Scene & scene,
+        NodeID node_id
+    ) {
+        return new ExampleScript(scene, node_id);
+    }
+
+    inline static bool s_registered =
+        Script::Register(s_uuid, ExampleScript::deserialize);
 private:
 };
 
