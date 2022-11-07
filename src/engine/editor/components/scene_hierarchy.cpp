@@ -11,6 +11,8 @@
 #include <cstring>
 #include <algorithm>
 
+using namespace prt3;
+
 void prt3::scene_hierarchy(EditorContext & context) {
     Scene & scene = context.context().edit_scene();
     NodeID root_id = scene.get_root_id();
@@ -120,6 +122,20 @@ void prt3::scene_hierarchy(EditorContext & context) {
     context.set_selected_node(node_ids[selected]);
     if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
         expanded[selected_id] = !expanded[selected_id];
+    }
+
+    ImGui::NewLine();
+    if (ImGui::Button("Add Entity")) {
+        Scene & scene = context.scene();
+
+        NodeID parent = context.get_selected_node();
+        if (parent == NO_NODE) {
+            parent = scene.get_root_id();
+        }
+
+        NodeID id = scene.add_node(parent, "new node");
+
+        context.set_selected_node(id);
     }
 
     end_group_panel();

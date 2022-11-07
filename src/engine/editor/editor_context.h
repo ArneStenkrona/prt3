@@ -19,6 +19,8 @@ public:
     Editor & editor() { return m_editor; }
     Context & context() { return m_context; }
 
+    Scene & scene() { return context().edit_scene(); }
+
     std::vector<Node> & get_scene_nodes()
     { return context().edit_scene().m_nodes; }
 
