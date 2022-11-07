@@ -20,15 +20,14 @@ void Engine::execute_frame() {
     m_context.input().update();
 
     EngineMode prev_mode = m_mode;
-
     if (m_context.input().get_key_down(KEY_CODE_TAB)) {
         switch (m_mode) {
             case EngineMode::game: {
-                m_mode = EngineMode::editor;
+                set_mode_editor();
                 break;
             }
             case EngineMode::editor: {
-                m_mode = EngineMode::game;
+                set_mode_game();
                 break;
             }
         }
@@ -42,33 +41,43 @@ void Engine::execute_frame() {
     }
 
 
-    Scene & scene = m_context.scene();
 
     static RenderData render_data;
     render_data.clear();
     switch (m_mode) {
         case EngineMode::game: {
+            Scene & scene = m_context.game_scene();
+
             scene.update(fixed_delta_time);
+
             scene.collect_world_render_data(
                 render_data.world,
                 m_editor.selected_node()
             );
+
             scene.get_camera().collect_camera_render_data(
                 render_data.camera_data
             );
+
             m_context.renderer().render(render_data, false);
             break;
         }
         case EngineMode::editor: {
+            Scene & scene = m_context.edit_scene();
+
             m_context.renderer().prepare_gui_rendering();
+
             m_editor.update(fixed_delta_time);
+
             scene.collect_world_render_data(
                 render_data.world,
                 m_editor.selected_node()
             );
+
             m_editor.get_camera().collect_camera_render_data(
                 render_data.camera_data
             );
+
             m_context.renderer().render(render_data, true);
             break;
         }
@@ -112,3 +121,13 @@ void Engine::measure_duration() {
 
     m_last_frame_time_point = now;
 }
+
+void Engine::set_mode_game() {
+    m_mode = EngineMode::game;
+    m_context.set_game_scene(m_context.edit_scene());
+}
+
+void Engine::set_mode_editor() {
+    m_mode = EngineMode::editor;
+}
+

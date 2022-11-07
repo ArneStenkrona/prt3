@@ -37,8 +37,8 @@ void prt3::node_inspector(EditorContext & context) {
     begin_group_panel("inspector");
 
     NodeID id = context.get_selected_node();
-    Node & node = context.context().scene().get_node(id);
-    NodeName & name = context.context().scene().get_node_name(id);
+    Node & node = context.context().edit_scene().get_node(id);
+    NodeName & name = context.context().edit_scene().get_node_name(id);
 
     ImGui::PushID(id);
 

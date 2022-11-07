@@ -24,15 +24,21 @@ public:
     explicit Script(Scene & scene, NodeID node_id);
     virtual ~Script() {}
 
-    virtual void on_init() {}
-    virtual void on_late_init() {}
-    virtual void on_update(float /*delta_time*/) {}
-    virtual void on_late_update(float /*delta_time*/) {}
-    virtual void on_signal(SignalString const & /*signal*/, void * /*data*/) {}
+    virtual void on_init(Scene &) {}
+    virtual void on_late_init(Scene &) {}
+    virtual void on_update(Scene & /*scene*/, float /*delta_time*/) {}
+    virtual void on_late_update(Scene & /*scene*/, float /*delta_time*/) {}
+    virtual void on_signal(
+        Scene & /*scene*/,
+        SignalString const & /*signal*/,
+        void * /*data*/
+    ) {}
 
     virtual void serialize(std::ostream & out) const {
         write_stream(out, uuid());
     }
+
+    virtual Script * copy() const = 0;
 
     static Script * deserialize(
         UUID uuid,
@@ -42,11 +48,10 @@ public:
     );
 
 protected:
-    Scene & scene() const { return m_scene; }
     NodeID node_id() const { return m_node_id; }
-    Node & get_node();
+    Node & get_node(Scene & scene);
 
-    bool add_tag(NodeTag const & tag);
+    bool add_tag(Scene & scene, NodeTag const & tag);
 
 
     static std::unordered_map<UUID, TScript> s_constructors;
@@ -56,7 +61,6 @@ protected:
     static bool Register(UUID uuid, TScript constructor);
 
 private:
-    Scene & m_scene;
     NodeID m_node_id;
 };
 

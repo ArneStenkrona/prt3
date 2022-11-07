@@ -13,7 +13,7 @@ EditorContext::EditorContext(Editor & editor, Context & context)
 
 void EditorContext::commit_frame() {
     if (m_stale_transform_cache) {
-        m_context.scene().update_transform_cache();
+        m_context.edit_scene().update_transform_cache();
     }
     m_stale_transform_cache = false;
 }

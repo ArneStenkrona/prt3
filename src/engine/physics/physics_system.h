@@ -17,13 +17,11 @@ namespace prt3 {
 
 class PhysicsSystem {
 public:
-    PhysicsSystem(Scene & scene);
-
     Collision move_and_collide(
+        Scene & scene,
         NodeID node_id,
         glm::vec3 const & movement
     );
-
 
     MeshCollider const & get_mesh_collider(ColliderID id) const
     { return m_mesh_colliders.at(id); }
@@ -40,8 +38,6 @@ private:
     std::unordered_map<ColliderID, SphereCollider> m_sphere_colliders;
     ColliderID m_next_sphere_id = 0;
 
-    Scene & m_scene;
-
     DynamicAABBTree m_aabb_tree;
 
     void clear();
@@ -53,17 +49,20 @@ private:
 
     ColliderTag add_mesh_collider(
         NodeID node_id,
-        std::vector<glm::vec3> && triangles
+        std::vector<glm::vec3> && triangles,
+        Transform const & transform
     );
 
     ColliderTag add_mesh_collider(
         NodeID node_id,
-        Model const & model
+        Model const & model,
+        Transform const & transform
     );
 
     ColliderTag add_sphere_collider(
         NodeID node_id,
-        Sphere const & sphere
+        Sphere const & sphere,
+        Transform const & transform
     );
 
     ColliderTag create_collider_from_triangles(
@@ -81,10 +80,12 @@ private:
         Transform const & transform
     );
 
-    Node & get_node(NodeID node_id);
+    Node & get_node(Scene & scene, NodeID node_id);
+    Transform get_global_transform(Scene & scene, NodeID node_id);
 
     template<typename Collider>
     Collision move_and_collide(
+        Scene & scene,
         ColliderTag tag,
         Collider const & collider,
         glm::vec3 const & movement,
@@ -117,8 +118,6 @@ private:
             Sphere sphere_other;
             Triangle tri_other;
 
-
-
             for (auto const & id :
                  candidates[ColliderType::collider_type_sphere]) {
                 ColliderTag other_tag;
@@ -126,8 +125,7 @@ private:
                 other_tag.type = ColliderType::collider_type_sphere;
                 NodeID node_id = m_node_ids[other_tag];
 
-                Node const & other = get_node(node_id);
-                Transform other_transform = other.get_global_transform();
+                Transform other_transform = get_global_transform(scene, node_id);
                 Sphere other_shape =
                     m_sphere_colliders[id].get_shape(other_transform);
 

@@ -18,21 +18,19 @@ public:
     ColliderComponent(Scene & scene, NodeID node_id, Sphere const & sphere);
     ColliderComponent(Scene & scene, NodeID node_id, std::istream & in);
 
-    Scene const & scene() const { return m_scene; }
-    Scene & scene() { return m_scene; }
     NodeID node_id() const { return m_node_id; }
     ColliderTag tag() const { return m_tag; }
+
+    void serialize(
+        std::ostream & out,
+        Scene const & scene
+    ) const;
+
 private:
-    Scene & m_scene;
     NodeID m_node_id;
     ColliderTag m_tag;
 };
 
-std::ostream & operator << (
-    std::ostream & out,
-    ColliderComponent const & component
-);
-
-} // namespace prt3
+}
 
 #endif

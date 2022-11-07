@@ -26,6 +26,9 @@ public:
 private:
     void measure_duration();
 
+    void set_mode_game();
+    void set_mode_editor();
+
     Context m_context;
     Editor m_editor;
     uint64_t m_frame_number = 0;

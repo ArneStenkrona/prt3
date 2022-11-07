@@ -21,11 +21,13 @@ namespace prt3 {
 
 class ComponentManager {
 public:
-    ComponentManager(Scene & scene);
-
-    template<typename ComponentType, typename... ArgTypes>
-    ComponentType & add_component(NodeID id, ArgTypes... args) {
-        return get_component_storage<ComponentType>().add(m_scene, id, args...);
+  template<typename ComponentType, typename... ArgTypes>
+    ComponentType & add_component(
+        Scene & scene,
+        NodeID id,
+        ArgTypes... args
+    ) {
+        return get_component_storage<ComponentType>().add(scene, id, args...);
     }
 
     /**
@@ -55,15 +57,14 @@ public:
 
     void serialize(
         std::ostream & out,
+        Scene const & scene,
         std::unordered_map<NodeID, NodeID> const & compacted_ids
     ) const;
 
-    void deserialize(std::istream & in);
+    void deserialize(std::istream & in, Scene & scene);
 
 private:
-    Scene & m_scene;
-
-    // Template meta programming utilities
+     // Template meta programming utilities
     template <class T, class Tuple>
     struct Index;
 
@@ -114,12 +115,13 @@ private:
 
         void serialize(
             std::ostream & out,
+            Scene const & scene,
             std::unordered_map<NodeID, NodeID> const & compacted_ids
         ) const {
             write_stream(out, components.size());
             for (ComponentType const & component : components) {
                 write_stream(out, compacted_ids.at(component.node_id()));
-                out << component;
+                component.serialize(out, scene);
             }
         }
 
@@ -185,6 +187,7 @@ private:
     template<size_t I = 0, typename... Tp>
     void serialize_storage(
         std::ostream & out,
+        Scene const & scene,
         std::unordered_map<NodeID, NodeID> const & compacted_ids,
         std::tuple<Tp...> const & t
     ) const {
@@ -192,15 +195,16 @@ private:
         write_stream(out, magic_num_i);
 
         auto const & storage = std::get<I>(t);
-        storage.serialize(out, compacted_ids);
+        storage.serialize(out, scene, compacted_ids);
 
         if constexpr(I+1 != sizeof...(Tp))
-            serialize_storage<I+1>(out, compacted_ids, t);
+            serialize_storage<I+1>(out, scene, compacted_ids, t);
     }
 
     template<size_t I = 0, typename... Tp>
     void deserialize_storage(
         std::istream & in,
+        Scene & scene,
         std::tuple<Tp...> & t
     ) {
         uint64_t magic_num_i = magic_num + I;
@@ -212,10 +216,10 @@ private:
         }
 
         auto & storage = std::get<I>(t);
-        storage.deserialize(in, m_scene);
+        storage.deserialize(in, scene);
 
         if constexpr(I+1 != sizeof...(Tp))
-            deserialize_storage<I+1>(in, t);
+            deserialize_storage<I+1>(in, scene, t);
     }
 
     friend class Scene;

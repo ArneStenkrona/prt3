@@ -11,18 +11,15 @@
 using namespace prt3;
 
 Scene::Scene(Context & context)
- : m_context{context},
+ : m_context{&context},
    m_camera{context.renderer().window_width(),
-            context.renderer().window_height()},
-   m_component_manager{*this},
-   m_physics_system{*this} {
-    // m_root_id = m_nodes.size();
-
-    m_nodes.emplace_back(m_root_id, *this);
+            context.renderer().window_height()}
+{
+    m_nodes.emplace_back(m_root_id);
     m_node_names.emplace_back("root");
 
     // FOR DEBUGGING, WILL REMOVE ---->
-    NodeID room = m_context.model_manager()
+    NodeID room = m_context->model_manager()
         .add_model_to_scene_from_path(
             "assets/models/test_room/test_room.fbx",
             *this,
@@ -41,7 +38,7 @@ Scene::Scene(Context & context)
     set_node_local_position(cam_node, glm::vec3(2.1f, 2.1f, 2.1f));
     add_script<CameraController>(cam_node);
 
-    NodeID character = m_context.model_manager()
+    NodeID character = m_context->model_manager()
         .add_model_to_scene_from_path(
             "assets/models/stranger/stranger.fbx",
             *this,
@@ -63,12 +60,12 @@ Scene::Scene(Context & context)
     Sphere sphere{{0.0f, 2.1f, 0.0f}, 0.9f};
     add_component<ColliderComponent>(character, sphere);
 
-    NodeID cube = m_context.model_manager()
+    NodeID cube = m_context->model_manager()
         .add_model_to_scene_from_path("assets/models/debug/character_cube.fbx",
         *this,
         m_root_id
     );
-    get_node(cube).set_global_position(glm::vec3(2.0f, 0.0f, 0.0f));
+    get_node(cube).set_global_position(*this, glm::vec3(2.0f, 0.0f, 0.0f));
 
     add_component<ColliderComponent>(cube, Sphere{{0.0f, 1.0f, 0.0f}, 0.9f});
 
@@ -82,35 +79,13 @@ Scene::Scene(Context & context)
 
 }
 
-Scene::~Scene() {
-    for (Script * script : m_scripts) {
-        delete script;
-    }
-}
-
 void Scene::update(float delta_time) {
     m_physics_system.update(
         m_transform_cache.global_transforms().data(),
         m_transform_cache.global_transforms_history().data()
     );
 
-    for (Script * script : m_init_queue) {
-        script->on_init();
-    }
-    m_init_queue.clear();
-
-    for (Script * script : m_late_init_queue) {
-        script->on_late_init();
-    }
-    m_late_init_queue.clear();
-
-    for (Script * script : m_scripts) {
-        script->on_update(delta_time);
-    }
-
-    for (Script * script : m_scripts) {
-        script->on_late_update(delta_time);
-    }
+    m_script_container.update(*this, delta_time);
 
     update_transform_cache();
 }
@@ -128,7 +103,7 @@ NodeID Scene::add_node(NodeID parent_id, const char * name) {
     NodeID id = m_nodes.size();
     parent.m_children_ids.push_back(id);
 
-    m_nodes.emplace_back(id, *this);
+    m_nodes.emplace_back(id);
     m_nodes[id].m_parent_id = parent_id;
 
     m_node_names.emplace_back(name);
@@ -137,7 +112,7 @@ NodeID Scene::add_node(NodeID parent_id, const char * name) {
 }
 
 Input & Scene::get_input() {
-    return m_context.input();
+    return m_context->input();
 }
 
 void Scene::collect_world_render_data(
@@ -217,16 +192,16 @@ void Scene::update_window_size(int w, int h) {
 
 void Scene::emit_signal(SignalString const & signal, void * data) {
     for (Script * script : m_signal_connections[signal]) {
-        script->on_signal(signal, data);
+        script->on_signal(*this, signal, data);
     }
 }
 
 ModelManager const & Scene::model_manager() const {
-    return m_context.model_manager();
+    return m_context->model_manager();
 }
 
 ModelManager & Scene::model_manager() {
-    return m_context.model_manager();
+    return m_context->model_manager();
 }
 
 void Scene::serialize(std::ostream & out) const {
@@ -262,7 +237,7 @@ void Scene::serialize(std::ostream & out) const {
     write_stream(out, m_directional_light_on);
     out << m_ambient_light;
 
-    m_component_manager.serialize(out, compacted_ids);
+    m_component_manager.serialize(out, *this, compacted_ids);
 }
 
 void Scene::deserialize(std::istream & in) {
@@ -275,7 +250,7 @@ void Scene::deserialize(std::istream & in) {
         auto & name = m_node_names.back();
         in.read(name.data(), name.size());
 
-        m_nodes.push_back({id, *this});
+        m_nodes.push_back({id});
         Node & node = m_nodes.back();
 
         in >> node.local_transform();
@@ -293,14 +268,14 @@ void Scene::deserialize(std::istream & in) {
     read_stream(in, m_directional_light_on);
     in >> m_ambient_light;
 
-    m_component_manager.deserialize(in);
+    m_component_manager.deserialize(in, *this);
 }
 
 void Scene::internal_clear(bool place_root) {
     m_nodes.clear();
     m_node_names.clear();
     if (place_root) {
-        m_nodes.emplace_back(m_root_id, *this);
+        m_nodes.emplace_back(m_root_id);
         m_node_names.emplace_back("root");
     }
 
@@ -313,9 +288,7 @@ void Scene::internal_clear(bool place_root) {
 
     m_transform_cache.clear();
 
-    m_scripts.clear();
-    m_init_queue.clear();
-    m_late_init_queue.clear();
+    m_script_container.clear();
 
     m_signal_connections.clear();
 

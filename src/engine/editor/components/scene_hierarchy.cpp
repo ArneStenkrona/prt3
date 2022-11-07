@@ -12,7 +12,7 @@
 #include <algorithm>
 
 void prt3::scene_hierarchy(EditorContext & context) {
-    Scene & scene = context.context().scene();
+    Scene & scene = context.context().edit_scene();
     NodeID root_id = scene.get_root_id();
     std::vector<Node> & nodes = context.get_scene_nodes();
 
@@ -78,7 +78,7 @@ void prt3::scene_hierarchy(EditorContext & context) {
         }
         strncpy(
             begin,
-            context.context().scene().get_node_name(id).data(),
+            context.context().edit_scene().get_node_name(id).data(),
             N - (indent_len + 2) - 1 // -1 is to ensure null-termination
         );
 

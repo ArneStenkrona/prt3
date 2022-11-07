@@ -19,7 +19,8 @@ public:
     Editor & editor() { return m_editor; }
     Context & context() { return m_context; }
 
-    std::vector<Node> & get_scene_nodes() { return context().scene().m_nodes; }
+    std::vector<Node> & get_scene_nodes()
+    { return context().edit_scene().m_nodes; }
 
     NodeID get_selected_node() const { return m_selected_node; }
     void set_selected_node(NodeID id) { m_selected_node = id; }

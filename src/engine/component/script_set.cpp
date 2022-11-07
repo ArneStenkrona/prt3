@@ -6,9 +6,8 @@
 
 using namespace prt3;
 
-ScriptSet::ScriptSet(Scene & scene, NodeID node_id)
- : m_scene{scene},
-   m_node_id{node_id} {
+ScriptSet::ScriptSet(Scene &, NodeID node_id)
+ : m_node_id{node_id} {
 }
 
 ScriptSet::ScriptSet(
@@ -16,8 +15,7 @@ ScriptSet::ScriptSet(
     NodeID node_id,
     std::istream & in
 )
- : m_scene{scene},
-   m_node_id{node_id} {
+ : m_node_id{node_id} {
     size_t n_scripts;
     read_stream(in, n_scripts);
 
@@ -28,37 +26,31 @@ ScriptSet::ScriptSet(
         Script * script = Script::deserialize(
             uuid,
             in,
-            m_scene,
+            scene,
             node_id
         );
 
-        ScriptID id = add_script_to_Scene(script);
+        ScriptID id = add_script_to_scene(scene, script);
         m_script_ids.push_back(id);
     }
 }
 
-ScriptID ScriptSet::add_script_to_Scene(Script * script) {
-    return m_scene.internal_add_script(script);
+ScriptID ScriptSet::add_script_to_scene(Scene & scene, Script * script) {
+    return scene.internal_add_script(script);
 }
 
-Script * ScriptSet::get_script_from_scene(ScriptID id) {
-    return m_scene.internal_get_script(id);
+Script * ScriptSet::get_script_from_scene(Scene & scene, ScriptID id) {
+    return scene.internal_get_script(id);
 }
 
-namespace prt3 {
-
-std::ostream & operator << (
+void ScriptSet::serialize(
     std::ostream & out,
-    ScriptSet const & component
-) {
-    write_stream(out, component.get_all_scripts().size());
+    Scene const & scene
+) const {
+    write_stream(out, get_all_scripts().size());
 
-    Scene const & scene = component.scene();
-    for (ScriptID id : component.get_all_scripts()) {
+    for (ScriptID id : get_all_scripts()) {
         Script const * script = scene.get_script<Script>(id);
         script->serialize(out);
     }
-    return out;
 }
-
-} // namespace prt3

@@ -9,10 +9,13 @@ ColliderComponent::ColliderComponent(
     NodeID node_id,
     Model const & model
 )
- : m_scene{scene},
-   m_node_id{node_id} {
+ : m_node_id{node_id} {
     PhysicsSystem & sys = scene.physics_system();
-    m_tag = sys.add_mesh_collider(m_node_id, model);
+    m_tag = sys.add_mesh_collider(
+        m_node_id,
+        model,
+        scene.get_node(node_id).get_global_transform(scene)
+    );
 }
 
 ColliderComponent::ColliderComponent(
@@ -20,10 +23,13 @@ ColliderComponent::ColliderComponent(
     NodeID node_id,
     Sphere const & sphere
 )
- : m_scene{scene},
-   m_node_id{node_id} {
+ : m_node_id{node_id} {
     PhysicsSystem & sys = scene.physics_system();
-    m_tag = sys.add_sphere_collider(m_node_id, sphere);
+    m_tag = sys.add_sphere_collider(
+        m_node_id,
+        sphere,
+        scene.get_node(node_id).get_global_transform(scene)
+    );
 }
 
 ColliderComponent::ColliderComponent(
@@ -31,10 +37,9 @@ ColliderComponent::ColliderComponent(
     NodeID node_id,
     std::istream & in
 )
- : m_scene{scene},
-   m_node_id{node_id} {
+ : m_node_id{node_id} {
 
-    PhysicsSystem & sys = m_scene.physics_system();
+    PhysicsSystem & sys = scene.physics_system();
 
     read_stream(in, m_tag.type);
     switch (m_tag.type) {
@@ -48,32 +53,37 @@ ColliderComponent::ColliderComponent(
                 read_stream(in, vert);
             }
 
-            m_tag = sys.add_mesh_collider(m_node_id, std::move(tris));
+            m_tag = sys.add_mesh_collider(
+                m_node_id,
+                std::move(tris),
+                scene.get_node(node_id).get_global_transform(scene)
+            );
             break;
         }
         case ColliderType::collider_type_sphere: {
             Sphere sphere;
             in >> sphere;
-            m_tag = sys.add_sphere_collider(m_node_id, sphere);
+            m_tag = sys.add_sphere_collider(
+                m_node_id,
+                sphere,
+                scene.get_node(node_id).get_global_transform(scene)
+            );
             break;
         }
         case ColliderType::collider_type_none: {}
     }
 }
 
-namespace prt3 {
-
-std::ostream & operator << (
+void ColliderComponent::serialize(
     std::ostream & out,
-    ColliderComponent const & component
-) {
-    PhysicsSystem const & sys = component.scene().physics_system();
-    ColliderTag tag = component.tag();
+    Scene const & scene
+) const {
+    PhysicsSystem const & sys = scene.physics_system();
 
-    write_stream(out, tag.type);
-    switch (tag.type) {
+    write_stream(out, m_tag.type);
+    switch (m_tag.type) {
         case ColliderType::collider_type_mesh: {
-            MeshCollider const & col = sys.get_mesh_collider(tag.id);
+            MeshCollider const & col = sys.get_mesh_collider(m_tag.id);
             auto const & tris = col.triangles();
             write_stream(out, tris.size());
             for (auto const & tri : tris) {
@@ -82,14 +92,10 @@ std::ostream & operator << (
             break;
         }
         case ColliderType::collider_type_sphere: {
-            SphereCollider const & col = sys.get_sphere_collider(tag.id);
+            SphereCollider const & col = sys.get_sphere_collider(m_tag.id);
             out << col.base_shape();
             break;
         }
         case ColliderType::collider_type_none: {}
     }
-
-    return out;
 }
-
-} // namespace prt3

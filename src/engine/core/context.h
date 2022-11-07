@@ -16,11 +16,15 @@ public:
     Renderer & renderer() { return m_renderer; }
     Input & input() { return m_renderer.input(); }
     ModelManager & model_manager() { return m_model_manager; }
-    Scene & scene() { return m_scene; }
+    Scene & edit_scene() { return m_edit_scene; }
+    Scene & game_scene() { return m_game_scene; }
+
+    void set_game_scene(Scene const & scene) { m_game_scene = scene; }
 private:
     Renderer m_renderer;
     ModelManager m_model_manager;
-    Scene m_scene;
+    Scene m_edit_scene;
+    Scene m_game_scene;
 
     void update_window_size(int w, int h);
 

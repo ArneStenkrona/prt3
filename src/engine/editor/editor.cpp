@@ -24,7 +24,7 @@ void Editor::update(float delta_time) {
 
     if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow)) {
         m_camera.update(delta_time, m_context.input());
-        if (m_context.input().get_key_down(KEY_CODE_MOUSE_LEFT)) {
+        if (m_context.input().get_key_down(KEY_CODE_MOUSE_RIGHT)) {
             int x, y;
             m_context.input().get_cursor_position(x, y);
 

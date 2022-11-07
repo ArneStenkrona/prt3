@@ -26,13 +26,13 @@ typedef FixedString<32> NodeTag;
 class Scene;
 class Node {
 public:
-    Node(NodeID id, Scene & scene);
+    Node(NodeID id);
 
-    Transform get_global_transform() const;
-    void set_global_transform(Transform const & transform);
-    void set_global_position(glm::vec3 const & position);
-    void set_global_rotation(glm::quat const & rotation);
-    void set_global_scale(glm::vec3 scale);
+    Transform get_global_transform(Scene const & scene) const;
+    void set_global_transform(Scene const & scene, Transform const & transform);
+    void set_global_position(Scene const & scene, glm::vec3 const & position);
+    void set_global_rotation(Scene const & scene, glm::quat const & rotation);
+    void set_global_scale(Scene const & scene, glm::vec3 scale);
 
     Transform const & local_transform() const { return m_local_transform; }
     Transform & local_transform() { return m_local_transform; }
@@ -41,14 +41,16 @@ public:
     NodeID parent_id() const { return m_parent_id; }
     std::vector<NodeID> const & children_ids() const { return m_children_ids; }
 
-    Collision move_and_collide(glm::vec3 const & movement);
+    Collision move_and_collide(
+        Scene & scene,
+        glm::vec3 const & movement
+    );
+
 private:
     Transform m_local_transform;
     NodeID m_id;
     NodeID m_parent_id = NO_NODE;
     std::vector<NodeID> m_children_ids;
-
-    Scene & m_scene;
 
     friend class Scene;
 };

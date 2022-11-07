@@ -6,12 +6,12 @@
 
 using namespace prt3;
 
-Node::Node(NodeID id, Scene & scene)
- : m_id{id}, m_scene{scene} {
+Node::Node(NodeID id)
+ : m_id{id} {
 
 }
 
-Transform Node::get_global_transform() const {
+Transform Node::get_global_transform(Scene const & scene) const {
     NodeID curr_id = m_parent_id;
 
     Transform tform;
@@ -20,7 +20,7 @@ Transform Node::get_global_transform() const {
     tform.rotation = m_local_transform.rotation;
 
     while (curr_id != NO_NODE) {
-        Node const & curr = m_scene.get_node(curr_id);
+        Node const & curr = scene.get_node(curr_id);
         Transform const & curr_tform = curr.local_transform();
         tform.position = curr_tform.position +
             glm::rotate(
@@ -35,8 +35,11 @@ Transform Node::get_global_transform() const {
     return tform;
 }
 
-void Node::set_global_transform(Transform const & transform) {
-    Transform global = get_global_transform();
+void Node::set_global_transform(
+    Scene const & scene,
+    Transform const & transform
+) {
+    Transform global = get_global_transform(scene);
     glm::vec3 delta_pos = transform.position - global.position;
     glm::vec3 delta_scale = transform.scale / global.scale;
     glm::quat delta_rot = transform.rotation
@@ -47,13 +50,16 @@ void Node::set_global_transform(Transform const & transform) {
     m_local_transform.rotation = delta_rot * m_local_transform.rotation;
 }
 
-void Node::set_global_position(glm::vec3 const & position) {
+void Node::set_global_position(
+    Scene const & scene,
+    glm::vec3 const & position
+) {
     NodeID curr_id = m_parent_id;
 
     glm::vec3 pos_p{0.0f};
 
     while (curr_id != NO_NODE) {
-        Node const & curr = m_scene.get_node(curr_id);
+        Node const & curr = scene.get_node(curr_id);
         Transform const & curr_tform = curr.local_transform();
         pos_p = curr_tform.position +
             glm::rotate(
@@ -66,13 +72,16 @@ void Node::set_global_position(glm::vec3 const & position) {
     m_local_transform.position = position - pos_p;
 }
 
-void Node::set_global_rotation(glm::quat const & rotation) {
+void Node::set_global_rotation(
+    Scene const & scene,
+    glm::quat const & rotation
+) {
     NodeID curr_id = m_parent_id;
 
     glm::quat rot_p{1.0f, 0.0f, 0.0f, 0.0f};
 
     while (curr_id != NO_NODE) {
-        Node const & curr = m_scene.get_node(curr_id);
+        Node const & curr = scene.get_node(curr_id);
         rot_p = rot_p * curr.local_transform().rotation;
 
         curr_id = curr.m_parent_id;
@@ -81,13 +90,16 @@ void Node::set_global_rotation(glm::quat const & rotation) {
     m_local_transform.rotation = rotation * glm::inverse(rot_p);
 }
 
-void Node::set_global_scale(glm::vec3 scale) {
+void Node::set_global_scale(
+    Scene const & scene,
+    glm::vec3 scale
+) {
     NodeID curr_id = m_parent_id;
 
     glm::vec3 scale_p{1.0f};
 
     while (curr_id != NO_NODE) {
-        Node const & curr = m_scene.get_node(curr_id);
+        Node const & curr = scene.get_node(curr_id);
         scale_p = scale_p * curr.local_transform().scale;
 
         curr_id = curr.m_parent_id;
@@ -96,6 +108,9 @@ void Node::set_global_scale(glm::vec3 scale) {
     m_local_transform.scale = scale / scale_p;
 }
 
-Collision Node::move_and_collide(glm::vec3 const & movement) {
-    return m_scene.m_physics_system.move_and_collide(m_id, movement);
+Collision Node::move_and_collide(
+    Scene & scene,
+    glm::vec3 const & movement
+) {
+    return scene.m_physics_system.move_and_collide(scene, m_id, movement);
 }

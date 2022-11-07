@@ -21,15 +21,16 @@ public:
 
     PointLight const & light() const { return m_light; }
     PointLight & light() { return m_light; }
+
+    void serialize(
+        std::ostream & out,
+        Scene const & scene
+    ) const;
+
 private:
     NodeID m_node_id;
     PointLight m_light;
 };
-
-std::ostream & operator << (
-    std::ostream & out,
-    PointLightComponent const & component
-);
 
 } // namespace prt3
 

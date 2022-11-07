@@ -2,6 +2,7 @@
 #define PRT3_SCENE_H
 
 #include "src/engine/scene/node.h"
+#include "src/engine/scene/script_container.h"
 #include "src/engine/scene/signal.h"
 #include "src/engine/scene/transform_cache.h"
 #include "src/engine/component/component_manager.h"
@@ -23,14 +24,10 @@ class Context;
 class Scene {
 public:
     Scene(Context & context);
-    ~Scene();
 
     void serialize(std::ostream & out) const;
     void deserialize(std::istream & in);
     void clear() { internal_clear(true); }
-
-    Scene(Scene const & other) = delete;
-    Scene & operator=(Scene const & other) = delete;
 
     NodeID add_node(NodeID parent_id, const char * name);
     NodeID add_node_to_root(const char * name) { return add_node(m_root_id, name); }
@@ -50,12 +47,14 @@ public:
     Camera & get_camera() { return m_camera; }
     Input & get_input();
 
-    Script const * get_script(ScriptID id) const { return m_scripts[id]; }
-    Script * get_script(ScriptID id) { return m_scripts[id]; }
+    Script const * get_script(ScriptID id) const
+    { return m_script_container.scripts()[id]; }
+    Script * get_script(ScriptID id)
+    { return m_script_container.scripts()[id]; }
 
     template<typename ComponentType, typename... ArgTypes>
     ComponentType & add_component(NodeID id, ArgTypes... args) {
-        return m_component_manager.add_component<ComponentType>(id, args...);
+        return m_component_manager.add_component<ComponentType>(*this, id, args...);
     }
 
     /**
@@ -82,19 +81,19 @@ public:
     ScriptID add_script(NodeID id) {
         auto & man = m_component_manager;
         if (!man.has_component<ScriptSet>(id)) {
-            man.add_component<ScriptSet>(id);
+            man.add_component<ScriptSet>(*this, id);
         }
-        return man.get_component<ScriptSet>(id).add_script<T>();
+        return man.get_component<ScriptSet>(id).add_script<T>(*this);
     }
 
     template<typename T>
     T * get_script(ScriptID id) {
-        return dynamic_cast<T*>(m_scripts[id]);
+        return dynamic_cast<T*>(m_script_container.scripts()[id]);
     }
 
     template<typename T>
     T const * get_script(ScriptID id) const {
-        return dynamic_cast<T const *>(m_scripts[id]);
+        return dynamic_cast<T const *>(m_script_container.scripts()[id]);
     }
 
     void connect_signal(SignalString const & signal,
@@ -129,7 +128,7 @@ public:
     ModelManager const & model_manager() const;
 
 private:
-    Context & m_context;
+    Context * m_context;
 
     Camera m_camera;
 
@@ -137,9 +136,7 @@ private:
     std::vector<Node> m_nodes;
     std::vector<NodeName> m_node_names;
 
-    std::vector<Script *> m_scripts;
-    std::vector<Script *> m_init_queue;
-    std::vector<Script *> m_late_init_queue;
+    ScriptContainer m_script_container;
 
     std::unordered_map<SignalString, std::unordered_set<Script *> >
         m_signal_connections;
@@ -166,19 +163,19 @@ private:
     void update_window_size(int w, int h);
 
     ScriptID internal_add_script(Script * script) {
-        ScriptID id = m_scripts.size();
-        m_scripts.push_back(script);
-        m_init_queue.push_back(script);
-        m_late_init_queue.push_back(script);
+        ScriptID id = m_script_container.scripts().size();
+        m_script_container.scripts().push_back(script);
+        m_script_container.init_queue().push_back(script);
+        m_script_container.late_init_queue().push_back(script);
         return id;
     }
 
     Script const * internal_get_script(ScriptID id) const {
-        return m_scripts[id];
+        return m_script_container.scripts()[id];
     }
 
     Script * internal_get_script(ScriptID id) {
-        return m_scripts[id];
+        return m_script_container.scripts()[id];
     }
 
     void internal_clear(bool place_root);

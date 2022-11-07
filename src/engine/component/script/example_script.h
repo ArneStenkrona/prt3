@@ -13,12 +13,14 @@ public:
     explicit ExampleScript(Scene & scene, NodeID node_id)
         : Script(scene, node_id) {}
 
-    virtual void on_init() {
+    virtual void on_init(Scene &) {
         std::cout << "on_init()" << std::endl;
     }
-    virtual void on_update(float) {
+    virtual void on_update(Scene &, float) {
         std::cout << "on_update()" << std::endl;
     }
+
+    virtual Script * copy() const { return new ExampleSCript(*this); }
 
 protected:
     static constexpr UUID s_uuid = 10447271495191217112ull;

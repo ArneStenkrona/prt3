@@ -4,16 +4,14 @@
 
 using namespace prt3;
 
-PhysicsSystem::PhysicsSystem(Scene & scene)
- : m_scene{scene} {}
-
 ColliderTag PhysicsSystem::add_mesh_collider(
     NodeID node_id,
-    std::vector<glm::vec3> && triangles
+    std::vector<glm::vec3> && triangles,
+    Transform const & transform
 ) {
     ColliderTag tag = create_collider_from_triangles(
         std::move(triangles),
-        m_scene.get_node(node_id).get_global_transform()
+        transform
     );
 
     m_tags[node_id] = tag;
@@ -24,11 +22,12 @@ ColliderTag PhysicsSystem::add_mesh_collider(
 
 ColliderTag PhysicsSystem::add_mesh_collider(
     NodeID node_id,
-    Model const & model
+    Model const & model,
+    Transform const & transform
 ) {
     ColliderTag tag = create_collider_from_model(
         model,
-        m_scene.get_node(node_id).get_global_transform()
+        transform
     );
 
     m_tags[node_id] = tag;
@@ -39,11 +38,12 @@ ColliderTag PhysicsSystem::add_mesh_collider(
 
 ColliderTag PhysicsSystem::add_sphere_collider(
     NodeID node_id,
-    Sphere const & sphere
+    Sphere const & sphere,
+    Transform const & transform
 ) {
     ColliderTag tag = create_sphere_collider(
         sphere,
-        m_scene.get_node(node_id).get_global_transform()
+        transform
     );
     m_tags[node_id] = tag;
     m_node_ids[tag] = node_id;
@@ -51,26 +51,29 @@ ColliderTag PhysicsSystem::add_sphere_collider(
     return tag;
 }
 
-Collision PhysicsSystem::move_and_collide(NodeID node_id,
-                                          glm::vec3 const & movement) {
+Collision PhysicsSystem::move_and_collide(
+    Scene & scene,
+    NodeID node_id,
+    glm::vec3 const & movement
+) {
     Collision res{};
 
     ColliderTag const & tag = m_tags[node_id];
-    Node & node = m_scene.get_node(node_id);
+    Node & node = scene.get_node(node_id);
 
-    Transform transform = node.get_global_transform();
+    Transform transform = node.get_global_transform(scene);
     Transform start_transform = transform;
 
     switch (tag.type) {
         case ColliderType::collider_type_sphere: {
             SphereCollider const & col = m_sphere_colliders[tag.id];
-            res = move_and_collide(tag, col, movement, transform);
+            res = move_and_collide(scene, tag, col, movement, transform);
             break;
         }
         // TODO: mesh
         default: {}
     }
-    node.set_global_transform(transform);
+    node.set_global_transform(scene, transform);
 
     if (transform != start_transform) {
         AABB aabb;
@@ -152,8 +155,12 @@ ColliderTag PhysicsSystem::create_sphere_collider(
     return tag;
 }
 
-Node & PhysicsSystem::get_node(NodeID node_id) {
-    return m_scene.get_node(node_id);
+Node & PhysicsSystem::get_node(Scene & scene, NodeID node_id) {
+    return scene.get_node(node_id);
+}
+
+Transform PhysicsSystem::get_global_transform(Scene & scene, NodeID node_id) {
+    return scene.get_node(node_id).get_global_transform(scene);
 }
 
 void PhysicsSystem::clear() {

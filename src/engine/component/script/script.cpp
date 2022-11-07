@@ -4,16 +4,14 @@
 
 using namespace prt3;
 
-Script::Script(Scene & scene, NodeID node_id)
- : m_scene{scene},
-   m_node_id{node_id} {
-
+Script::Script(Scene &, NodeID node_id)
+ : m_node_id{node_id} {
 }
 
-Node & Script::get_node() { return m_scene.get_node(m_node_id); }
+Node & Script::get_node(Scene & scene) { return scene.get_node(m_node_id); }
 
-bool Script::add_tag(NodeTag const & tag) {
-    return m_scene.add_tag_to_node(tag, m_node_id);
+bool Script::add_tag(Scene & scene, NodeTag const & tag) {
+    return scene.add_tag_to_node(tag, m_node_id);
 }
 
 std::unordered_map<UUID, Script::TScript>

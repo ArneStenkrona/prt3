@@ -57,7 +57,7 @@ void Renderer::upload_model(ModelManager::ModelHandle handle,
 
 void Renderer::set_window_size(int w, int h) {
     SDL_SetWindowSize(m_window, w, h);
-    m_context.scene().update_window_size(w, h);
+    m_context.edit_scene().update_window_size(w, h);
     m_window_width = w;
     m_window_height = h;
 }

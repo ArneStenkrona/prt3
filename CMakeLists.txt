@@ -66,6 +66,7 @@ file(GLOB SOURCES
 "src/engine/rendering/renderer.cpp"
 "src/engine/scene/node.cpp"
 "src/engine/scene/scene.cpp"
+"src/engine/scene/script_container.cpp"
 "src/engine/scene/transform_cache.cpp"
 # libs
 "lib/imgui/*.cpp"

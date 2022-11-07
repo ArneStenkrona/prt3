@@ -16,19 +16,14 @@ PointLightComponent::PointLightComponent(
     Scene &,
     NodeID node_id,
     std::istream & in
-) : m_node_id{node_id} {
+)
+ : m_node_id{node_id} {
     in >> m_light;
 }
 
-namespace prt3 {
-
-std::ostream & operator << (
+void PointLightComponent::serialize(
     std::ostream & out,
-    PointLightComponent const & component
-) {
-    out << component.light();
-
-    return out;
+    Scene const &
+) const {
+    out << m_light;
 }
-
-} // namespace prt3

@@ -22,19 +22,19 @@ public:
     inline float get_target_distance() const { return m_target_distance; }
     inline void set_target_distance(float distance) { m_target_distance = distance; }
 
-    virtual void on_late_init() {
-        NodeID player_id = scene().find_node_by_tag("player");
+    virtual void on_late_init(Scene & scene) {
+        NodeID player_id = scene.find_node_by_tag("player");
         set_target(player_id);
     }
 
-    virtual void on_init() {
-        scene().get_camera().set_orthographic_projection(true);
+    virtual void on_init(Scene & scene) {
+        scene.get_camera().set_orthographic_projection(true);
     }
 
-    virtual void on_late_update(float /*delta_time*/) {
-        Camera & camera = scene().get_camera();
+    virtual void on_late_update(Scene & scene, float /*delta_time*/) {
+        Camera & camera = scene.get_camera();
         Transform & cam_tform = camera.transform();
-        Input & input = scene().get_input();
+        Input & input = scene.get_input();
 
         //Mouse
         int x, y;
@@ -58,8 +58,8 @@ public:
 
         glm::vec3 target_pos{0.0f, 0.0f, 0.0f};
         if (m_target != NO_NODE) {
-            Node & t_node = scene().get_node(m_target);
-            target_pos = t_node.get_global_transform().position;
+            Node & t_node = scene.get_node(m_target);
+            target_pos = t_node.get_global_transform(scene).position;
         }
         camera.transform().position =
             target_pos - (m_target_distance * camera.get_front());
@@ -67,8 +67,11 @@ public:
         glm::vec3 pos = camera.get_position();
         Transform tform;
         tform.position = pos;
-        get_node().set_global_transform(tform);
+        get_node(scene).set_global_transform(scene, tform);
     }
+
+    virtual Script * copy() const { return new CameraController(*this); }
+
 protected:
     static constexpr UUID s_uuid = 17005293234220491566ull;
     virtual UUID uuid() const {

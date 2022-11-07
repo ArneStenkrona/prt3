@@ -20,13 +20,13 @@ public:
     explicit CharacterController(Scene & scene, NodeID m_node_id)
         : Script(scene, m_node_id) {}
 
-    virtual void on_init() {
-        add_tag("player");
+    virtual void on_init(Scene & scene) {
+        add_tag(scene, "player");
     }
 
-    virtual void on_update(float delta_time) {
-        Camera & camera = scene().get_camera();
-        Input & input = scene().get_input();
+    virtual void on_update(Scene & scene, float delta_time) {
+        Camera & camera = scene.get_camera();
+        Input & input = scene.get_input();
 
         float speed = 20.0f * delta_time;
 
@@ -69,13 +69,13 @@ public:
             if (raw_look_dir != glm::vec3{0.0f}) {
                 glm::vec3 look_dir = glm::normalize(raw_look_dir);
                 glm::quat rot = glm::rotation(glm::vec3{0.0f, 0.0f, 1.0f}, look_dir);
-                get_node().set_global_rotation(rot);
+                get_node(scene).set_global_rotation(scene, rot);
             }
         }
 
         translation += m_gravity_velocity * m_gravity_direction;
 
-        auto res = get_node().move_and_collide(translation);
+        auto res = get_node(scene).move_and_collide(scene, translation);
         if (res.grounded) {
             m_gravity_velocity = 0.0f;
             m_gravity_direction = -res.ground_normal;
@@ -87,6 +87,9 @@ public:
             terminal_velocity * delta_time
         );
     }
+
+    virtual Script * copy() const { return new CharacterController(*this); }
+
 protected:
     static constexpr UUID s_uuid = 7387722065150816170ull;
     virtual UUID uuid() const {

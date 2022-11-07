@@ -16,19 +16,15 @@ public:
     NodeID node_id() const { return m_node_id; }
     ResourceID resource_id() const { return m_resource_id; }
 
-    Scene const & scene() const { return m_scene; }
-    Scene & scene() { return m_scene; }
+    void serialize(
+        std::ostream & out,
+        Scene const & scene
+    ) const;
 
 private:
-    Scene & m_scene;
     NodeID m_node_id;
     ResourceID m_resource_id;
 };
-
-std::ostream & operator << (
-    std::ostream & out,
-    Mesh const & component
-);
 
 } // namespace prt3
 

@@ -13,7 +13,6 @@
 
 #include <vector>
 #include <array>
-#include <set>
 
 namespace prt3 {
 

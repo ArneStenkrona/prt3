@@ -5,15 +5,13 @@
 
 using namespace prt3;
 
-Mesh::Mesh(Scene & scene, NodeID node_id, ResourceID resource_id)
- : m_scene{scene},
-   m_node_id{node_id},
+Mesh::Mesh(Scene &, NodeID node_id, ResourceID resource_id)
+ : m_node_id{node_id},
    m_resource_id{resource_id} {}
 
 Mesh::Mesh(Scene & scene, NodeID node_id, std::istream & in)
- : m_scene{scene},
-   m_node_id{node_id} {
-    ModelManager & man = m_scene.model_manager();
+ : m_node_id{node_id} {
+    ModelManager & man = scene.model_manager();
 
     size_t n_path;
 
@@ -23,7 +21,6 @@ Mesh::Mesh(Scene & scene, NodeID node_id, std::istream & in)
     path.resize(n_path);
 
     in.read(path.data(), path.size());
-
 
     int32_t mesh_index;
     read_stream(in, mesh_index);
@@ -35,15 +32,12 @@ Mesh::Mesh(Scene & scene, NodeID node_id, std::istream & in)
     );
 }
 
-namespace prt3 {
-
-std::ostream & operator << (
+void Mesh::serialize(
     std::ostream & out,
-    Mesh const & component
-) {
-    Scene const & scene = component.scene();
+    Scene const & scene
+) const {
     ModelManager const & man = scene.model_manager();
-    ResourceID id = component.resource_id();
+    ResourceID id = m_resource_id;
     Model const & model = man.get_model_from_mesh_id(id);
 
     std::string const & path = model.path();
@@ -52,8 +46,4 @@ std::ostream & operator << (
     out.write(path.data(), path.size());
 
     write_stream(out, man.get_mesh_index_from_mesh_id(id));
-
-    return out;
 }
-
-} // namespace prt3
