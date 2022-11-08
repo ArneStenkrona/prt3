@@ -9,3 +9,8 @@ Context::Context()
    m_game_scene{*this} {
 
 }
+
+Context::~Context() {
+  m_edit_scene.clear();
+  m_game_scene.clear();
+}

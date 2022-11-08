@@ -54,3 +54,9 @@ void ScriptSet::serialize(
         script->serialize(out);
     }
 }
+
+void ScriptSet::remove(Scene & scene) {
+    for (ScriptID id : get_all_scripts()) {
+        scene.remove_script(id);
+    }
+}

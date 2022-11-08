@@ -21,14 +21,20 @@ public:
     NodeID node_id() const { return m_node_id; }
     ColliderTag tag() const { return m_tag; }
 
+
     void serialize(
         std::ostream & out,
         Scene const & scene
     ) const;
 
 private:
+
     NodeID m_node_id;
     ColliderTag m_tag;
+
+    void remove(Scene & scene);
+
+    friend class ComponentManager;
 };
 
 }

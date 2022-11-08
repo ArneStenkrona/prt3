@@ -30,10 +30,12 @@ public:
     void clear() { internal_clear(true); }
 
     NodeID add_node(NodeID parent_id, const char * name);
-    NodeID add_node_to_root(const char * name) { return add_node(m_root_id, name); }
+    NodeID add_node_to_root(const char * name) { return add_node(s_root_id, name); }
     NodeID get_next_available_node_id() const { return m_nodes.size(); }
 
-    NodeID get_root_id() const { return m_root_id; }
+    NodeID get_root_id() const { return s_root_id; }
+
+    bool remove_node(NodeID id);
 
     void set_node_local_position(NodeID node_id, glm::vec3 const & local_position)
         { m_nodes[node_id].m_local_transform.position = local_position; }
@@ -48,9 +50,9 @@ public:
     Input & get_input();
 
     Script const * get_script(ScriptID id) const
-    { return m_script_container.scripts()[id]; }
+    { return m_script_container.scripts().at(id); }
     Script * get_script(ScriptID id)
-    { return m_script_container.scripts()[id]; }
+    { return m_script_container.scripts().at(id); }
 
     template<typename ComponentType, typename... ArgTypes>
     ComponentType & add_component(NodeID id, ArgTypes... args) {
@@ -88,13 +90,15 @@ public:
 
     template<typename T>
     T * get_script(ScriptID id) {
-        return dynamic_cast<T*>(m_script_container.scripts()[id]);
+        return dynamic_cast<T*>(m_script_container.scripts().at(id));
     }
 
     template<typename T>
     T const * get_script(ScriptID id) const {
-        return dynamic_cast<T const *>(m_script_container.scripts()[id]);
+        return dynamic_cast<T const *>(m_script_container.scripts().at(id));
     }
+
+    void remove_script(ScriptID id) { m_script_container.remove(id); }
 
     void connect_signal(SignalString const & signal,
                         Script * script) {
@@ -132,7 +136,7 @@ private:
 
     Camera m_camera;
 
-    static constexpr NodeID m_root_id = 0;
+    static constexpr NodeID s_root_id = 0;
     std::vector<Node> m_nodes;
     std::vector<NodeName> m_node_names;
 
@@ -163,19 +167,15 @@ private:
     void update_window_size(int w, int h);
 
     ScriptID internal_add_script(Script * script) {
-        ScriptID id = m_script_container.scripts().size();
-        m_script_container.scripts().push_back(script);
-        m_script_container.init_queue().push_back(script);
-        m_script_container.late_init_queue().push_back(script);
-        return id;
+        return m_script_container.add_script(script);
     }
 
     Script const * internal_get_script(ScriptID id) const {
-        return m_script_container.scripts()[id];
+        return m_script_container.scripts().at(id);
     }
 
     Script * internal_get_script(ScriptID id) {
-        return m_script_container.scripts()[id];
+        return m_script_container.scripts().at(id);
     }
 
     void internal_clear(bool place_root);

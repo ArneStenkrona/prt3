@@ -99,3 +99,8 @@ void ColliderComponent::serialize(
         case ColliderType::collider_type_none: {}
     }
 }
+
+void ColliderComponent::remove(Scene & scene) {
+    PhysicsSystem & sys = scene.physics_system();
+    sys.remove_collider(m_tag);
+}

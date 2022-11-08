@@ -24,6 +24,10 @@ public:
 private:
     NodeID m_node_id;
     ResourceID m_resource_id;
+
+    void remove(Scene & /*scene*/) { /* TODO: perhaps ref-counting ? */}
+
+    friend class ComponentManager;
 };
 
 } // namespace prt3

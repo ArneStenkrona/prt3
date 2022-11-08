@@ -51,6 +51,28 @@ ColliderTag PhysicsSystem::add_sphere_collider(
     return tag;
 }
 
+void PhysicsSystem::remove_collider(ColliderTag tag) {
+    switch (tag.type) {
+        case ColliderType::collider_type_mesh: {
+            m_mesh_colliders.erase(tag.id);
+            break;
+        }
+        case ColliderType::collider_type_sphere: {
+            m_sphere_colliders.erase(tag.id);
+            break;
+        }
+        case ColliderType::collider_type_none: {
+            return;
+        }
+    }
+
+    NodeID node_id = m_node_ids[tag];
+    m_node_ids.erase(tag);
+    m_tags.erase(node_id);
+
+    m_aabb_tree.remove(tag);
+}
+
 Collision PhysicsSystem::move_and_collide(
     Scene & scene,
     NodeID node_id,

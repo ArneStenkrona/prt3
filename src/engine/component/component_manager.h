@@ -55,6 +55,15 @@ public:
         return get_component_storage<ComponentType>().has_component(id);
     }
 
+    template<typename ComponentType>
+    bool remove_component(Scene & scene, NodeID id) const {
+        return get_component_storage<ComponentType>()
+            .remove_component(scene, id);
+    }
+
+    void remove_all_components(Scene & scene, NodeID id)
+    { remove_components(scene, id, m_component_storages); }
+
     void serialize(
         std::ostream & out,
         Scene const & scene,
@@ -88,7 +97,7 @@ private:
         template<typename... ArgTypes>
         ComponentType & add(Scene & scene, NodeID id, ArgTypes & ... args) {
             if (static_cast<NodeID>(node_map.size()) <= id) {
-                node_map.resize(id + 1);
+                node_map.resize(id + 1, NO_COMPONENT);
                 node_map[id] = components.size();
                 components.emplace_back(scene, id, args...);
                 return components.back();
@@ -141,6 +150,26 @@ private:
         void clear() {
             node_map.clear();
             components.clear();
+        }
+
+        bool remove_component(Scene & scene, NodeID id) {
+            if (!has_component(id)) {
+                return false;
+            }
+
+            InternalID c_id = node_map[id];
+            components[c_id].remove(scene);
+            node_map[id] = NO_COMPONENT;
+
+            if (c_id + 1 != components.size()) {
+                NodeID swap = components.back().node_id();
+                components[c_id] = components.back();
+                node_map[swap] = c_id;
+            }
+
+            components.pop_back();
+
+            return true;
         }
     };
 
@@ -220,6 +249,19 @@ private:
 
         if constexpr(I+1 != sizeof...(Tp))
             deserialize_storage<I+1>(in, scene, t);
+    }
+
+    template<size_t I = 0, typename... Tp>
+    void remove_components(
+        Scene & scene,
+        NodeID id,
+        std::tuple<Tp...> & t
+    ) {
+        auto & storage = std::get<I>(t);
+        storage.remove_component(scene, id);
+
+        if constexpr(I+1 != sizeof...(Tp))
+            remove_components<I+1>(scene, id, t);
     }
 
     friend class Scene;

@@ -80,6 +80,8 @@ private:
         Transform const & transform
     );
 
+    void remove_collider(ColliderTag tag);
+
     Node & get_node(Scene & scene, NodeID node_id);
     Transform get_global_transform(Scene & scene, NodeID node_id);
 

@@ -30,6 +30,10 @@ public:
 private:
     NodeID m_node_id;
     PointLight m_light;
+
+    void remove(Scene & /*scene*/) {}
+
+    friend class ComponentManager;
 };
 
 } // namespace prt3

@@ -15,7 +15,7 @@ Scene::Scene(Context & context)
    m_camera{context.renderer().window_width(),
             context.renderer().window_height()}
 {
-    m_nodes.emplace_back(m_root_id);
+    m_nodes.emplace_back(s_root_id);
     m_node_names.emplace_back("root");
 
     // FOR DEBUGGING, WILL REMOVE ---->
@@ -23,7 +23,7 @@ Scene::Scene(Context & context)
         .add_model_to_scene_from_path(
             "assets/models/test_room/test_room.fbx",
             *this,
-            m_root_id
+            s_root_id
         );
 
     Model room_model{"assets/models/test_room/test_room.fbx"};
@@ -42,7 +42,7 @@ Scene::Scene(Context & context)
         .add_model_to_scene_from_path(
             "assets/models/stranger/stranger.fbx",
             *this,
-            m_root_id
+            s_root_id
         );
     get_node(character).local_transform().scale = glm::vec3(0.45f);
     get_node(character).local_transform().position.y = 1.0f;
@@ -63,7 +63,7 @@ Scene::Scene(Context & context)
     NodeID cube = m_context->model_manager()
         .add_model_to_scene_from_path("assets/models/debug/character_cube.fbx",
         *this,
-        m_root_id
+        s_root_id
     );
     get_node(cube).set_global_position(*this, glm::vec3(2.0f, 0.0f, 0.0f));
 
@@ -73,7 +73,7 @@ Scene::Scene(Context & context)
     m_transform_cache.collect_global_transforms(
         m_nodes.data(),
         m_nodes.size(),
-        m_root_id
+        s_root_id
     );
     // <---- FOR DEBUGGING, WILL REMOVE
 
@@ -94,7 +94,7 @@ void Scene::update_transform_cache() {
     m_transform_cache.collect_global_transforms(
         m_nodes.data(),
         m_nodes.size(),
-        m_root_id
+        s_root_id
     );
 }
 
@@ -109,6 +109,42 @@ NodeID Scene::add_node(NodeID parent_id, const char * name) {
     m_node_names.emplace_back(name);
 
     return id;
+}
+
+bool Scene::remove_node(NodeID id) {
+    if (id == NO_NODE || id == s_root_id) {
+        return false;
+    }
+
+    static std::vector<NodeID> queue;
+    queue.push_back(id);
+    while (!queue.empty()) {
+        NodeID q_id = queue.back();
+        Node & q_node = get_node(q_id);
+        queue.pop_back();
+
+        q_node.m_id = NO_NODE;
+        m_component_manager.remove_all_components(*this, q_id);
+
+        for (NodeID const & child_id : q_node.children_ids()) {
+            queue.push_back(child_id);
+        }
+    }
+
+    Node & node = get_node(id);
+    if (node.parent_id() != NO_NODE) {
+        Node & parent = get_node(node.parent_id());
+
+        for (auto it = parent.m_children_ids.begin();
+             it != parent.m_children_ids.end(); ++it) {
+            if (*it == id) {
+                parent.m_children_ids.erase(it);
+                break;
+            }
+        }
+    }
+
+    return true;
 }
 
 Input & Scene::get_input() {
@@ -275,7 +311,7 @@ void Scene::internal_clear(bool place_root) {
     m_nodes.clear();
     m_node_names.clear();
     if (place_root) {
-        m_nodes.emplace_back(m_root_id);
+        m_nodes.emplace_back(s_root_id);
         m_node_names.emplace_back("root");
     }
 

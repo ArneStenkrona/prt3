@@ -12,6 +12,10 @@ namespace prt3 {
 class Context {
 public:
     Context();
+    Context(Context const & other) = delete;
+    Context & operator=(Context const & other) = delete;
+
+    ~Context();
 
     Renderer & renderer() { return m_renderer; }
     Input & input() { return m_renderer.input(); }

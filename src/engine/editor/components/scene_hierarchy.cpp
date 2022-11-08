@@ -51,12 +51,17 @@ void prt3::scene_hierarchy(EditorContext & context) {
 
     unsigned int n_displayed = 0;
     static int32_t selected = 0;
+    selected = 0;
 
     while (!queue.empty()) {
         NodeID id = queue.back().id;
         unsigned int depth = queue.back().depth;
         queue.pop_back();
         Node & node = nodes[id];
+
+        if (node.id() == NO_NODE) {
+            std::cout << "ERRRRRROOOORORORORORR1!!!11!" << std::endl;
+        }
 
         node_ids[n_displayed] = id;
 
@@ -125,7 +130,7 @@ void prt3::scene_hierarchy(EditorContext & context) {
     }
 
     ImGui::NewLine();
-    if (ImGui::Button("Add Entity")) {
+    if (ImGui::Button("Add Node")) {
         Scene & scene = context.scene();
 
         NodeID parent = context.get_selected_node();
@@ -136,6 +141,22 @@ void prt3::scene_hierarchy(EditorContext & context) {
         NodeID id = scene.add_node(parent, "new node");
 
         context.set_selected_node(id);
+    }
+
+    if (context.get_selected_node() != NO_NODE &&
+        context.get_selected_node() != context.scene().get_root_id()) {
+        ImGui::NewLine();
+        if (ImGui::Button("Remove Node")) {
+            Scene & scene = context.scene();
+            NodeID to_remove = context.get_selected_node();
+
+            NodeID parent = context.scene().get_node(to_remove).parent_id();
+            context.set_selected_node(parent);
+
+            expanded[to_remove] = false;
+
+            scene.remove_node(to_remove);
+        }
     }
 
     end_group_panel();

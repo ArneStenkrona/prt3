@@ -66,6 +66,10 @@ private:
 
     ScriptID add_script_to_scene(Scene & scene, Script * script);
     Script * get_script_from_scene(Scene & scene, ScriptID id);
+
+    void remove(Scene & scene);
+
+    friend class ComponentManager;
 };
 
 } // namespace prt3
