@@ -7,6 +7,8 @@
 namespace prt3 {
 
 class Scene;
+template<typename T>
+class ComponentStorage;
 
 class PointLightComponent {
 public:
@@ -27,13 +29,15 @@ public:
         Scene const & scene
     ) const;
 
+    static char const * name() { return "Point Light"; }
+
 private:
     NodeID m_node_id;
     PointLight m_light;
 
     void remove(Scene & /*scene*/) {}
 
-    friend class ComponentManager;
+    friend class ComponentStorage<PointLightComponent>;
 };
 
 } // namespace prt3

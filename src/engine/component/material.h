@@ -1,5 +1,5 @@
-#ifndef PRT3_COMPONENT_H
-#define PRT3_COMPONENT_H
+#ifndef PRT3_MATERIAL_COMPONENT_H
+#define PRT3_MATERIAL_COMPONENT_H
 
 #include "src/engine/scene/node.h"
 #include "src/engine/rendering/resources.h"
@@ -7,6 +7,8 @@
 namespace prt3 {
 
 class Scene;
+template<typename T>
+class ComponentStorage;
 
 class Material {
 public:
@@ -21,13 +23,15 @@ public:
         Scene const & scene
     ) const;
 
+    static char const * name() { return "Material"; }
+
 private:
     NodeID m_node_id;
     ResourceID m_resource_id;
 
     void remove(Scene & /*scene*/) { /* TODO: perhaps ref-counting ? */}
 
-    friend class ComponentManager;
+    friend class ComponentStorage<Material>;
 };
 
 } // namespace prt3

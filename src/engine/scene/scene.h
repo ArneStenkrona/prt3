@@ -6,6 +6,7 @@
 #include "src/engine/scene/signal.h"
 #include "src/engine/scene/transform_cache.h"
 #include "src/engine/component/component_manager.h"
+
 #include "src/engine/component/script_set.h"
 #include "src/engine/component/script/script.h"
 #include "src/engine/physics/physics_system.h"
@@ -58,6 +59,12 @@ public:
     ComponentType & add_component(NodeID id, ArgTypes... args) {
         return m_component_manager.add_component<ComponentType>(*this, id, args...);
     }
+
+    template<typename ComponentType>
+    ComponentType & remove_component(NodeID id) {
+        return m_component_manager.remove_component<ComponentType>(*this, id);
+    }
+
 
     /**
      * Note: reference should be considered stale if

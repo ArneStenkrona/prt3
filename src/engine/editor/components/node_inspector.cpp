@@ -1,10 +1,39 @@
 #include "node_inspector.h"
 
 #include "src/util/fixed_string.h"
+#include "src/engine/component/component.h"
 #include "src/engine/editor/components/panel.h"
 #include "src/engine/component/transform.h"
+#include "src/util/template_util.h"
 
 using namespace prt3;
+
+template<typename T>
+void show_component(EditorContext & context) {
+    Scene & scene = context.context().edit_scene();
+    NodeID id = context.get_selected_node();
+
+    if (scene.has_component<T>(id)) {
+            begin_group_panel(T::name());
+
+            end_group_panel();
+    }
+}
+
+void do_in_order(EditorContext &) {}
+
+template<class...Fs>
+void do_in_order(EditorContext & context, Fs&&...fs ) {
+    using discard=int[];
+    (void)discard{0, (void(
+    std::forward<Fs>(fs)(context)
+    ),0)... };
+}
+
+template<class...Ts>
+void show_components(EditorContext & context, type_pack<Ts...>) {
+  do_in_order(context, show_component<Ts>... );
+}
 
 void show_name(NodeName & name) {
     ImGui::InputText("Name", name.data(), name.size());
@@ -49,6 +78,9 @@ void prt3::node_inspector(EditorContext & context) {
     if (show_transform(node.local_transform())) {
         context.invalidate_transform_cache();
     }
+
+    show_components(context, ComponentTypes{});
+    // show_components();
 
     ImGui::PopID();
 

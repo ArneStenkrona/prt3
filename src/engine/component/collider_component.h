@@ -11,6 +11,8 @@
 namespace prt3 {
 
 class Scene;
+template<typename T>
+class ComponentStorage;
 
 class ColliderComponent {
 public:
@@ -27,6 +29,8 @@ public:
         Scene const & scene
     ) const;
 
+    static char const * name() { return "Collider"; }
+
 private:
 
     NodeID m_node_id;
@@ -34,7 +38,7 @@ private:
 
     void remove(Scene & scene);
 
-    friend class ComponentManager;
+    friend class ComponentStorage<ColliderComponent>;
 };
 
 }

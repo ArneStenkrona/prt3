@@ -8,6 +8,8 @@
 namespace prt3 {
 
 class Scene;
+template<typename T>
+class ComponentStorage;
 
 class ScriptSet {
 public:
@@ -60,6 +62,8 @@ public:
         Scene const & scene
     ) const;
 
+    static char const * name() { return "Script Set"; }
+
 private:
     std::vector<ScriptID> m_script_ids;
     NodeID m_node_id;
@@ -69,7 +73,7 @@ private:
 
     void remove(Scene & scene);
 
-    friend class ComponentManager;
+    friend class ComponentStorage<ScriptSet>;
 };
 
 } // namespace prt3

@@ -59,10 +59,6 @@ void prt3::scene_hierarchy(EditorContext & context) {
         queue.pop_back();
         Node & node = nodes[id];
 
-        if (node.id() == NO_NODE) {
-            std::cout << "ERRRRRROOOORORORORORR1!!!11!" << std::endl;
-        }
-
         node_ids[n_displayed] = id;
 
         char * begin = display_names[n_displayed].data();
