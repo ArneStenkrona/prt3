@@ -35,7 +35,12 @@ void inner_show_component<Material>(
 
     static FixedString<64> name;
     name = material.name.c_str();
-    ImGui::InputText("name", name.data(), name.size(), ImGuiInputTextFlags_ReadOnly);
+    ImGui::InputText(
+        "name",
+        name.data(),
+        name.size(),
+        ImGuiInputTextFlags_ReadOnly
+    );
 
     glm::vec4 albedo = material.albedo;
     float* albedo_p = reinterpret_cast<float*>(&albedo);
