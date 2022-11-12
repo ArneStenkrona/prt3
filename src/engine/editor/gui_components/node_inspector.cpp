@@ -2,14 +2,16 @@
 
 #include "src/util/fixed_string.h"
 #include "src/engine/component/component.h"
-#include "src/engine/editor/components/panel.h"
+#include "src/engine/editor/gui_components/panel.h"
 #include "src/engine/component/transform.h"
 #include "src/util/template_util.h"
+#include "src/engine/editor/gui_components/component/collider_gui.h"
+#include "src/engine/editor/gui_components/component/material_gui.h"
+#include "src/engine/editor/gui_components/component/mesh_gui.h"
+#include "src/engine/editor/gui_components/component/point_light_gui.h"
+#include "src/engine/editor/gui_components/component/script_set_gui.h"
 
 using namespace prt3;
-
-template<typename T>
-void inner_show_component(EditorContext & /*context*/, NodeID /*id*/);
 
 template<typename T>
 void show_component(EditorContext & context, NodeID id) {
@@ -23,7 +25,7 @@ void show_component(EditorContext & context, NodeID id) {
             "remove"
         );
 
-        // inner_show_component<T>(context, id);
+        inner_show_component<T>(context, id);
 
         end_group_panel();
 
@@ -58,19 +60,22 @@ bool show_transform(Transform & transform) {
     bool ret = false;
 
     begin_group_panel("Transform");
+    ImGui::PushItemWidth(160);
 
     glm::vec3 & position = transform.position;
     glm::quat & rotation = transform.rotation;
     glm::vec3 & scale = transform.scale;
 
     float* vecp = reinterpret_cast<float*>(&position);
-    ret |= ImGui::InputFloat3("pos", vecp, "%.2f");
+    ret |= ImGui::InputFloat3("position", vecp, "%.2f");
 
     float* rotp = reinterpret_cast<float*>(&rotation);
-    ret |= ImGui::InputFloat4("rot", rotp, "%.2f");
+    ret |= ImGui::InputFloat4("rotation", rotp, "%.2f");
 
     float* scalep = reinterpret_cast<float*>(&scale);
     ret |= ImGui::InputFloat3("scale", scalep, "%.2f");
+
+    ImGui::PopItemWidth();
 
     end_group_panel();
 
@@ -78,8 +83,6 @@ bool show_transform(Transform & transform) {
 }
 
 void prt3::node_inspector(EditorContext & context) {
-    begin_group_panel("node");
-
     NodeID id = context.get_selected_node();
     Node & node = context.context().edit_scene().get_node(id);
     NodeName & name = context.context().edit_scene().get_node_name(id);
@@ -97,6 +100,4 @@ void prt3::node_inspector(EditorContext & context) {
     show_components(context, id, ComponentTypes{});
 
     ImGui::PopID();
-
-    end_group_panel();
 }

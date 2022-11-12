@@ -1,7 +1,7 @@
 #include "editor.h"
 
 #include "src/engine/editor/editor_context.h"
-#include "src/engine/editor/components/editor_gui.h"
+#include "src/engine/editor/gui_components/editor_gui.h"
 #include "src/engine/scene/node.h"
 
 #include "imgui.h"

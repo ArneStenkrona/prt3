@@ -1,7 +1,7 @@
 #include "scene_hierarchy.h"
 
 #include "src/util/fixed_string.h"
-#include "src/engine/editor/components/panel.h"
+#include "src/engine/editor/gui_components/panel.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"

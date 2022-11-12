@@ -22,7 +22,10 @@ public:
     Scene & scene() { return context().edit_scene(); }
 
     std::vector<Node> & get_scene_nodes()
-    { return context().edit_scene().m_nodes; }
+    { return scene().m_nodes; }
+
+    ModelManager & get_model_manager()
+    { return scene().model_manager(); }
 
     NodeID get_selected_node() const { return m_selected_node; }
     void set_selected_node(NodeID id) { m_selected_node = id; }

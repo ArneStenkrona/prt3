@@ -1,7 +1,7 @@
 #include "editor_gui.h"
 
-#include "src/engine/editor/components/scene_hierarchy.h"
-#include "src/engine/editor/components/node_inspector.h"
+#include "src/engine/editor/gui_components/scene_hierarchy.h"
+#include "src/engine/editor/gui_components/node_inspector.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
