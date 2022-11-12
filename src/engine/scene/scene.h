@@ -61,10 +61,9 @@ public:
     }
 
     template<typename ComponentType>
-    ComponentType & remove_component(NodeID id) {
+    bool remove_component(NodeID id) {
         return m_component_manager.remove_component<ComponentType>(*this, id);
     }
-
 
     /**
      * Note: reference should be considered stale if

@@ -1,6 +1,6 @@
 #include "panel.h"
 
-void prt3::begin_group_panel(const char* name, const ImVec2& size) {
+void prt3::begin_group_panel(char const * name, ImVec2 const & size) {
     ImGui::BeginGroup();
 
     auto itemSpacing = ImGui::GetStyle().ItemSpacing;
@@ -79,4 +79,61 @@ void prt3::end_group_panel() {
     ImGui::Dummy(ImVec2(0.0f, 0.0f));
 
     ImGui::EndGroup();
+}
+
+bool prt3::begin_group_panel_with_button(
+    char const * name,
+    char const * button_text,
+    ImVec2 const & size
+) {
+    ImGui::BeginGroup();
+
+    auto itemSpacing = ImGui::GetStyle().ItemSpacing;
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+
+    auto frameHeight = ImGui::GetFrameHeight();
+    ImGui::BeginGroup();
+
+    ImVec2 effectiveSize = size;
+    if (size.x < 0.0f) {
+        effectiveSize.x = ImGui::GetContentRegionAvail().x;
+    } else {
+        effectiveSize.x = size.x;
+    }
+    if (size.y < 0.0f) {
+        effectiveSize.y = ImGui::GetContentRegionAvail().y;
+    } else {
+        effectiveSize.y = size.y;
+    }
+
+    ImGui::Dummy(ImVec2(effectiveSize.x, 0.0f));
+
+    ImGui::Dummy(ImVec2(frameHeight * 0.5f, 0.0f));
+    ImGui::SameLine(0.0f, 0.0f);
+    ImGui::BeginGroup();
+    ImGui::Dummy(ImVec2(frameHeight * 0.5f, 0.0f));
+    ImGui::SameLine(0.0f, 0.0f);
+    ImGui::TextUnformatted(name);
+    ImGui::SameLine();
+    ImGui::Dummy(ImVec2(frameHeight * 0.5f, 0.0f));
+
+    ImVec2 text_size = ImGui::CalcTextSize(button_text);
+    ImGui::SameLine(ImGui::GetWindowWidth() - (text_size.x + 30.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(frameHeight * 0.25f, 0.0f));
+    bool ret = ImGui::Button(button_text);
+    ImGui::PopStyleVar();
+
+    ImGui::SameLine(0.0f, 0.0f);
+    ImGui::Dummy(ImVec2(0.0, frameHeight + itemSpacing.y));
+    ImGui::BeginGroup();
+
+    ImGui::PopStyleVar(2);
+
+    ImGui::GetCurrentWindow()->ContentRegionRect.Max.x -= frameHeight * 0.5f;
+    ImGui::GetCurrentWindow()->Size.x                  -= frameHeight;
+
+    ImGui::PushItemWidth(effectiveSize.x - frameHeight);
+
+    return ret;
 }

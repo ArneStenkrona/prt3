@@ -7,8 +7,18 @@
 
 namespace prt3 {
 
-void begin_group_panel(const char* name, const ImVec2& size = ImVec2(-1.0f, -1.0f));
+void begin_group_panel(
+    char const * name,
+    ImVec2 const & size = ImVec2(-1.0f, -1.0f)
+);
+
 void end_group_panel();
+
+bool begin_group_panel_with_button(
+    char const * name,
+    char const * button_text,
+    ImVec2 const & size = ImVec2(-1.0f, -1.0f)
+);
 
 } // namespace prt3
 

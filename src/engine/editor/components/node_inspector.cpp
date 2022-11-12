@@ -9,30 +9,45 @@
 using namespace prt3;
 
 template<typename T>
-void show_component(EditorContext & context) {
+void inner_show_component(EditorContext & /*context*/, NodeID /*id*/);
+
+template<typename T>
+void show_component(EditorContext & context, NodeID id) {
     Scene & scene = context.context().edit_scene();
-    NodeID id = context.get_selected_node();
 
     if (scene.has_component<T>(id)) {
-            begin_group_panel(T::name());
+        ImGui::PushID(T::name());
 
-            end_group_panel();
+        bool remove = begin_group_panel_with_button(
+            T::name(),
+            "remove"
+        );
+
+        // inner_show_component<T>(context, id);
+
+        end_group_panel();
+
+        if (remove) {
+            scene.remove_component<T>(id);
+        }
+
+        ImGui::PopID();
     }
 }
 
 void do_in_order(EditorContext &) {}
 
 template<class...Fs>
-void do_in_order(EditorContext & context, Fs&&...fs ) {
+void do_in_order(EditorContext & context, NodeID id, Fs&&...fs ) {
     using discard=int[];
     (void)discard{0, (void(
-    std::forward<Fs>(fs)(context)
+    std::forward<Fs>(fs)(context, id)
     ),0)... };
 }
 
 template<class...Ts>
-void show_components(EditorContext & context, type_pack<Ts...>) {
-  do_in_order(context, show_component<Ts>... );
+void show_components(EditorContext & context, NodeID id, type_pack<Ts...>) {
+  do_in_order(context, id, show_component<Ts>... );
 }
 
 void show_name(NodeName & name) {
@@ -63,7 +78,7 @@ bool show_transform(Transform & transform) {
 }
 
 void prt3::node_inspector(EditorContext & context) {
-    begin_group_panel("inspector");
+    begin_group_panel("node");
 
     NodeID id = context.get_selected_node();
     Node & node = context.context().edit_scene().get_node(id);
@@ -79,8 +94,7 @@ void prt3::node_inspector(EditorContext & context) {
         context.invalidate_transform_cache();
     }
 
-    show_components(context, ComponentTypes{});
-    // show_components();
+    show_components(context, id, ComponentTypes{});
 
     ImGui::PopID();
 

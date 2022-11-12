@@ -34,6 +34,8 @@ private:
     ResourceID m_next_material_id = 0;
 
     GLShader * m_standard_shader;
+
+    void upload_default_material();
 };
 
 } // namespace prt3;

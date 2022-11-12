@@ -48,7 +48,7 @@ public:
     }
 
     template<typename ComponentType>
-    bool remove_component(Scene & scene, NodeID id) const {
+    bool remove_component(Scene & scene, NodeID id) {
         return get_component_storage<ComponentType>()
             .remove_component(scene, id);
     }

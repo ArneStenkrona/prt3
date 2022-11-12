@@ -182,7 +182,8 @@ void Scene::collect_world_render_data(
         mesh_data.node = id;
 
         mesh_data.transform = global_transforms[id].to_matrix();
-        mesh_data.material_id = get_component<Material>(id).resource_id();
+        mesh_data.material_id = has_component<Material>(id) ?
+            get_component<Material>(id).resource_id() : NO_RESOURCE;
         world_data.mesh_data.push_back(mesh_data);
         if (selected_incl_children.find(id) !=
             selected_incl_children.end()) {
