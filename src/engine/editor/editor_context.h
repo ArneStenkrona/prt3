@@ -25,7 +25,7 @@ public:
     { return scene().m_nodes; }
 
     ModelManager & get_model_manager()
-    { return scene().model_manager(); }
+    { return m_context.model_manager(); }
 
     NodeID get_selected_node() const { return m_selected_node; }
     void set_selected_node(NodeID id) { m_selected_node = id; }
