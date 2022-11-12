@@ -15,9 +15,41 @@ void inner_show_component<PointLightComponent>(
     EditorContext & context,
     NodeID id
 ) {
-//     Scene & scene = context.scene();
-//     ModelManager & man = context.get_model_manager();
-//     PointLightComponent & component = scene.get_component<PointLightComponent>(id);
+    Scene & scene = context.scene();
+    ModelManager & man = context.get_model_manager();
+    PointLightComponent & component = scene.get_component<PointLightComponent>(id);
+
+    PointLight & light = component.light();
+
+    float* color_p = reinterpret_cast<float*>(&light.color);
+    ImGui::ColorEdit4("albedo", color_p);
+
+    ImGui::DragFloat(
+        "quadratic",
+        &light.quadratic_term,
+        0.01f,
+        0.01f,
+        10.0f,
+        "%.2f"
+    );
+
+    ImGui::DragFloat(
+        "linear",
+        &light.linear_term,
+        0.01f,
+        0.01f,
+        10.0f,
+        "%.2f"
+    );
+
+    ImGui::DragFloat(
+        "constant",
+        &light.constant_term,
+        0.01f,
+        0.01f,
+        10.0f,
+        "%.2f"
+    );
 }
 
 } // namespace prt3
