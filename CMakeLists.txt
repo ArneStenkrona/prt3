@@ -53,6 +53,7 @@ file(GLOB SOURCES
 "src/engine/core/engine.cpp"
 "src/engine/core/input.cpp"
 "src/engine/editor/gui_components/editor_gui.cpp"
+"src/engine/editor/gui_components/menu.cpp"
 "src/engine/editor/gui_components/node_inspector.cpp"
 "src/engine/editor/gui_components/panel.cpp"
 "src/engine/editor/gui_components/scene_hierarchy.cpp"

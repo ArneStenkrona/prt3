@@ -1,7 +1,8 @@
 #include "editor_gui.h"
 
-#include "src/engine/editor/gui_components/scene_hierarchy.h"
+#include "src/engine/editor/gui_components/menu.h"
 #include "src/engine/editor/gui_components/node_inspector.h"
+#include "src/engine/editor/gui_components/scene_hierarchy.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
@@ -51,8 +52,21 @@ void prt3::editor_gui(EditorContext & context) {
             ImGui::DockBuilderAddNode(dockspace_id, dockspace_flags | ImGuiDockNodeFlags_DockSpace);
             ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->Size);
 
-            auto dock_id_left = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.2f, nullptr, &dockspace_id);
-            auto dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.25f, nullptr, &dockspace_id);
+            auto dock_id_right = ImGui::DockBuilderSplitNode(
+                dockspace_id,
+                ImGuiDir_Right,
+                0.1f,
+                nullptr,
+                &dockspace_id
+            );
+
+            auto dock_id_left = ImGui::DockBuilderSplitNode(
+                dockspace_id,
+                ImGuiDir_Left,
+                0.2f,
+                nullptr,
+                &dockspace_id
+            );
 
             ImGui::DockBuilderDockWindow("Inspector", dock_id_right);
             ImGui::DockBuilderDockWindow("Scene", dock_id_left);
@@ -61,6 +75,8 @@ void prt3::editor_gui(EditorContext & context) {
     }
 
     ImGui::End();
+
+    menu(context);
 
     ImGui::Begin("Scene");
     scene_hierarchy(context);
