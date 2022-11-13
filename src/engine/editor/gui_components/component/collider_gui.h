@@ -24,18 +24,61 @@ void inner_show_component<ColliderComponent>(
 
     ImGui::PushItemWidth(160);
 
-    const char* types[] = { "mesh", "sphere" };
+    char const * types[] = { "mesh", "sphere" };
+    ColliderType types_enum[] = {
+        ColliderType::collider_type_mesh,
+        ColliderType::collider_type_sphere
+    };
     static int current_type = 0;
+    current_type = tag.type;
+
     ImGui::Combo("type", &current_type, types, IM_ARRAYSIZE(types));
+
+    if (types_enum[current_type] != tag.type) {
+        tag.type = types_enum[current_type];
+
+        switch (tag.type) {
+            case ColliderType::collider_type_mesh: {
+                component.set_mesh_collider(
+                    scene,
+                    std::vector<glm::vec3>{}
+                );
+                break;
+            }
+            case ColliderType::collider_type_sphere: {
+                Sphere sphere{};
+                sphere.radius = 1.0f;
+                component.set_sphere_collider(
+                    scene,
+                    sphere
+                );
+                break;
+            }
+            default: {}
+        }
+    }
 
     switch (tag.type) {
         case ColliderType::collider_type_mesh: {
-            current_type = 0;
+            if (ImGui::Button("load data from model")) {
+                ImGui::OpenPopup("select_model_popup");
+            }
+
+            ModelManager & man = context.get_model_manager();
+            std::vector<Model> const & models = man.models();
+
+            ImGui::SameLine();
+            if (ImGui::BeginPopup("select_model_popup")) {
+                for (Model const & model : models) {
+                    if (ImGui::Selectable(model.path().c_str())) {
+                        component.set_mesh_collider(scene, model);
+                    }
+                }
+                ImGui::EndPopup();
+            }
             break;
         }
         case ColliderType::collider_type_sphere: {
-            current_type = 1;
-
             auto & col = sys.get_sphere_collider(tag.id);
             Sphere & base_shape = col.base_shape();
 

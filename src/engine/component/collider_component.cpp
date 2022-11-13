@@ -37,6 +37,20 @@ ColliderComponent::ColliderComponent(
 ColliderComponent::ColliderComponent(
     Scene & scene,
     NodeID node_id,
+    std::vector<glm::vec3> && triangles
+)
+ : m_node_id{node_id} {
+    PhysicsSystem & sys = scene.physics_system();
+    m_tag = sys.add_mesh_collider(
+        m_node_id,
+        std::move(triangles),
+        scene.get_node(node_id).get_global_transform(scene)
+    );
+}
+
+ColliderComponent::ColliderComponent(
+    Scene & scene,
+    NodeID node_id,
     Sphere const & sphere
 )
  : m_node_id{node_id} {
@@ -88,6 +102,42 @@ ColliderComponent::ColliderComponent(
         }
         case ColliderType::collider_type_none: {}
     }
+}
+
+void ColliderComponent::set_mesh_collider(Scene & scene, Model const & model) {
+    PhysicsSystem & sys = scene.physics_system();
+    sys.remove_collider(m_tag);
+    m_tag = sys.add_mesh_collider(
+        m_node_id,
+        model,
+        scene.get_node(m_node_id).get_global_transform(scene)
+    );
+}
+
+void ColliderComponent::set_mesh_collider(
+    Scene & scene,
+    std::vector<glm::vec3> && triangles
+) {
+    PhysicsSystem & sys = scene.physics_system();
+    sys.remove_collider(m_tag);
+    m_tag = sys.add_mesh_collider(
+        m_node_id,
+        std::move(triangles),
+        scene.get_node(m_node_id).get_global_transform(scene)
+    );
+}
+
+void ColliderComponent::set_sphere_collider(
+    Scene & scene,
+    Sphere const & sphere
+) {
+    PhysicsSystem & sys = scene.physics_system();
+    sys.remove_collider(m_tag);
+    m_tag = sys.add_sphere_collider(
+        m_node_id,
+        sphere,
+        scene.get_node(m_node_id).get_global_transform(scene)
+    );
 }
 
 void ColliderComponent::serialize(

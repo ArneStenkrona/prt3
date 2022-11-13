@@ -73,6 +73,8 @@ public:
         return m_model_resources.at(handle).material_resource_ids.at(mesh_index);
     }
 
+    std::vector<Model> const & models() { return m_models; }
+
 private:
     typedef int ModelResourceIndex;
 

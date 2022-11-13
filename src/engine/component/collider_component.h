@@ -18,12 +18,25 @@ class ColliderComponent {
 public:
     ColliderComponent(Scene & scene, NodeID node_id);
     ColliderComponent(Scene & scene, NodeID node_id, Model const & model);
+    ColliderComponent(
+        Scene & scene,
+        NodeID node_id,
+        std::vector<glm::vec3> && triangles
+    );
     ColliderComponent(Scene & scene, NodeID node_id, Sphere const & sphere);
     ColliderComponent(Scene & scene, NodeID node_id, std::istream & in);
 
     NodeID node_id() const { return m_node_id; }
     ColliderTag tag() const { return m_tag; }
 
+    void set_mesh_collider(Scene & scene, Model const & model);
+
+    void set_mesh_collider(
+        Scene & scene,
+        std::vector<glm::vec3> && triangles
+    );
+
+    void set_sphere_collider(Scene & scene, Sphere const & sphere);
 
     void serialize(
         std::ostream & out,
