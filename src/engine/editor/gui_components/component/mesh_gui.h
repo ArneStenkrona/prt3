@@ -22,7 +22,6 @@ void inner_show_component<Mesh>(
     ResourceID resource_id = component.resource_id();
 
     Model const & model = man.get_model_from_material_id(resource_id);
-    std::vector<Model::Material> const & materials = model.materials();
 
     uint32_t mesh_index = man.get_mesh_index_from_material_id(resource_id);
     Model::Mesh const & mesh = model.meshes()[mesh_index];

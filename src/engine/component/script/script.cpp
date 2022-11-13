@@ -14,8 +14,15 @@ bool Script::add_tag(Scene & scene, NodeTag const & tag) {
     return scene.add_tag_to_node(tag, m_node_id);
 }
 
-std::unordered_map<UUID, Script::TScript>
-    Script::s_constructors;
+std::unordered_map<UUID, Script::TScriptDeserializer>
+    Script::s_deserializers;
+
+std::unordered_map<UUID, Script::TScriptInstantiator>
+    Script::s_instantiators;
+
+
+std::unordered_map<UUID, char const *>
+    Script::s_script_names;
 
 Script * Script::deserialize(
     UUID uuid,
@@ -23,8 +30,20 @@ Script * Script::deserialize(
     Scene & scene,
     NodeID node_id
 ) {
-    if (auto it = s_constructors.find(uuid); it != s_constructors.end()) {
+    if (auto it = s_deserializers.find(uuid); it != s_deserializers.end()) {
         return it->second(in, scene, node_id);
+    }
+
+    return nullptr;
+}
+
+Script * Script::instantiate(
+    UUID uuid,
+    Scene & scene,
+    NodeID node_id
+) {
+    if (auto it = s_instantiators.find(uuid); it != s_instantiators.end()) {
+        return it->second(scene, node_id);
     }
 
     return nullptr;
@@ -32,11 +51,15 @@ Script * Script::deserialize(
 
 bool Script::Register(
     UUID uuid,
-    Script::TScript constructor
+    char const * name,
+    Script::TScriptDeserializer deserializer,
+    Script::TScriptInstantiator instantiator
 ) {
-    if (s_constructors.find(uuid) != s_constructors.end()) {
+    if (s_deserializers.find(uuid) != s_deserializers.end()) {
         return false;
     }
-    s_constructors[uuid] = constructor;
+    s_script_names[uuid] = name;
+    s_deserializers[uuid] = deserializer;
+    s_instantiators[uuid] = instantiator;
     return true;
 }

@@ -16,7 +16,6 @@ void inner_show_component<ColliderComponent>(
     NodeID id
 ) {
     Scene & scene = context.scene();
-    ModelManager & man = context.get_model_manager();
     ColliderComponent & component = scene.get_component<ColliderComponent>(id);
 
     PhysicsSystem & sys = scene.physics_system();

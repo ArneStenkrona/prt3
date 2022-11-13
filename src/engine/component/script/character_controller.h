@@ -20,6 +20,8 @@ public:
     explicit CharacterController(Scene & scene, NodeID m_node_id)
         : Script(scene, m_node_id) {}
 
+    virtual char const * name() { return s_name; };
+
     virtual void on_init(Scene & scene) {
         add_tag(scene, "player");
     }
@@ -92,6 +94,8 @@ public:
 
 protected:
     static constexpr UUID s_uuid = 7387722065150816170ull;
+    static constexpr char const * s_name = "character_controller";
+
     virtual UUID uuid() const {
         return s_uuid;
     }
@@ -104,8 +108,21 @@ protected:
         return new CharacterController(scene, node_id);
     }
 
+    static Script * new_instance(
+        Scene & scene,
+        NodeID node_id
+    ) {
+        return new CharacterController(scene, node_id);
+    }
+
     inline static bool s_registered =
-        Script::Register(s_uuid, CharacterController::deserialize);
+        Script::Register(
+            s_uuid,
+            s_name,
+            CharacterController::deserialize,
+            CharacterController::new_instance
+        );
+
 private:
     static constexpr float gravity_constant = 2.0f;
     static constexpr float terminal_velocity = 35.0f;

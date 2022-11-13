@@ -184,6 +184,10 @@ private:
         return m_script_container.scripts().at(id);
     }
 
+    void internal_remove_script(ScriptID id) {
+        m_script_container.remove(id);
+    }
+
     void internal_clear(bool place_root);
 
     ModelManager & model_manager();

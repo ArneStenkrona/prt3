@@ -4,6 +4,7 @@
 #include "src/engine/scene/node.h"
 #include "src/engine/scene/signal.h"
 #include "src/util/serialization_util.h"
+#include "src/util/fixed_string.h"
 
 #include <cstdint>
 #include <unordered_map>
@@ -19,10 +20,13 @@ static constexpr ScriptID NO_SCRIPT = -1;
 class Scene;
 class Script {
 public:
-    using TScript = Script *(*)(std::istream &, Scene &, NodeID);
+    using TScriptDeserializer = Script *(*)(std::istream &, Scene &, NodeID);
+    using TScriptInstantiator = Script *(*)(Scene &, NodeID);
 
     explicit Script(Scene & scene, NodeID node_id);
     virtual ~Script() {}
+
+    virtual char const * name() = 0;
 
     virtual void on_init(Scene &) {}
     virtual void on_late_init(Scene &) {}
@@ -47,6 +51,17 @@ public:
         NodeID node_id
     );
 
+    static Script * instantiate(
+        UUID uuid,
+        Scene & scene,
+        NodeID node_id
+    );
+
+    virtual UUID uuid() const = 0;
+
+    static std::unordered_map<UUID, char const *> const & script_names()
+    { return s_script_names; }
+
 protected:
     NodeID node_id() const { return m_node_id; }
     Node & get_node(Scene & scene);
@@ -54,11 +69,16 @@ protected:
     bool add_tag(Scene & scene, NodeTag const & tag);
 
 
-    static std::unordered_map<UUID, TScript> s_constructors;
+    static std::unordered_map<UUID, TScriptDeserializer> s_deserializers;
+    static std::unordered_map<UUID, TScriptInstantiator> s_instantiators;
+    static std::unordered_map<UUID, char const *> s_script_names;
 
-    virtual UUID uuid() const = 0;
-
-    static bool Register(UUID uuid, TScript constructor);
+    static bool Register(
+        UUID uuid,
+        char const * name,
+        TScriptDeserializer deserializer,
+        TScriptInstantiator instantiator
+    );
 
 private:
     NodeID m_node_id;

@@ -15,6 +15,8 @@ public:
     explicit CameraController(Scene & scene, NodeID m_node_id)
         : Script(scene, m_node_id) {}
 
+    virtual char const * name() { return s_name; };
+
     void set_target(NodeID target) {
         m_target = target;
     }
@@ -74,6 +76,8 @@ public:
 
 protected:
     static constexpr UUID s_uuid = 17005293234220491566ull;
+    static constexpr char const * s_name = "camera controller";
+
     virtual UUID uuid() const {
         return s_uuid;
     }
@@ -86,8 +90,23 @@ protected:
         return new CameraController(scene, node_id);
     }
 
+    static Script * new_instance(
+        Scene & scene,
+        NodeID node_id
+    ) {
+        return new CameraController(scene, node_id);
+    }
+
+
+
     inline static bool s_registered =
-        Script::Register(s_uuid, CameraController::deserialize);
+        Script::Register(
+            s_uuid,
+            s_name,
+            CameraController::deserialize,
+            CameraController::new_instance
+        );
+
 private:
     float m_yaw;
     float m_pitch;

@@ -16,12 +16,14 @@ void inner_show_component<PointLightComponent>(
     NodeID id
 ) {
     Scene & scene = context.scene();
-    ModelManager & man = context.get_model_manager();
     PointLightComponent & component = scene.get_component<PointLightComponent>(id);
 
     PointLight & light = component.light();
 
     float* color_p = reinterpret_cast<float*>(&light.color);
+
+    ImGui::PushItemWidth(160);
+
     ImGui::ColorEdit4("albedo", color_p);
 
     ImGui::DragFloat(
@@ -50,6 +52,8 @@ void inner_show_component<PointLightComponent>(
         10.0f,
         "%.2f"
     );
+
+    ImGui::PopItemWidth();
 }
 
 } // namespace prt3
