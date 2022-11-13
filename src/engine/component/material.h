@@ -7,8 +7,14 @@
 namespace prt3 {
 
 class Scene;
+class Mesh;
+
 template<typename T>
 class ComponentStorage;
+
+class EditorContext;
+template<typename T>
+void inner_show_component(EditorContext &, NodeID);
 
 class Material {
 public:
@@ -30,9 +36,13 @@ private:
     NodeID m_node_id;
     ResourceID m_resource_id;
 
-    void remove(Scene & /*scene*/) { /* TODO: perhaps ref-counting ? */}
+    void remove(Scene & /*scene*/) {}
 
     friend class ComponentStorage<Material>;
+
+    friend class ComponentStorage<Material>;
+    friend void inner_show_component<Material>(EditorContext &, NodeID);
+    friend void inner_show_component<Mesh>(EditorContext &, NodeID);
 };
 
 } // namespace prt3

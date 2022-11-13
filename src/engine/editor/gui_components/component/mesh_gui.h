@@ -52,6 +52,49 @@ void inner_show_component<Mesh>(
     }
 
     ImGui::PopItemWidth();
+
+    if (ImGui::Button("Set Mesh")) {
+        ImGui::OpenPopup("select_mesh_popup");
+    }
+
+    ImGui::SameLine();
+    if (ImGui::BeginPopup("select_mesh_popup")) {
+        std::vector<Model> const & models = man.models();
+
+        ModelManager::ModelHandle handle = 0;
+        for (Model const & model : models) {
+            if (ImGui::BeginMenu(model.path().c_str())) {
+                size_t mesh_index = 0;
+                for (Model::Mesh const & mesh : model.meshes()) {
+                    if (ImGui::MenuItem(mesh.name.c_str())) {
+                        ResourceID mesh_id =
+                            man.get_mesh_id_from_mesh_index(
+                                handle,
+                                mesh_index
+                            );
+                        ResourceID material_id =
+                            man.get_material_id_from_mesh_index(
+                                handle,
+                                mesh_index
+                            );
+
+                        component.m_resource_id = mesh_id;
+
+                        if (!scene.has_component<Material>(id)) {
+                            scene.add_component<Material>(id, material_id);
+                        } else {
+                            scene.get_component<Material>(id).m_resource_id =
+                                material_id;
+                        }
+                    }
+                    ++mesh_index;
+                }
+                ImGui::EndMenu();
+            }
+            ++handle;
+        }
+        ImGui::EndPopup();
+    }
 }
 
 } // namespace prt3

@@ -125,9 +125,8 @@ void prt3::scene_hierarchy(EditorContext & context) {
         expanded[selected_id] = !expanded[selected_id];
     }
 
-    ImGui::NewLine();
-
     end_group_panel();
+
     if (ImGui::Button("Add Node")) {
         Scene & scene = context.scene();
 
@@ -137,12 +136,14 @@ void prt3::scene_hierarchy(EditorContext & context) {
         }
 
         NodeID id = scene.add_node(parent, "new node");
+        context.invalidate_transform_cache();
 
         context.set_selected_node(id);
     }
 
     if (context.get_selected_node() != NO_NODE &&
         context.get_selected_node() != context.scene().get_root_id()) {
+        ImGui::SameLine();
         if (ImGui::Button("Remove Node")) {
             Scene & scene = context.scene();
             NodeID to_remove = context.get_selected_node();
