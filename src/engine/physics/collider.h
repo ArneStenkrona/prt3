@@ -68,6 +68,7 @@ public:
                  m_base_shape.radius };
     }
     Sphere const & base_shape() const { return m_base_shape; }
+    Sphere & base_shape() { return m_base_shape; }
 private:
     Sphere m_base_shape;
 };

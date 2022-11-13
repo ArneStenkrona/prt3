@@ -29,6 +29,9 @@ public:
     SphereCollider const & get_sphere_collider(ColliderID id) const
     { return m_sphere_colliders.at(id); }
 
+    SphereCollider & get_sphere_collider(ColliderID id)
+    { return m_sphere_colliders.at(id); }
+
 private:
     std::unordered_map<NodeID, ColliderTag> m_tags;
     std::unordered_map<ColliderTag, NodeID> m_node_ids;

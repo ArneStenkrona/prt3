@@ -36,26 +36,23 @@ void inner_show_component<ColliderComponent>(
         case ColliderType::collider_type_sphere: {
             current_type = 1;
 
-            auto const & col = sys.get_sphere_collider(tag.id);
-            Sphere const & base_shape = col.base_shape();
+            auto & col = sys.get_sphere_collider(tag.id);
+            Sphere & base_shape = col.base_shape();
 
-            float radius = base_shape.radius;
-            ImGui::InputFloat(
+            ImGui::DragFloat(
                 "radius",
-                &radius,
+                &base_shape.radius,
+                0.01f,
                 0.0f,
-                0.0f,
-                "%.2f",
-                ImGuiInputTextFlags_ReadOnly
+                std::numeric_limits<float>::max(),
+                "%.2f"
             );
 
-            glm::vec3 offset = base_shape.position;
-            float* offset_p = reinterpret_cast<float*>(&offset);
+            float* offset_p = reinterpret_cast<float*>(&base_shape.position);
             ImGui::InputFloat3(
                 "offset",
                 offset_p,
-                "%.2f",
-                ImGuiInputTextFlags_ReadOnly
+                "%.2f"
             );
 
             break;
