@@ -101,7 +101,7 @@ void GLModelManager::upload_model(ModelManager::ModelHandle handle,
     std::vector<ResourceID> material_ids;
     material_ids.resize(model.materials().size());
     size_t material_index = 0;
-    for (Model::Material const & material : model.materials()) {
+    for (Material const & material : model.materials()) {
         material_ids[material_index] = m_material_manager.upload_material(material);
         ++material_index;
     }

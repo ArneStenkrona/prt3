@@ -197,7 +197,7 @@ private:
     friend class Node;
     friend class ScriptSet;
     friend class EditorContext;
-    friend Material::Material(Scene &, NodeID, std::istream &);
+    friend MaterialComponent::MaterialComponent(Scene &, NodeID, std::istream &);
     friend Mesh::Mesh(Scene &, NodeID, std::istream &);
 };
 

@@ -24,6 +24,9 @@ public:
     std::vector<Node> & get_scene_nodes()
     { return scene().m_nodes; }
 
+    MaterialManager & get_material_manager()
+    { return m_context.material_manager(); }
+
     ModelManager & get_model_manager()
     { return m_context.model_manager(); }
 

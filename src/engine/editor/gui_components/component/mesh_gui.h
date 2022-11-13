@@ -80,11 +80,14 @@ void inner_show_component<Mesh>(
 
                         component.m_resource_id = mesh_id;
 
-                        if (!scene.has_component<Material>(id)) {
-                            scene.add_component<Material>(id, material_id);
+                        if (!scene.has_component<MaterialComponent>(id)) {
+                            scene.add_component<MaterialComponent>(
+                                id,
+                                material_id
+                            );
                         } else {
-                            scene.get_component<Material>(id).m_resource_id =
-                                material_id;
+                            scene.get_component<MaterialComponent>(id)
+                                .m_resource_id = material_id;
                         }
                     }
                     ++mesh_index;

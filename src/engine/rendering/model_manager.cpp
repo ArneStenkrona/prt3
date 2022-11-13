@@ -97,7 +97,7 @@ NodeID ModelManager::add_model_to_scene(
             ResourceID material_id = resource.material_resource_ids[model_node.mesh_index];
 
             scene.add_component<Mesh>(node_id, mesh_id);
-            scene.add_component<Material>(node_id, material_id);
+            scene.add_component<MaterialComponent>(node_id, material_id);
         }
 
         for (uint32_t const & index : model_node.child_indices) {
@@ -130,6 +130,7 @@ void ModelManager::upload_model(ModelHandle handle) {
         queue.pop_back();
 
         Model::Node const & model_node = model.nodes()[model_node_index];
+        auto & manager_material_ids = m_context.material_manager().m_material_ids;
         if (model_node.mesh_index != -1) {
             ResourceID mesh_id = resource.mesh_resource_ids[model_node.mesh_index];
             ResourceID material_id = resource.material_resource_ids[model_node.mesh_index];
@@ -139,6 +140,8 @@ void ModelManager::upload_model(ModelHandle handle) {
 
             m_mesh_id_to_mesh_index[mesh_id] = model_node.mesh_index;
             m_material_id_to_mesh_index[material_id] = model_node.mesh_index;
+
+            manager_material_ids.insert(material_id);
         }
 
         for (uint32_t const & index : model_node.child_indices) {

@@ -22,7 +22,7 @@ void GLMaterialManager::init() {
     upload_default_material();
 }
 
-ResourceID GLMaterialManager::upload_material(Model::Material const & material) {
+ResourceID GLMaterialManager::upload_material(Material const & material) {
     GLTextureManager & tm = m_texture_manager;
     GLuint albedo_map = tm.retrieve_texture(
         material.albedo_map.c_str(),
@@ -56,9 +56,7 @@ ResourceID GLMaterialManager::upload_material(Model::Material const & material) 
                 normal_map,
                 roughness_map,
                 metallic_map,
-                material.albedo,
-                material.metallic,
-                material.roughness
+                material
             }
         )
     );
@@ -97,9 +95,7 @@ void GLMaterialManager::upload_default_material() {
                 normal_map,
                 roughness_map,
                 metallic_map,
-                glm::vec4{1.0f},
-                0.0f,
-                1.0f
+                Material{}
             }
         )
     );

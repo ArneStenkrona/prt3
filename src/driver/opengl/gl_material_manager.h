@@ -6,6 +6,7 @@
 #include "src/driver/opengl/gl_shader.h"
 #include "src/engine/rendering/resources.h"
 #include "src/engine/rendering/model.h"
+#include "src/engine/rendering/material.h"
 
 #define GL_GLEXT_PROTOTYPES 1
 #include <GLES3/gl3.h>
@@ -20,11 +21,17 @@ public:
     ~GLMaterialManager();
     void init();
 
-    ResourceID upload_material(Model::Material const & material);
+    ResourceID upload_material(Material const & material);
     void free_material(ResourceID id);
 
     std::unordered_map<ResourceID, GLMaterial> const & materials() const
     { return m_materials; }
+
+    Material const & get_material(ResourceID id) const
+    { return m_materials.at(id).material(); }
+
+    Material & get_material(ResourceID id)
+    { return m_materials.at(id).material(); }
 
     GLShader const & standard_shader() const { return *m_standard_shader; }
 private:

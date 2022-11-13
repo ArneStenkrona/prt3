@@ -12,27 +12,20 @@
 namespace prt3 {
 
 template<>
-void inner_show_component<Material>(
+void inner_show_component<MaterialComponent>(
     EditorContext & context,
     NodeID id
 ) {
     Scene & scene = context.scene();
-    ModelManager & man = context.get_model_manager();
+    MaterialManager & man = context.get_material_manager();
 
-    Material & component = scene.get_component<Material>(id);
+    MaterialComponent & component = scene.get_component<MaterialComponent>(id);
     ResourceID resource_id = component.resource_id();
 
     ImGui::PushItemWidth(160);
 
     if (resource_id != NO_RESOURCE) {
-        Model const & model = man.get_model_from_material_id(resource_id);
-        std::vector<Model::Material> const & materials = model.materials();
-
-        uint32_t mesh_index = man.get_mesh_index_from_material_id(resource_id);
-        Model::Mesh const & mesh = model.meshes()[mesh_index];
-        uint32_t material_index = mesh.material_index;
-
-        Model::Material const & material = materials[material_index];
+        Material & material = man.get_material(resource_id);
 
         static FixedString<64> name;
         name = material.name.c_str();
@@ -43,28 +36,25 @@ void inner_show_component<Material>(
             ImGuiInputTextFlags_ReadOnly
         );
 
-        glm::vec4 albedo = material.albedo;
-        float* albedo_p = reinterpret_cast<float*>(&albedo);
+        float* albedo_p = reinterpret_cast<float*>(&material.albedo);
         ImGui::ColorEdit4("albedo", albedo_p);
 
-        float metallic = material.metallic;
-        ImGui::InputFloat(
+        ImGui::DragFloat(
             "metallic",
-            &metallic,
+            &material.metallic,
+            0.01f,
             0.0f,
-            0.0f,
-            "%.2f",
-            ImGuiInputTextFlags_ReadOnly
+            1.0f,
+            "%.2f"
         );
 
-        float roughness = material.roughness;
-        ImGui::InputFloat(
+        ImGui::DragFloat(
             "roughness",
-            &roughness,
+            &material.roughness,
+            0.01f,
             0.0f,
-            0.0f,
-            "%.2f",
-            ImGuiInputTextFlags_ReadOnly
+            1.0f,
+            "%.2f"
         );
 
         static FixedString<64> albedo_map;
@@ -114,27 +104,11 @@ void inner_show_component<Material>(
 
     ImGui::SameLine();
     if (ImGui::BeginPopup("select_material_popup")) {
-        std::vector<Model> const & models = man.models();
-
-        ModelManager::ModelHandle handle = 0;
-        for (Model const & model : models) {
-            if (ImGui::BeginMenu(model.path().c_str())) {
-                size_t mesh_index = 0;
-                for (Model::Material const & material : model.materials()) {
-                    if (ImGui::MenuItem(material.name.c_str())) {
-                        ResourceID material_id =
-                            man.get_material_id_from_mesh_index(
-                                handle,
-                                mesh_index
-                            );
-
-                        component.m_resource_id = material_id;
-                    }
-                    ++mesh_index;
-                }
-                ImGui::EndMenu();
+        for (ResourceID const & mat_id : man.material_ids()) {
+            Material const & material = man.get_material(mat_id);
+            if (ImGui::Selectable(material.name.c_str())) {
+                component.m_resource_id = mat_id;
             }
-            ++handle;
         }
         ImGui::EndPopup();
     }

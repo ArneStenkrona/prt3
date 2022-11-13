@@ -60,6 +60,12 @@ public:
 
     virtual NodeID get_selected(int x, int y);
 
+    virtual Material const & get_material(ResourceID id) const
+    { return m_material_manager.get_material(id); }
+
+    virtual Material & get_material(ResourceID id)
+    { return m_material_manager.get_material(id); }
+
 private:
     SDL_Window * m_window;
     float m_downscale_factor;

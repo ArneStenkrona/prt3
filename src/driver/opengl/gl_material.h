@@ -1,6 +1,7 @@
 #ifndef PRT3_GL_MATERIAL_H
 #define PRT3_GL_MATERIAL_H
 
+#include "src/engine/rendering/material.h"
 #include "src/driver/opengl/gl_shader.h"
 
 #define GLM_FORCE_RADIANS
@@ -22,9 +23,7 @@ public:
                GLuint normal_map,
                GLuint metallic_map,
                GLuint roughness_map,
-               glm::vec4 albedo,
-               float metallic,
-               float roughness);
+               Material material);
 
     GLShader const & shader()       const { return m_shader; }
     GLuint albedo_map()             const { return m_albedo_map; }
@@ -33,9 +32,8 @@ public:
     GLuint roughness_map()          const { return m_roughness_map; }
     GLuint ambient_occlussion_map() const { return m_ambient_occlusion_map; }
 
-    glm::vec4 albedo() const { return m_albedo; }
-    float metallic()   const { return m_metallic; }
-    float roughness()  const { return m_roughness; }
+    Material const & material() const { return m_material; }
+    Material & material() { return m_material; }
 
 private:
     GLShader m_shader;
@@ -45,9 +43,7 @@ private:
     GLuint m_roughness_map;
     GLuint m_ambient_occlusion_map;
 
-    glm::vec4 m_albedo;
-    float m_metallic;
-    float m_roughness;
+    Material m_material;
 };
 
 }

@@ -5,15 +5,23 @@
 
 using namespace prt3;
 
-Material::Material(Scene &, NodeID node_id)
+MaterialComponent::MaterialComponent(Scene &, NodeID node_id)
  : m_node_id{node_id},
    m_resource_id{NO_RESOURCE} {}
 
-Material::Material(Scene &, NodeID node_id, ResourceID resource_id)
+MaterialComponent::MaterialComponent(
+    Scene &,
+    NodeID node_id,
+    ResourceID resource_id
+)
  : m_node_id{node_id},
    m_resource_id{resource_id} {}
 
-Material::Material(Scene & scene, NodeID node_id, std::istream & in)
+MaterialComponent::MaterialComponent(
+    Scene & scene,
+    NodeID node_id,
+    std::istream & in
+)
  : m_node_id{node_id} {
     ModelManager & man = scene.model_manager();
 
@@ -37,7 +45,7 @@ Material::Material(Scene & scene, NodeID node_id, std::istream & in)
     );
 }
 
-void Material::serialize(
+void MaterialComponent::serialize(
     std::ostream & out,
     Scene const & scene
 ) const {

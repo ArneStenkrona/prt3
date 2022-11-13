@@ -6,6 +6,7 @@
 #include "src/engine/rendering/model.h"
 #include "src/engine/rendering/model_manager.h"
 #include "src/engine/rendering/resources.h"
+#include "src/engine/rendering/material.h"
 #include "src/driver/render_backend.h"
 #include "src/engine/core/input.h"
 
@@ -30,9 +31,16 @@ public:
 
     void render(RenderData const & render_data, bool editor);
 
-    void upload_model(ModelManager::ModelHandle handle,
-                      Model const & model,
-                      ModelResource & resource);
+    void upload_model(
+        ModelManager::ModelHandle handle,
+        Model const & model,
+        ModelResource & resource
+    );
+
+    ResourceID upload_material(Material const & material);
+
+    Material & get_material(ResourceID id)
+    { return m_render_backend->get_material(id); }
 
     void free_model(
         ModelManager::ModelHandle handle,

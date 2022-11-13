@@ -16,11 +16,11 @@ class EditorContext;
 template<typename T>
 void inner_show_component(EditorContext &, NodeID);
 
-class Material {
+class MaterialComponent {
 public:
-    Material(Scene & scene, NodeID node_id);
-    Material(Scene & scene, NodeID node_id, ResourceID resource_id);
-    Material(Scene & scene, NodeID node_id, std::istream & in);
+    MaterialComponent(Scene & scene, NodeID node_id);
+    MaterialComponent(Scene & scene, NodeID node_id, ResourceID resource_id);
+    MaterialComponent(Scene & scene, NodeID node_id, std::istream & in);
 
     NodeID node_id() const { return m_node_id; }
     ResourceID resource_id() const { return m_resource_id; }
@@ -38,10 +38,10 @@ private:
 
     void remove(Scene & /*scene*/) {}
 
-    friend class ComponentStorage<Material>;
+    friend class ComponentStorage<MaterialComponent>;
 
-    friend class ComponentStorage<Material>;
-    friend void inner_show_component<Material>(EditorContext &, NodeID);
+    friend class ComponentStorage<MaterialComponent>;
+    friend void inner_show_component<MaterialComponent>(EditorContext &, NodeID);
     friend void inner_show_component<Mesh>(EditorContext &, NodeID);
 };
 

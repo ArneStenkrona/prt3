@@ -42,6 +42,9 @@ public:
     virtual void process_input_events(std::vector<SDL_Event> const & events) = 0;
 
     virtual NodeID get_selected(int x, int y) = 0;
+
+    virtual Material const & get_material(ResourceID id) const = 0;
+    virtual Material & get_material(ResourceID id) = 0;
 private:
 };
 

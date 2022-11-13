@@ -61,6 +61,7 @@ file(GLOB SOURCES
 "src/engine/editor/editor.cpp"
 "src/engine/geometry/shapes.cpp"
 "src/engine/rendering/camera.cpp"
+"src/engine/rendering/material_manager.cpp"
 "src/engine/rendering/model_manager.cpp"
 "src/engine/rendering/model.cpp"
 "src/engine/rendering/renderer.cpp"

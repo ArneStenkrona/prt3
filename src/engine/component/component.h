@@ -127,7 +127,7 @@ struct wrap_arg_pack_in_storage<T, type_pack<Ts...> > {
 }
 
 using ComponentTypes = type_pack<
-    Material,
+    MaterialComponent,
     Mesh,
     PointLightComponent,
     ColliderComponent,

@@ -384,11 +384,10 @@ void GLRenderer::bind_material_data(
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, material.roughness_map());
 
-    glm::vec4 albedo = material.albedo();
     static const UniformVarString albedo_str = "u_Albedo";
-    glUniform4fv(s.get_uniform_loc(albedo_str), 1, &albedo[0]);
+    glUniform4fv(s.get_uniform_loc(albedo_str), 1, &material.material().albedo[0]);
     static const UniformVarString metallic_str = "u_Metallic";
-    glUniform1f(s.get_uniform_loc(metallic_str), material.metallic());
+    glUniform1f(s.get_uniform_loc(metallic_str), material.material().metallic);
     static const UniformVarString roughness_str = "u_Roughness";
-    glUniform1f(s.get_uniform_loc(roughness_str), material.roughness());
+    glUniform1f(s.get_uniform_loc(roughness_str), material.material().roughness);
 }
