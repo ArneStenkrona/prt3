@@ -107,6 +107,37 @@ void inner_show_component<Material>(
     }
 
     ImGui::PopItemWidth();
+
+    if (ImGui::Button("Set Material")) {
+        ImGui::OpenPopup("select_material_popup");
+    }
+
+    ImGui::SameLine();
+    if (ImGui::BeginPopup("select_material_popup")) {
+        std::vector<Model> const & models = man.models();
+
+        ModelManager::ModelHandle handle = 0;
+        for (Model const & model : models) {
+            if (ImGui::BeginMenu(model.path().c_str())) {
+                size_t mesh_index = 0;
+                for (Model::Material const & material : model.materials()) {
+                    if (ImGui::MenuItem(material.name.c_str())) {
+                        ResourceID material_id =
+                            man.get_material_id_from_mesh_index(
+                                handle,
+                                mesh_index
+                            );
+
+                        component.m_resource_id = material_id;
+                    }
+                    ++mesh_index;
+                }
+                ImGui::EndMenu();
+            }
+            ++handle;
+        }
+        ImGui::EndPopup();
+    }
 }
 
 } // namespace prt3
