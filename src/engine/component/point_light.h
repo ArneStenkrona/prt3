@@ -14,6 +14,11 @@ class PointLightComponent {
 public:
     PointLightComponent(
         Scene & scene,
+        NodeID node_id
+    );
+
+    PointLightComponent(
+        Scene & scene,
         NodeID node_id,
         PointLight const & light
     );

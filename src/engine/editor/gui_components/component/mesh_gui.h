@@ -18,33 +18,38 @@ void inner_show_component<Mesh>(
     Scene & scene = context.scene();
     ModelManager & man = context.get_model_manager();
 
-    Material & component = scene.get_component<Material>(id);
+    Mesh & component = scene.get_component<Mesh>(id);
     ResourceID resource_id = component.resource_id();
-
-    Model const & model = man.get_model_from_material_id(resource_id);
-
-    uint32_t mesh_index = man.get_mesh_index_from_material_id(resource_id);
-    Model::Mesh const & mesh = model.meshes()[mesh_index];
 
     ImGui::PushItemWidth(160);
 
-    static FixedString<64> model_path;
-    model_path = model.path().c_str();
-    ImGui::InputText(
-        "model",
-        model_path.data(),
-        model_path.size(),
-        ImGuiInputTextFlags_ReadOnly
-    );
+    if (resource_id != NO_RESOURCE) {
+        Model const & model = man.get_model_from_mesh_id(resource_id);
 
-    static FixedString<64> name;
-    name = mesh.name.c_str();
-    ImGui::InputText(
-        "name",
-        name.data(),
-        name.size(),
-        ImGuiInputTextFlags_ReadOnly
-    );
+        uint32_t mesh_index = man.get_mesh_index_from_mesh_id(resource_id);
+        Model::Mesh const & mesh = model.meshes()[mesh_index];
+
+
+        static FixedString<64> model_path;
+        model_path = model.path().c_str();
+        ImGui::InputText(
+            "model",
+            model_path.data(),
+            model_path.size(),
+            ImGuiInputTextFlags_ReadOnly
+        );
+
+        static FixedString<64> name;
+        name = mesh.name.c_str();
+        ImGui::InputText(
+            "name",
+            name.data(),
+            name.size(),
+            ImGuiInputTextFlags_ReadOnly
+        );
+    } else {
+        ImGui::TextUnformatted("No resource.");
+    }
 
     ImGui::PopItemWidth();
 }

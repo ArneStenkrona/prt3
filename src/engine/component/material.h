@@ -12,6 +12,7 @@ class ComponentStorage;
 
 class Material {
 public:
+    Material(Scene & scene, NodeID node_id);
     Material(Scene & scene, NodeID node_id, ResourceID resource_id);
     Material(Scene & scene, NodeID node_id, std::istream & in);
 

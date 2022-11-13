@@ -16,6 +16,7 @@ class ComponentStorage;
 
 class ColliderComponent {
 public:
+    ColliderComponent(Scene & scene, NodeID node_id);
     ColliderComponent(Scene & scene, NodeID node_id, Model const & model);
     ColliderComponent(Scene & scene, NodeID node_id, Sphere const & sphere);
     ColliderComponent(Scene & scene, NodeID node_id, std::istream & in);

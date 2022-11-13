@@ -12,6 +12,7 @@ class ComponentStorage;
 
 class Mesh {
 public:
+    Mesh(Scene & scene, NodeID node_id);
     Mesh(Scene & scene, NodeID node_id, ResourceID resource_id);
     Mesh(Scene & scene, NodeID node_id, std::istream & in);
 

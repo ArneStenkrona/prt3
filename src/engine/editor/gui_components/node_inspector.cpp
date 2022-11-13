@@ -40,7 +40,7 @@ void show_component(EditorContext & context, NodeID id) {
 void do_in_order(EditorContext &) {}
 
 template<class...Fs>
-void do_in_order(EditorContext & context, NodeID id, Fs&&...fs ) {
+void do_in_order(EditorContext & context, NodeID id, Fs&&...fs) {
     using discard=int[];
     (void)discard{0, (void(
     std::forward<Fs>(fs)(context, id)
@@ -49,7 +49,31 @@ void do_in_order(EditorContext & context, NodeID id, Fs&&...fs ) {
 
 template<class...Ts>
 void show_components(EditorContext & context, NodeID id, type_pack<Ts...>) {
-  do_in_order(context, id, show_component<Ts>... );
+    do_in_order(context, id, show_component<Ts>... );
+}
+
+template<typename T>
+void inner_show_add_component(EditorContext & context, NodeID id) {
+    Scene & scene = context.context().edit_scene();
+
+    if (!scene.has_component<T>(id)) {
+        if (ImGui::Selectable(T::name())) {
+            scene.add_component<T>(id);
+        }
+    }
+}
+
+template<class...Ts>
+void show_add_component(EditorContext & context, NodeID id, type_pack<Ts...>) {
+    if (ImGui::Button("Add Component")) {
+        ImGui::OpenPopup("select_component_popup");
+    }
+
+    ImGui::SameLine();
+    if (ImGui::BeginPopup("select_component_popup")) {
+        do_in_order(context, id, inner_show_add_component<Ts>... );
+        ImGui::EndPopup();
+    }
 }
 
 void show_name(NodeName & name) {
@@ -98,6 +122,7 @@ void prt3::node_inspector(EditorContext & context) {
     }
 
     show_components(context, id, ComponentTypes{});
+    show_add_component(context, id, ComponentTypes{});
 
     ImGui::PopID();
 }

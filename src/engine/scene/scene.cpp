@@ -175,10 +175,13 @@ void Scene::collect_world_render_data(
 
     auto const & mesh_comps = m_component_manager.get_all_components<Mesh>();
     for (auto const & mesh_comp : mesh_comps) {
+        if (mesh_comp.resource_id() == NO_RESOURCE) {
+            continue;
+        }
+
         NodeID id = mesh_comp.node_id();
         MeshRenderData mesh_data;
         mesh_data.mesh_id = mesh_comp.resource_id();
-        mesh_data.material_id = NO_RESOURCE;
         mesh_data.node = id;
 
         mesh_data.transform = global_transforms[id].to_matrix();

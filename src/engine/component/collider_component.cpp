@@ -6,6 +6,22 @@ using namespace prt3;
 
 ColliderComponent::ColliderComponent(
     Scene & scene,
+    NodeID node_id
+)
+ : m_node_id{node_id} {
+    PhysicsSystem & sys = scene.physics_system();
+
+    Sphere sphere{};
+    sphere.radius = 1.0f;
+    m_tag = sys.add_sphere_collider(
+        m_node_id,
+        sphere,
+        scene.get_node(node_id).get_global_transform(scene)
+    );
+}
+
+ColliderComponent::ColliderComponent(
+    Scene & scene,
     NodeID node_id,
     Model const & model
 )

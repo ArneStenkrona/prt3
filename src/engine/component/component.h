@@ -23,12 +23,15 @@ public:
     ComponentType & add(Scene & scene, NodeID id, ArgTypes & ... args) {
         if (static_cast<NodeID>(node_map.size()) <= id) {
             node_map.resize(id + 1, NO_COMPONENT);
+        }
+
+        if (!has_component(id)) {
             node_map[id] = components.size();
             components.emplace_back(scene, id, args...);
-            return components.back();
-        } else {
-            return get(id);
         }
+        // TODO: handle existing component
+
+        return get(id);
     }
 
     ComponentType const & get(NodeID id) const {
@@ -41,7 +44,7 @@ public:
 
     bool has_component(NodeID id) const {
         return static_cast<NodeID>(node_map.size()) > id &&
-                node_map.at(id) != NO_COMPONENT;
+               node_map.at(id) != NO_COMPONENT;
     }
 
     std::vector<ComponentType> const & get_all_components() const
