@@ -62,6 +62,13 @@ private:
         Transform const & transform
     );
 
+    // ColliderTag add_mesh_collider(
+    //     NodeID node_id,
+    //     Model const & model,
+    //     uint32_t mesh_index,
+    //     Transform const & transform
+    // );
+
     ColliderTag add_sphere_collider(
         NodeID node_id,
         Sphere const & sphere,

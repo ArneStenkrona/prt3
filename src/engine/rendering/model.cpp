@@ -19,9 +19,9 @@ Model::Model(char const * path) {
     m_animated = false; // TODO: allow animation import
 
     Assimp::Importer importer;
-    importer.SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE,
-                                aiPrimitiveType_LINE | aiPrimitiveType_POINT);
-                                            // aiSetImportPropertyFloat(aiprops, AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, GlobalScale);
+    importer.SetPropertyInteger(
+        AI_CONFIG_PP_SBP_REMOVE,
+        aiPrimitiveType_LINE | aiPrimitiveType_POINT);
 
     aiScene const * scene = importer.ReadFile(
         path,
@@ -49,7 +49,7 @@ Model::Model(char const * path) {
     // parse materials
     m_materials.resize(scene->mNumMaterials);
     for (size_t i = 0; i < m_materials.size(); ++i) {
-        aiString matName;
+        static aiString matName;
         aiGetMaterialString(scene->mMaterials[i], AI_MATKEY_NAME, &matName);
         m_materials[i].name = matName.C_Str();
 
@@ -57,8 +57,6 @@ Model::Model(char const * path) {
         scene->mMaterials[i]->Get(AI_MATKEY_COLOR_DIFFUSE, color);
         scene->mMaterials[i]->Get(AI_MATKEY_COLOR_AMBIENT, m_materials[i].ao);
         scene->mMaterials[i]->Get(AI_MATKEY_COLOR_EMISSIVE, m_materials[i].emissive);
-
-
 
         m_materials[i].albedo = { color.r, color.g, color.b, 1.0f };
 
@@ -78,9 +76,11 @@ Model::Model(char const * path) {
         aiMatrix4x4 tform;
         int32_t parent_index;
     };
-    std::vector<std::string> bone_to_name;
+    static std::vector<std::string> bone_to_name;
+    bone_to_name.clear();
 
-    std::vector<TFormNode> tform_nodes;
+    static std::vector<TFormNode> tform_nodes;
+
     tform_nodes.push_back({scene->mRootNode, scene->mRootNode->mTransformation, -1});
     while(!tform_nodes.empty()) {
         aiNode *node = tform_nodes.back().node;
@@ -95,9 +95,14 @@ Model::Model(char const * path) {
         m_nodes.push_back({});
         Node & n = m_nodes.back();
         n.name = node->mName.C_Str();
-        std::memcpy(&n.transform, &node->mTransformation, sizeof(glm::mat4));
+        glm::mat4 temp_tform;
+        glm::mat4 temp_inherited_tform;
+        std::memcpy(&temp_tform, &node->mTransformation, sizeof(glm::mat4));
+        std::memcpy(&temp_inherited_tform, &tform, sizeof(glm::mat4));
         // assimp row-major, glm col-major
-        n.transform = glm::transpose(n.transform);
+        n.transform.from_matrix(glm::transpose(temp_tform));
+        n.inherited_transform.from_matrix(glm::transpose(temp_inherited_tform));
+
         m_name_to_node.insert({node->mName.C_Str(), node_index});
 
         n.parent_index = parent_index;
@@ -122,26 +127,32 @@ Model::Model(char const * path) {
             Mesh &mesh = m_meshes.back();
             mesh.name = aiMesh->mName.C_Str();
             mesh.material_index = aiMesh->mMaterialIndex;
+            mesh.node_index = static_cast<uint32_t>(node_index);
 
             size_t vert = prev_vertex_size;
             bool has_texture_coordinates = aiMesh->HasTextureCoords(0);
+
             for (size_t j = 0; j < aiMesh->mNumVertices; ++j) {
-                aiVector3D pos = tform * aiMesh->mVertices[j];
+                // aiVector3D pos = tform * aiMesh->mVertices[j];
+                aiVector3D const & pos = aiMesh->mVertices[j];
                 m_vertex_buffer[vert].position.x = pos.x;
                 m_vertex_buffer[vert].position.y = pos.y;
                 m_vertex_buffer[vert].position.z = pos.z;
 
-                aiVector3D norm = (invtpos * aiMesh->mNormals[j]).Normalize();
+                // aiVector3D norm = (invtpos * aiMesh->mNormals[j]).Normalize();
+                aiVector3D const & norm = aiMesh->mNormals[j];
                 m_vertex_buffer[vert].normal.x = norm.x;
                 m_vertex_buffer[vert].normal.y = norm.y;
                 m_vertex_buffer[vert].normal.z = norm.z;
 
-                aiVector3D tan = (invtpos * aiMesh->mTangents[j]).Normalize();
+                // aiVector3D tan = (invtpos * aiMesh->mTangents[j]).Normalize();
+                aiVector3D const & tan = aiMesh->mTangents[j];
                 m_vertex_buffer[vert].tangent.x = tan.x;
                 m_vertex_buffer[vert].tangent.y = tan.y;
                 m_vertex_buffer[vert].tangent.z = tan.z;
 
-                aiVector3D bitan = (invtpos * aiMesh->mBitangents[j]).Normalize();
+                // aiVector3D bitan = (invtpos * aiMesh->mBitangents[j]).Normalize();
+                aiVector3D const & bitan = aiMesh->mBitangents[j];
                 m_vertex_buffer[vert].bitangent.x = bitan.x;
                 m_vertex_buffer[vert].bitangent.y = bitan.y;
                 m_vertex_buffer[vert].bitangent.z = bitan.z;
@@ -510,11 +521,14 @@ glm::mat4 Model::get_bone_transform(char const * name) const {
 
 std::string Model::get_texture(aiMaterial & ai_mat, aiTextureType type, const char * model_path) {
     // TODO: optimize, too many temporary strings
-    aiString ai_path;
-    std::string tex_path;
+    static aiString ai_path;
+    static std::string tex_path;
+    tex_path.clear();
     if (ai_mat.GetTexture(type, 0, &ai_path) == AI_SUCCESS) {
-        std::string rel_path = std::string(ai_path.C_Str());
-        std::string model_path_str = std::string(model_path);
+        static std::string rel_path;
+        rel_path = std::string(ai_path.C_Str());
+        static std::string model_path_str;
+        model_path_str = std::string(model_path);
 
         tex_path = model_path_str.substr(0, model_path_str.rfind('/') + 1) + rel_path;
     }

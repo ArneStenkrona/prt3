@@ -33,7 +33,7 @@ void TransformCache::collect_global_transforms(Node const * nodes,
                     node_tform.scale * child_tform.position
                 );
             child_tform.scale = child_tform.scale * node_tform.scale;
-            child_tform.rotation = child_tform.rotation * node_tform.rotation;
+            child_tform.rotation = node_tform.rotation * child_tform.rotation;
 
             m_global_transforms[child_id] = child_tform;
             queue.push_back(child_id);

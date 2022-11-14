@@ -194,6 +194,34 @@ void Scene::collect_world_render_data(
         }
     }
 
+    auto const & model_comps = m_component_manager.get_all_components<ModelComponent>();
+    auto const & man = model_manager();
+    for (auto const & model_comp : model_comps) {
+        ModelHandle handle = model_comp.model_handle();
+        if (handle == NO_MODEL) {
+            continue;
+        }
+        NodeID id = model_comp.node_id();
+        auto const & resources = man.model_resources().at(handle);
+        auto const & model = man.get_model(handle);
+        // mesh_resource_ids
+        // material_resource_ids
+        for (size_t i = 0; i < resources.mesh_resource_ids.size(); ++i) {
+            auto const & model_node =
+                model.nodes()[model.meshes()[i].node_index];
+            MeshRenderData mesh_data;
+            mesh_data.mesh_id = resources.mesh_resource_ids[i];
+            mesh_data.material_id = resources.material_resource_ids[i];
+            mesh_data.node = id;
+            mesh_data.transform =
+                global_transforms[id].to_matrix()
+                * model_node.inherited_transform.to_matrix();
+
+            world_data.mesh_data.push_back(mesh_data);
+        }
+
+    }
+
     std::vector<PointLightRenderData> point_lights;
     auto const & lights
         = m_component_manager.get_all_components<PointLightComponent>();

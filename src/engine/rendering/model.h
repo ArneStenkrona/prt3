@@ -2,6 +2,7 @@
 #define PRT3_MODEL_H
 
 #include "src/engine/rendering/material.h"
+#include "src/engine/component/transform.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -111,7 +112,8 @@ struct Model::Node {
     std::vector<unsigned int> child_indices;
     std::vector<int32_t> bone_indices;
     int32_t channel_index = -1;
-    glm::mat4 transform;
+    Transform transform;
+    Transform inherited_transform;
     std::string name;
 };
 
@@ -124,6 +126,7 @@ struct Model::Mesh {
     size_t start_index;
     size_t num_indices;
     int32_t material_index = 0;
+    uint32_t node_index;
     std::string name;
 };
 

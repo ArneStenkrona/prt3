@@ -78,6 +78,9 @@ public:
 
     std::vector<Model> const & models() { return m_models; }
 
+    std::unordered_map<ModelHandle, ModelResource> const & model_resources() const
+    { return m_model_resources; }
+
 private:
     typedef int ModelResourceIndex;
 

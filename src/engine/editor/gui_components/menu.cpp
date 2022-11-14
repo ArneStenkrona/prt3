@@ -6,7 +6,7 @@
 
 using namespace prt3;
 
-void prt3::menu(EditorContext & context) {
+void prt3::menu(EditorContext & /*context*/) {
     // Menu Bar
     ImGui::BeginMainMenuBar();
 

@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 
 #include "src/util/serialization_util.h"
 
@@ -26,6 +27,13 @@ struct Transform {
         glm::mat4 rotateM = glm::toMat4(glm::normalize(rotation));
         glm::mat4 translateM = glm::translate(glm::mat4(1.0f), position);
         return translateM * rotateM * scaleM;
+    }
+
+    void from_matrix(glm::mat4 const & matrix) {
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::decompose(matrix, scale, rotation, position, skew, perspective);
+        rotation = glm::conjugate(rotation);
     }
 };
 

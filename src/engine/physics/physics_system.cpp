@@ -141,8 +141,18 @@ ColliderTag PhysicsSystem::create_collider_from_model(
     std::vector<glm::vec3> tris;
     tris.resize(i_buf.size());
 
-    for (size_t i = 0; i < tris.size(); ++i) {
-        tris[i] = v_buf[i_buf[i]].position;
+    for (auto const & node : model.nodes()) {
+        if (node.mesh_index == -1) {
+            continue;
+        }
+
+        glm::mat4 tform = node.transform.to_matrix();
+        auto const & mesh = model.meshes()[node.mesh_index];
+
+        auto end_index = mesh.start_index + mesh.num_indices;
+        for (auto i = mesh.start_index; i < end_index; ++i) {
+            tris[i] = glm::vec3(tform * glm::vec4(v_buf[i_buf[i]].position, 1.0f));
+        }
     }
 
     ColliderTag tag;
