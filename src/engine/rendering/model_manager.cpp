@@ -31,13 +31,19 @@ void ModelManager::clear() {
     m_path_to_model_handle.clear();
 }
 
-ModelManager::ModelHandle ModelManager::upload_model(
+ModelHandle ModelManager::upload_model(
     std::string const & path
 ) {
     if (m_path_to_model_handle.find(path) == m_path_to_model_handle.end()) {
         // load from file
         ModelHandle handle = m_models.size();
         m_models.emplace_back(path.c_str());
+
+        if (!m_models.back().valid()) {
+            m_models.pop_back();
+            return NO_MODEL;
+        }
+
         m_path_to_model_handle.insert({path, handle});
         upload_model(handle);
     }

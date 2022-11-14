@@ -11,7 +11,7 @@ GLModelManager::GLModelManager(GLMaterialManager & material_manager)
 
 }
 
-void GLModelManager::upload_model(ModelManager::ModelHandle handle,
+void GLModelManager::upload_model(ModelHandle handle,
                                   Model const & model,
                                   ModelResource & resource) {
     // upload model buffers
@@ -125,7 +125,7 @@ void GLModelManager::upload_model(ModelManager::ModelHandle handle,
 }
 
 void GLModelManager::free_model(
-    ModelManager::ModelHandle handle,
+    ModelHandle handle,
     ModelResource const & resource
 ) {
     glFinish();

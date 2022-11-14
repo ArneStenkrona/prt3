@@ -35,13 +35,13 @@ public:
     );
 
     virtual void upload_model(
-        ModelManager::ModelHandle handle,
+        ModelHandle handle,
         Model const & model,
         ModelResource & resource)
     { m_model_manager.upload_model(handle, model, resource); }
 
     virtual void free_model(
-        ModelManager::ModelHandle handle,
+        ModelHandle handle,
         ModelResource const & resource
     )
     { m_model_manager.free_model(handle, resource); }

@@ -27,11 +27,11 @@ struct ModelResource {
     std::vector<ResourceID> material_resource_ids;
 };
 
+typedef int32_t ModelHandle;
+constexpr ModelHandle NO_MODEL = -1;
+
 class ModelManager {
 public:
-
-    typedef int32_t ModelHandle;
-
     ModelManager(Context & context);
 
     void clear();
@@ -72,6 +72,9 @@ public:
     ) const {
         return m_model_resources.at(handle).material_resource_ids.at(mesh_index);
     }
+
+    Model const & get_model(ModelHandle handle) const
+    { return m_models[handle]; }
 
     std::vector<Model> const & models() { return m_models; }
 

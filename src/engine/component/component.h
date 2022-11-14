@@ -5,6 +5,7 @@
 #include "src/engine/component/collider_component.h"
 #include "src/engine/component/mesh.h"
 #include "src/engine/component/material.h"
+#include "src/engine/component/model.h"
 #include "src/engine/component/point_light.h"
 #include "src/engine/component/script_set.h"
 #include "src/util/template_util.h"
@@ -106,14 +107,6 @@ private:
     std::vector<ComponentType> components;
 };
 
-// template<template<typename...> class T, typename>
-// struct instantiate_with_arg_pack { };
-
-// template<template<typename...> class T, typename... Ts>
-// struct instantiate_with_arg_pack<T, std::tuple<ComponentStorage<Ts>... > > {
-//     using type = T<Ts...>;
-// };
-
 namespace {
 
 template<template<typename...> class T, typename>
@@ -129,6 +122,7 @@ struct wrap_arg_pack_in_storage<T, type_pack<Ts...> > {
 using ComponentTypes = type_pack<
     MaterialComponent,
     Mesh,
+    ModelComponent,
     PointLightComponent,
     ColliderComponent,
     ScriptSet

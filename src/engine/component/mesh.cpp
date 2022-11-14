@@ -18,7 +18,6 @@ Mesh::Mesh(Scene & scene, NodeID node_id, std::istream & in)
     ModelManager & man = scene.model_manager();
 
     size_t n_path;
-
     read_stream(in, n_path);
 
     static std::string path;

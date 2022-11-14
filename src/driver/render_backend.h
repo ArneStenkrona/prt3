@@ -24,13 +24,13 @@ public:
                         bool gui) = 0;
 
     virtual void upload_model(
-        ModelManager::ModelHandle handle,
+        ModelHandle handle,
         Model const & model,
         ModelResource & resource
     ) = 0;
 
     virtual void free_model(
-        ModelManager::ModelHandle handle,
+        ModelHandle handle,
         ModelResource const & resource
     ) = 0;
 

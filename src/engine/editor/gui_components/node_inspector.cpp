@@ -8,6 +8,7 @@
 #include "src/engine/editor/gui_components/component/collider_gui.h"
 #include "src/engine/editor/gui_components/component/material_gui.h"
 #include "src/engine/editor/gui_components/component/mesh_gui.h"
+#include "src/engine/editor/gui_components/component/model_gui.h"
 #include "src/engine/editor/gui_components/component/point_light_gui.h"
 #include "src/engine/editor/gui_components/component/script_set_gui.h"
 
@@ -65,7 +66,7 @@ void inner_show_add_component(EditorContext & context, NodeID id) {
 
 template<class...Ts>
 void show_add_component(EditorContext & context, NodeID id, type_pack<Ts...>) {
-    if (ImGui::Button("Add Component")) {
+    if (ImGui::Button("add component")) {
         ImGui::OpenPopup("select_component_popup");
     }
 
@@ -77,13 +78,13 @@ void show_add_component(EditorContext & context, NodeID id, type_pack<Ts...>) {
 }
 
 void show_name(NodeName & name) {
-    ImGui::InputText("Name", name.data(), name.size());
+    ImGui::InputText("name", name.data(), name.buf_size());
 }
 
 bool show_transform(Transform & transform) {
     bool ret = false;
 
-    begin_group_panel("Transform");
+    begin_group_panel("transform");
     ImGui::PushItemWidth(160);
 
     glm::vec3 & position = transform.position;

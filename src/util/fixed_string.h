@@ -7,6 +7,7 @@ namespace prt3 {
 
 template<size_t N>
 class FixedString {
+    static_assert(N > 0);
 public:
     enum {
         Size = N
@@ -17,7 +18,7 @@ public:
     FixedString(char const * c) {
         char const * curr_c = c;
         char * curr_data = m_data;
-        char * data_end = m_data + Size;
+        char * data_end = m_data + (Size - 1);
         while (curr_data < data_end &&
                *curr_c != '\0') {
             *curr_data = *curr_c;
@@ -27,24 +28,34 @@ public:
     }
 
     FixedString(FixedString const & other) {
-       std::copy(other.m_data, other.m_data + Size, m_data);
+       std::copy(other.m_data, other.m_data + (Size - 1), m_data);
     }
 
     FixedString & operator=(FixedString const & other) {
-        std::copy(other.m_data, other.m_data + Size, m_data);
+        char const * curr_o = other.m_data;
+        char * curr_data = m_data;
+        char * data_end = m_data + (Size - 1);
+        while (curr_data < data_end &&
+               *curr_o != '\0') {
+            *curr_data = *curr_o;
+            ++curr_o;
+            ++curr_data;
+        }
+        *curr_data = '\0';
         return *this;
     }
 
     FixedString & operator=(char const * c) {
         char const * curr_c = c;
         char * curr_data = m_data;
-        char * data_end = m_data + Size;
+        char * data_end = m_data + (Size - 1);
         while (curr_data < data_end &&
                *curr_c != '\0') {
             *curr_data = *curr_c;
             ++curr_c;
             ++curr_data;
         }
+        *curr_data = '\0';
         return *this;
     }
 
@@ -88,7 +99,16 @@ public:
     char * data() { return m_data; }
     char const * data() const { return m_data; }
 
-    size_t size() const { return Size; }
+    size_t buf_size() const { return Size; }
+    size_t writeable_size() const { return Size - 1; }
+
+    size_t len() const {
+        char * curr = data();
+        while (*curr != '\0') {
+            ++curr;
+        }
+        return static_cast<size_t>(curr - data());
+    }
 
 private:
     char m_data[N] = { 0 };

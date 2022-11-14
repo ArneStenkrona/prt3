@@ -100,7 +100,7 @@ void prt3::scene_hierarchy(EditorContext & context) {
         }
     }
 
-    begin_group_panel("Nodes");
+    begin_group_panel("nodes");
 
     ImGui::SetNextItemWidth(ImGui::GetWindowWidth() - 40);
 
@@ -112,7 +112,7 @@ void prt3::scene_hierarchy(EditorContext & context) {
     }
 
     ImGui::ListBox(
-        "##Nodes",
+        "##nodes",
         &selected,
         name_data.data(),
         name_data.size(),
@@ -127,7 +127,7 @@ void prt3::scene_hierarchy(EditorContext & context) {
 
     end_group_panel();
 
-    if (ImGui::Button("Add Node")) {
+    if (ImGui::Button("add node")) {
         Scene & scene = context.scene();
 
         NodeID parent = context.get_selected_node();
@@ -144,7 +144,7 @@ void prt3::scene_hierarchy(EditorContext & context) {
     if (context.get_selected_node() != NO_NODE &&
         context.get_selected_node() != context.scene().get_root_id()) {
         ImGui::SameLine();
-        if (ImGui::Button("Remove Node")) {
+        if (ImGui::Button("remove node")) {
             Scene & scene = context.scene();
             NodeID to_remove = context.get_selected_node();
 

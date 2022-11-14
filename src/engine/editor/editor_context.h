@@ -4,6 +4,8 @@
 #include "src/engine/core/context.h"
 #include "src/engine/scene/node.h"
 
+#include "ImGuiFileBrowser.h"
+
 #include <vector>
 
 namespace prt3 {
@@ -18,6 +20,8 @@ public:
 
     Editor & editor() { return m_editor; }
     Context & context() { return m_context; }
+
+    imgui_addons::ImGuiFileBrowser & file_dialog() { return m_file_dialog; }
 
     Scene & scene() { return context().edit_scene(); }
 
@@ -37,6 +41,8 @@ public:
 private:
     Editor & m_editor;
     Context & m_context;
+
+    imgui_addons::ImGuiFileBrowser m_file_dialog;
 
     bool m_stale_transform_cache;
 

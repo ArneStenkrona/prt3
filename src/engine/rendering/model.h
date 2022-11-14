@@ -75,6 +75,8 @@ public:
 
     inline bool is_animated() const { return m_animated; }
 
+    inline bool valid() const { return m_valid; }
+
     std::string const & name() const { return m_name; };
     std::string const & path() const { return m_path; }
 
@@ -82,6 +84,7 @@ private:
     std::string m_name;
     std::string m_path;
     bool m_animated = false;
+    bool m_valid = true;
 
     std::vector<Node> m_nodes;
     std::vector<Mesh> m_meshes;

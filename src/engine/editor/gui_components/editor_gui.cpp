@@ -40,7 +40,7 @@ void prt3::editor_gui(EditorContext & context) {
     ImGuiIO& io = ImGui::GetIO();
     if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
     {
-        ImGuiID dockspace_id = ImGui::GetID("PRT3 Editor");
+        ImGuiID dockspace_id = ImGui::GetID("prt3 editor");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
 
         static auto first_time = true;
@@ -68,8 +68,8 @@ void prt3::editor_gui(EditorContext & context) {
                 &dockspace_id
             );
 
-            ImGui::DockBuilderDockWindow("Inspector", dock_id_right);
-            ImGui::DockBuilderDockWindow("Scene", dock_id_left);
+            ImGui::DockBuilderDockWindow("inspector", dock_id_right);
+            ImGui::DockBuilderDockWindow("scene", dock_id_left);
             ImGui::DockBuilderFinish(dockspace_id);
         }
     }
@@ -78,11 +78,11 @@ void prt3::editor_gui(EditorContext & context) {
 
     menu(context);
 
-    ImGui::Begin("Scene");
+    ImGui::Begin("scene");
     scene_hierarchy(context);
     ImGui::End();
 
-    ImGui::Begin("Inspector");
+    ImGui::Begin("inspector");
     node_inspector(context);
     ImGui::End();
 

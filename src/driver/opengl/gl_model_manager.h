@@ -16,12 +16,12 @@ class GLModelManager {
 public:
     GLModelManager(GLMaterialManager & material_manager);
 
-    void upload_model(ModelManager::ModelHandle handle,
+    void upload_model(ModelHandle handle,
                       Model const & model,
                       ModelResource & resource);
 
     void free_model(
-        ModelManager::ModelHandle handle,
+        ModelHandle handle,
         ModelResource const & resource
     );
 
@@ -36,7 +36,7 @@ private:
     };
     GLMaterialManager & m_material_manager;
 
-    std::unordered_map<ModelManager::ModelHandle, ModelBufferHandles>
+    std::unordered_map<ModelHandle, ModelBufferHandles>
         m_buffer_handles;
 
     std::unordered_map<ResourceID, GLMesh> m_meshes;

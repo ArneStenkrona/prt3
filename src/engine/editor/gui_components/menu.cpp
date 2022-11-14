@@ -10,12 +10,12 @@ void prt3::menu(EditorContext & context) {
     // Menu Bar
     ImGui::BeginMainMenuBar();
 
-    if (ImGui::BeginMenu("File")) {
-        if (ImGui::MenuItem("Save")) {
+    if (ImGui::BeginMenu("file")) {
+        if (ImGui::MenuItem("save")) {
             // TODO: implement
         }
 
-        if (ImGui::MenuItem("Load")) {
+        if (ImGui::MenuItem("load")) {
             // TODO: implement
         }
 

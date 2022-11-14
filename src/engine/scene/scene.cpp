@@ -262,7 +262,7 @@ void Scene::serialize(std::ostream & out) const {
             continue;
         }
         auto const & name = m_node_names[node.id()];
-        out.write(name.data(), name.size());
+        out.write(name.data(), name.writeable_size());
         out << node.local_transform();
         write_stream(out, node.parent_id());
         NodeID id = node.children_ids().size();
@@ -288,7 +288,7 @@ void Scene::deserialize(std::istream & in) {
     for (NodeID id = 0; id < n_nodes; ++id) {
         m_node_names.push_back({});
         auto & name = m_node_names.back();
-        in.read(name.data(), name.size());
+        in.read(name.data(), name.writeable_size());
 
         m_nodes.push_back({id});
         Node & node = m_nodes.back();

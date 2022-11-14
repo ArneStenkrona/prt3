@@ -71,7 +71,7 @@ void inner_show_component<ScriptSet>(
         }
     }
 
-    if (ImGui::Button("Add Script")) {
+    if (ImGui::Button("add script")) {
         ImGui::OpenPopup("select_script_popup");
     }
 

@@ -32,7 +32,7 @@ void inner_show_component<MaterialComponent>(
         ImGui::InputText(
             "name",
             name.data(),
-            name.size(),
+            name.buf_size(),
             ImGuiInputTextFlags_ReadOnly
         );
 
@@ -62,7 +62,7 @@ void inner_show_component<MaterialComponent>(
         ImGui::InputText(
             "albedo map",
             albedo_map.data(),
-            albedo_map.size(),
+            albedo_map.buf_size(),
             ImGuiInputTextFlags_ReadOnly
         );
 
@@ -71,7 +71,7 @@ void inner_show_component<MaterialComponent>(
         ImGui::InputText(
             "normal map",
             normal_map.data(),
-            normal_map.size(),
+            normal_map.buf_size(),
             ImGuiInputTextFlags_ReadOnly
         );
 
@@ -80,7 +80,7 @@ void inner_show_component<MaterialComponent>(
         ImGui::InputText(
             "metallic map",
             metallic_map.data(),
-            metallic_map.size(),
+            metallic_map.buf_size(),
             ImGuiInputTextFlags_ReadOnly
         );
 
@@ -89,16 +89,16 @@ void inner_show_component<MaterialComponent>(
         ImGui::InputText(
             "roughness map",
             roughness_map.data(),
-            roughness_map.size(),
+            roughness_map.buf_size(),
             ImGuiInputTextFlags_ReadOnly
         );
     } else {
-        ImGui::TextUnformatted("No resource.");
+        ImGui::TextColored(ImVec4(1.0f,1.0f,0.0f,1.0f), "%s", "no material");
     }
 
     ImGui::PopItemWidth();
 
-    if (ImGui::Button("Set Material")) {
+    if (ImGui::Button("set material")) {
         ImGui::OpenPopup("select_material_popup");
     }
 

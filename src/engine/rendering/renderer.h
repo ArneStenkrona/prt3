@@ -32,7 +32,7 @@ public:
     void render(RenderData const & render_data, bool editor);
 
     void upload_model(
-        ModelManager::ModelHandle handle,
+        ModelHandle handle,
         Model const & model,
         ModelResource & resource
     );
@@ -43,7 +43,7 @@ public:
     { return m_render_backend->get_material(id); }
 
     void free_model(
-        ModelManager::ModelHandle handle,
+        ModelHandle handle,
         ModelResource const & resource
     )
     { m_render_backend->free_model(handle, resource); }

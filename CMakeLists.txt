@@ -21,6 +21,7 @@ include_directories(
   "${PROJECT_BINARY_DIR}"
   "${PROJECT_SOURCE_DIR}"
   "${PROJECT_SOURCE_DIR}/lib/imgui"
+  "${PROJECT_SOURCE_DIR}/lib/imgui-filebrowser"
 )
 
 file(GLOB SOURCES
@@ -42,6 +43,7 @@ file(GLOB SOURCES
 "src/engine/component/component_manager.cpp"
 "src/engine/component/material.cpp"
 "src/engine/component/mesh.cpp"
+"src/engine/component/model.cpp"
 "src/engine/component/point_light.cpp"
 "src/engine/component/script_set.cpp"
 "src/engine/physics/aabb_tree.cpp"
@@ -74,6 +76,8 @@ file(GLOB SOURCES
 "lib/imgui/*.cpp"
 "lib/imgui/backends/imgui_impl_sdl.cpp"
 "lib/imgui/backends/imgui_impl_opengl3.cpp"
+"lib/imgui-filebrowser/*.cpp"
+"lib/imgui-filebrowser/dirent/*.cpp"
 )
 
 add_subdirectory(lib/glm EXCLUDE_FROM_ALL)

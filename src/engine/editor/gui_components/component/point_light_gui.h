@@ -26,32 +26,41 @@ void inner_show_component<PointLightComponent>(
 
     ImGui::ColorEdit4("albedo", color_p);
 
+    float rescale_factor = 10.0f;
+    float step_size = 0.01f;
+
+    float quadratic = rescale_factor * light.quadratic_term - step_size;
     ImGui::DragFloat(
         "quadratic",
-        &light.quadratic_term,
-        0.01f,
-        0.01f,
-        10.0f,
+        &quadratic,
+        step_size,
+        0.0f,
+        1.0f,
         "%.2f"
     );
+    light.quadratic_term = (quadratic + step_size) / rescale_factor;
 
+    float linear = rescale_factor * light.linear_term - step_size;
     ImGui::DragFloat(
         "linear",
-        &light.linear_term,
-        0.01f,
-        0.01f,
-        10.0f,
+        &linear,
+        step_size,
+        0.0f,
+        1.0f,
         "%.2f"
     );
+    light.linear_term = (linear + step_size) / rescale_factor;
 
+    float constant = rescale_factor * light.constant_term - step_size;
     ImGui::DragFloat(
         "constant",
-        &light.constant_term,
-        0.01f,
-        0.01f,
-        10.0f,
+        &constant,
+        step_size,
+        0.0f,
+        1.0f,
         "%.2f"
     );
+    light.constant_term = (constant + step_size) / rescale_factor;
 
     ImGui::PopItemWidth();
 }

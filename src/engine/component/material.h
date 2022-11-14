@@ -40,7 +40,6 @@ private:
 
     friend class ComponentStorage<MaterialComponent>;
 
-    friend class ComponentStorage<MaterialComponent>;
     friend void inner_show_component<MaterialComponent>(EditorContext &, NodeID);
     friend void inner_show_component<Mesh>(EditorContext &, NodeID);
 };

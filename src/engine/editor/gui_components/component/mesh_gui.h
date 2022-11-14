@@ -35,7 +35,7 @@ void inner_show_component<Mesh>(
         ImGui::InputText(
             "model",
             model_path.data(),
-            model_path.size(),
+            model_path.buf_size(),
             ImGuiInputTextFlags_ReadOnly
         );
 
@@ -44,16 +44,16 @@ void inner_show_component<Mesh>(
         ImGui::InputText(
             "name",
             name.data(),
-            name.size(),
+            name.buf_size(),
             ImGuiInputTextFlags_ReadOnly
         );
     } else {
-        ImGui::TextUnformatted("No resource.");
+        ImGui::TextColored(ImVec4(1.0f,1.0f,0.0f,1.0f), "%s", "no mesh");
     }
 
     ImGui::PopItemWidth();
 
-    if (ImGui::Button("Set Mesh")) {
+    if (ImGui::Button("set mesh")) {
         ImGui::OpenPopup("select_mesh_popup");
     }
 
@@ -61,7 +61,7 @@ void inner_show_component<Mesh>(
     if (ImGui::BeginPopup("select_mesh_popup")) {
         std::vector<Model> const & models = man.models();
 
-        ModelManager::ModelHandle handle = 0;
+        ModelHandle handle = 0;
         for (Model const & model : models) {
             if (ImGui::BeginMenu(model.path().c_str())) {
                 size_t mesh_index = 0;

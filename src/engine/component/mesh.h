@@ -39,7 +39,6 @@ private:
 
     friend class ComponentStorage<Mesh>;
 
-    friend class ComponentStorage<Mesh>;
     friend void inner_show_component<Mesh>(EditorContext &, NodeID);
 };
 

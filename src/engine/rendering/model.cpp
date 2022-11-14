@@ -23,22 +23,25 @@ Model::Model(char const * path) {
                                 aiPrimitiveType_LINE | aiPrimitiveType_POINT);
                                             // aiSetImportPropertyFloat(aiprops, AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, GlobalScale);
 
-
-    aiScene const * scene = importer.ReadFile(path,
-                                              aiProcess_ValidateDataStructure    |
-                                              aiProcess_CalcTangentSpace         |
-                                              aiProcess_Triangulate              |
-                                              aiProcess_FlipUVs                  |
-                                              aiProcess_FindDegenerates          |
-                                              aiProcess_JoinIdenticalVertices    |
-                                              aiProcess_RemoveRedundantMaterials |
-                                              aiProcess_ImproveCacheLocality     |
-                                              aiProcess_SortByPType);
+    aiScene const * scene = importer.ReadFile(
+        path,
+        aiProcess_ValidateDataStructure    |
+        aiProcess_CalcTangentSpace         |
+        aiProcess_Triangulate              |
+        aiProcess_FlipUVs                  |
+        aiProcess_FindDegenerates          |
+        aiProcess_JoinIdenticalVertices    |
+        aiProcess_RemoveRedundantMaterials |
+        aiProcess_ImproveCacheLocality     |
+        aiProcess_SortByPType
+    );
 
     // check if import failed
     if(!scene) {
         std::cout << importer.GetErrorString() << std::endl;
-        assert(false && "failed to load file!");
+        m_valid = false;
+        return;
+        // assert(false && "failed to load file!");
     }
     m_name = std::strrchr(path, '/') + 1;
     m_path = path;
