@@ -22,10 +22,10 @@ void Editor::update(float delta_time) {
     ImGui::NewFrame();
 
     editor_gui(m_editor_context);
-    bool gizmo_interaction = m_gizmo_manager.update();
+    m_gizmo_manager.update();
 
     if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow) &&
-        !gizmo_interaction) {
+        !ImGuizmo::IsUsing()) {
         m_camera.update(delta_time, m_context.input());
 
         if (m_context.input().get_key_down(KEY_CODE_MOUSE_RIGHT)) {

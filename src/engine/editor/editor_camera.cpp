@@ -39,16 +39,18 @@ void EditorCamera::update(float delta_time,
 
     glm::vec3 front = m_camera.get_front();
     glm::vec3 right = m_camera.get_right();
-    if (input.get_key(KeyCode::KEY_CODE_W))
-        cam_tform.position += front * camera_speed;
-    if (input.get_key(KeyCode::KEY_CODE_S))
-        cam_tform.position -= front * camera_speed;
-    if (input.get_key(KeyCode::KEY_CODE_A))
-        cam_tform.position -= right * camera_speed;
-    if (input.get_key(KeyCode::KEY_CODE_D))
-        cam_tform.position += right * camera_speed;
-    if (input.get_key(KeyCode::KEY_CODE_E))
-        cam_tform.position += Camera::WORLD_UP * camera_speed;
-    if (input.get_key(KeyCode::KEY_CODE_Q))
-        cam_tform.position -= Camera::WORLD_UP * camera_speed;
+    if (!input.get_key(KeyCode::KEY_CODE_LSHIFT)) {
+        if (input.get_key(KeyCode::KEY_CODE_W))
+            cam_tform.position += front * camera_speed;
+        if (input.get_key(KeyCode::KEY_CODE_S))
+            cam_tform.position -= front * camera_speed;
+        if (input.get_key(KeyCode::KEY_CODE_A))
+            cam_tform.position -= right * camera_speed;
+        if (input.get_key(KeyCode::KEY_CODE_D))
+            cam_tform.position += right * camera_speed;
+        if (input.get_key(KeyCode::KEY_CODE_E))
+            cam_tform.position += Camera::WORLD_UP * camera_speed;
+        if (input.get_key(KeyCode::KEY_CODE_Q))
+            cam_tform.position -= Camera::WORLD_UP * camera_speed;
+    }
 }

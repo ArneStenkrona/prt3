@@ -39,10 +39,10 @@ bool GizmoManager::update() {
             &view[0][0],
             &projection[0][0],
             m_operation,
-            ImGuizmo::WORLD,
+            ImGuizmo::LOCAL,
             &transform[0][0],
             nullptr,
-            nullptr
+            m_use_snap ? &m_snap[0] : nullptr
         );
         node.set_global_transform(scene, Transform().from_matrix(transform));
     }
@@ -54,6 +54,7 @@ void GizmoManager::update_input() {
     Input const & input = m_editor_context.context().input();
 
     if (input.get_key(KEY_CODE_LSHIFT)) {
+        // operation
         if (input.get_key_down(KEY_CODE_G)) {
             m_operation = ImGuizmo::TRANSLATE;
         }
@@ -62,6 +63,10 @@ void GizmoManager::update_input() {
         }
         if (input.get_key_down(KEY_CODE_S)) {
             m_operation = ImGuizmo::SCALE;
+        }
+        // snap
+        if (input.get_key_down(KEY_CODE_TAB)) {
+            m_use_snap = !m_use_snap;
         }
     }
 }

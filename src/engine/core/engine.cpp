@@ -17,10 +17,13 @@ void Engine::execute_frame() {
     // loop begin
     float fixed_delta_time = 1.0f / 60.0f;
 
+    Input & input = m_context.input();
     m_context.input().update();
 
     EngineMode prev_mode = m_mode;
-    if (m_context.input().get_key_down(KEY_CODE_TAB)) {
+
+    if (input.get_key_down(KEY_CODE_TAB) &&
+        input.get_key(KEY_CODE_LALT)) {
         switch (m_mode) {
             case EngineMode::game: {
                 set_mode_editor();
@@ -110,7 +113,9 @@ void Engine::measure_duration() {
     double avg_ms = avg_micro / 1000.0;
     double fps = 1000.0 / avg_ms;
 
-    if (m_context.input().get_key_down(KEY_CODE_PERIOD)) {
+    Input & input = m_context.input();
+    if (input.get_key_down(KEY_CODE_PERIOD) &&
+        input.get_key(KEY_CODE_LCTRL)) {
         m_print_framerate = !m_print_framerate;
     }
 
