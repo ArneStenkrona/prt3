@@ -18,11 +18,13 @@ public:
 
     NodeID selected_node() const
     { return m_editor_context.get_selected_node(); }
+
 private:
     Context & m_context;
     EditorCamera m_camera;
 
     EditorContext m_editor_context;
+    GizmoManager m_gizmo_manager;
 };
 
 } // namespace prt3

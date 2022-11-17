@@ -29,11 +29,12 @@ struct Transform {
         return translateM * rotateM * scaleM;
     }
 
-    void from_matrix(glm::mat4 const & matrix) {
+    Transform & from_matrix(glm::mat4 const & matrix) {
         glm::vec3 skew;
         glm::vec4 perspective;
         glm::decompose(matrix, scale, rotation, position, skew, perspective);
         rotation = glm::conjugate(rotation);
+        return *this;
     }
 };
 

@@ -118,9 +118,7 @@ void prt3::node_inspector(EditorContext & context) {
     show_name(name);
     ImGui::PopItemWidth();
 
-    if (show_transform(node.local_transform())) {
-        context.invalidate_transform_cache();
-    }
+    show_transform(node.local_transform());
 
     show_components(context, id, ComponentTypes{});
     show_add_component(context, id, ComponentTypes{});

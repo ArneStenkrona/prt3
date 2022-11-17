@@ -6,6 +6,7 @@
 #include "glm/gtx/string_cast.hpp"
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "backends/imgui_impl_opengl3.h"
 
 #include <emscripten/emscripten.h>
@@ -18,8 +19,10 @@
 
 using namespace prt3;
 
-GLRenderer::GLRenderer(SDL_Window * window,
-                       float downscale_factor)
+GLRenderer::GLRenderer(
+    SDL_Window * window,
+    float downscale_factor
+)
  : m_window{window},
    m_downscale_factor{downscale_factor},
    m_material_manager{m_texture_manager},
@@ -95,7 +98,6 @@ GLRenderer::~GLRenderer() {
     delete m_selection_shader;
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL2_Shutdown();
-    ImGui::DestroyContext();
 }
 
 void GLRenderer::set_postprocessing_chains(
@@ -151,7 +153,7 @@ NodeID GLRenderer::get_selected(int x, int y) {
     return id;
 }
 
-void GLRenderer::prepare_gui_rendering() {
+void GLRenderer::prepare_imgui_rendering() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
 }
@@ -163,7 +165,9 @@ void GLRenderer::render(RenderData const & render_data, bool editor) {
 
     GLuint framebuffer = chain.empty() ?
         0 : m_source_buffers.framebuffer();
+
     render_framebuffer(render_data, framebuffer, false);
+
 
     if (!chain.empty()) {
         render_framebuffer(
@@ -175,7 +179,7 @@ void GLRenderer::render(RenderData const & render_data, bool editor) {
 
     chain.render(render_data.camera_data, m_frame);
     if (editor) {
-        render_gui();
+        render_imgui();
     }
 
     SDL_GL_SwapWindow(m_window);
@@ -264,7 +268,7 @@ void GLRenderer::render_framebuffer(
     }
 }
 
-void GLRenderer::render_gui() {
+void GLRenderer::render_imgui() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 

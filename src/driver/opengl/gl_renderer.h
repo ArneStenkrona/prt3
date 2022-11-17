@@ -23,11 +23,14 @@ namespace prt3 {
 
 class GLRenderer : public RenderBackend {
 public:
-    GLRenderer(SDL_Window * window,
-               float downscale_factor);
+    GLRenderer(
+        SDL_Window * window,
+        float downscale_factor
+    );
+
     virtual ~GLRenderer();
 
-    virtual void prepare_gui_rendering();
+    virtual void prepare_imgui_rendering();
 
     virtual void render(
         RenderData const & render_data,
@@ -60,6 +63,9 @@ public:
 
     virtual NodeID get_selected(int x, int y);
 
+    virtual ResourceID upload_material(Material const & material)
+    { return m_material_manager.upload_material(material); }
+
     virtual Material const & get_material(ResourceID id) const
     { return m_material_manager.get_material(id); }
 
@@ -89,7 +95,7 @@ private:
         bool selection_pass
     );
 
-    void render_gui();
+    void render_imgui();
 
     void bind_light_data(
         GLShader const & shader,

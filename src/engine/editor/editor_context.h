@@ -3,6 +3,7 @@
 
 #include "src/engine/core/context.h"
 #include "src/engine/scene/node.h"
+#include "src/engine/editor/gizmo/gizmo_manager.h"
 
 #include "ImGuiFileBrowser.h"
 
@@ -37,14 +38,11 @@ public:
     NodeID get_selected_node() const { return m_selected_node; }
     void set_selected_node(NodeID id) { m_selected_node = id; }
 
-    void invalidate_transform_cache() { m_stale_transform_cache = true; }
 private:
     Editor & m_editor;
     Context & m_context;
 
     imgui_addons::ImGuiFileBrowser m_file_dialog;
-
-    bool m_stale_transform_cache;
 
     NodeID m_selected_node = NO_NODE;
 };

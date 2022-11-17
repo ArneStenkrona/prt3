@@ -10,6 +10,8 @@
 #include "src/driver/render_backend.h"
 #include "src/engine/core/input.h"
 
+#include "imgui.h"
+
 #include <SDL.h>
 
 #include <vector>
@@ -27,9 +29,14 @@ public:
     Renderer(Renderer const &) = delete;
     ~Renderer();
 
-    void prepare_gui_rendering() { m_render_backend->prepare_gui_rendering(); }
+    void prepare_imgui_rendering() { m_render_backend->prepare_imgui_rendering(); }
 
-    void render(RenderData const & render_data, bool editor);
+    void render(
+        RenderData const & render_data,
+        bool editor
+    ) {
+        m_render_backend->render(render_data, editor);
+    }
 
     void upload_model(
         ModelHandle handle,
@@ -37,7 +44,8 @@ public:
         ModelResource & resource
     );
 
-    ResourceID upload_material(Material const & material);
+    ResourceID upload_material(Material const & material)
+    { return m_render_backend->upload_material(material); }
 
     Material & get_material(ResourceID id)
     { return m_render_backend->get_material(id); }

@@ -22,6 +22,7 @@ include_directories(
   "${PROJECT_SOURCE_DIR}"
   "${PROJECT_SOURCE_DIR}/lib/imgui"
   "${PROJECT_SOURCE_DIR}/lib/imgui-filebrowser"
+  "${PROJECT_SOURCE_DIR}/lib/ImGuizmo"
 )
 
 file(GLOB SOURCES
@@ -54,6 +55,7 @@ file(GLOB SOURCES
 "src/engine/core/context.cpp"
 "src/engine/core/engine.cpp"
 "src/engine/core/input.cpp"
+"src/engine/editor/gizmo/gizmo_manager.cpp"
 "src/engine/editor/gui_components/editor_gui.cpp"
 "src/engine/editor/gui_components/menu.cpp"
 "src/engine/editor/gui_components/node_inspector.cpp"
@@ -78,6 +80,7 @@ file(GLOB SOURCES
 "lib/imgui/backends/imgui_impl_opengl3.cpp"
 "lib/imgui-filebrowser/*.cpp"
 "lib/imgui-filebrowser/dirent/*.cpp"
+"lib/ImGuizmo/*.cpp"
 )
 
 add_subdirectory(lib/glm EXCLUDE_FROM_ALL)

@@ -4,6 +4,8 @@
 
 #include "src/engine/core/context.h"
 
+#include "imgui_internal.h"
+
 using namespace prt3;
 
 Renderer::Renderer(
@@ -35,23 +37,26 @@ Renderer::Renderer(
     );
 
     ImGui::CreateContext();
+
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-    m_render_backend = new GLRenderer(m_window, downscale_factor);
+    m_render_backend = new GLRenderer(
+        m_window,
+        downscale_factor
+    );
     m_input.init(m_window);
 }
 
 Renderer::~Renderer() {
     delete m_render_backend;
+    ImGui::DestroyContext();
 }
 
-void Renderer::render(RenderData const & render_data, bool editor) {
-    m_render_backend->render(render_data, editor);
-}
-
-void Renderer::upload_model(ModelHandle handle,
-                            Model   const & model,
-                            ModelResource & resource) {
+void Renderer::upload_model(
+    ModelHandle handle,
+    Model   const & model,
+    ModelResource & resource
+) {
     m_render_backend->upload_model(handle, model, resource);
 }
 

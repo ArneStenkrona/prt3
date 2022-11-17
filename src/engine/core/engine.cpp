@@ -65,7 +65,7 @@ void Engine::execute_frame() {
         case EngineMode::editor: {
             Scene & scene = m_context.edit_scene();
 
-            m_context.renderer().prepare_gui_rendering();
+            m_context.renderer().prepare_imgui_rendering();
 
             m_editor.update(fixed_delta_time);
 

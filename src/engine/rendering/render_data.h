@@ -14,6 +14,7 @@
 #include <vector>
 #include <array>
 
+
 namespace prt3 {
 
 struct CameraRenderData {

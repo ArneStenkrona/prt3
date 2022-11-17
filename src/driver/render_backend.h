@@ -19,9 +19,12 @@ class RenderBackend {
 public:
     virtual ~RenderBackend() {};
 
-    virtual void prepare_gui_rendering() = 0;
-    virtual void render(RenderData const & render_data,
-                        bool gui) = 0;
+    virtual void prepare_imgui_rendering() = 0;
+
+    virtual void render(
+        RenderData const & render_data,
+        bool editor
+    ) = 0;
 
     virtual void upload_model(
         ModelHandle handle,
@@ -42,6 +45,8 @@ public:
     virtual void process_input_events(std::vector<SDL_Event> const & events) = 0;
 
     virtual NodeID get_selected(int x, int y) = 0;
+
+    virtual ResourceID upload_material(Material const & material) = 0;
 
     virtual Material const & get_material(ResourceID id) const = 0;
     virtual Material & get_material(ResourceID id) = 0;

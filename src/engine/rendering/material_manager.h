@@ -15,7 +15,7 @@ class MaterialManager{
 public:
     MaterialManager(Context & context);
 
-    void upload_material();
+    ResourceID upload_material(Material const & material);
 
     Material const & get_material(ResourceID id) const;
 

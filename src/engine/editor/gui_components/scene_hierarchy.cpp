@@ -136,7 +136,6 @@ void prt3::scene_hierarchy(EditorContext & context) {
         }
 
         NodeID id = scene.add_node(parent, "new node");
-        context.invalidate_transform_cache();
 
         context.set_selected_node(id);
     }
