@@ -1,10 +1,10 @@
-#include "node_transform_action.h"
+#include "action_transform_node.h"
 
 #include "src/engine/editor/editor_context.h"
 
 using namespace prt3;
 
-NodeTransformAction::NodeTransformAction(
+ActionTransformNode::ActionTransformNode(
     EditorContext & editor_context,
     NodeID node_id,
     Transform const & original_transform,
@@ -15,14 +15,14 @@ NodeTransformAction::NodeTransformAction(
     m_new_transform{new_transform} {
 }
 
-bool NodeTransformAction::apply() {
+bool ActionTransformNode::apply() {
     Scene & scene = m_editor_context->scene();
     Node & node = scene.get_node(m_node_id);
     node.local_transform() = m_new_transform;
     return true;
 }
 
-bool NodeTransformAction::unapply() {
+bool ActionTransformNode::unapply() {
     Scene & scene = m_editor_context->scene();
     Node & node = scene.get_node(m_node_id);
     node.local_transform() = m_original_transform;

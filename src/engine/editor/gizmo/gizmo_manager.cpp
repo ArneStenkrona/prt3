@@ -2,7 +2,7 @@
 
 #include "src/engine/editor/editor.h"
 #include "src/engine/editor/editor_context.h"
-#include "src/engine/editor/action/node_transform_action.h"
+#include "src/engine/editor/action/action_transform_node.h"
 
 using namespace prt3;
 
@@ -56,7 +56,7 @@ bool GizmoManager::update() {
         }
 
         if (m_using && !ImGuizmo::IsUsing()) {
-            m_editor_context.editor().perform_action<NodeTransformAction>(
+            m_editor_context.editor().perform_action<ActionTransformNode>(
                 selected_node,
                 m_original_transform,
                 m_new_transform

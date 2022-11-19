@@ -30,16 +30,19 @@ public:
     void deserialize(std::istream & in);
     void clear() { internal_clear(true); }
 
+    NodeID add_node(NodeID parent_id, NodeName name)
+    { return add_node(parent_id, name.data()); }
     NodeID add_node(NodeID parent_id, const char * name);
     NodeID add_node_to_root(const char * name) { return add_node(s_root_id, name); }
-    NodeID get_next_available_node_id() const { return m_nodes.size(); }
+    NodeID get_next_available_node_id() const
+    { return m_free_list.empty() ? m_nodes.size() : m_free_list.back(); }
 
     NodeID get_root_id() const { return s_root_id; }
 
     bool remove_node(NodeID id);
 
     void set_node_local_position(NodeID node_id, glm::vec3 const & local_position)
-        { m_nodes[node_id].m_local_transform.position = local_position; }
+    { m_nodes[node_id].m_local_transform.position = local_position; }
 
     void set_directional_light(DirectionalLight light) { m_directional_light = light; }
     void set_directional_light_on(bool on) { m_directional_light_on = on; }
@@ -145,6 +148,7 @@ private:
     static constexpr NodeID s_root_id = 0;
     std::vector<Node> m_nodes;
     std::vector<NodeName> m_node_names;
+    std::vector<NodeID> m_free_list;
 
     ScriptContainer m_script_container;
 

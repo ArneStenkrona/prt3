@@ -1,5 +1,5 @@
-#ifndef PRT3_NODE_TRANSFORM_ACTION_H
-#define PRT3_NODE_TRANSFORM_ACTION_H
+#ifndef PRT3_ACTION_TRANSFORM_NODE_H
+#define PRT3_ACTION_TRANSFORM_NODE_H
 
 #include "src/engine/editor/action/action.h"
 #include "src/engine/scene/node.h"
@@ -7,9 +7,9 @@
 
 namespace prt3 {
 
-class NodeTransformAction : public Action {
+class ActionTransformNode : public Action {
 public:
-    NodeTransformAction(
+    ActionTransformNode(
         EditorContext & editor_context,
         NodeID node_id,
         Transform const & original_transform,

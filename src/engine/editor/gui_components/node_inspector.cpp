@@ -12,7 +12,7 @@
 #include "src/engine/editor/gui_components/component/model_gui.h"
 #include "src/engine/editor/gui_components/component/point_light_gui.h"
 #include "src/engine/editor/gui_components/component/script_set_gui.h"
-#include "src/engine/editor/action/node_transform_action.h"
+#include "src/engine/editor/action/action_transform_node.h"
 
 using namespace prt3;
 
@@ -122,7 +122,7 @@ void prt3::node_inspector(EditorContext & context) {
 
     Transform transform = node.local_transform();
     if (show_transform(transform)) {
-        context.editor().perform_action<NodeTransformAction>(
+        context.editor().perform_action<ActionTransformNode>(
             id,
             node.local_transform(),
             transform

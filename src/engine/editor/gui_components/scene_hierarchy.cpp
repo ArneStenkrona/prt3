@@ -1,5 +1,7 @@
 #include "scene_hierarchy.h"
 
+#include "src/engine/editor/editor.h"
+#include "src/engine/editor/action/action_add_node.h"
 #include "src/util/fixed_string.h"
 #include "src/engine/editor/gui_components/panel.h"
 
@@ -135,9 +137,13 @@ void prt3::scene_hierarchy(EditorContext & context) {
             parent = scene.get_root_id();
         }
 
-        NodeID id = scene.add_node(parent, "new node");
+        // NodeID id = scene.add_node(parent, "new node");
+        // context.set_selected_node(id);
 
-        context.set_selected_node(id);
+        context.editor().perform_action<ActionAddNode>(
+            NodeName{"new node"},
+            parent
+        );
     }
 
     if (context.get_selected_node() != NO_NODE &&

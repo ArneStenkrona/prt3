@@ -100,10 +100,18 @@ void Scene::update_transform_cache() {
 
 NodeID Scene::add_node(NodeID parent_id, const char * name) {
     Node & parent = m_nodes[parent_id];
-    NodeID id = m_nodes.size();
+
+    NodeID id;
+    if (m_free_list.empty()) {
+        id = m_nodes.size();
+    } else {
+        id = m_free_list.back();
+        m_free_list.pop_back();
+    }
+
     parent.m_children_ids.push_back(id);
 
-    m_nodes.emplace_back(id);
+    m_nodes.emplace(m_nodes.begin() + id, id);
     m_nodes[id].m_parent_id = parent_id;
 
     m_node_names.emplace_back(name);
@@ -143,6 +151,8 @@ bool Scene::remove_node(NodeID id) {
             }
         }
     }
+
+    m_free_list.push_back(id);
 
     return true;
 }
