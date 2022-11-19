@@ -34,6 +34,11 @@ public:
     void set_global_rotation(Scene const & scene, glm::quat const & rotation);
     void set_global_scale(Scene const & scene, glm::vec3 scale);
 
+    Transform global_to_local_transform(
+        Scene const & scene,
+        Transform const & transform
+    ) const;
+
     Transform const & local_transform() const { return m_local_transform; }
     Transform & local_transform() { return m_local_transform; }
 

@@ -1,5 +1,6 @@
 #include "node_inspector.h"
 
+#include "src/engine/editor/editor.h"
 #include "src/util/fixed_string.h"
 #include "src/engine/component/component.h"
 #include "src/engine/editor/gui_components/panel.h"
@@ -11,6 +12,7 @@
 #include "src/engine/editor/gui_components/component/model_gui.h"
 #include "src/engine/editor/gui_components/component/point_light_gui.h"
 #include "src/engine/editor/gui_components/component/script_set_gui.h"
+#include "src/engine/editor/action/node_transform_action.h"
 
 using namespace prt3;
 
@@ -118,7 +120,14 @@ void prt3::node_inspector(EditorContext & context) {
     show_name(name);
     ImGui::PopItemWidth();
 
-    show_transform(node.local_transform());
+    Transform transform = node.local_transform();
+    if (show_transform(transform)) {
+        context.editor().perform_action<NodeTransformAction>(
+            id,
+            node.local_transform(),
+            transform
+        );
+    }
 
     show_components(context, id, ComponentTypes{});
     show_add_component(context, id, ComponentTypes{});

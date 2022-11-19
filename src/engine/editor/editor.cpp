@@ -15,22 +15,35 @@ Editor::Editor(Context & context)
    m_camera{context.renderer().window_width(),
             context.renderer().window_height()},
    m_editor_context{*this, m_context},
-   m_gizmo_manager{m_editor_context, m_camera.get_camera()} {
+   m_gizmo_manager{m_editor_context, m_camera.get_camera()},
+   m_action_manager{m_editor_context} {
 }
 
 void Editor::update(float delta_time) {
+    Input const & input = m_context.input();
+
     ImGui::NewFrame();
 
     editor_gui(m_editor_context);
     m_gizmo_manager.update();
 
+    if (input.get_key(KEY_CODE_LCTRL)){
+        if (input.get_key_down(KEY_CODE_Z)) {
+            if (input.get_key(KEY_CODE_LSHIFT)) {
+                m_action_manager.redo();
+            } else {
+                m_action_manager.undo();
+            }
+        }
+    }
+
     if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow) &&
         !ImGuizmo::IsUsing()) {
-        m_camera.update(delta_time, m_context.input());
+        m_camera.update(delta_time, input);
 
-        if (m_context.input().get_key_down(KEY_CODE_MOUSE_RIGHT)) {
+        if (input.get_key_down(KEY_CODE_MOUSE_RIGHT)) {
             int x, y;
-            m_context.input().get_cursor_position(x, y);
+            input.get_cursor_position(x, y);
 
             NodeID id = m_context.renderer().get_selected(x, y);
             m_editor_context.set_selected_node(id);

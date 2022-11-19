@@ -1,6 +1,8 @@
 #include "gizmo_manager.h"
 
+#include "src/engine/editor/editor.h"
 #include "src/engine/editor/editor_context.h"
+#include "src/engine/editor/action/node_transform_action.h"
 
 using namespace prt3;
 
@@ -44,8 +46,31 @@ bool GizmoManager::update() {
             nullptr,
             m_use_snap ? &m_snap[0] : nullptr
         );
-        node.set_global_transform(scene, Transform().from_matrix(transform));
+
+        if (manipulated) {
+            m_new_transform = node.global_to_local_transform(
+                scene,
+                Transform().from_matrix(transform)
+            );
+            node.set_global_transform(scene, Transform().from_matrix(transform));
+        }
+
+        if (m_using && !ImGuizmo::IsUsing()) {
+            m_editor_context.editor().perform_action<NodeTransformAction>(
+                selected_node,
+                m_original_transform,
+                m_new_transform
+            );
+        }
     }
+
+    if (!ImGuizmo::IsUsing() && selected_node != NO_NODE) {
+        Node & node = scene.get_node(selected_node);
+        m_original_transform = node.local_transform();
+    }
+
+
+    m_using = ImGuizmo::IsUsing();
 
     return manipulated;
 }

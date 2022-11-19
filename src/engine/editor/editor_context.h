@@ -3,7 +3,6 @@
 
 #include "src/engine/core/context.h"
 #include "src/engine/scene/node.h"
-#include "src/engine/editor/gizmo/gizmo_manager.h"
 
 #include "ImGuiFileBrowser.h"
 

@@ -108,6 +108,25 @@ void Node::set_global_scale(
     m_local_transform.scale = scale / scale_p;
 }
 
+Transform Node::global_to_local_transform(
+    Scene const & scene,
+    Transform const & transform
+) const {
+    Transform local;
+
+    Transform global = get_global_transform(scene);
+    glm::vec3 delta_pos = transform.position - global.position;
+    glm::vec3 delta_scale = transform.scale / global.scale;
+    glm::quat delta_rot = transform.rotation
+        * glm::inverse(global.rotation);
+
+    local.position = m_local_transform.position + delta_pos;
+    local.scale = m_local_transform.scale * delta_scale;
+    local.rotation = delta_rot * m_local_transform.rotation;
+
+    return local;
+}
+
 Collision Node::move_and_collide(
     Scene & scene,
     glm::vec3 const & movement

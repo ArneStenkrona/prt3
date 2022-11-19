@@ -22,8 +22,13 @@ private:
 
     ImGuizmo::OPERATION m_operation = ImGuizmo::TRANSLATE;
 
+    bool m_using = false;
+    Transform m_original_transform;
+    Transform m_new_transform;
+
     bool m_use_snap = false;
     glm::vec3 m_snap{0.1f, 0.1f, 0.1f};
+
 
     void update_input();
 };
