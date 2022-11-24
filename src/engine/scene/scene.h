@@ -35,6 +35,14 @@ public:
     void deserialize_components(std::istream & in, NodeID id)
     { m_component_manager.deserialize_components(in, *this, id); }
 
+    template<typename ComponentType>
+    void serialize_component(std::ostream & out, NodeID id) const
+    { m_component_manager.serialize_component<ComponentType>(out, *this, id); }
+
+    template<typename ComponentType>
+    void deserialize_component(std::istream & in, NodeID id)
+    { m_component_manager.deserialize_component<ComponentType>(in, *this, id); }
+
     void clear() { internal_clear(true); }
 
     NodeID add_node(NodeID parent_id, NodeName name)

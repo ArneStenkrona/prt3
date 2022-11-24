@@ -13,6 +13,7 @@
 #include "src/engine/editor/gui_components/component/point_light_gui.h"
 #include "src/engine/editor/gui_components/component/script_set_gui.h"
 #include "src/engine/editor/action/action_transform_node.h"
+#include "src/engine/editor/action/action_remove_component.h"
 
 using namespace prt3;
 
@@ -33,7 +34,7 @@ void show_component(EditorContext & context, NodeID id) {
         end_group_panel();
 
         if (remove) {
-            scene.remove_component<T>(id);
+            context.editor().perform_action<ActionRemoveComponent<T> >(id);
         }
 
         ImGui::PopID();

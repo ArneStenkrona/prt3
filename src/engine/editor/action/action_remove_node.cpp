@@ -2,26 +2,12 @@
 
 #include "src/engine/editor/editor_context.h"
 #include "src/util/serialization_util.h"
+#include "src/util/mem.h"
 
 #include <sstream>
 #include <iostream>
-#include <istream>
-#include <streambuf>
 
 using namespace prt3;
-
-struct membuf: std::streambuf {
-    membuf(char const * base, size_t size) {
-        char * p(const_cast<char*>(base));
-        this->setg(p, p, p + size);
-    }
-};
-struct imemstream: virtual membuf, std::istream {
-    imemstream(char const * base, size_t size)
-        : membuf(base, size)
-        , std::istream(static_cast<std::streambuf*>(this)) {
-    }
-};
 
 ActionRemoveNode::ActionRemoveNode(
     EditorContext & editor_context,

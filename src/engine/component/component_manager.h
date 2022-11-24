@@ -64,7 +64,6 @@ public:
 
     void deserialize(std::istream & in, Scene & scene);
 
-
     void serialize_components(
         std::ostream & out,
         Scene const & scene,
@@ -76,6 +75,24 @@ public:
         Scene & scene,
         NodeID id
     );
+
+    template<typename ComponentType>
+    void serialize_component(
+        std::ostream & out,
+        Scene const & scene,
+        NodeID id
+    ) const {
+        get_component_storage<ComponentType>().get(id).serialize(out, scene);
+    }
+
+    template<typename ComponentType>
+    void deserialize_component(
+        std::istream & in,
+        Scene & scene,
+        NodeID id
+    ) {
+        get_component_storage<ComponentType>().add(scene, id, in);
+    }
 
 private:
     ComponentStorageTypes m_component_storages;
