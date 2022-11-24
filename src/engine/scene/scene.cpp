@@ -86,35 +86,23 @@ void Scene::update(float delta_time) {
     );
 
     m_script_container.update(*this, delta_time);
-
-    update_transform_cache();
-}
-
-void Scene::update_transform_cache() {
-    m_transform_cache.collect_global_transforms(
-        m_nodes.data(),
-        m_nodes.size(),
-        s_root_id
-    );
 }
 
 NodeID Scene::add_node(NodeID parent_id, const char * name) {
-    Node & parent = m_nodes[parent_id];
-
     NodeID id;
     if (m_free_list.empty()) {
         id = m_nodes.size();
+        m_nodes.emplace_back(id);
+        m_node_names.emplace_back(name);
     } else {
         id = m_free_list.back();
         m_free_list.pop_back();
+        m_nodes[id] = {id};
+        m_node_names[id] = name;
     }
 
-    parent.m_children_ids.push_back(id);
-
-    m_nodes.emplace(m_nodes.begin() + id, id);
     m_nodes[id].m_parent_id = parent_id;
-
-    m_node_names.emplace_back(name);
+    m_nodes[parent_id].m_children_ids.push_back(id);
 
     return id;
 }
@@ -124,35 +112,50 @@ bool Scene::remove_node(NodeID id) {
         return false;
     }
 
+    {
+        Node & node = get_node(id);
+        if (node.parent_id() != NO_NODE) {
+            Node & parent = get_node(node.parent_id());
+
+            for (auto it = parent.m_children_ids.begin();
+                it != parent.m_children_ids.end(); ++it) {
+                if (*it == id) {
+                    parent.m_children_ids.erase(it);
+                    break;
+                }
+            }
+        }
+    }
+
     static std::vector<NodeID> queue;
     queue.push_back(id);
+    static std::vector<NodeID> to_free_list;
+    to_free_list.clear();
+
     while (!queue.empty()) {
         NodeID q_id = queue.back();
         Node & q_node = get_node(q_id);
         queue.pop_back();
 
         q_node.m_id = NO_NODE;
+        q_node.m_parent_id = NO_NODE;
         m_component_manager.remove_all_components(*this, q_id);
 
-        for (NodeID const & child_id : q_node.children_ids()) {
-            queue.push_back(child_id);
+        to_free_list.push_back(q_id);
+
+        auto it = q_node.children_ids().end();
+        while (it != q_node.children_ids().begin()) {
+            --it;
+            queue.push_back(*it);
         }
+        q_node.m_children_ids.clear();
     }
 
-    Node & node = get_node(id);
-    if (node.parent_id() != NO_NODE) {
-        Node & parent = get_node(node.parent_id());
-
-        for (auto it = parent.m_children_ids.begin();
-             it != parent.m_children_ids.end(); ++it) {
-            if (*it == id) {
-                parent.m_children_ids.erase(it);
-                break;
-            }
-        }
+    auto it = to_free_list.end();
+    while (it != to_free_list.begin()) {
+        --it;
+        m_free_list.push_back(*it);
     }
-
-    m_free_list.push_back(id);
 
     return true;
 }
@@ -165,6 +168,12 @@ void Scene::collect_world_render_data(
     WorldRenderData & world_data,
     NodeID selected
 ) const {
+    m_transform_cache.collect_global_transforms(
+        m_nodes.data(),
+        m_nodes.size(),
+        s_root_id
+    );
+
     std::vector<Transform> const & global_transforms =
         m_transform_cache.global_transforms();
 
@@ -302,12 +311,13 @@ void Scene::serialize(std::ostream & out) const {
         auto const & name = m_node_names[node.id()];
         out.write(name.data(), name.writeable_size());
         out << node.local_transform();
-        write_stream(out, node.parent_id());
-        NodeID id = node.children_ids().size();
-        write_stream(out, id);
+        NodeID parent_id = compacted_ids.at(node.parent_id());
+        write_stream(out, parent_id);
+        NodeID n_children = node.children_ids().size();
+        write_stream(out, n_children);
 
         for (NodeID const & child_id : node.children_ids()) {
-            write_stream(out, compacted_ids[child_id]);
+            write_stream(out, compacted_ids.at(child_id));
         }
     }
 

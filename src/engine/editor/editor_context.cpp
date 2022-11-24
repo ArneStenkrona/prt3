@@ -11,7 +11,3 @@ EditorContext::EditorContext(Editor & editor, Context & context)
    m_context{context}
 {
 }
-
-void EditorContext::commit_frame() {
-    m_context.edit_scene().update_transform_cache();
-}

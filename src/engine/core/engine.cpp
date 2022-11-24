@@ -86,6 +86,7 @@ void Engine::execute_frame() {
         }
     }
 
+
     // loop end
     measure_duration();
 

@@ -28,6 +28,13 @@ public:
 
     void serialize(std::ostream & out) const;
     void deserialize(std::istream & in);
+
+    void serialize_components(std::ostream & out, NodeID id) const
+    { m_component_manager.serialize_components(out, *this, id); }
+
+    void deserialize_components(std::istream & in, NodeID id)
+    { m_component_manager.deserialize_components(in, *this, id); }
+
     void clear() { internal_clear(true); }
 
     NodeID add_node(NodeID parent_id, NodeName name)
@@ -166,14 +173,15 @@ private:
 
     AmbientLight m_ambient_light;
 
-    TransformCache m_transform_cache;
+    mutable TransformCache m_transform_cache;
 
     void update(float delta_time);
+
     void collect_world_render_data(
         WorldRenderData & world_data,
         NodeID selected
     ) const;
-    void update_transform_cache();
+
     void update_window_size(int w, int h);
 
     ScriptID internal_add_script(Script * script) {

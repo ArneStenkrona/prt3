@@ -8,11 +8,11 @@ using namespace prt3;
 
 ActionAddNode::ActionAddNode(
     EditorContext & editor_context,
-    NodeName const & name,
-    NodeID parent_id
+    NodeID parent_id,
+    NodeName const & name
 ) : m_editor_context{&editor_context},
-    m_name{name},
-    m_parent_id{parent_id}
+    m_parent_id{parent_id},
+    m_name{name}
 {
     Scene & scene = m_editor_context->scene();
     m_node_id = scene.get_next_available_node_id();

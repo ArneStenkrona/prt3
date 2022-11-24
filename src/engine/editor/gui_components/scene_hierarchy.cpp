@@ -2,6 +2,7 @@
 
 #include "src/engine/editor/editor.h"
 #include "src/engine/editor/action/action_add_node.h"
+#include "src/engine/editor/action/action_remove_node.h"
 #include "src/util/fixed_string.h"
 #include "src/engine/editor/gui_components/panel.h"
 
@@ -137,12 +138,9 @@ void prt3::scene_hierarchy(EditorContext & context) {
             parent = scene.get_root_id();
         }
 
-        // NodeID id = scene.add_node(parent, "new node");
-        // context.set_selected_node(id);
-
         context.editor().perform_action<ActionAddNode>(
-            NodeName{"new node"},
-            parent
+            parent,
+            NodeName{"new node"}
         );
     }
 
@@ -150,7 +148,6 @@ void prt3::scene_hierarchy(EditorContext & context) {
         context.get_selected_node() != context.scene().get_root_id()) {
         ImGui::SameLine();
         if (ImGui::Button("remove node")) {
-            Scene & scene = context.scene();
             NodeID to_remove = context.get_selected_node();
 
             NodeID parent = context.scene().get_node(to_remove).parent_id();
@@ -158,7 +155,9 @@ void prt3::scene_hierarchy(EditorContext & context) {
 
             expanded[to_remove] = false;
 
-            scene.remove_node(to_remove);
+            context.editor().perform_action<ActionRemoveNode>(
+                to_remove
+            );
         }
     }
 }

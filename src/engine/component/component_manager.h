@@ -64,6 +64,19 @@ public:
 
     void deserialize(std::istream & in, Scene & scene);
 
+
+    void serialize_components(
+        std::ostream & out,
+        Scene const & scene,
+        NodeID id
+    ) const;
+
+    void deserialize_components(
+        std::istream & in,
+        Scene & scene,
+        NodeID id
+    );
+
 private:
     ComponentStorageTypes m_component_storages;
 
@@ -133,6 +146,55 @@ private:
 
         if constexpr(I+1 != sizeof...(Tp))
             deserialize_storage<I+1>(in, scene, t);
+    }
+
+    template<size_t I = 0, typename... Tp>
+    void serialize_components(
+        std::ostream & out,
+        Scene const & scene,
+        NodeID id,
+        std::tuple<ComponentStorage<Tp>...> const & t
+    ) const {
+        uint64_t magic_num_i = magic_num + I;
+        write_stream(out, magic_num_i);
+
+        auto const & storage = std::get<I>(t);
+        if (storage.has_component(id)) {
+            write_stream(out, (unsigned char)(1));
+            storage.get(id).serialize(out, scene);
+        } else {
+            write_stream(out, (unsigned char)(0));
+        }
+
+        if constexpr(I+1 != sizeof...(Tp))
+            serialize_components<I+1>(out, scene, id, t);
+    }
+
+    template<size_t I = 0, typename... Tp>
+    void deserialize_components(
+        std::istream & in,
+        Scene & scene,
+        NodeID id,
+        std::tuple<ComponentStorage<Tp>...> & t
+    ) {
+        uint64_t magic_num_i = magic_num + I;
+        uint64_t r_magic_num_i;
+        read_stream(in, r_magic_num_i);
+        if (r_magic_num_i != magic_num_i) {
+            // TODO: error handling
+            std::cout << "deserialize_components(): error!" << std::endl;
+        }
+
+        unsigned char has;
+        read_stream(in, has);
+
+        if (has == 1) {
+            auto & storage = std::get<I>(t);
+            storage.add(scene, id, in);
+        }
+
+        if constexpr(I+1 != sizeof...(Tp))
+            deserialize_components<I+1>(in, scene, id, t);
     }
 
     template<size_t I = 0, typename... Tp>

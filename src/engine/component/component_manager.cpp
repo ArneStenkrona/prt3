@@ -19,3 +19,19 @@ void ComponentManager::serialize(
 void ComponentManager::deserialize(std::istream & in, Scene & scene) {
     deserialize_storage(in, scene, m_component_storages);
 }
+
+void ComponentManager::serialize_components(
+    std::ostream & out,
+    Scene const & scene,
+    NodeID id
+) const {
+    serialize_components(out, scene, id, m_component_storages);
+}
+
+void ComponentManager::deserialize_components(
+    std::istream & in,
+    Scene & scene,
+    NodeID id
+) {
+    deserialize_components(in, scene, id, m_component_storages);
+}

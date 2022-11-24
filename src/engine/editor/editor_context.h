@@ -16,8 +16,6 @@ class EditorContext {
 public:
     EditorContext(Editor & editor, Context & context);
 
-    void commit_frame();
-
     Editor & editor() { return m_editor; }
     Context & context() { return m_context; }
 

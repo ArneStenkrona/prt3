@@ -10,16 +10,18 @@ class ActionAddNode : public Action {
 public:
     ActionAddNode(
         EditorContext & editor_context,
-        NodeName const & name,
-        NodeID parent_id
+        NodeID parent_id,
+        NodeName const & name
     );
 
+protected:
     virtual bool apply();
     virtual bool unapply();
+
 private:
     EditorContext * m_editor_context;
-    NodeName m_name;
     NodeID m_parent_id;
+    NodeName m_name;
     NodeID m_node_id;
 };
 

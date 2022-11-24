@@ -85,6 +85,4 @@ void prt3::editor_gui(EditorContext & context) {
     ImGui::Begin("inspector");
     node_inspector(context);
     ImGui::End();
-
-    context.commit_frame();
 }

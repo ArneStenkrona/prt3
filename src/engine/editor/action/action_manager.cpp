@@ -13,7 +13,6 @@ ActionManager::~ActionManager() {
 }
 
 bool ActionManager::undo() {
-
     if (m_history.empty()) {
         return false;
     }
@@ -30,7 +29,6 @@ bool ActionManager::undo() {
 }
 
 bool ActionManager::redo() {
-
     if (m_future.empty()) {
         return false;
     }

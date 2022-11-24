@@ -2,6 +2,7 @@
 
 using namespace prt3;
 
+size_t increment = 0;
 void TransformCache::collect_global_transforms(Node const * nodes,
                                                size_t n_nodes,
                                                NodeID root_id) {
@@ -11,6 +12,8 @@ void TransformCache::collect_global_transforms(Node const * nodes,
     m_global_transforms.resize(n_nodes);
     m_global_transforms_history = m_global_transforms;
 
+    ++increment;
+
     static std::vector<NodeID> queue;
     queue.push_back(root_id);
 
@@ -18,10 +21,10 @@ void TransformCache::collect_global_transforms(Node const * nodes,
 
     while (!queue.empty()) {
         NodeID node_id = queue.back();
+        queue.pop_back();
         Node const & node = nodes[node_id];
 
         Transform node_tform = m_global_transforms[node_id];
-        queue.pop_back();
 
         for (NodeID const & child_id : node.children_ids()) {
             Node const & child = nodes[child_id];

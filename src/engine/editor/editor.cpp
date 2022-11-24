@@ -27,16 +27,6 @@ void Editor::update(float delta_time) {
     editor_gui(m_editor_context);
     m_gizmo_manager.update();
 
-    if (input.get_key(KEY_CODE_LCTRL)){
-        if (input.get_key_down(KEY_CODE_Z)) {
-            if (input.get_key(KEY_CODE_LSHIFT)) {
-                m_action_manager.redo();
-            } else {
-                m_action_manager.undo();
-            }
-        }
-    }
-
     if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow) &&
         !ImGuizmo::IsUsing()) {
         m_camera.update(delta_time, input);
@@ -47,6 +37,16 @@ void Editor::update(float delta_time) {
 
             NodeID id = m_context.renderer().get_selected(x, y);
             m_editor_context.set_selected_node(id);
+        }
+    }
+
+    if (input.get_key(KEY_CODE_LCTRL)){
+        if (input.get_key_down(KEY_CODE_Z)) {
+            if (input.get_key(KEY_CODE_LSHIFT)) {
+                m_action_manager.redo();
+            } else {
+                m_action_manager.undo();
+            }
         }
     }
 

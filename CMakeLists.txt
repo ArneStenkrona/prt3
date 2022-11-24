@@ -57,6 +57,7 @@ file(GLOB SOURCES
 "src/engine/core/input.cpp"
 "src/engine/editor/action/action_add_node.cpp"
 "src/engine/editor/action/action_manager.cpp"
+"src/engine/editor/action/action_remove_node.cpp"
 "src/engine/editor/action/action_transform_node.cpp"
 "src/engine/editor/gizmo/gizmo_manager.cpp"
 "src/engine/editor/gui_components/editor_gui.cpp"

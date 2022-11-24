@@ -16,6 +16,7 @@ public:
         Transform const & new_transform
     );
 
+protected:
     virtual bool apply();
     virtual bool unapply();
 
