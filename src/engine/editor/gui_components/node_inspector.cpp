@@ -13,6 +13,7 @@
 #include "src/engine/editor/gui_components/component/point_light_gui.h"
 #include "src/engine/editor/gui_components/component/script_set_gui.h"
 #include "src/engine/editor/action/action_transform_node.h"
+#include "src/engine/editor/action/action_add_component.h"
 #include "src/engine/editor/action/action_remove_component.h"
 
 using namespace prt3;
@@ -62,7 +63,7 @@ void inner_show_add_component(EditorContext & context, NodeID id) {
 
     if (!scene.has_component<T>(id)) {
         if (ImGui::Selectable(T::name())) {
-            scene.add_component<T>(id);
+            context.editor().perform_action<ActionAddComponent<T> >(id);
         }
     }
 }
