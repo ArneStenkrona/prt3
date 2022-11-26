@@ -39,6 +39,7 @@ inline bool operator!=(ColliderTag const & lhs, ColliderTag const & rhs) {
 class MeshCollider {
 public:
     void set_triangles(std::vector<glm::vec3> && triangles);
+    void set_triangles(std::vector<glm::vec3> const & triangles);
     void set_triangles(std::vector<Triangle> && triangles);
     void collect_triangles(AABB const & aabb,
                            std::vector<Triangle> & triangles) const;

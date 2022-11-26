@@ -11,6 +11,13 @@ void MeshCollider::set_triangles(
     update_triangle_cache();
 }
 
+void MeshCollider::set_triangles(
+    std::vector<glm::vec3> const & triangles) {
+    assert(triangles.size % 3 == 0);
+    m_triangles = triangles;
+    update_triangle_cache();
+}
+
 void MeshCollider::collect_triangles(
     AABB const & aabb,
     std::vector<Triangle> & triangles) const {

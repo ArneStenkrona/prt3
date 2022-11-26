@@ -23,6 +23,21 @@ ColliderComponent::ColliderComponent(
 ColliderComponent::ColliderComponent(
     Scene & scene,
     NodeID node_id,
+    ModelHandle model_handle
+)
+ : m_node_id{node_id} {
+    Model const & model = scene.get_model(model_handle);
+    PhysicsSystem & sys = scene.physics_system();
+    m_tag = sys.add_mesh_collider(
+        m_node_id,
+        model,
+        scene.get_node(node_id).get_global_transform(scene)
+    );
+}
+
+ColliderComponent::ColliderComponent(
+    Scene & scene,
+    NodeID node_id,
     Model const & model
 )
  : m_node_id{node_id} {
@@ -51,6 +66,20 @@ ColliderComponent::ColliderComponent(
 ColliderComponent::ColliderComponent(
     Scene & scene,
     NodeID node_id,
+    std::vector<glm::vec3> const & triangles
+)
+ : m_node_id{node_id} {
+    PhysicsSystem & sys = scene.physics_system();
+    m_tag = sys.add_mesh_collider(
+        m_node_id,
+        triangles,
+        scene.get_node(node_id).get_global_transform(scene)
+    );
+}
+
+ColliderComponent::ColliderComponent(
+    Scene & scene,
+    NodeID node_id,
     Sphere const & sphere
 )
  : m_node_id{node_id} {
@@ -68,43 +97,26 @@ ColliderComponent::ColliderComponent(
     std::istream & in
 )
  : m_node_id{node_id} {
-
-    PhysicsSystem & sys = scene.physics_system();
-
-    read_stream(in, m_tag.type);
-    switch (m_tag.type) {
-        case ColliderType::collider_type_mesh: {
-            std::vector<glm::vec3> tris;
-            size_t n_tris;
-            read_stream(in, n_tris);
-
-            tris.resize(n_tris);
-            for (glm::vec3 & vert : tris) {
-                read_stream(in, vert);
-            }
-
-            m_tag = sys.add_mesh_collider(
-                m_node_id,
-                std::move(tris),
-                scene.get_node(node_id).get_global_transform(scene)
-            );
-            break;
-        }
-        case ColliderType::collider_type_sphere: {
-            Sphere sphere;
-            in >> sphere;
-            m_tag = sys.add_sphere_collider(
-                m_node_id,
-                sphere,
-                scene.get_node(node_id).get_global_transform(scene)
-            );
-            break;
-        }
-        case ColliderType::collider_type_none: {}
-    }
+    deserialize(in, scene);
 }
 
-void ColliderComponent::set_mesh_collider(Scene & scene, Model const & model) {
+void ColliderComponent::set_collider(
+    Scene & scene,
+    ModelHandle model_handle
+) {
+    Model const & model = scene.get_model(model_handle);
+    PhysicsSystem & sys = scene.physics_system();
+    m_tag = sys.add_mesh_collider(
+        m_node_id,
+        model,
+        scene.get_node(m_node_id).get_global_transform(scene)
+    );
+}
+
+void ColliderComponent::set_collider(
+    Scene & scene,
+    Model const & model
+) {
     PhysicsSystem & sys = scene.physics_system();
     sys.remove_collider(m_tag);
     m_tag = sys.add_mesh_collider(
@@ -114,7 +126,7 @@ void ColliderComponent::set_mesh_collider(Scene & scene, Model const & model) {
     );
 }
 
-void ColliderComponent::set_mesh_collider(
+void ColliderComponent::set_collider(
     Scene & scene,
     std::vector<glm::vec3> && triangles
 ) {
@@ -127,7 +139,20 @@ void ColliderComponent::set_mesh_collider(
     );
 }
 
-void ColliderComponent::set_sphere_collider(
+void ColliderComponent::set_collider(
+    Scene & scene,
+    std::vector<glm::vec3> const & triangles
+) {
+    PhysicsSystem & sys = scene.physics_system();
+    sys.remove_collider(m_tag);
+    m_tag = sys.add_mesh_collider(
+        m_node_id,
+        triangles,
+        scene.get_node(m_node_id).get_global_transform(scene)
+    );
+}
+
+void ColliderComponent::set_collider(
     Scene & scene,
     Sphere const & sphere
 ) {
@@ -160,6 +185,49 @@ void ColliderComponent::serialize(
         case ColliderType::collider_type_sphere: {
             SphereCollider const & col = sys.get_sphere_collider(m_tag.id);
             out << col.base_shape();
+            break;
+        }
+        case ColliderType::collider_type_none: {}
+    }
+}
+
+void ColliderComponent::deserialize(
+    std::istream & in,
+    Scene & scene
+) {
+    if (m_tag.type != ColliderType::collider_type_none) {
+        remove(scene);
+    }
+
+    PhysicsSystem & sys = scene.physics_system();
+
+    read_stream(in, m_tag.type);
+    switch (m_tag.type) {
+        case ColliderType::collider_type_mesh: {
+            std::vector<glm::vec3> tris;
+            size_t n_tris;
+            read_stream(in, n_tris);
+
+            tris.resize(n_tris);
+            for (glm::vec3 & vert : tris) {
+                read_stream(in, vert);
+            }
+
+            m_tag = sys.add_mesh_collider(
+                m_node_id,
+                std::move(tris),
+                scene.get_node(m_node_id).get_global_transform(scene)
+            );
+            break;
+        }
+        case ColliderType::collider_type_sphere: {
+            Sphere sphere;
+            in >> sphere;
+            m_tag = sys.add_sphere_collider(
+                m_node_id,
+                sphere,
+                scene.get_node(m_node_id).get_global_transform(scene)
+            );
             break;
         }
         case ColliderType::collider_type_none: {}

@@ -5,10 +5,61 @@
 #include "src/engine/editor/editor_context.h"
 #include "src/engine/scene/scene.h"
 #include "src/engine/component/collider_component.h"
+#include "src/engine/editor/action/action.h"
+#include "src/util/mem.h"
 
 #include "imgui.h"
 
+#include <sstream>
+#include <iostream>
+
 namespace prt3 {
+
+template<typename ConstructorArgType>
+class ActionSetCollider : public Action {
+public:
+    ActionSetCollider(
+        EditorContext & editor_context,
+        NodeID node_id,
+        ConstructorArgType const & constructor_arg
+    ) : m_editor_context{&editor_context},
+        m_node_id{node_id},
+        m_constructor_arg{constructor_arg}
+    {
+        Scene const & scene = m_editor_context->scene();
+
+        std::stringstream stream;
+        scene.get_component<ColliderComponent>(m_node_id)
+            .serialize(stream, scene);
+
+        std::string const & s = stream.str();
+        m_original_data.reserve(s.size());
+        m_original_data.assign(s.begin(), s.end());
+    }
+
+protected:
+    virtual bool apply() {
+        Scene & scene = m_editor_context->scene();
+        scene.get_component<ColliderComponent>(m_node_id)
+            .set_collider(scene, m_constructor_arg);
+        return true;
+    }
+
+    virtual bool unapply() {
+        imemstream in(m_original_data.data(), m_original_data.size());
+        Scene & scene = m_editor_context->scene();
+        scene.get_component<ColliderComponent>(m_node_id).deserialize(in, scene);
+        return true;
+    }
+
+private:
+    EditorContext * m_editor_context;
+    NodeID m_node_id;
+
+    std::vector<char> m_original_data;
+
+    ConstructorArgType m_constructor_arg;
+};
 
 template<>
 void inner_show_component<ColliderComponent>(
@@ -24,8 +75,8 @@ void inner_show_component<ColliderComponent>(
 
     ImGui::PushItemWidth(160);
 
-    char const * types[] = { "mesh", "sphere" };
-    ColliderType types_enum[] = {
+    static char const * types[] = { "mesh", "sphere" };
+    static ColliderType types_enum[] = {
         ColliderType::collider_type_mesh,
         ColliderType::collider_type_sphere
     };
@@ -39,19 +90,25 @@ void inner_show_component<ColliderComponent>(
 
         switch (tag.type) {
             case ColliderType::collider_type_mesh: {
-                component.set_mesh_collider(
-                    scene,
+                context.editor().perform_action<ActionSetCollider<
+                        std::vector<glm::vec3>
+                    > >(
+                    id,
                     std::vector<glm::vec3>{}
                 );
+                tag = component.tag();
                 break;
             }
             case ColliderType::collider_type_sphere: {
                 Sphere sphere{};
                 sphere.radius = 1.0f;
-                component.set_sphere_collider(
-                    scene,
+                context.editor().perform_action<ActionSetCollider<
+                    Sphere
+                > >(
+                    id,
                     sphere
                 );
+                tag = component.tag();
                 break;
             }
             default: {}
@@ -71,7 +128,13 @@ void inner_show_component<ColliderComponent>(
             if (ImGui::BeginPopup("select_model_popup")) {
                 for (Model const & model : models) {
                     if (ImGui::Selectable(model.path().c_str())) {
-                        component.set_mesh_collider(scene, model);
+                        context.editor().perform_action<ActionSetCollider<
+                            Model
+                        > >(
+                            id,
+                            model
+                        );
+                        tag = component.tag();
                     }
                 }
                 ImGui::EndPopup();
@@ -80,9 +143,11 @@ void inner_show_component<ColliderComponent>(
         }
         case ColliderType::collider_type_sphere: {
             auto & col = sys.get_sphere_collider(tag.id);
-            Sphere & base_shape = col.base_shape();
+            Sphere base_shape = col.base_shape();
 
-            ImGui::DragFloat(
+            bool edited = false;
+
+            edited |= ImGui::DragFloat(
                 "radius",
                 &base_shape.radius,
                 0.01f,
@@ -92,11 +157,21 @@ void inner_show_component<ColliderComponent>(
             );
 
             float* offset_p = reinterpret_cast<float*>(&base_shape.position);
-            ImGui::InputFloat3(
+            edited |= ImGui::InputFloat3(
                 "offset",
                 offset_p,
                 "%.2f"
             );
+
+            if (edited) {
+                context.editor().perform_action<ActionSetCollider<
+                    Sphere
+                > >(
+                    id,
+                    base_shape
+                );
+                tag = component.tag();
+            }
 
             break;
         }

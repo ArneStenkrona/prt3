@@ -22,6 +22,22 @@ ColliderTag PhysicsSystem::add_mesh_collider(
 
 ColliderTag PhysicsSystem::add_mesh_collider(
     NodeID node_id,
+    std::vector<glm::vec3> const & triangles,
+    Transform const & transform
+) {
+    ColliderTag tag = create_collider_from_triangles(
+        triangles,
+        transform
+    );
+
+    m_tags[node_id] = tag;
+    m_node_ids[tag] = node_id;
+
+    return tag;
+}
+
+ColliderTag PhysicsSystem::add_mesh_collider(
+    NodeID node_id,
     Model const & model,
     Transform const & transform
 ) {
@@ -124,6 +140,24 @@ ColliderTag PhysicsSystem::create_collider_from_triangles(
     MeshCollider & col = m_mesh_colliders[tag.id];
     col.set_transform(transform);
     col.set_triangles(std::move(triangles));
+
+    m_aabb_tree.insert(tag, col.aabb());
+
+    return tag;
+}
+
+ColliderTag PhysicsSystem::create_collider_from_triangles(
+        std::vector<glm::vec3> const & triangles,
+        Transform const & transform
+) {
+    ColliderTag tag;
+    tag.type = ColliderType::collider_type_mesh;
+    tag.id = m_next_mesh_id;
+    ++m_next_mesh_id;
+
+    MeshCollider & col = m_mesh_colliders[tag.id];
+    col.set_transform(transform);
+    col.set_triangles(triangles);
 
     m_aabb_tree.insert(tag, col.aabb());
 

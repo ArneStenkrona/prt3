@@ -58,6 +58,12 @@ private:
 
     ColliderTag add_mesh_collider(
         NodeID node_id,
+        std::vector<glm::vec3> const & triangles,
+        Transform const & transform
+    );
+
+    ColliderTag add_mesh_collider(
+        NodeID node_id,
         Model const & model,
         Transform const & transform
     );
@@ -77,6 +83,11 @@ private:
 
     ColliderTag create_collider_from_triangles(
         std::vector<glm::vec3> && triangles,
+        Transform const & transform
+    );
+
+    ColliderTag create_collider_from_triangles(
+        std::vector<glm::vec3> const & triangles,
         Transform const & transform
     );
 

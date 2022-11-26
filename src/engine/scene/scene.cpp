@@ -291,6 +291,10 @@ ModelManager & Scene::model_manager() {
     return m_context->model_manager();
 }
 
+Model const & Scene::get_model(ModelHandle handle) const {
+    return m_context->model_manager().get_model(handle);
+}
+
 void Scene::serialize(std::ostream & out) const {
     static std::unordered_map<NodeID, NodeID> compacted_ids;
 

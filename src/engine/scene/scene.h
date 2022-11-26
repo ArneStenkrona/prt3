@@ -154,6 +154,7 @@ public:
     PhysicsSystem & physics_system() { return m_physics_system; }
 
     ModelManager const & model_manager() const;
+    Model const & get_model(ModelHandle handle) const;
 
 private:
     Context * m_context;
