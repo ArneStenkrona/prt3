@@ -18,6 +18,41 @@
 
 using namespace prt3;
 
+class ActionSetNodeName : public Action {
+public:
+    ActionSetNodeName(
+        EditorContext & editor_context,
+        NodeID node_id,
+        NodeName const & name
+    ) : m_editor_context{&editor_context},
+        m_node_id{node_id},
+        m_name{name}
+    {
+        Scene const & scene = editor_context.scene();
+        m_original_name = scene.get_node_name(m_node_id);
+    }
+
+protected:
+    virtual bool apply() {
+        Scene & scene = m_editor_context->scene();
+        scene.get_node_name(m_node_id) = m_name;
+        return true;
+    }
+
+    virtual bool unapply() {
+        Scene & scene = m_editor_context->scene();
+        scene.get_node_name(m_node_id) = m_original_name;
+        return true;
+    }
+
+private:
+    EditorContext * m_editor_context;
+    NodeID m_node_id;
+
+    NodeName m_name;
+    NodeName m_original_name;
+};
+
 template<typename T>
 void show_component(EditorContext & context, NodeID id) {
     Scene & scene = context.context().edit_scene();
@@ -81,8 +116,13 @@ void show_add_component(EditorContext & context, NodeID id, type_pack<Ts...>) {
     }
 }
 
-void show_name(NodeName & name) {
-    ImGui::InputText("name", name.data(), name.buf_size());
+bool show_name(NodeName & name) {
+    return ImGui::InputText(
+        "name",
+        name.data(),
+        name.buf_size(),
+        ImGuiInputTextFlags_NoUndoRedo
+    );
 }
 
 bool show_transform(Transform & transform) {
@@ -114,12 +154,18 @@ bool show_transform(Transform & transform) {
 void prt3::node_inspector(EditorContext & context) {
     NodeID id = context.get_selected_node();
     Node & node = context.context().edit_scene().get_node(id);
-    NodeName & name = context.context().edit_scene().get_node_name(id);
+    NodeName name = context.context().edit_scene().get_node_name(id);
 
     ImGui::PushID(id);
 
     ImGui::PushItemWidth(125);
-    show_name(name);
+    if (show_name(name)) {
+        context.editor().perform_action<ActionSetNodeName>(
+            id,
+            name
+        );
+    }
+
     ImGui::PopItemWidth();
 
     Transform transform = node.local_transform();
