@@ -24,6 +24,7 @@ public:
 
     NodeID node_id() const { return m_node_id; }
     ResourceID resource_id() const { return m_resource_id; }
+    void set_resource_id(ResourceID id) { m_resource_id = id; }
 
     void serialize(
         std::ostream & out,
@@ -40,7 +41,6 @@ private:
 
     friend class ComponentStorage<MaterialComponent>;
 
-    friend void inner_show_component<MaterialComponent>(EditorContext &, NodeID);
     friend void inner_show_component<Mesh>(EditorContext &, NodeID);
 };
 
