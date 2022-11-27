@@ -40,8 +40,6 @@ private:
     void remove(Scene & /*scene*/) {}
 
     friend class ComponentStorage<MaterialComponent>;
-
-    friend void inner_show_component<Mesh>(EditorContext &, NodeID);
 };
 
 } // namespace prt3

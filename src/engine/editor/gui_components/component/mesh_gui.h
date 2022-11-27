@@ -3,12 +3,94 @@
 
 #include "src/engine/editor/gui_components/component/component_gui.h"
 #include "src/engine/editor/editor_context.h"
+#include "src/engine/editor/action/action_set_resource.h"
 #include "src/engine/scene/scene.h"
 #include "src/engine/component/mesh.h"
 
 #include "imgui.h"
 
 namespace prt3 {
+
+class ActionSetMesh : public Action {
+public:
+    ActionSetMesh(
+        EditorContext & editor_context,
+        NodeID node_id,
+        ResourceID mesh_id
+    ) : m_editor_context{&editor_context},
+        m_node_id{node_id},
+        m_mesh_id{mesh_id}
+    {
+        Scene const & scene = editor_context.scene();
+        m_original_mesh_id =
+            scene.get_component<Mesh>(m_node_id).resource_id();
+
+        m_had_material = scene.has_component<MaterialComponent>(m_node_id);
+        if (!m_had_material) {
+            m_original_material_id = NO_RESOURCE;
+        } else {
+            m_original_material_id =
+                scene.get_component<MaterialComponent>(m_node_id)
+                .resource_id();
+        }
+
+        if (m_mesh_id == NO_RESOURCE) {
+            m_material_id = m_original_material_id;
+        } else {
+            ModelManager & man = m_editor_context->get_model_manager();
+            auto mesh_index = man.get_mesh_index_from_mesh_id(mesh_id);
+
+            ModelHandle handle = man.get_model_handle_from_mesh_id(mesh_id);
+
+            m_material_id =
+                man.get_material_id_from_mesh_index(
+                    handle,
+                    mesh_index
+                );
+        }
+    }
+
+protected:
+    virtual bool apply() {
+        Scene & scene = m_editor_context->scene();
+
+        scene.get_component<Mesh>(m_node_id).set_resource_id(m_mesh_id);
+
+        if (m_had_material) {
+            scene.get_component<MaterialComponent>(m_node_id)
+                .set_resource_id(m_material_id);
+        } else {
+            scene.add_component<MaterialComponent>(m_node_id, m_material_id);
+        }
+
+        return true;
+    }
+
+    virtual bool unapply() {
+        Scene & scene = m_editor_context->scene();
+        scene.get_component<Mesh>(m_node_id).set_resource_id(m_original_mesh_id);
+
+        if (m_had_material) {
+            scene.get_component<MaterialComponent>(m_node_id)
+                .set_resource_id(m_original_material_id);
+        } else {
+            scene.remove_component<MaterialComponent>(m_node_id);
+        }
+
+        return true;
+    }
+
+private:
+    EditorContext * m_editor_context;
+    NodeID m_node_id;
+
+    ResourceID m_mesh_id;
+    ResourceID m_material_id;
+    ResourceID m_original_mesh_id;
+    ResourceID m_original_material_id;
+
+    bool m_had_material;
+};
 
 template<>
 void inner_show_component<Mesh>(
@@ -72,22 +154,11 @@ void inner_show_component<Mesh>(
                                 handle,
                                 mesh_index
                             );
-                        ResourceID material_id =
-                            man.get_material_id_from_mesh_index(
-                                handle,
-                                mesh_index
-                            );
-
-                        component.m_resource_id = mesh_id;
-
-                        if (!scene.has_component<MaterialComponent>(id)) {
-                            scene.add_component<MaterialComponent>(
+                        if (mesh_id != resource_id) {
+                            context.editor().perform_action<ActionSetMesh>(
                                 id,
-                                material_id
+                                mesh_id
                             );
-                        } else {
-                            scene.get_component<MaterialComponent>(id)
-                                .m_resource_id = material_id;
                         }
                     }
                     ++mesh_index;
