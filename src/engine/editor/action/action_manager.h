@@ -34,7 +34,7 @@ public:
 private:
     EditorContext & m_editor_context;
 
-    static constexpr size_t MAX_HISTORY_SIZE = 100;
+    static constexpr size_t MAX_HISTORY_SIZE = 512;
     RingBuffer<Action*, MAX_HISTORY_SIZE> m_history;
     std::vector<Action*> m_future;
 
