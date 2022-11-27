@@ -13,8 +13,8 @@ template<typename T>
 class ComponentStorage;
 
 class EditorContext;
-template<typename T>
-void inner_show_component(EditorContext &, NodeID);
+
+class ActionModifyScriptSet;
 
 class ScriptSet {
 public:
@@ -63,6 +63,7 @@ public:
     NodeID node_id() const { return m_node_id; }
 
     bool remove_script(Scene & scene, ScriptID id);
+    bool remove_script(Scene & scene, UUID id);
 
     void serialize(
         std::ostream & out,
@@ -78,12 +79,12 @@ private:
     ScriptID add_script_to_scene(Scene & scene, Script * script);
     Script * get_script_from_scene(Scene & scene, ScriptID id);
 
-    void add_script_from_uuid(Scene & scene, UUID uuid);
+    ScriptID add_script_from_uuid(Scene & scene, UUID uuid);
 
     void remove(Scene & scene);
 
     friend class ComponentStorage<ScriptSet>;
-    friend void inner_show_component<ScriptSet>(EditorContext &, NodeID);
+    friend class ActionModifyScriptSet;
 };
 
 } // namespace prt3

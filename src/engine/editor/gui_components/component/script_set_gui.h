@@ -3,6 +3,7 @@
 
 #include "src/engine/editor/gui_components/component/component_gui.h"
 #include "src/engine/editor/editor_context.h"
+#include "src/engine/editor/action/action.h"
 #include "src/engine/scene/scene.h"
 #include "src/engine/component/script_set.h"
 
@@ -13,6 +14,67 @@
 #include <unordered_set>
 
 namespace prt3 {
+
+class ActionModifyScriptSet : public Action {
+public:
+    enum class Modification {
+        add,
+        remove
+    };
+
+    ActionModifyScriptSet(
+        EditorContext & editor_context,
+        NodeID node_id,
+        UUID script_uuid,
+        Modification modification
+    ) : m_editor_context{&editor_context},
+        m_node_id{node_id},
+        m_script_uuid{script_uuid},
+        m_modification{modification}
+    {}
+
+protected:
+    virtual bool apply() {
+        Scene & scene = m_editor_context->scene();
+        ScriptSet & script_set = scene.get_component<ScriptSet>(m_node_id);
+
+        switch (m_modification) {
+            case Modification::add: {
+                script_set.add_script_from_uuid(scene, m_script_uuid);
+                break;
+            }
+            case Modification::remove: {
+                return script_set.remove_script(scene, m_script_uuid);
+                break;
+            }
+        }
+        return true;
+    }
+
+    virtual bool unapply() {
+        Scene & scene = m_editor_context->scene();
+        ScriptSet & script_set = scene.get_component<ScriptSet>(m_node_id);
+
+        switch (m_modification) {
+            case Modification::add: {
+                return script_set.remove_script(scene, m_script_uuid);
+                break;
+            }
+            case Modification::remove: {
+                script_set.add_script_from_uuid(scene, m_script_uuid);
+                break;
+            }
+        }
+        return true;
+    }
+
+private:
+    EditorContext * m_editor_context;
+    NodeID m_node_id;
+
+    UUID m_script_uuid;
+    Modification m_modification;
+};
 
 template<>
 void inner_show_component<ScriptSet>(
@@ -55,9 +117,12 @@ void inner_show_component<ScriptSet>(
 
     }
     if (to_remove != NO_SCRIPT) {
-        component.remove_script(scene, to_remove);
+        context.editor().perform_action<ActionModifyScriptSet>(
+            id,
+            scene.get_script(to_remove)->uuid(),
+            ActionModifyScriptSet::Modification::remove
+        );
     }
-
 
     static std::vector<UUID> available_uuids;
     available_uuids.resize(0);
@@ -79,7 +144,11 @@ void inner_show_component<ScriptSet>(
     if (ImGui::BeginPopup("select_script_popup")) {
         for (size_t i = 0; i < available_uuids.size(); ++i) {
             if (ImGui::Selectable(available_scripts[i])) {
-                component.add_script_from_uuid(scene, available_uuids[i]);
+                context.editor().perform_action<ActionModifyScriptSet>(
+                    id,
+                    available_uuids[i],
+                    ActionModifyScriptSet::Modification::add
+                );
             }
         }
         ImGui::EndPopup();

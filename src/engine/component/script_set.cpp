@@ -56,6 +56,19 @@ bool ScriptSet::remove_script(Scene & scene, ScriptID id) {
     return false;
 }
 
+bool ScriptSet::remove_script(Scene & scene, UUID uuid) {
+    for (auto it = m_script_ids.begin();
+         it != m_script_ids.end();
+         ++it) {
+        if (scene.internal_get_script(*it)->uuid() == uuid) {
+            scene.internal_remove_script(*it);
+            m_script_ids.erase(it);
+            return true;
+        }
+    }
+    return false;
+}
+
 void ScriptSet::serialize(
     std::ostream & out,
     Scene const & scene
@@ -74,7 +87,7 @@ void ScriptSet::remove(Scene & scene) {
     }
 }
 
-void ScriptSet::add_script_from_uuid(Scene & scene, UUID uuid) {
+ScriptID ScriptSet::add_script_from_uuid(Scene & scene, UUID uuid) {
     Script * script = Script::instantiate(
         uuid,
         scene,
@@ -83,4 +96,6 @@ void ScriptSet::add_script_from_uuid(Scene & scene, UUID uuid) {
 
     ScriptID id = add_script_to_scene(scene, script);
     m_script_ids.push_back(id);
+
+    return id;
 }

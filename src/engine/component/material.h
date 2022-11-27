@@ -13,8 +13,6 @@ template<typename T>
 class ComponentStorage;
 
 class EditorContext;
-template<typename T>
-void inner_show_component(EditorContext &, NodeID);
 
 class MaterialComponent {
 public:

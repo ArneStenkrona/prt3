@@ -12,8 +12,6 @@ template<typename T>
 class ComponentStorage;
 
 class EditorContext;
-template<typename T>
-void inner_show_component(EditorContext &, NodeID);
 
 class Mesh {
 public:
@@ -39,8 +37,6 @@ private:
     void remove(Scene & /*scene*/) {}
 
     friend class ComponentStorage<Mesh>;
-
-    friend void inner_show_component<Mesh>(EditorContext &, NodeID);
 };
 
 } // namespace prt3
