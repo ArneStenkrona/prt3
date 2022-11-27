@@ -24,6 +24,8 @@ public:
 
     NodeID node_id() const { return m_node_id; }
     ModelHandle model_handle() const { return m_model_handle; }
+    ModelHandle set_model_handle(ModelHandle handle)
+    { return m_model_handle = handle; }
 
     void serialize(
         std::ostream & out,
@@ -39,8 +41,6 @@ private:
     void remove(Scene & /*scene*/) {}
 
     friend class ComponentStorage<ModelComponent>;
-
-    friend void inner_show_component<ModelComponent>(EditorContext &, NodeID);
 };
 
 } // namespace prt3

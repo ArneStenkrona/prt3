@@ -11,6 +11,45 @@
 
 namespace prt3 {
 
+class ActionSetModel : public Action {
+public:
+    ActionSetModel(
+        EditorContext & editor_context,
+        NodeID node_id,
+        ModelHandle model_handle
+    ) : m_editor_context{&editor_context},
+        m_node_id{node_id},
+        m_model_handle{model_handle}
+    {
+        Scene const & scene = m_editor_context->scene();
+
+        m_original_model_handle =
+            scene.get_component<ModelComponent>(m_node_id).model_handle();
+    }
+
+protected:
+    virtual bool apply() {
+        Scene & scene = m_editor_context->scene();
+        scene.get_component<ModelComponent>(m_node_id)
+            .set_model_handle(m_model_handle);
+        return true;
+    }
+
+    virtual bool unapply() {
+        Scene & scene = m_editor_context->scene();
+        scene.get_component<ModelComponent>(m_node_id)
+            .set_model_handle(m_original_model_handle);
+        return true;
+    }
+
+private:
+    EditorContext * m_editor_context;
+    NodeID m_node_id;
+
+    ModelHandle m_model_handle;
+    ModelHandle m_original_model_handle;
+};
+
 template<>
 void inner_show_component<ModelComponent>(
     EditorContext & context,
@@ -67,12 +106,17 @@ void inner_show_component<ModelComponent>(
             ImGui::OpenPopup("import model");
 
             if (file_dialog.showFileDialog("import model", imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(1400, 700))) {
-                ModelHandle handle = man.upload_model(file_dialog.selected_path.c_str());
-                if (handle == NO_MODEL) {
+                ModelHandle new_handle = man.upload_model(file_dialog.selected_path.c_str());
+                if (new_handle == NO_MODEL) {
                     // failed to load
                     errorDeadline =  ImGui::GetTime() + 10.0;
                 } else {
-                    component.m_model_handle = handle;
+                    if (new_handle != handle) {
+                        context.editor().perform_action<ActionSetModel>(
+                            id,
+                            new_handle
+                        );
+                    }
                 }
             }
             open = ImGui::IsPopupOpen(ImGui::GetID("import model"), 0);
@@ -88,7 +132,12 @@ void inner_show_component<ModelComponent>(
             ModelHandle current = 0;
             for (Model const & model : man.models()) {
                 if (ImGui::MenuItem(model.name().c_str())) {
-                    component.m_model_handle = current;
+                    if (current != handle) {
+                        context.editor().perform_action<ActionSetModel>(
+                            id,
+                            current
+                        );
+                    }
                 }
                 ++current;
             }
