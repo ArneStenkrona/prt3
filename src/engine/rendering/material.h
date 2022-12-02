@@ -21,12 +21,12 @@ struct Material {
     float roughness = 1.0f;
     float ao = 1.0f;
     float emissive = 0.0f;
+    bool twosided = false;
     std::string albedo_map;
     std::string normal_map;
     std::string metallic_map;
     std::string roughness_map;
     std::string ambient_occlusion_map;
-    bool twosided = false;
 };
 
 } // namespace prt3

@@ -103,13 +103,19 @@ private:
     std::unordered_map<std::string, int> m_name_to_node;
 
     void calculate_tangent_space();
-    std::string get_texture(aiMaterial &aiMat, aiTextureType type, const char * model_path);
+    std::string get_texture(aiMaterial & aiMat, aiTextureType type, char const * model_path);
+
+    void load_with_assimp();
+
+    void serialize_model();
+    bool deserialize_model();
 };
 
 struct Model::Node {
     int32_t parent_index = -1;
     int32_t mesh_index = -1;
-    std::vector<unsigned int> child_indices;
+    int32_t animation_index = -1;
+    std::vector<uint32_t> child_indices;
     std::vector<int32_t> bone_indices;
     int32_t channel_index = -1;
     Transform transform;
@@ -123,8 +129,8 @@ struct Model::Bone {
 };
 
 struct Model::Mesh {
-    size_t start_index;
-    size_t num_indices;
+    uint32_t start_index;
+    uint32_t num_indices;
     int32_t material_index = 0;
     uint32_t node_index;
     std::string name;

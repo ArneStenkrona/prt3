@@ -23,6 +23,7 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/lib/imgui"
   "${PROJECT_SOURCE_DIR}/lib/imgui-filebrowser"
   "${PROJECT_SOURCE_DIR}/lib/ImGuizmo"
+  "${PROJECT_SOURCE_DIR}/lib/hash-library"
 )
 
 file(GLOB SOURCES
@@ -78,6 +79,8 @@ file(GLOB SOURCES
 "src/engine/scene/scene.cpp"
 "src/engine/scene/script_container.cpp"
 "src/engine/scene/transform_cache.cpp"
+"src/util/checksum.cpp"
+"src/util/file_util.cpp"
 # libs
 "lib/imgui/*.cpp"
 "lib/imgui/backends/imgui_impl_sdl.cpp"
@@ -85,6 +88,7 @@ file(GLOB SOURCES
 "lib/imgui-filebrowser/*.cpp"
 "lib/imgui-filebrowser/dirent/*.cpp"
 "lib/ImGuizmo/*.cpp"
+"lib/hash-library/md5.cpp"
 )
 
 add_subdirectory(lib/glm EXCLUDE_FROM_ALL)
