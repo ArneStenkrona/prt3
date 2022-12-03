@@ -182,14 +182,14 @@ private:
 
     AmbientLight m_ambient_light;
 
-    mutable TransformCache m_transform_cache;
+    TransformCache m_transform_cache;
 
     void update(float delta_time);
 
     void collect_world_render_data(
         WorldRenderData & world_data,
         NodeID selected
-    ) const;
+    );
 
     void update_window_size(int w, int h);
 

@@ -35,6 +35,9 @@ void MeshCollider::collect_triangles(
 }
 
 void MeshCollider::set_transform(Transform const & transform) {
+    if (transform == m_transform) {
+        return;
+    }
     m_transform = transform;
     update_triangle_cache();
 }

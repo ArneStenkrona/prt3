@@ -45,7 +45,7 @@ void Engine::execute_frame() {
 
 
 
-    static RenderData render_data;
+    thread_local RenderData render_data;
     render_data.clear();
     switch (m_mode) {
         case EngineMode::game: {

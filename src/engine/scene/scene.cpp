@@ -80,11 +80,6 @@ Scene::Scene(Context & context)
 }
 
 void Scene::update(float delta_time) {
-    m_physics_system.update(
-        m_transform_cache.global_transforms().data(),
-        m_transform_cache.global_transforms_history().data()
-    );
-
     m_script_container.update(*this, delta_time);
 }
 
@@ -127,9 +122,9 @@ bool Scene::remove_node(NodeID id) {
         }
     }
 
-    static std::vector<NodeID> queue;
+    thread_local std::vector<NodeID> queue;
     queue.push_back(id);
-    static std::vector<NodeID> to_free_list;
+    thread_local std::vector<NodeID> to_free_list;
     to_free_list.clear();
 
     while (!queue.empty()) {
@@ -167,19 +162,24 @@ Input & Scene::get_input() {
 void Scene::collect_world_render_data(
     WorldRenderData & world_data,
     NodeID selected
-) const {
+) {
     m_transform_cache.collect_global_transforms(
         m_nodes.data(),
         m_nodes.size(),
         s_root_id
     );
 
+    m_physics_system.update(
+        m_transform_cache.global_transforms().data(),
+        m_transform_cache.global_transforms_history().data()
+    );
+
     std::vector<Transform> const & global_transforms =
         m_transform_cache.global_transforms();
 
-    static std::unordered_set<NodeID> selected_incl_children;
+    thread_local std::unordered_set<NodeID> selected_incl_children;
     selected_incl_children.clear();
-    static std::vector<NodeID> queue;
+    thread_local std::vector<NodeID> queue;
     queue.push_back(selected);
     while (!queue.empty()) {
         NodeID curr = queue.back();
@@ -296,7 +296,7 @@ Model const & Scene::get_model(ModelHandle handle) const {
 }
 
 void Scene::serialize(std::ostream & out) const {
-    static std::unordered_map<NodeID, NodeID> compacted_ids;
+    thread_local std::unordered_map<NodeID, NodeID> compacted_ids;
 
     NodeID n_compacted = 0;
     for (Node const & node : m_nodes) {

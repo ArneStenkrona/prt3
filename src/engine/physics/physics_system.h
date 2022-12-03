@@ -43,6 +43,8 @@ private:
 
     DynamicAABBTree m_aabb_tree;
 
+    std::unordered_map<ColliderTag, ResourceID> m_collider_meshes;
+
     void clear();
 
     void update(

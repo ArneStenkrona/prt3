@@ -245,9 +245,9 @@ void PhysicsSystem::update(
     Transform const * transforms,
     Transform const * transforms_history
 ) {
-    static std::vector<ColliderTag> stale_tags;
+    thread_local std::vector<ColliderTag> stale_tags;
     stale_tags.resize(0);
-    static std::vector<AABB> new_aabbs;
+    thread_local std::vector<AABB> new_aabbs;
     new_aabbs.resize(0);
 
     for (auto const & pair : m_tags) {

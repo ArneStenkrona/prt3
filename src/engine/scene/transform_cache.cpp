@@ -14,7 +14,7 @@ void TransformCache::collect_global_transforms(Node const * nodes,
 
     ++increment;
 
-    static std::vector<NodeID> queue;
+    thread_local std::vector<NodeID> queue;
     queue.push_back(root_id);
 
     m_global_transforms[root_id] = nodes[root_id].local_transform();
