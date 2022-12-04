@@ -9,6 +9,8 @@
 #include "src/engine/rendering/model.h"
 #include "src/engine/component/transform.h"
 #include "src/engine/scene/node.h"
+#include "src/engine/rendering/render_data.h"
+#include "src/engine/rendering/renderer.h"
 
 #include <unordered_map>
 #include <cstdint>
@@ -31,6 +33,13 @@ public:
 
     SphereCollider & get_sphere_collider(ColliderID id)
     { return m_sphere_colliders.at(id); }
+
+    void collect_collider_render_data(
+        Renderer & renderer,
+        Transform const * transforms,
+        NodeID selected,
+        ColliderRenderData & data
+    );
 
 private:
     std::unordered_map<NodeID, ColliderTag> m_tags;

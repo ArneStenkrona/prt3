@@ -34,6 +34,7 @@ public:
     { return m_materials.at(id).material(); }
 
     GLShader const & standard_shader() const { return *m_standard_shader; }
+    GLShader const & wireframe_shader() const { return *m_wireframe_shader; }
 private:
     GLTextureManager & m_texture_manager;
 
@@ -41,6 +42,7 @@ private:
     ResourceID m_next_material_id = 0;
 
     GLShader * m_standard_shader;
+    GLShader * m_wireframe_shader;
 
     void upload_default_material();
 };

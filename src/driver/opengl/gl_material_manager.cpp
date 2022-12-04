@@ -6,7 +6,8 @@ using namespace prt3;
 
 GLMaterialManager::GLMaterialManager(GLTextureManager & texture_manager)
  : m_texture_manager{texture_manager},
-   m_standard_shader{nullptr} {
+   m_standard_shader{nullptr},
+   m_wireframe_shader{nullptr} {
 }
 
 GLMaterialManager::~GLMaterialManager() {
@@ -18,6 +19,11 @@ void GLMaterialManager::init() {
     m_standard_shader = new GLShader(
         "assets/shaders/opengl/standard.vs",
         "assets/shaders/opengl/standard.fs"
+    );
+
+    m_wireframe_shader = new GLShader(
+        "assets/shaders/opengl/wireframe.vs",
+        "assets/shaders/opengl/wireframe.fs"
     );
     upload_default_material();
 }

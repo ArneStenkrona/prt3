@@ -9,6 +9,7 @@ void MeshCollider::set_triangles(
     assert(triangles.size % 3 == 0);
     m_triangles = triangles;
     update_triangle_cache();
+    m_changed = true;
 }
 
 void MeshCollider::set_triangles(
@@ -16,6 +17,7 @@ void MeshCollider::set_triangles(
     assert(triangles.size % 3 == 0);
     m_triangles = triangles;
     update_triangle_cache();
+    m_changed = true;
 }
 
 void MeshCollider::collect_triangles(

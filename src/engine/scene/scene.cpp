@@ -57,7 +57,7 @@ Scene::Scene(Context & context)
     add_component<PointLightComponent>(light_id, light);
 
     add_script<CharacterController>(character);
-    Sphere sphere{{0.0f, 2.1f, 0.0f}, 0.9f};
+    Sphere sphere{{0.0f, 1.0f, 0.0f}, 1.0f};
     add_component<ColliderComponent>(character, sphere);
 
     NodeID cube = m_context->model_manager()

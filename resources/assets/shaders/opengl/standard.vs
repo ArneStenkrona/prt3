@@ -5,6 +5,9 @@ uniform mat4 u_MVPMatrix;
 uniform mat4 u_MVMatrix;
 uniform mat3 u_InvTposMMatrix;
 
+uniform float u_NearPlane;
+uniform float u_FarPlane;
+
 layout(location = 0) in vec3 a_Position;
 layout(location = 1) in vec3 a_Normal;
 layout(location = 2) in vec2 a_TexCoordinate;

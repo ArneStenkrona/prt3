@@ -21,10 +21,25 @@ void GLMesh::init(GLuint vao,
     m_initialized = true;
 }
 
-void GLMesh::draw() const {
+void GLMesh::draw_elements_triangles() const {
     glBindVertexArray(m_vao);
     glCheckError();
     glDrawElements(GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT,
                    reinterpret_cast<void*>(m_start_index * sizeof(GLuint)));
     glCheckError();
 }
+
+void GLMesh::draw_array_lines() const {
+    glBindVertexArray(m_vao);
+    glCheckError();
+    glDrawArrays(GL_LINES, m_start_index, m_num_indices);
+    glCheckError();
+}
+
+void GLMesh::draw_array_triangles() const {
+    glBindVertexArray(m_vao);
+    glCheckError();
+    glDrawArrays(GL_TRIANGLES, m_start_index, m_num_indices);
+    glCheckError();
+}
+

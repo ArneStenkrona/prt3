@@ -44,17 +44,32 @@ public:
         ModelResource & resource
     );
 
-    ResourceID upload_material(Material const & material)
-    { return m_render_backend->upload_material(material); }
-
-    Material & get_material(ResourceID id)
-    { return m_render_backend->get_material(id); }
-
     void free_model(
         ModelHandle handle,
         ModelResource const & resource
     )
     { m_render_backend->free_model(handle, resource); }
+
+
+    ResourceID upload_line_mesh(std::vector<glm::vec3> const & vertices)
+    { return m_render_backend->upload_line_mesh(vertices); }
+
+    void update_line_mesh(
+        ResourceID id,
+        std::vector<glm::vec3> const & vertices
+    )
+    { m_render_backend->update_line_mesh(id, vertices); }
+
+    void free_line_mesh(
+        ResourceID id
+    )
+    { m_render_backend->free_line_mesh(id); }
+
+    ResourceID upload_material(Material const & material)
+    { return m_render_backend->upload_material(material); }
+
+    Material & get_material(ResourceID id)
+    { return m_render_backend->get_material(id); }
 
     NodeID get_selected(int x, int y) {
         return m_render_backend->get_selected(x, y);

@@ -24,7 +24,9 @@ public:
         uint32_t num_indices
     );
 
-    void draw() const;
+    void draw_elements_triangles() const;
+    void draw_array_lines() const;
+    void draw_array_triangles() const;
 
 private:
     bool m_initialized = false;
@@ -34,8 +36,6 @@ private:
 
     uint32_t m_start_index;
     uint32_t m_num_indices;
-
-    void setup_mesh();
 };
 
 } // namespace prt3

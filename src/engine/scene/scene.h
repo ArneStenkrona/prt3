@@ -21,6 +21,7 @@
 namespace prt3 {
 
 class Context;
+class Editor;
 
 class Scene {
 public:
@@ -217,6 +218,7 @@ private:
     friend class Renderer;
     friend class Node;
     friend class ScriptSet;
+    friend class Editor;
     friend class EditorContext;
     friend ModelComponent::ModelComponent(Scene &, NodeID, std::istream &);
     friend MaterialComponent::MaterialComponent(Scene &, NodeID, std::istream &);

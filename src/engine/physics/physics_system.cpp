@@ -285,3 +285,126 @@ void PhysicsSystem::update(
                        new_aabbs.data(),
                        new_aabbs.size());
 }
+
+void PhysicsSystem::collect_collider_render_data(
+    Renderer & renderer,
+    Transform const * transforms,
+    NodeID selected,
+    ColliderRenderData & data
+) {
+    for (auto & pair : m_mesh_colliders) {
+        auto & collider = pair.second;
+        if (collider.m_changed) {
+            ColliderTag tag;
+            tag.id = pair.first;
+            tag.type = ColliderType::collider_type_mesh;
+
+            auto const & tris = collider.triangles();
+            size_t n = tris.size();
+
+            thread_local std::vector<glm::vec3> lines;
+            size_t ln = n == 0 ? 0 : 2 * (n - 1);
+            lines.resize(ln);
+
+            size_t li = 0;
+            for (size_t i = 0; i + 1 < n; ++i) {
+                lines[li] = tris[i];
+                ++li;
+                lines[li] = tris[i+1];
+                ++li;
+            }
+
+            if (m_collider_meshes.find(tag) == m_collider_meshes.end()) {
+                m_collider_meshes[tag] =
+                    renderer.upload_line_mesh(lines);
+            } else {
+                renderer.update_line_mesh(
+                    m_collider_meshes.at(tag),
+                    lines
+                );
+            }
+
+            collider.m_changed = false;
+        }
+    }
+
+    for (auto & pair : m_sphere_colliders) {
+        auto & collider = pair.second;
+        if (collider.m_changed) {
+            ColliderTag tag;
+            tag.id = pair.first;
+            tag.type = ColliderType::collider_type_sphere;
+
+            // It might be easer to just have one shape for all spheres
+            // and modify the model matrix, but when capsule colliders
+            // are implemented it makes sense to create unique meshes
+            // for all
+            thread_local std::vector<glm::vec3> lines;
+            unsigned int n = 64;
+            lines.resize(n);
+            float d_theta = (2.0f * glm::pi<float>()) / n;
+
+            glm::vec3 const & pos = collider.base_shape().position;
+            float r = collider.base_shape().radius;
+
+            for (unsigned int i = 0; i < n; ++i) {
+                float theta_a = d_theta * i;
+                float theta_b = theta_a + d_theta;
+                glm::vec3 a = glm::vec3{r * cos(theta_a), 0.0f, r * sin(theta_a)} + pos;
+                glm::vec3 b = glm::vec3{r * cos(theta_b), 0.0f, r * sin(theta_b)} + pos;
+
+                lines.push_back(a);
+                lines.push_back(b);
+            }
+
+            for (unsigned int i = 0; i < n; ++i) {
+                float theta_a = d_theta * i;
+                float theta_b = theta_a + d_theta;
+                glm::vec3 a = glm::vec3{r * cos(theta_a), r * sin(theta_a), 0.0f} + pos;
+                glm::vec3 b = glm::vec3{r * cos(theta_b), r * sin(theta_b), 0.0f} + pos;
+
+                lines.push_back(a);
+                lines.push_back(b);
+            }
+
+            for (unsigned int i = 0; i < n; ++i) {
+                float theta_a = d_theta * i;
+                float theta_b = theta_a + d_theta;
+                glm::vec3 a = glm::vec3{0.0f, r * cos(theta_a), r * sin(theta_a)} + pos;
+                glm::vec3 b = glm::vec3{0.0f, r * cos(theta_b), r * sin(theta_b)} + pos;
+
+                lines.push_back(a);
+                lines.push_back(b);
+            }
+
+            if (m_collider_meshes.find(tag) == m_collider_meshes.end()) {
+                m_collider_meshes[tag] = renderer.upload_line_mesh(lines);
+            } else {
+                renderer.update_line_mesh(m_collider_meshes.at(tag), lines);
+            }
+
+            collider.m_changed = false;
+        }
+    }
+
+    if (selected == NO_NODE) {
+        data.line_data.resize(m_tags.size());
+        size_t i = 0;
+        for (auto const & pair : m_tags) {
+            data.line_data[i].mesh_id = m_collider_meshes.at(pair.second);
+            // NOTE: this is incorrect for spheres, since the collider
+            //       transforms the sphere radius according to
+            //       compMax(transform.scale) * radius. Sphere radii
+            //       are one dimensional, hence this limitation.
+            // TODO: resolve this discrepancy
+            data.line_data[i].transform =
+                transforms[pair.first].to_matrix();
+            ++i;
+        }
+    } else if (m_tags.find(selected) != m_tags.end()){
+        data.line_data.resize(1);
+        data.line_data[0].mesh_id =
+            m_collider_meshes.at(m_tags.at(selected));
+        data.line_data[0].transform = transforms[selected].to_matrix();
+    }
+}

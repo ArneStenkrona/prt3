@@ -52,3 +52,19 @@ void Editor::update(float delta_time) {
 
     ImGui::Render();
 }
+
+void Editor::collect_collider_render_data(
+    EditorRenderData & data
+) {
+    PhysicsSystem & sys = m_context.edit_scene().physics_system();
+    Renderer & renderer = m_context.renderer();
+    auto const & transforms =
+        m_context.edit_scene().m_transform_cache.global_transforms();
+
+    sys.collect_collider_render_data(
+        renderer,
+        transforms.data(),
+        m_editor_context.get_selected_node(),
+        data.collider_data
+    );
+}

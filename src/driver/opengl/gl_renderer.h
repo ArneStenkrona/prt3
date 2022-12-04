@@ -49,6 +49,17 @@ public:
     )
     { m_model_manager.free_model(handle, resource); }
 
+    virtual ResourceID upload_line_mesh(std::vector<glm::vec3> const & vertices)
+    { return m_model_manager.upload_line_mesh(vertices); }
+
+    virtual void update_line_mesh(
+        ResourceID id,
+        std::vector<glm::vec3> const & vertices
+    )
+    { m_model_manager.update_line_mesh(id, vertices); }
+
+    virtual void free_line_mesh(ResourceID id)
+    { m_model_manager.free_line_mesh(id); }
 
     virtual void set_postprocessing_chains(
         PostProcessingChain const & scene_chain,
@@ -102,10 +113,15 @@ private:
         LightRenderData const & light_data
     );
 
-    void bind_mesh_and_camera_data(
+    void bind_transform_and_camera_data(
         GLShader const & shader,
-        MeshRenderData const & mesh_data,
+        glm::mat4 const & transform,
         CameraRenderData const & camera_data
+    );
+
+    void bind_node_data(
+        GLShader const & shader,
+        NodeID node_id
     );
 
     void bind_material_data(

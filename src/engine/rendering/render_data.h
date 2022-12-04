@@ -33,6 +33,11 @@ struct MeshRenderData {
     glm::mat4 transform;
 };
 
+struct WireframeRenderData {
+    ResourceID mesh_id;
+    glm::mat4 transform;
+};
+
 struct PointLightRenderData {
     PointLight light;
     glm::vec3 position;
@@ -53,15 +58,25 @@ struct WorldRenderData {
     LightRenderData light_data;
 };
 
+struct ColliderRenderData {
+    std::vector<WireframeRenderData> line_data;
+};
+
+struct EditorRenderData {
+    ColliderRenderData collider_data;
+};
+
 struct RenderData {
     CameraRenderData camera_data;
     WorldRenderData world;
+    EditorRenderData editor_data;
 
     void clear() {
         camera_data = {};
         world.light_data = {};
         world.mesh_data.resize(0);
         world.selected_mesh_data.resize(0);
+        editor_data.collider_data.line_data.resize(0);
     }
 };
 

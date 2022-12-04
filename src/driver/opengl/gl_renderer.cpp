@@ -168,7 +168,6 @@ void GLRenderer::render(RenderData const & render_data, bool editor) {
 
     render_framebuffer(render_data, framebuffer, false);
 
-
     if (!chain.empty()) {
         render_framebuffer(
             render_data,
@@ -203,6 +202,13 @@ void GLRenderer::render_framebuffer(
                static_cast<GLint>(w / m_downscale_factor),
                static_cast<GLint>(h / m_downscale_factor));
     glCheckError();
+
+    GLenum attachments[3] = {
+        GL_COLOR_ATTACHMENT0,
+        GL_COLOR_ATTACHMENT1,
+        GL_COLOR_ATTACHMENT2,
+    };
+    glDrawBuffers(3, attachments);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glCheckError();
@@ -240,30 +246,61 @@ void GLRenderer::render_framebuffer(
             LightRenderData const & light_data = render_data.world.light_data;
             bind_light_data(material.shader(), light_data);
 
-            if (!selection_pass) {
-                for (MeshRenderData const & mesh_data : pair.second) {
-                    bind_mesh_and_camera_data(
-                        material.shader(),
-                        mesh_data,
-                        render_data.camera_data
-                    );
+            for (MeshRenderData const & mesh_data : pair.second) {
+                bind_transform_and_camera_data(
+                    material.shader(),
+                    mesh_data.transform,
+                    render_data.camera_data
+                );
+                bind_node_data(
+                    material.shader(),
+                    mesh_data.node
+                );
 
-                    meshes.at(mesh_data.mesh_id).draw();
-                }
+                meshes.at(mesh_data.mesh_id).draw_elements_triangles();
             }
             glCheckError();
         }
+
+        /* Wireframes */
+        {
+            glDrawBuffers(1, attachments);
+
+            glEnable(GL_POLYGON_OFFSET_FILL);
+            glPolygonOffset(1.0, 1.0);
+
+            GLShader const & shader = m_material_manager.wireframe_shader();
+            glUseProgram(shader.shader());
+
+            ColliderRenderData const & collider_data = render_data.editor_data.collider_data;
+            for (WireframeRenderData const & data : collider_data.line_data) {
+                bind_transform_and_camera_data(
+                    shader,
+                    data.transform,
+                    render_data.camera_data
+                );
+                meshes.at(data.mesh_id).draw_array_lines();
+            }
+
+            glDisable(GL_POLYGON_OFFSET_FILL);
+        }
+
     } else {
         glUseProgram(m_selection_shader->shader());
         auto const & selected_meshes = render_data.world.selected_mesh_data;
         for (MeshRenderData const & selected_mesh_data : selected_meshes) {
-                bind_mesh_and_camera_data(
+                bind_transform_and_camera_data(
                     *m_selection_shader,
-                    selected_mesh_data,
+                    selected_mesh_data.transform,
                     render_data.camera_data
                 );
+                bind_node_data(
+                    *m_selection_shader,
+                    selected_mesh_data.node
+                );
 
-                meshes.at(selected_mesh_data.mesh_id).draw();
+
+                meshes.at(selected_mesh_data.mesh_id).draw_elements_triangles();
             }
     }
 }
@@ -338,13 +375,13 @@ void GLRenderer::bind_light_data(
     glUniform3fv(s.get_uniform_loc(ambient_light_str), 1, &light_data.ambient_light.color[0]);
 }
 
-void GLRenderer::bind_mesh_and_camera_data(
+void GLRenderer::bind_transform_and_camera_data(
     GLShader const & s,
-    MeshRenderData const & mesh_data,
+    glm::mat4 const & transform,
     CameraRenderData const & camera_data
 ) {
-    glm::mat4 m_matrix = mesh_data.transform;
-    glm::mat4 mv_matrix = camera_data.view_matrix * mesh_data.transform;
+    glm::mat4 m_matrix = transform;
+    glm::mat4 mv_matrix = camera_data.view_matrix * transform;
     glm::mat4 mvp_matrix = camera_data.projection_matrix * mv_matrix;
     glm::mat3 inv_tpos_matrix = glm::inverse(glm::transpose(m_matrix));
 
@@ -359,9 +396,15 @@ void GLRenderer::bind_mesh_and_camera_data(
     glUniformMatrix4fv(s.get_uniform_loc(mvpmatrix_str), 1, GL_FALSE, &mvp_matrix[0][0]);
     static const UniformVarString inv_tpos_matrix_str = "u_InvTposMMatrix";
     glUniformMatrix3fv(s.get_uniform_loc(inv_tpos_matrix_str), 1, GL_FALSE, &inv_tpos_matrix[0][0]);
+}
+
+void GLRenderer::bind_node_data(
+    GLShader const & shader,
+    NodeID node_id
+) {
     static const UniformVarString node_str = "u_ID";
-    GLuint u_node_id = static_cast<GLuint>(mesh_data.node);
-    glUniform1ui(s.get_uniform_loc(node_str), GLuint(u_node_id));
+    GLuint u_node_id = static_cast<GLuint>(node_id);
+    glUniform1ui(shader.get_uniform_loc(node_str), GLuint(u_node_id));
 }
 
 void GLRenderer::bind_material_data(

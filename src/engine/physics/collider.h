@@ -4,9 +4,13 @@
 #include "src/engine/physics/aabb.h"
 #include "src/engine/geometry/shapes.h"
 
+#include <glm/gtx/component_wise.hpp>
+
 #include <vector>
 
 namespace prt3 {
+
+class PhysicsSystem;
 
 struct Collision {
     glm::vec3 normal;
@@ -54,7 +58,11 @@ private:
     Transform m_transform;
     AABB m_aabb;
 
+    bool m_changed = true;
+
     void update_triangle_cache();
+
+    friend class PhysicsSystem;
 };
 
 class SphereCollider {
@@ -65,13 +73,19 @@ public:
 
     Sphere get_shape(Transform const & transform) const {
         glm::mat4 mat = transform.to_matrix();
+        float radius = m_base_shape.radius * glm::compMax(transform.scale);
         return { glm::vec3{mat * glm::vec4{m_base_shape.position, 1.0f}},
-                 m_base_shape.radius };
+                 radius };
     }
     Sphere const & base_shape() const { return m_base_shape; }
-    Sphere & base_shape() { return m_base_shape; }
+    void set_base_shape(Sphere const & shape)
+    { m_base_shape = shape; m_changed = true; }
 private:
     Sphere m_base_shape;
+
+    bool m_changed = true;
+
+    friend class PhysicsSystem;
 };
 
 } // namespace prt3
