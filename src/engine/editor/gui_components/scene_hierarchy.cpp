@@ -21,14 +21,14 @@ void prt3::scene_hierarchy(EditorContext & context) {
     NodeID root_id = scene.get_root_id();
     std::vector<Node> & nodes = context.get_scene_nodes();
 
-    static std::vector<NodeID> node_ids;
+    thread_local std::vector<NodeID> node_ids;
     node_ids.resize(nodes.size());
-    static std::vector<bool> expanded = { true };
+    thread_local std::vector<bool> expanded = { true };
     expanded.resize(nodes.size());
 
-    static constexpr size_t max_depth = 32;
-    static constexpr size_t N = NodeName::Size + 2 * (max_depth + 1);
-    static std::vector<FixedString<N> > display_names;
+    thread_local constexpr size_t max_depth = 32;
+    thread_local constexpr size_t N = NodeName::Size + 2 * (max_depth + 1);
+    thread_local std::vector<FixedString<N> > display_names;
     display_names.resize(nodes.size());
 
     struct QueueElement {
@@ -36,7 +36,7 @@ void prt3::scene_hierarchy(EditorContext & context) {
         unsigned int depth;
     };
 
-    static std::vector<QueueElement> queue;
+    thread_local std::vector<QueueElement> queue;
     if (root_id != NO_NODE) {
         queue.push_back({root_id, 0});
     }
@@ -53,7 +53,7 @@ void prt3::scene_hierarchy(EditorContext & context) {
     }
 
     unsigned int n_displayed = 0;
-    static int32_t selected = 0;
+    thread_local int32_t selected = 0;
     selected = 0;
 
     while (!queue.empty()) {
@@ -108,7 +108,7 @@ void prt3::scene_hierarchy(EditorContext & context) {
     ImGui::SetNextItemWidth(ImGui::GetWindowWidth() - 40);
 
 
-    static std::vector<char*> name_data;
+    thread_local std::vector<char*> name_data;
     name_data.resize(n_displayed);
     for (unsigned int i = 0; i < name_data.size(); ++i) {
         name_data[i] = display_names[i].data();

@@ -297,6 +297,8 @@ Model const & Scene::get_model(ModelHandle handle) const {
 
 void Scene::serialize(std::ostream & out) const {
     thread_local std::unordered_map<NodeID, NodeID> compacted_ids;
+    compacted_ids.clear();
+    compacted_ids[NO_NODE] = NO_NODE;
 
     NodeID n_compacted = 0;
     for (Node const & node : m_nodes) {

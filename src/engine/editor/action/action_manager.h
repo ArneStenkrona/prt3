@@ -31,6 +31,11 @@ public:
     bool undo();
     bool redo();
 
+    void clear() {
+        clear_history();
+        clear_future();
+    }
+
 private:
     EditorContext & m_editor_context;
 
