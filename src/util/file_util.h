@@ -10,6 +10,10 @@ void emscripten_download_file(
     std::string const & dl_name
 );
 
+void emscripten_save_file_via_put(
+    std::string const & path
+);
+
 } // namespace prt3
 
 #endif

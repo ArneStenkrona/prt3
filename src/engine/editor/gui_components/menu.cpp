@@ -1,6 +1,7 @@
 #include "menu.h"
 
 #include "src/engine/editor/editor.h"
+#include "src/util/file_util.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
@@ -17,6 +18,8 @@ void save_scene(Scene const & scene, std::string const & path) {
     scene.serialize(out);
 
     out.close();
+
+    emscripten_save_file_via_put(path);
 }
 
 void load_scene(Scene & scene, std::string const & path) {

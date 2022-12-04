@@ -19,62 +19,62 @@ Scene::Scene(Context & context)
     m_node_names.emplace_back("root");
 
     // FOR DEBUGGING, WILL REMOVE ---->
-    NodeID room = m_context->model_manager()
-        .add_model_to_scene_from_path(
-            "assets/models/test_room/test_room.fbx",
-            *this,
-            s_root_id
-        );
+    // NodeID room = m_context->model_manager()
+    //     .add_model_to_scene_from_path(
+    //         "assets/models/test_room/test_room.fbx",
+    //         *this,
+    //         s_root_id
+    //     );
 
-    Model room_model{"assets/models/test_room/test_room.fbx"};
-    add_component<ColliderComponent>(room, room_model);
+    // Model room_model{"assets/models/test_room/test_room.fbx"};
+    // add_component<ColliderComponent>(room, room_model);
 
-    set_ambient_light(glm::vec3{0.1f, 0.1f, 0.1f});
+    // set_ambient_light(glm::vec3{0.1f, 0.1f, 0.1f});
 
-    // set_directional_light({{0.0f, -1.0f, 0.0f}, {0.8f, 0.8f, 0.8f}});
-    // set_directional_light_on(true);
+    // // set_directional_light({{0.0f, -1.0f, 0.0f}, {0.8f, 0.8f, 0.8f}});
+    // // set_directional_light_on(true);
 
-    NodeID cam_node = add_node_to_root("camera");
-    set_node_local_position(cam_node, glm::vec3(2.1f, 2.1f, 2.1f));
-    add_script<CameraController>(cam_node);
+    // NodeID cam_node = add_node_to_root("camera");
+    // set_node_local_position(cam_node, glm::vec3(2.1f, 2.1f, 2.1f));
+    // add_script<CameraController>(cam_node);
 
-    NodeID character = m_context->model_manager()
-        .add_model_to_scene_from_path(
-            "assets/models/stranger/stranger.fbx",
-            *this,
-            s_root_id
-        );
-    get_node(character).local_transform().scale = glm::vec3(0.45f);
-    get_node(character).local_transform().position.y = 1.0f;
+    // NodeID character = m_context->model_manager()
+    //     .add_model_to_scene_from_path(
+    //         "assets/models/stranger/stranger.fbx",
+    //         *this,
+    //         s_root_id
+    //     );
+    // get_node(character).local_transform().scale = glm::vec3(0.45f);
+    // get_node(character).local_transform().position.y = 1.0f;
 
-    NodeID light_id = add_node(character, "point_light");
-    get_node(light_id).local_transform().position = glm::vec3{0.0f, 7.0f, 0.0f};
-    PointLight light;
-    light.color = glm::vec3(1.0f, 1.0f, 1.0f);
-    light.quadratic_term = 0.02f;
-    light.linear_term = 0.01f;
-    light.constant_term = 0.1f;
-    add_component<PointLightComponent>(light_id, light);
+    // NodeID light_id = add_node(character, "point_light");
+    // get_node(light_id).local_transform().position = glm::vec3{0.0f, 7.0f, 0.0f};
+    // PointLight light;
+    // light.color = glm::vec3(1.0f, 1.0f, 1.0f);
+    // light.quadratic_term = 0.02f;
+    // light.linear_term = 0.01f;
+    // light.constant_term = 0.1f;
+    // add_component<PointLightComponent>(light_id, light);
 
-    add_script<CharacterController>(character);
-    Sphere sphere{{0.0f, 1.0f, 0.0f}, 1.0f};
-    add_component<ColliderComponent>(character, sphere);
+    // add_script<CharacterController>(character);
+    // Sphere sphere{{0.0f, 1.0f, 0.0f}, 1.0f};
+    // add_component<ColliderComponent>(character, sphere);
 
-    NodeID cube = m_context->model_manager()
-        .add_model_to_scene_from_path("assets/models/debug/character_cube.fbx",
-        *this,
-        s_root_id
-    );
-    get_node(cube).set_global_position(*this, glm::vec3(2.0f, 0.0f, 0.0f));
+    // NodeID cube = m_context->model_manager()
+    //     .add_model_to_scene_from_path("assets/models/debug/character_cube.fbx",
+    //     *this,
+    //     s_root_id
+    // );
+    // get_node(cube).set_global_position(*this, glm::vec3(2.0f, 0.0f, 0.0f));
 
-    add_component<ColliderComponent>(cube, Sphere{{0.0f, 1.0f, 0.0f}, 0.9f});
+    // add_component<ColliderComponent>(cube, Sphere{{0.0f, 1.0f, 0.0f}, 0.9f});
 
 
-    m_transform_cache.collect_global_transforms(
-        m_nodes.data(),
-        m_nodes.size(),
-        s_root_id
-    );
+    // m_transform_cache.collect_global_transforms(
+    //     m_nodes.data(),
+    //     m_nodes.size(),
+    //     s_root_id
+    // );
     // <---- FOR DEBUGGING, WILL REMOVE
 
 }

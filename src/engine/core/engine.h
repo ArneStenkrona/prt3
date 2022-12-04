@@ -20,7 +20,8 @@ enum class EngineMode {
 class Engine {
 public:
     Engine();
-    void start();
+
+    void set_scene_from_path(std::string const & path);
 
     void execute_frame();
 private:

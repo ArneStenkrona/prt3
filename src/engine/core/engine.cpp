@@ -1,6 +1,7 @@
 #include "engine.h"
 
 #include <iostream>
+#include <fstream>
 #include <algorithm>
 
 using namespace prt3;
@@ -11,6 +12,12 @@ Engine::Engine()
  : m_editor{m_context},
    m_last_frame_time_point{std::chrono::high_resolution_clock::now()} {
 
+}
+
+void Engine::set_scene_from_path(std::string const & path) {
+    std::ifstream in(path, std::ios::binary);
+    m_context.edit_scene().deserialize(in);
+    in.close();
 }
 
 void Engine::execute_frame() {
