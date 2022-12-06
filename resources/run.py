@@ -23,15 +23,10 @@ class HTTPRequestHandler(server.SimpleHTTPRequestHandler):
 
     def do_PUT(self):
         """Save a file following a HTTP PUT request"""
-        filename = os.path.basename(self.path)
-
-        # Don't overwrite files
-        if os.path.exists(filename):
-            self.send_response(409, 'Conflict')
-            self.end_headers()
-            reply_body = '"%s" already exists\n' % filename
-            self.wfile.write(reply_body.encode('utf-8'))
-            return
+        filename = os.path.join(os.getcwd(),self.translate_path(self.path))
+        alt = os.getcwd() + self.path
+        print("CWD = " + os.getcwd())
+        print("file = " + filename)
 
         file_length = int(self.headers['Content-Length'])
         with open(filename, 'wb') as output_file:

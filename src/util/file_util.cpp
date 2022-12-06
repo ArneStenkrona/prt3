@@ -23,7 +23,7 @@ void prt3::emscripten_download_file(
 void prt3::emscripten_save_file_via_put(
     std::string const & path
 ) {
-        thread_local std::string arg;
+    thread_local std::string arg;
     arg.clear();
 
     arg = "saveFileFromMemoryFSToResourceFolder('"

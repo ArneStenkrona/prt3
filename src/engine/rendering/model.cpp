@@ -597,7 +597,6 @@ static std::string const serialized_postfix = "_prt3cache";
 
 void Model::serialize_model() {
     std::string serialized_path = m_path + serialized_postfix;
-    std::string serialized_name = m_name + serialized_postfix;
 
     MD5String checksum = compute_md5(m_path.c_str());
 
@@ -724,8 +723,10 @@ void Model::serialize_model() {
 
     out.close();
 
-    // download file
-    // emscripten_download_file(serialized_path, serialized_name);
+    std::ifstream in(serialized_path, std::ios::binary);
+    MD5String s_checksum;
+
+    emscripten_save_file_via_put(serialized_path);
 }
 
 bool Model::deserialize_model() {
@@ -740,10 +741,6 @@ bool Model::deserialize_model() {
 
     MD5String checksum;
     in.read(checksum.data(), checksum.writeable_size());
-
-    if (checksum != current_checksum) {
-        return false;
-    }
 
     read_stream(in, m_animated);
     read_stream(in, m_valid);

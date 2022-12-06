@@ -105,7 +105,7 @@ add_dependencies(prt3 copy_resources)
 # Wasm specific
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
     set(CMAKE_CXX_FLAGS "-s USE_SDL=2 -s USE_SDL_IMAGE=2")
-    set_target_properties(prt3 PROPERTIES LINK_FLAGS "${CMAKE_LINK_FLAGS} -std=c++17 -MMD -MP -Oz -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1 -sLLD_REPORT_UNDEFINED -sASSERTIONS --pre-js settings.js --embed-file assets -sALLOW_MEMORY_GROWTH -s EXCEPTION_DEBUG -sNO_DISABLE_EXCEPTION_CATCHING -s SDL2_IMAGE_FORMATS='[\"bmp\",\"png\"]' -sFULL_ES2 -sFULL_ES3 -s TOTAL_MEMORY=323813376 -sERROR_ON_WASM_CHANGES_AFTER_LINK -sWASM_BIGINT -O1")
+    set_target_properties(prt3 PROPERTIES LINK_FLAGS "${CMAKE_LINK_FLAGS} -std=c++17 -MMD -MP -Oz -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1 -sLLD_REPORT_UNDEFINED -sASSERTIONS --pre-js settings.js --embed-file assets --embed-file run.py -sALLOW_MEMORY_GROWTH -s EXCEPTION_DEBUG -sNO_DISABLE_EXCEPTION_CATCHING -s SDL2_IMAGE_FORMATS='[\"bmp\",\"png\"]' -sFULL_ES2 -sFULL_ES3 -s TOTAL_MEMORY=323813376 -sERROR_ON_WASM_CHANGES_AFTER_LINK -sWASM_BIGINT -O1")
 endif ()
 
 # Set compiler flags
