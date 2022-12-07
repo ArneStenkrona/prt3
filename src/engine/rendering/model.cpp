@@ -742,6 +742,10 @@ bool Model::deserialize_model() {
     MD5String checksum;
     in.read(checksum.data(), checksum.writeable_size());
 
+    if (checksum != current_checksum) {
+        return false;
+    }
+
     read_stream(in, m_animated);
     read_stream(in, m_valid);
 
