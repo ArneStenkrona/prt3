@@ -27,14 +27,14 @@ Model::Model(char const * path)
     }
 }
 
-int Model::get_animation_index(char const * name) const {
+int32_t Model::get_animation_index(char const * name) const {
     if (m_name_to_animation.find(name) == m_name_to_animation.end()) {
         return -1;
     }
     return m_name_to_animation.find(name)->second;
 }
 
-int Model::get_bone_index(char const * name) const {
+int32_t Model::get_bone_index(char const * name) const {
     if (m_name_to_bone.find(name) == m_name_to_bone.end()) {
         return -1;
     }
@@ -55,196 +55,196 @@ glm::mat4 Model::get_bone_transform(char const * name) const {
     return get_bone_transform(index);
 }
 
-// void Model::sampleAnimation(AnimationClip & clip, glm::mat4 * transforms) const {
-//     assert(mAnimated);
-//     int animationIndex = getAnimationIndex(clip.m_clipName);
-//     animationIndex = animationIndex == -1 ? 0 : animationIndex;
+void Model::sampleAnimation(
+    uint32_t animation_index,
+    float t,
+    bool looping,
+    glm::mat4 * transforms
+) const {
 
-//     auto const & animation = animations[animationIndex];
+    auto const & animation = m_animations[animation_index];
 
-//     struct IndexedTForm {
-//         int32_t index;
-//         glm::mat4 tform;
-//     };
+    struct IndexedTForm {
+        uint32_t index;
+        glm::mat4 tform;
+    };
 
-//     std::vector<IndexedTForm> nodeIndices;
-//     nodeIndices.push_back({0, glm::mat4(1.0f)});
-//     while (!nodeIndices.empty()) {
-//         auto index = nodeIndices.back().index;
-//         auto parentTForm = nodeIndices.back().tform;
-//         nodeIndices.pop_back();
+    thread_local std::vector<IndexedTForm> node_indices;
+    node_indices.push_back({0, glm::mat4(1.0f)});
 
-//         glm::mat4 tform = m_nodes[index].transform;
-//         int32_t channelIndex = m_nodes[index].channelIndex;
+    while (!node_indices.empty()) {
+        auto index = node_indices.back().index;
+        auto parent_tform = node_indices.back().tform;
+        node_indices.pop_back();
 
-//         if (channelIndex != -1) {
-//             auto & channel = animation.channels[channelIndex];
+        glm::mat4 tform = m_nodes[index].transform.to_matrix();
+        int32_t channel_index = m_nodes[index].channel_index;
 
-//             float duration = animation.duration / animation.ticksPerSecond;
-//             float clipTime = clip.m_time / duration;
+        if (channel_index != -1) {
+            auto & channel = animation.channels[channel_index];
 
-//             // calculate prev and next frame
-//             int numFrames = animation.channels[channelIndex].keys.size();
-//             float fracFrame = clipTime * numFrames;
-//             int prevFrame = static_cast<int>(fracFrame);
-//             float frac = fracFrame - prevFrame;
-//             int nextFrame = (prevFrame + 1);
+            float duration = animation.duration / animation.ticks_per_second;
+            float clip_time = t / duration;
 
-//             if (clip.m_loop) {
-//                 prevFrame = prevFrame % numFrames;
-//                 nextFrame = nextFrame % numFrames;
-//             } else {
-//                 prevFrame = glm::min(prevFrame, numFrames - 1);
-//                 nextFrame = glm::min(nextFrame, numFrames - 1);
-//                 clip.m_completed = prevFrame == numFrames - 1;
-//             }
+            // calculate prev and next frame
+            int num_frames = animation.channels[channel_index].keys.size();
+            float frac_frame = clip_time * num_frames;
+            int prev_frame = static_cast<int>(frac_frame);
+            float frac = frac_frame - prev_frame;
+            int next_frame = (prev_frame + 1);
 
-//             glm::vec3 const & prevPos = channel.keys[prevFrame].position;
-//             glm::vec3 const & nextPos = channel.keys[nextFrame].position;
+            if (looping) {
+                prev_frame = prev_frame % num_frames;
+                next_frame = next_frame % num_frames;
+            } else {
+                prev_frame = glm::min(prev_frame, num_frames - 1);
+                next_frame = glm::min(next_frame, num_frames - 1);
+            }
 
-//             glm::quat const & prevRot = channel.keys[prevFrame].rotation;
-//             glm::quat const & nextRot = channel.keys[nextFrame].rotation;
+            glm::vec3 const & prev_pos = channel.keys[prev_frame].position;
+            glm::vec3 const & next_pos = channel.keys[next_frame].position;
 
-//             glm::vec3 const & prevScale = channel.keys[prevFrame].scaling;
-//             glm::vec3 const & nextScale = channel.keys[nextFrame].scaling;
+            glm::quat const & prev_rot = channel.keys[prev_frame].rotation;
+            glm::quat const & next_rot = channel.keys[next_frame].rotation;
 
-//             glm::vec3 pos = glm::lerp(prevPos, nextPos, frac);
-//             glm::quat rot = glm::slerp(prevRot, nextRot, frac);
-//             glm::vec3 scale = glm::lerp(prevScale, nextScale, frac);
-//             tform = glm::translate(pos) * glm::toMat4(rot) * glm::scale(scale);
-//         }
-//         // pose matrix
-//         glm::mat4 poseMatrix = parentTForm * tform;
+            glm::vec3 const & prev_scale = channel.keys[prev_frame].scaling;
+            glm::vec3 const & next_scale = channel.keys[next_frame].scaling;
 
-//         for (auto const & boneIndex : m_nodes[index].boneIndices) {
-//             transforms[boneIndex] = poseMatrix * bones[boneIndex].offsetMatrix;
-//         }
+            glm::vec3 pos = glm::lerp(prev_pos, next_pos, frac);
+            glm::quat rot = glm::slerp(prev_rot, next_rot, frac);
+            glm::vec3 scale = glm::lerp(prev_scale, next_scale, frac);
+            tform = glm::translate(pos) * glm::toMat4(rot) * glm::scale(scale);
+        }
+        // pose matrix
+        glm::mat4 pose_matrix = parent_tform * tform;
 
-//         for (auto const & childIndex : m_nodes[index].child_indices) {
-//             nodeIndices.push_back({childIndex, poseMatrix});
-//         }
-//     }
-// }
+        for (auto const & bone_index : m_nodes[index].bone_indices) {
+            transforms[bone_index] =
+                pose_matrix * m_bones[bone_index].offset_matrix;
+        }
 
-// void Model::blendAnimation(AnimationClip & clipA,
-//                            AnimationClip & clipB,
-//                            float blendFactor,
-//                            glm::mat4 * transforms) const {
-//     assert(mAnimated);
+        for (auto const & child_index : m_nodes[index].child_indices) {
+            node_indices.push_back({child_index, pose_matrix});
+        }
+    }
+}
 
-//     int animationIndexA = getAnimationIndex(clipA.m_clipName);
-//     animationIndexA = animationIndexA == -1 ? 0 : animationIndexA;
-//     int animationIndexB = getAnimationIndex(clipB.m_clipName);
-//     animationIndexB = animationIndexB == -1 ? 0 : animationIndexB;
+void Model::blendAnimation(
+    uint32_t animation_index_a,
+    float t_a,
+    bool looping_a,
+    uint32_t animation_index_b,
+    float t_b,
+    bool looping_b,
+    float blend_factor,
+    glm::mat4 * transforms
+) const {
 
-//     auto const & animationA = animations[animationIndexA];
-//     auto const & animationB = animations[animationIndexB];
+    auto const & animation_a = m_animations[animation_index_a];
+    auto const & animation_b = m_animations[animation_index_b];
 
-//     struct IndexedTForm {
-//         int index;
-//         glm::mat4 tform;
-//     };
-//     std::vector<IndexedTForm> nodeIndices;
-//     nodeIndices.push_back({0, glm::mat4(1.0f)});
-//     while (!nodeIndices.empty()) {
-//         auto index = nodeIndices.back().index;
-//         auto parentTForm = nodeIndices.back().tform;
-//         nodeIndices.pop_back();
+    struct IndexedTForm {
+        uint32_t index;
+        glm::mat4 tform;
+    };
 
-//         glm::mat4 tform = m_nodes[index].transform;
-//         int channelIndex = m_nodes[index].channelIndex;
+    thread_local std::vector<IndexedTForm> node_indices;
+    node_indices.push_back({0, glm::mat4(1.0f)});
+    while (!node_indices.empty()) {
+        auto index = node_indices.back().index;
+        auto parent_tform = node_indices.back().tform;
+        node_indices.pop_back();
 
-//         if (channelIndex != -1) {
-//             auto & channelA = animationA.channels[channelIndex];
-//             auto & channelB = animationB.channels[channelIndex];
+        glm::mat4 tform = m_nodes[index].transform.to_matrix();
+        int channel_index = m_nodes[index].channel_index;
 
-//             float durationA = animationA.duration / animationA.ticksPerSecond;
-//             float clipTimeA = clipA.m_time / durationA;
-//             // float clipTimeA = clipA.m_time * animationA.ticksPerSecond;
+        if (channel_index != -1) {
+            auto & channel_a = animation_a.channels[channel_index];
+            auto & channel_b = animation_b.channels[channel_index];
 
-//             float durationB = animationB.duration / animationB.ticksPerSecond;
-//             float clipTimeB = clipB.m_time / durationB;
-//             // float clipTimeB = clipB.m_time * animationB.ticksPerSecond;
+            float duration_a = animation_a.duration / animation_a.ticks_per_second;
+            float clip_time_a = t_a / duration_a;
 
-//             // calculate prev and next frame for clip A
-//             int numFramesA = animationA.channels[channelIndex].keys.size();
-//             float fracFrameA = clipTimeA * numFramesA;
-//             int prevFrameA = static_cast<int>(fracFrameA);
-//             float fracA = fracFrameA - prevFrameA;
-//             int nextFrameA = (prevFrameA + 1);
+            float duration_b = animation_b.duration / animation_b.ticks_per_second;
+            float clip_time_b = t_b / duration_b;
 
-//             if (clipA.m_loop) {
-//                 prevFrameA = prevFrameA % numFramesA;
-//                 nextFrameA = nextFrameA % numFramesA;
-//             } else {
-//                 prevFrameA = glm::min(prevFrameA, numFramesA - 1);
-//                 nextFrameA = glm::min(nextFrameA, numFramesA - 1);
-//                 clipA.m_completed = prevFrameA == numFramesA - 1;
-//             }
+            // calculate prev and next frame for clip A
+            int num_frames_a = animation_a.channels[channel_index].keys.size();
+            float frac_frame_a = clip_time_a * num_frames_a;
+            int prev_frame_a = static_cast<int>(frac_frame_a);
+            float frac_a = frac_frame_a - prev_frame_a;
+            int next_frame_a = (prev_frame_a + 1);
 
-//             // calculate prev and next frame for clip B
-//             int numFramesB = animationB.channels[channelIndex].keys.size();
-//             float fracFrameB = clipTimeB * numFramesB;
-//             int prevFrameB = static_cast<int>(fracFrameB);
-//             float fracB = fracFrameB - prevFrameB;
-//             int nextFrameB = (prevFrameB + 1);
+            if (looping_a) {
+                prev_frame_a = prev_frame_a % num_frames_a;
+                next_frame_a = next_frame_a % num_frames_a;
+            } else {
+                prev_frame_a = glm::min(prev_frame_a, num_frames_a - 1);
+                next_frame_a = glm::min(next_frame_a, num_frames_a - 1);
+            }
 
-//             if (clipB.m_loop) {
-//                 prevFrameB = prevFrameB % numFramesB;
-//                 nextFrameB = nextFrameB % numFramesB;
-//             } else {
-//                 prevFrameB = glm::min(prevFrameB, numFramesB - 1);
-//                 nextFrameB = glm::min(nextFrameB, numFramesB - 1);
-//                 clipB.m_completed = prevFrameB == numFramesB - 1;
-//             }
+            // calculate prev and next frame for clip B
+            int num_frames_b = animation_b.channels[channel_index].keys.size();
+            float frac_frame_b = clip_time_b * num_frames_b;
+            int prev_frame_b = static_cast<int>(frac_frame_b);
+            float frac_b = frac_frame_b - prev_frame_b;
+            int next_frame_b = (prev_frame_b + 1);
 
-//             // clip A
-//             glm::vec3 const & prevPosA = channelA.keys[prevFrameA].position;
-//             glm::vec3 const & nextPosA = channelA.keys[nextFrameA].position;
+            if (looping_b) {
+                prev_frame_b = prev_frame_b % num_frames_b;
+                next_frame_b = next_frame_b % num_frames_b;
+            } else {
+                prev_frame_b = glm::min(prev_frame_b, num_frames_b - 1);
+                next_frame_b = glm::min(next_frame_b, num_frames_b - 1);
+            }
 
-//             glm::quat const & prevRotA = channelA.keys[prevFrameA].rotation;
-//             glm::quat const & nextRotA = channelA.keys[nextFrameA].rotation;
+            // clip A
+            glm::vec3 const & prev_pos_a = channel_a.keys[prev_frame_a].position;
+            glm::vec3 const & next_pos_a = channel_a.keys[next_frame_a].position;
 
-//             glm::vec3 const & prevScaleA = channelA.keys[prevFrameA].scaling;
-//             glm::vec3 const & nextScaleA = channelA.keys[nextFrameA].scaling;
+            glm::quat const & prev_rot_a = channel_a.keys[prev_frame_a].rotation;
+            glm::quat const & next_rot_a = channel_a.keys[next_frame_a].rotation;
 
-//             glm::vec3 posA = glm::lerp(prevPosA, nextPosA, fracA);
-//             glm::quat rotA = glm::slerp(prevRotA, nextRotA, fracA);
-//             glm::vec3 scaleA = glm::lerp(prevScaleA, nextScaleA, fracA);
+            glm::vec3 const & prev_scale_a = channel_a.keys[prev_frame_a].scaling;
+            glm::vec3 const & next_scale_a = channel_a.keys[next_frame_a].scaling;
 
-//             // clip B
-//             glm::vec3 const & prevPosB = channelB.keys[prevFrameB].position;
-//             glm::vec3 const & nextPosB = channelB.keys[nextFrameB].position;
+            glm::vec3 pos_a = glm::lerp(prev_pos_a, next_pos_a, frac_a);
+            glm::quat rot_a = glm::slerp(prev_rot_a, next_rot_a, frac_a);
+            glm::vec3 scale_a = glm::lerp(prev_scale_a, next_scale_a, frac_a);
 
-//             glm::quat const & prevRotB = channelB.keys[prevFrameB].rotation;
-//             glm::quat const & nextRotB = channelB.keys[nextFrameB].rotation;
+            // clip B
+            glm::vec3 const & prev_pos_b = channel_b.keys[prev_frame_b].position;
+            glm::vec3 const & next_pos_b = channel_b.keys[next_frame_b].position;
 
-//             glm::vec3 const & prevScaleB = channelB.keys[prevFrameB].scaling;
-//             glm::vec3 const & nextScaleB = channelB.keys[nextFrameB].scaling;
+            glm::quat const & prev_rot_b = channel_b.keys[prev_frame_b].rotation;
+            glm::quat const & next_rot_b = channel_b.keys[next_frame_b].rotation;
 
-//             glm::vec3 posB = glm::lerp(prevPosB, nextPosB, fracB);
-//             glm::quat rotB = glm::slerp(prevRotB, nextRotB, fracB);
-//             glm::vec3 scaleB = glm::lerp(prevScaleB, nextScaleB, fracB);
+            glm::vec3 const & prev_scale_b = channel_b.keys[prev_frame_b].scaling;
+            glm::vec3 const & next_scale_b = channel_b.keys[next_frame_b].scaling;
 
-//             // blend
-//             glm::vec3 pos = glm::lerp(posA, posB, blendFactor);
-//             glm::quat rot = glm::slerp(rotA, rotB, blendFactor);
-//             glm::vec3 scale = glm::lerp(scaleA, scaleB, blendFactor);
+            glm::vec3 pos_b = glm::lerp(prev_pos_b, next_pos_b, frac_b);
+            glm::quat rot_b = glm::slerp(prev_rot_b, next_rot_b, frac_b);
+            glm::vec3 scale_b = glm::lerp(prev_scale_b, next_scale_b, frac_b);
 
-//             tform = glm::translate(pos) * glm::toMat4(rot) * glm::scale(scale);
-//         }
-//         // pose matrix
-//         glm::mat4 poseMatrix = parentTForm * tform;
+            // blend
+            glm::vec3 pos = glm::lerp(pos_a, pos_b, blend_factor);
+            glm::quat rot = glm::slerp(rot_a, rot_b, blend_factor);
+            glm::vec3 scale = glm::lerp(scale_a, scale_b, blend_factor);
 
-//         for (auto const & boneIndex : m_nodes[index].boneIndices) {
-//             transforms[boneIndex] = poseMatrix * bones[boneIndex].offsetMatrix;
-//         }
+            tform = glm::translate(pos) * glm::toMat4(rot) * glm::scale(scale);
+        }
+        // pose matrix
+        glm::mat4 pose_matrix = parent_tform * tform;
 
-//         for (auto const & childIndex : m_nodes[index].child_indices) {
-//             nodeIndices.push_back({childIndex, poseMatrix});
-//         }
-//     }
-// }
+        for (auto const & bone_index : m_nodes[index].bone_indices) {
+            transforms[bone_index] = pose_matrix * m_bones[bone_index].offset_matrix;
+        }
+
+        for (auto const & child_index : m_nodes[index].child_indices) {
+            node_indices.push_back({child_index, pose_matrix});
+        }
+    }
+}
 
 std::string Model::get_texture(aiMaterial & ai_mat, aiTextureType type, char const * model_path) {
     // TODO: optimize, too many temporary strings
@@ -711,7 +711,7 @@ void Model::serialize_model() {
     }
 
     thread_local std::vector<std::string const *> bone_names;
-    m_bones.resize(m_bones.size());
+    bone_names.resize(m_bones.size());
 
     for (auto const & pair : m_name_to_bone) {
         bone_names[pair.second] = &pair.first;

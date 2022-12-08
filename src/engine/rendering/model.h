@@ -62,15 +62,27 @@ public:
     std::vector<uint32_t>  const & index_buffer()       const { return m_index_buffer; };
     std::vector<Bone>      const & bones()              const { return m_bones; };
 
-    // void sampleAnimation(AnimationClip & clip, glm::mat4 * transforms) const;
-    // void blendAnimation(AnimationClip & clipA,
-    //                     AnimationClip & clipB,
-    //                     float blendFactor,
-    //                     glm::mat4 * transforms) const;
+    void sampleAnimation(
+        uint32_t animation_index,
+        float t,
+        bool looping,
+        glm::mat4 * transforms
+    ) const;
 
-    int get_animation_index(char const * name) const;
-    int get_number_of_bones() const { return m_bones.size(); }
-    int get_bone_index(char const * name) const;
+    void blendAnimation(
+        uint32_t animation_index_a,
+        float t_a,
+        bool looping_a,
+        uint32_t animation_index_b,
+        float t_b,
+        bool looping_b,
+        float blend_factor,
+        glm::mat4 * transforms
+    ) const;
+
+    int32_t get_animation_index(char const * name) const;
+    int32_t get_number_of_bones() const { return m_bones.size(); }
+    int32_t get_bone_index(char const * name) const;
     glm::mat4 get_bone_transform(int index) const;
     glm::mat4 get_bone_transform(char const * name) const;
 
