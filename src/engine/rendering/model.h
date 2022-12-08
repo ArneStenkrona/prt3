@@ -62,14 +62,14 @@ public:
     std::vector<uint32_t>  const & index_buffer()       const { return m_index_buffer; };
     std::vector<Bone>      const & bones()              const { return m_bones; };
 
-    void sampleAnimation(
+    void sample_animation(
         uint32_t animation_index,
         float t,
         bool looping,
         glm::mat4 * transforms
     ) const;
 
-    void blendAnimation(
+    void blend_animation(
         uint32_t animation_index_a,
         float t_a,
         bool looping_a,

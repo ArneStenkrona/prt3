@@ -40,6 +40,7 @@ file(GLOB SOURCES
 "src/driver/opengl/gl_shader.cpp"
 "src/driver/opengl/gl_source_buffers.cpp"
 "src/driver/opengl/gl_utility.cpp"
+"src/engine/animation/animation_system.cpp"
 "src/engine/component/script/script.cpp"
 "src/engine/component/collider_component.cpp"
 "src/engine/component/component_manager.cpp"

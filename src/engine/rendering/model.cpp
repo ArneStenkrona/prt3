@@ -55,7 +55,7 @@ glm::mat4 Model::get_bone_transform(char const * name) const {
     return get_bone_transform(index);
 }
 
-void Model::sampleAnimation(
+void Model::sample_animation(
     uint32_t animation_index,
     float t,
     bool looping,
@@ -129,7 +129,7 @@ void Model::sampleAnimation(
     }
 }
 
-void Model::blendAnimation(
+void Model::blend_animation(
     uint32_t animation_index_a,
     float t_a,
     bool looping_a,
