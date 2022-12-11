@@ -20,7 +20,8 @@ using namespace prt3;
 
 Model::Model(char const * path)
  : m_path{path} {
-    m_name = std::strrchr(path, '/') + 1;
+    char const * slash = std::strchr(path, '/');
+    m_name = slash ? slash + 1 : 0;
     if (!deserialize_model()) {
         load_with_assimp();
         serialize_model();
@@ -314,8 +315,6 @@ void Model::calculate_tangent_space() {
 void Model::load_with_assimp() {
     char const * path = m_path.c_str();
 
-    m_animated = false; // TODO: allow animation import
-
     Assimp::Importer importer;
     importer.SetPropertyInteger(
         AI_CONFIG_PP_SBP_REMOVE,
@@ -331,7 +330,8 @@ void Model::load_with_assimp() {
         aiProcess_JoinIdenticalVertices    |
         aiProcess_RemoveRedundantMaterials |
         aiProcess_ImproveCacheLocality     |
-        aiProcess_SortByPType
+        aiProcess_SortByPType              |
+        aiProcess_PopulateArmatureData
     );
 
     // check if import failed
@@ -372,10 +372,10 @@ void Model::load_with_assimp() {
         aiMatrix4x4 tform;
         int32_t parent_index;
     };
-    static std::vector<std::string> bone_to_name;
+    thread_local std::vector<std::string> bone_to_name;
     bone_to_name.clear();
 
-    static std::vector<TFormNode> tform_nodes;
+    thread_local std::vector<TFormNode> tform_nodes;
 
     tform_nodes.push_back({scene->mRootNode, scene->mRootNode->mTransformation, -1});
     while(!tform_nodes.empty()) {
@@ -472,15 +472,18 @@ void Model::load_with_assimp() {
             }
 
             // bones
-            if (m_animated) {
-                m_vertex_bone_buffer.resize(m_vertex_buffer.size());
-                size_t prevBoneSize = m_bones.size();
-                m_bones.resize(prevBoneSize + aiMesh->mNumBones);
-                bone_to_name.resize(prevBoneSize + aiMesh->mNumBones);
+            m_vertex_bone_buffer.resize(m_vertex_buffer.size());
 
-                for (size_t j = 0; j < aiMesh->mNumBones; ++j) {
-                    size_t bi = prevBoneSize + j;
-                    aiBone const * bone = aiMesh->mBones[j];
+            for (size_t j = 0; j < aiMesh->mNumBones; ++j) {
+                aiBone const * bone = aiMesh->mBones[j];
+
+                size_t bi;
+                if (m_name_to_bone.find(bone->mName.C_Str()) != m_name_to_bone.end()) {
+                    bi = m_name_to_bone.at(bone->mName.C_Str());
+                } else {
+                    bi = m_bones.size();
+                    m_bones.push_back({});
+                    bone_to_name.push_back({});
 
                     bone_to_name[bi] = bone->mName.C_Str();
                     m_name_to_bone[bone->mName.C_Str()] = bi;
@@ -497,25 +500,26 @@ void Model::load_with_assimp() {
                     m_bones[bi].offset_matrix =
                         glm::transpose(m_bones[bi].offset_matrix) *
                         glm::inverse(m_bones[bi].mesh_transform);
-                    // store the bone weights and IDs in vertices
-                    for (size_t iv = 0; iv < bone->mNumWeights; ++iv) {
-                        BoneData & bd =
-                            m_vertex_bone_buffer[prev_vertex_size +
-                                                 bone->mWeights[iv].mVertexId];
-                        // only store the 4 most influential bones
-                        int least_index = -1;
-                        float weight = bone->mWeights[iv].mWeight;
-                        float least_weight = weight;
-                        for (size_t ind = 0; ind < 4; ++ind) {
-                            if (bd.bone_weights[ind] < least_weight) {
-                                least_weight = bd.bone_weights[ind];
-                                least_index = ind;
-                            }
+                }
+
+                // store the bone weights and IDs in vertices
+                for (size_t iv = 0; iv < bone->mNumWeights; ++iv) {
+                    BoneData & bd =
+                        m_vertex_bone_buffer[prev_vertex_size +
+                                             bone->mWeights[iv].mVertexId];
+                    // only store the 4 most influential bones
+                    int least_index = -1;
+                    float weight = bone->mWeights[iv].mWeight;
+                    float least_weight = weight;
+                    for (size_t ind = 0; ind < 4; ++ind) {
+                        if (bd.bone_weights[ind] < least_weight) {
+                            least_weight = bd.bone_weights[ind];
+                            least_index = ind;
                         }
-                        if (least_index != -1) {
-                            bd.bone_ids[least_index] = bi;
-                            bd.bone_weights[least_index] = weight;
-                        }
+                    }
+                    if (least_index != -1) {
+                        bd.bone_ids[least_index] = bi;
+                        bd.bone_weights[least_index] = weight;
                     }
                 }
             }
@@ -528,66 +532,65 @@ void Model::load_with_assimp() {
                                    node_index});
         }
     }
+
     // parse animations
-    if (m_animated) {
-        m_animations.resize(scene->mNumAnimations);
-        for (size_t i = 0; i < scene->mNumAnimations; ++i) {
-            aiAnimation const * aiAnim = scene->mAnimations[i];
+    m_animations.resize(scene->mNumAnimations);
+    for (size_t i = 0; i < scene->mNumAnimations; ++i) {
+        aiAnimation const * aiAnim = scene->mAnimations[i];
 
-            // trim names such as "armature|<animationName>"
-            const char * toCopy = strchr(aiAnim->mName.C_Str(), '|');
-            if (toCopy != nullptr) {
-                char nameBuf[256];
-                ++toCopy;
-                strcpy(nameBuf, toCopy);
-                m_name_to_animation.insert({nameBuf, i});
-            } else {
-                m_name_to_animation.insert({aiAnim->mName.C_Str(), i});
-            }
+        // trim names such as "armature|<animationName>"
+        const char * toCopy = strchr(aiAnim->mName.C_Str(), '|');
+        if (toCopy != nullptr) {
+            char nameBuf[256];
+            ++toCopy;
+            strcpy(nameBuf, toCopy);
+            m_name_to_animation.insert({nameBuf, i});
+        } else {
+            m_name_to_animation.insert({aiAnim->mName.C_Str(), i});
+        }
 
-            Animation & anim = m_animations[i];
-            anim.duration = aiAnim->mDuration;
-            anim.ticks_per_second = aiAnim->mTicksPerSecond;
-            anim.channels.resize(aiAnim->mNumChannels);
+        Animation & anim = m_animations[i];
+        anim.duration = aiAnim->mDuration;
+        anim.ticks_per_second = aiAnim->mTicksPerSecond;
+        anim.channels.resize(aiAnim->mNumChannels);
 
-            for (size_t j = 0; j < aiAnim->mNumChannels; ++j) {
-                aiNodeAnim const * aiChannel = aiAnim->mChannels[j];
-                AnimationNode & channel = anim.channels[j];
+        for (size_t j = 0; j < aiAnim->mNumChannels; ++j) {
+            aiNodeAnim const * aiChannel = aiAnim->mChannels[j];
+            AnimationNode & channel = anim.channels[j];
 
-                assert(m_name_to_node.find(aiChannel->mNodeName.C_Str())
-                    != m_name_to_node.end() &&
-                    "animation does not correspond to node");
+            assert(m_name_to_node.find(aiChannel->mNodeName.C_Str())
+                != m_name_to_node.end() &&
+                "animation does not correspond to node");
 
-                auto node_index =
-                    m_name_to_node.find(aiChannel->mNodeName.C_Str())->second;
-                m_nodes[node_index].channel_index = j;
+            auto node_index =
+                m_name_to_node.find(aiChannel->mNodeName.C_Str())->second;
+            m_nodes[node_index].channel_index = j;
 
-                assert(aiChannel->mNumPositionKeys == aiChannel->mNumRotationKeys &&
-                       aiChannel->mNumPositionKeys == aiChannel->mNumScalingKeys &&
-                       "number of position, rotation and scaling keys need to match");
+            assert(aiChannel->mNumPositionKeys == aiChannel->mNumRotationKeys &&
+                    aiChannel->mNumPositionKeys == aiChannel->mNumScalingKeys &&
+                    "number of position, rotation and scaling keys need to match");
 
-                channel.keys.resize(aiChannel->mNumPositionKeys);
+            channel.keys.resize(aiChannel->mNumPositionKeys);
 
-                for (size_t k = 0; k < channel.keys.size(); ++k) {
-                    aiVector3D const & aiPos = aiChannel->mPositionKeys[k].mValue;
-                    aiQuaternion const & aiRot = aiChannel->mRotationKeys[k].mValue;
-                    aiVector3D const & aiScale = aiChannel->mScalingKeys[k].mValue;
-                    channel.keys[k].position = { aiPos.x, aiPos.y, aiPos.z };
-                    channel.keys[k].rotation = { aiRot.w, aiRot.x, aiRot.y, aiRot.z };
-                    channel.keys[k].scaling = { aiScale.x, aiScale.y, aiScale.z };
-                }
+            for (size_t k = 0; k < channel.keys.size(); ++k) {
+                aiVector3D const & aiPos = aiChannel->mPositionKeys[k].mValue;
+                aiQuaternion const & aiRot = aiChannel->mRotationKeys[k].mValue;
+                aiVector3D const & aiScale = aiChannel->mScalingKeys[k].mValue;
+                channel.keys[k].position = { aiPos.x, aiPos.y, aiPos.z };
+                channel.keys[k].rotation = { aiRot.w, aiRot.x, aiRot.y, aiRot.z };
+                channel.keys[k].scaling = { aiScale.x, aiScale.y, aiScale.z };
             }
         }
-        // set node Indices
-        for (size_t i = 0; i < m_bones.size(); ++i) {
-            std::string const & bone_name = bone_to_name[i];
+    }
+    // set node Indices
+    for (size_t i = 0; i < m_bones.size(); ++i) {
+        std::string const & bone_name = bone_to_name[i];
 
-            assert(m_name_to_node.find(bone_name) != m_name_to_node.end() &&
-                   "No corresponding node for bone");
-            size_t node_index = m_name_to_node.find(bone_name)->second;
-            m_nodes[node_index].bone_indices.push_back(i);
-            m_nodes[node_index].animation_index = i;
-        }
+        assert(m_name_to_node.find(bone_name) != m_name_to_node.end() &&
+                "No corresponding node for bone");
+        size_t node_index = m_name_to_node.find(bone_name)->second;
+        m_nodes[node_index].bone_indices.push_back(i);
+        m_nodes[node_index].animation_index = i;
     }
 
     // calculate_tangent_space();
@@ -604,7 +607,6 @@ void Model::serialize_model() {
 
     out.write(checksum.data(), checksum.writeable_size());
 
-    write_stream(out, m_animated);
     write_stream(out, m_valid);
 
     write_stream(out, m_nodes.size());
@@ -710,21 +712,19 @@ void Model::serialize_model() {
         write_stream(out, bone.mesh_transform);
     }
 
-    thread_local std::vector<std::string const *> bone_names;
-    bone_names.resize(m_bones.size());
+    thread_local std::vector<std::string> bone_names;
+    bone_names.resize(m_name_to_bone.size());
 
     for (auto const & pair : m_name_to_bone) {
-        bone_names[pair.second] = &pair.first;
+        bone_names[pair.second] = pair.first;
     }
 
-    for (std::string const * name : bone_names) {
-        write_string(out, *name);
+    write_stream(out, m_name_to_bone.size());
+    for (std::string const & name : bone_names) {
+        write_string(out, name);
     }
 
     out.close();
-
-    std::ifstream in(serialized_path, std::ios::binary);
-    MD5String s_checksum;
 
     emscripten_save_file_via_put(serialized_path);
 }
@@ -746,7 +746,6 @@ bool Model::deserialize_model() {
         return false;
     }
 
-    read_stream(in, m_animated);
     read_stream(in, m_valid);
 
     size_t n_nodes;
@@ -876,7 +875,9 @@ bool Model::deserialize_model() {
         read_stream(in, bone.mesh_transform);
     }
 
-    for (int i = 0; i < static_cast<int>(m_bones.size()); ++i) {
+    size_t n_bone_names;
+    read_stream(in, n_bone_names);
+    for (int i = 0; i < static_cast<int>(n_bone_names); ++i) {
         thread_local std::string name;
 
         read_string(in, name);

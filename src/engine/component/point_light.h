@@ -3,6 +3,7 @@
 
 #include "src/engine/scene/node.h"
 #include "src/engine/rendering/light.h"
+#include "src/util/uuid.h"
 
 namespace prt3 {
 
@@ -35,6 +36,7 @@ public:
     ) const;
 
     static char const * name() { return "Point Light"; }
+    static constexpr UUID uuid = 11704508273189355731ull;
 
 private:
     NodeID m_node_id;

@@ -42,6 +42,7 @@ file(GLOB SOURCES
 "src/driver/opengl/gl_utility.cpp"
 "src/engine/animation/animation_system.cpp"
 "src/engine/component/script/script.cpp"
+"src/engine/component/animated_model.cpp"
 "src/engine/component/collider_component.cpp"
 "src/engine/component/component_manager.cpp"
 "src/engine/component/material.cpp"

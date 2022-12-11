@@ -3,6 +3,7 @@
 
 #include "src/engine/scene/node.h"
 #include "src/engine/rendering/resources.h"
+#include "src/util/uuid.h"
 
 namespace prt3 {
 
@@ -29,6 +30,7 @@ public:
     ) const;
 
     static char const * name() { return "Mesh"; }
+    static constexpr UUID uuid = 10741837389442237241ull;
 
 private:
     NodeID m_node_id;

@@ -220,6 +220,7 @@ private:
     friend class ScriptSet;
     friend class Editor;
     friend class EditorContext;
+    friend AnimatedModel::AnimatedModel(Scene &, NodeID, std::istream &);
     friend ModelComponent::ModelComponent(Scene &, NodeID, std::istream &);
     friend MaterialComponent::MaterialComponent(Scene &, NodeID, std::istream &);
     friend Mesh::Mesh(Scene &, NodeID, std::istream &);

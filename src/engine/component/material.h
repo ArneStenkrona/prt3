@@ -3,6 +3,7 @@
 
 #include "src/engine/scene/node.h"
 #include "src/engine/rendering/resources.h"
+#include "src/util/uuid.h"
 
 namespace prt3 {
 
@@ -30,6 +31,7 @@ public:
     ) const;
 
     static char const * name() { return "Material"; }
+    static constexpr UUID uuid = 11147784129203109440ull;
 
 private:
     NodeID m_node_id;

@@ -5,14 +5,13 @@
 #include "src/engine/scene/signal.h"
 #include "src/util/serialization_util.h"
 #include "src/util/fixed_string.h"
+#include "src/util/uuid.h"
 
 #include <cstdint>
 #include <unordered_map>
 #include <iostream>
 
 namespace prt3 {
-
-typedef uint64_t UUID;
 
 typedef unsigned int ScriptID;
 static constexpr ScriptID NO_SCRIPT = -1;

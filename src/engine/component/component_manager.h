@@ -95,13 +95,13 @@ public:
     }
 
 private:
-    ComponentStorageTypes m_component_storages;
+    ComponentStoragesType m_component_storages;
 
     template<typename ComponentType>
     ComponentStorage<ComponentType> const & get_component_storage() const {
         return std::get<
             Index<ComponentStorage<ComponentType>,
-                  ComponentStorageTypes>::value
+                  ComponentStoragesType>::value
             >(m_component_storages);
     }
 
@@ -109,7 +109,7 @@ private:
     ComponentStorage<ComponentType> & get_component_storage() {
         return std::get<
             Index<ComponentStorage<ComponentType>,
-                  ComponentStorageTypes>::value
+                  ComponentStoragesType>::value
             >(m_component_storages);
     }
 
@@ -148,8 +148,13 @@ private:
     void deserialize_storage(
         std::istream & in,
         Scene & scene,
+        size_t n_storages,
         std::tuple<ComponentStorage<Tp>...> & t
     ) {
+        if (n_storages <= I) {
+            return;
+        }
+
         uint64_t magic_num_i = magic_num + I;
         uint64_t r_magic_num_i;
         read_stream(in, r_magic_num_i);
@@ -162,7 +167,7 @@ private:
         storage.deserialize(in, scene);
 
         if constexpr(I+1 != sizeof...(Tp))
-            deserialize_storage<I+1>(in, scene, t);
+            deserialize_storage<I+1>(in, scene, n_storages, t);
     }
 
     template<size_t I = 0, typename... Tp>

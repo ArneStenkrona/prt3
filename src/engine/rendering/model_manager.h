@@ -37,8 +37,13 @@ public:
     void clear();
 
     ModelHandle upload_model(std::string const & path);
+    ModelHandle upload_animated_model(std::string const & path);
 
-    NodeID add_model_to_scene_from_path(std::string const & path, Scene & scene, NodeID parent_id);
+    NodeID add_model_to_scene_from_path(
+        std::string const & path,
+        Scene & scene,
+        NodeID parent_id
+    );
 
     Model const & get_model_from_mesh_id(ResourceID id) const
     { return m_models.at(m_mesh_id_to_model.at(id)); }

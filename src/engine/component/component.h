@@ -2,6 +2,7 @@
 #define PRT3_COMPONENT_H
 
 #include "src/engine/scene/node.h"
+#include "src/engine/component/animated_model.h"
 #include "src/engine/component/collider_component.h"
 #include "src/engine/component/mesh.h"
 #include "src/engine/component/material.h"
@@ -125,10 +126,11 @@ using ComponentTypes = type_pack<
     ModelComponent,
     PointLightComponent,
     ColliderComponent,
-    ScriptSet
+    ScriptSet,
+    AnimatedModel
 >;
 
-using ComponentStorageTypes = wrap_arg_pack_in_storage<std::tuple, ComponentTypes>::type;
+using ComponentStoragesType = wrap_arg_pack_in_storage<std::tuple, ComponentTypes>::type;
 
 } // namespace prt3
 

@@ -2,6 +2,7 @@
 #define PRT3_SCRIPT_SET_H
 
 #include "src/engine/component/script/script.h"
+#include "src/util/uuid.h"
 
 #include <vector>
 
@@ -71,6 +72,7 @@ public:
     ) const;
 
     static char const * name() { return "Script Set"; }
+    static constexpr UUID uuid = 12675855637537766490ull;
 
 private:
     std::vector<ScriptID> m_script_ids;

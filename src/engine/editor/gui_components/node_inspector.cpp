@@ -6,6 +6,7 @@
 #include "src/engine/editor/gui_components/panel.h"
 #include "src/engine/component/transform.h"
 #include "src/util/template_util.h"
+#include "src/engine/editor/gui_components/component/animated_model_gui.h"
 #include "src/engine/editor/gui_components/component/collider_gui.h"
 #include "src/engine/editor/gui_components/component/material_gui.h"
 #include "src/engine/editor/gui_components/component/mesh_gui.h"

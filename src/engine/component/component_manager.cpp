@@ -13,11 +13,14 @@ void ComponentManager::serialize(
     Scene const & scene,
     std::unordered_map<NodeID, NodeID> const & compacted_ids
 ) const {
+    write_stream(out, std::tuple_size_v<ComponentStoragesType>);
     serialize_storage(out, scene, compacted_ids, m_component_storages);
 }
 
 void ComponentManager::deserialize(std::istream & in, Scene & scene) {
-    deserialize_storage(in, scene, m_component_storages);
+    size_t n_storages;
+    read_stream(in, n_storages);
+    deserialize_storage(in, scene, n_storages, m_component_storages);
 }
 
 void ComponentManager::serialize_components(

@@ -86,7 +86,7 @@ public:
     glm::mat4 get_bone_transform(int index) const;
     glm::mat4 get_bone_transform(char const * name) const;
 
-    inline bool is_animated() const { return m_animated; }
+    inline bool is_animated() const { return !m_animations.empty(); }
 
     inline bool valid() const { return m_valid; }
 
@@ -96,7 +96,6 @@ public:
 private:
     std::string m_name;
     std::string m_path;
-    bool m_animated = false;
     bool m_valid = true;
 
     std::vector<Node> m_nodes;
@@ -109,7 +108,7 @@ private:
     std::vector<Bone> m_bones;
 
     // maps animation names to animations
-    // TODO: replace with own string type
+    // TODO: replace with fixed string?
     std::unordered_map<std::string, int> m_name_to_animation;
     std::unordered_map<std::string, int> m_name_to_bone;
     std::unordered_map<std::string, int> m_name_to_node;

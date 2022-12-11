@@ -6,6 +6,7 @@
 #include "src/engine/rendering/model.h"
 #include "src/engine/rendering/model_manager.h"
 #include "src/util/serialization_util.h"
+#include "src/util/uuid.h"
 
 #include <iostream>
 
@@ -59,6 +60,7 @@ public:
     );
 
     static char const * name() { return "Collider"; }
+    static constexpr UUID uuid = 14156805678675640982ull;
 
 private:
 

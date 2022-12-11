@@ -4,6 +4,7 @@
 #include "src/engine/rendering/model.h"
 #include "src/engine/rendering/model_manager.h"
 #include "src/engine/scene/node.h"
+#include "src/util/uuid.h"
 
 namespace prt3 {
 
@@ -31,6 +32,7 @@ public:
     ) const;
 
     static char const * name() { return "Model"; }
+    static constexpr UUID uuid = 10005303357075355173ull;
 
 private:
     NodeID m_node_id;
