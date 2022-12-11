@@ -206,7 +206,22 @@ void Scene::collect_world_render_data(
         mesh_data.transform = global_transforms[id].to_matrix();
         mesh_data.material_id = has_component<MaterialComponent>(id) ?
             get_component<MaterialComponent>(id).resource_id() : NO_RESOURCE;
-        world_data.mesh_data.push_back(mesh_data);
+
+        Model const & model =
+            model_manager().get_model_from_mesh_id(mesh_comp.resource_id());
+
+        if (!model.is_animated()) {
+            world_data.mesh_data.push_back(mesh_data);
+        } else {
+            AnimatedMeshRenderData data;
+            data.mesh_data = mesh_data;
+            data.bones[0] = glm::mat4{1.0f};
+            data.bones[1] = glm::mat4{1.0f};
+            data.bones[2] = glm::mat4{1.0f};
+            data.bones[3] = glm::mat4{1.0f};
+            world_data.animated_mesh_data.push_back(data);
+        }
+
         if (selected_incl_children.find(id) !=
             selected_incl_children.end()) {
             world_data.selected_mesh_data.push_back(mesh_data);

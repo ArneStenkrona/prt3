@@ -58,6 +58,9 @@ private:
 
     std::unordered_map<ResourceID, GLMesh> m_meshes;
     ResourceID m_next_mesh_id = 0;
+
+    void bind_vertex_buffer(Model const & model);
+    void bind_boned_vertex_buffer(Model const & model);
 };
 
 } // namespace prt3

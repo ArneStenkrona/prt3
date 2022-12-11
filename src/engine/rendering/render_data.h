@@ -33,6 +33,11 @@ struct MeshRenderData {
     glm::mat4 transform;
 };
 
+struct AnimatedMeshRenderData {
+    MeshRenderData mesh_data;
+    std::array<glm::mat4, 4> bones;
+};
+
 struct WireframeRenderData {
     ResourceID mesh_id;
     glm::mat4 transform;
@@ -54,6 +59,7 @@ struct LightRenderData {
 
 struct WorldRenderData {
     std::vector<MeshRenderData> mesh_data;
+    std::vector<AnimatedMeshRenderData> animated_mesh_data;
     std::vector<MeshRenderData> selected_mesh_data;
     LightRenderData light_data;
 };
@@ -75,6 +81,7 @@ struct RenderData {
         camera_data = {};
         world.light_data = {};
         world.mesh_data.resize(0);
+        world.animated_mesh_data.resize(0);
         world.selected_mesh_data.resize(0);
         editor_data.collider_data.line_data.resize(0);
     }

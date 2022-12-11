@@ -216,45 +216,104 @@ void GLRenderer::render_framebuffer(
     auto const & meshes = m_model_manager.meshes();
 
     if (!selection_pass) {
-        // Render meshes
-        // TODO: use a queue based on shaders instead, to reduce state changes
-        static std::unordered_map<ResourceID, std::vector<MeshRenderData>>
-            material_queues;
-        for (auto & pair : material_queues) {
-            pair.second.resize(0);
-        }
-        for (MeshRenderData const & mesh_data : render_data.world.mesh_data) {
-            material_queues[mesh_data.material_id].push_back(mesh_data);
-        }
-
         auto const & materials = m_material_manager.materials();
 
-        for (auto const & pair : material_queues) {
+        // Render meshes
+        // TODO: use a queue based on shaders instead, to reduce state changes
+        thread_local std::unordered_map<GLShader const *, std::vector<MeshRenderData> >
+            shader_queues;
+
+        thread_local std::unordered_map<GLShader const *, std::vector<AnimatedMeshRenderData> >
+            animated_shader_queues;
+
+        for (auto & pair : shader_queues) {
+            pair.second.resize(0);
+        }
+
+        for (auto & pair : animated_shader_queues) {
+            pair.second.resize(0);
+        }
+
+        for (MeshRenderData const & mesh_data : render_data.world.mesh_data) {
+            GLShader const * shader =
+                &materials.at(mesh_data.material_id).get_shader(false);
+            shader_queues[shader].push_back(mesh_data);
+        }
+
+        for (AnimatedMeshRenderData const & data : render_data.world.animated_mesh_data) {
+            GLShader const * shader =
+                &materials.at(data.mesh_data.material_id).get_shader(true);
+            animated_shader_queues[shader].push_back(data);
+        }
+
+        for (auto const & pair : shader_queues) {
             if (pair.second.empty()) { continue; }
 
-            GLMaterial const & material = materials.at(pair.first);
-            GLuint shader_id = material.shader().shader();
+            GLShader const & shader = *pair.first;
+            GLuint shader_id = shader.shader();
             glUseProgram(shader_id);
             glCheckError();
 
-            bind_material_data(
-                material.shader(),
-                material
-            );
-
             // Light data
             LightRenderData const & light_data = render_data.world.light_data;
-            bind_light_data(material.shader(), light_data);
+            bind_light_data(shader, light_data);
 
             for (MeshRenderData const & mesh_data : pair.second) {
+                GLMaterial const & material = materials.at(mesh_data.material_id);
+
+                bind_material_data(
+                    shader,
+                    material
+                );
+
                 bind_transform_and_camera_data(
-                    material.shader(),
+                    shader,
                     mesh_data.transform,
                     render_data.camera_data
                 );
                 bind_node_data(
-                    material.shader(),
+                    shader,
                     mesh_data.node
+                );
+
+                meshes.at(mesh_data.mesh_id).draw_elements_triangles();
+            }
+            glCheckError();
+        }
+
+        for (auto const & pair : animated_shader_queues) {
+            if (pair.second.empty()) { continue; }
+
+            GLShader const & shader = *pair.first;
+            GLuint shader_id = shader.shader();
+            glUseProgram(shader_id);
+            glCheckError();
+
+            // Light data
+            LightRenderData const & light_data = render_data.world.light_data;
+            bind_light_data(shader, light_data);
+
+            for (AnimatedMeshRenderData const & data : pair.second) {
+                MeshRenderData const & mesh_data = data.mesh_data;
+                GLMaterial const & material = materials.at(mesh_data.material_id);
+
+                bind_material_data(
+                    shader,
+                    material
+                );
+
+                bind_transform_and_camera_data(
+                    shader,
+                    mesh_data.transform,
+                    render_data.camera_data
+                );
+                bind_node_data(
+                    shader,
+                    mesh_data.node
+                );
+                bind_bone_data(
+                    shader,
+                    data.bones
                 );
 
                 meshes.at(mesh_data.mesh_id).draw_elements_triangles();
@@ -437,4 +496,18 @@ void GLRenderer::bind_material_data(
     glUniform1f(s.get_uniform_loc(metallic_str), material.material().metallic);
     static const UniformVarString roughness_str = "u_Roughness";
     glUniform1f(s.get_uniform_loc(roughness_str), material.material().roughness);
+}
+
+void GLRenderer::bind_bone_data(
+    GLShader const & s,
+    std::array<glm::mat4, 4> const & bone_data
+) {
+    static const UniformVarString bones_0_str = "u_Bones[0]";
+    static const UniformVarString bones_1_str = "u_Bones[1]";
+    static const UniformVarString bones_2_str = "u_Bones[2]";
+    static const UniformVarString bones_3_str = "u_Bones[3]";
+    glUniformMatrix4fv(s.get_uniform_loc(bones_0_str), 1, GL_FALSE, &bone_data[0][0][0]);
+    glUniformMatrix4fv(s.get_uniform_loc(bones_1_str), 1, GL_FALSE, &bone_data[1][0][0]);
+    glUniformMatrix4fv(s.get_uniform_loc(bones_2_str), 1, GL_FALSE, &bone_data[2][0][0]);
+    glUniformMatrix4fv(s.get_uniform_loc(bones_3_str), 1, GL_FALSE, &bone_data[3][0][0]);
 }

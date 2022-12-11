@@ -21,6 +21,11 @@ void GLMaterialManager::init() {
         "assets/shaders/opengl/standard.fs"
     );
 
+    m_standard_animated_shader = new GLShader(
+        "assets/shaders/opengl/standard_animated.vs",
+        "assets/shaders/opengl/standard.fs"
+    );
+
     m_wireframe_shader = new GLShader(
         "assets/shaders/opengl/wireframe.vs",
         "assets/shaders/opengl/wireframe.fs"
@@ -28,7 +33,9 @@ void GLMaterialManager::init() {
     upload_default_material();
 }
 
-ResourceID GLMaterialManager::upload_material(Material const & material) {
+ResourceID GLMaterialManager::upload_material(
+    Material const & material
+) {
     GLTextureManager & tm = m_texture_manager;
     GLuint albedo_map = tm.retrieve_texture(
         material.albedo_map.c_str(),
@@ -58,6 +65,7 @@ ResourceID GLMaterialManager::upload_material(Material const & material) {
             id,
             GLMaterial{
                 *m_standard_shader,
+                *m_standard_animated_shader,
                 albedo_map,
                 normal_map,
                 roughness_map,
@@ -66,7 +74,6 @@ ResourceID GLMaterialManager::upload_material(Material const & material) {
             }
         )
     );
-
 
     return id;
 }
@@ -97,6 +104,7 @@ void GLMaterialManager::upload_default_material() {
             NO_RESOURCE,
             GLMaterial{
                 *m_standard_shader,
+                *m_standard_animated_shader,
                 albedo_map,
                 normal_map,
                 roughness_map,

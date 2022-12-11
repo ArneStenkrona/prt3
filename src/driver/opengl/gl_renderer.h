@@ -19,6 +19,8 @@
 #define GL_GLEXT_PROTOTYPES 1
 #include <GLES3/gl3.h>
 
+#include <array>
+
 namespace prt3 {
 
 class GLRenderer : public RenderBackend {
@@ -127,6 +129,11 @@ private:
     void bind_material_data(
         GLShader const & shader,
         GLMaterial const & material
+    );
+
+    void bind_bone_data(
+        GLShader const & shader,
+        std::array<glm::mat4, 4> const & bone_data
     );
 };
 
