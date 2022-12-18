@@ -219,6 +219,11 @@ void Scene::collect_world_render_data(
                 data.bone_data_index = bone_data_back_index;
                 world_data.animated_mesh_data.push_back(data);
             }
+
+            if (selected_incl_children.find(id) !=
+                selected_incl_children.end()) {
+                world_data.selected_mesh_data.push_back(mesh_data);
+            }
         }
     }
 
@@ -252,6 +257,11 @@ void Scene::collect_world_render_data(
             data.mesh_data = mesh_data;
             data.bone_data_index = anim_id;
             world_data.animated_mesh_data.push_back(data);
+
+            if (selected_incl_children.find(id) !=
+                selected_incl_children.end()) {
+                world_data.selected_mesh_data.push_back(mesh_data);
+            }
         }
     }
 

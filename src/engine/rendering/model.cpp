@@ -362,7 +362,6 @@ void Model::load_with_assimp() {
         // assimp row-major, glm col-major
         n.transform.from_matrix(glm::transpose(temp_tform));
         n.inherited_transform.from_matrix(glm::transpose(temp_inherited_tform));
-        glm::mat4 node_tform = glm::transpose(temp_tform);
 
         m_name_to_node.insert({node->mName.C_Str(), node_index});
 
