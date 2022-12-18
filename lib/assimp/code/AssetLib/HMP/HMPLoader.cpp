@@ -72,15 +72,11 @@ static const aiImporterDesc desc = {
 
 // ------------------------------------------------------------------------------------------------
 // Constructor to be privately used by Importer
-HMPImporter::HMPImporter() {
-    // nothing to do here
-}
+HMPImporter::HMPImporter() = default;
 
 // ------------------------------------------------------------------------------------------------
 // Destructor, private as well
-HMPImporter::~HMPImporter() {
-    // nothing to do here
-}
+HMPImporter::~HMPImporter() = default;
 
 // ------------------------------------------------------------------------------------------------
 // Returns whether the class can handle the format of the given file.
@@ -108,7 +104,7 @@ void HMPImporter::InternReadFile(const std::string &pFile,
     std::unique_ptr<IOStream> file(mIOHandler->Open(pFile));
 
     // Check whether we can read from the file
-    if (file.get() == nullptr) {
+    if (file == nullptr) {
         throw DeadlyImportError("Failed to open HMP file ", pFile, ".");
     }
 

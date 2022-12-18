@@ -24,11 +24,11 @@ public:
 
     NodeID node_id() const { return m_node_id; }
     ModelHandle model_handle() const { return m_model_handle; }
-    ModelHandle set_model_handle(ModelHandle handle)
-    { m_animation_id = 0; return m_model_handle = handle; }
+    void set_model_handle(
+        Scene & scene,
+        ModelHandle handle
+    );
 
-    void set_animation_id(AnimationID id)
-    { m_animation_id = id; }
     AnimationID animation_id() const { return m_animation_id; }
 
     void serialize(
@@ -41,10 +41,10 @@ public:
 
 private:
     NodeID m_node_id;
-    ModelHandle m_model_handle;
-    AnimationID m_animation_id = 0;
+    ModelHandle m_model_handle = NO_MODEL;
+    AnimationID m_animation_id = NO_ANIMATION;
 
-    void remove(Scene & /*scene*/) {}
+    void remove(Scene & scene);
 
     friend class ComponentStorage<AnimatedModel>;
 };

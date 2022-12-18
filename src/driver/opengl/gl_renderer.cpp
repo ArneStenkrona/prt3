@@ -313,7 +313,7 @@ void GLRenderer::render_framebuffer(
                 );
                 bind_bone_data(
                     shader,
-                    data.bones
+                    render_data.world.bone_data[data.bone_data_index]
                 );
 
                 meshes.at(mesh_data.mesh_id).draw_elements_triangles();
@@ -357,7 +357,6 @@ void GLRenderer::render_framebuffer(
                     *m_selection_shader,
                     selected_mesh_data.node
                 );
-
 
                 meshes.at(selected_mesh_data.mesh_id).draw_elements_triangles();
             }
@@ -500,14 +499,8 @@ void GLRenderer::bind_material_data(
 
 void GLRenderer::bind_bone_data(
     GLShader const & s,
-    std::array<glm::mat4, 4> const & bone_data
+    BoneData const & bone_data
 ) {
-    static const UniformVarString bones_0_str = "u_Bones[0]";
-    static const UniformVarString bones_1_str = "u_Bones[1]";
-    static const UniformVarString bones_2_str = "u_Bones[2]";
-    static const UniformVarString bones_3_str = "u_Bones[3]";
-    glUniformMatrix4fv(s.get_uniform_loc(bones_0_str), 1, GL_FALSE, &bone_data[0][0][0]);
-    glUniformMatrix4fv(s.get_uniform_loc(bones_1_str), 1, GL_FALSE, &bone_data[1][0][0]);
-    glUniformMatrix4fv(s.get_uniform_loc(bones_2_str), 1, GL_FALSE, &bone_data[2][0][0]);
-    glUniformMatrix4fv(s.get_uniform_loc(bones_3_str), 1, GL_FALSE, &bone_data[3][0][0]);
+    static const UniformVarString bones_str = "u_Bones";
+    glUniformMatrix4fv(s.get_uniform_loc(bones_str), bone_data.bones.size(), GL_FALSE, &bone_data.bones[0][0][0]);
 }

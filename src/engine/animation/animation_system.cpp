@@ -1,17 +1,13 @@
 #include "animation_system.h"
 
 #include "src/engine/rendering/model.h"
+#include "src/engine/scene/scene.h"
 
 using namespace prt3;
 
-AnimationSystem::AnimationSystem(ModelManager & model_manager)
- : m_model_manager{model_manager} {
-
-}
-
 AnimationID AnimationSystem::add_animation(
-    ModelHandle model_handle,
-    char const * animation_name
+    Scene const & scene,
+    ModelHandle model_handle
 ) {
     AnimationID id;
     if (m_free_list.empty()) {
@@ -22,10 +18,27 @@ AnimationID AnimationSystem::add_animation(
         m_free_list.pop_back();
     }
 
-    Model const & model = m_model_manager.get_model(model_handle);
+    init_animation(scene, model_handle, id);
+
+    return id;
+}
+
+void AnimationSystem::remove_animation(AnimationID id) {
+    m_free_list.push_back(id);
+
+    m_animations[id] = {};
+    m_animations[id].model_handle = NO_MODEL;
+}
+
+void AnimationSystem::init_animation(
+    Scene const & scene,
+    ModelHandle model_handle,
+    AnimationID id
+) {
+    Model const & model = scene.model_manager().get_model(model_handle);
 
     m_animations[id].model_handle = model_handle;
-    m_animations[id].clip_a.animation_index = model.get_animation_index(animation_name);
+    m_animations[id].clip_a.animation_index = 0;
     m_animations[id].clip_a.t = 0;
     m_animations[id].clip_a.speed = 1.0f;
     m_animations[id].clip_a.paused = false;
@@ -38,20 +51,12 @@ AnimationID AnimationSystem::add_animation(
     m_animations[id].clip_b.looping = true;
 
     m_animations[id].blend_factor = 0.0f;
-    m_animations[id].transforms.resize(model.animations().size());
-
-    return id;
+    m_animations[id].transforms
+        .resize(model.bones().size(), glm::mat4{1.0f});
 }
 
-void AnimationSystem::remove_animation(AnimationID id) {
-    m_free_list.push_back(id);
-
-    m_animations[id] = {};
-    m_animations[id].model_handle = NO_MODEL;
-}
-
-void AnimationSystem::update(float delta_time) {
-    std::vector<Model> const & models = m_model_manager.models();
+void AnimationSystem::update(Scene const & scene, float delta_time) {
+    std::vector<Model> const & models = scene.model_manager().models();
 
     for (Animation & animation : m_animations) {
         if (animation.model_handle == NO_MODEL) {

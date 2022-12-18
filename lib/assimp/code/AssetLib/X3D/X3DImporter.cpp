@@ -207,7 +207,7 @@ void X3DImporter::ParseFile(const std::string &file, IOSystem *pIOHandler) {
 
     static const std::string mode = "rb";
     std::unique_ptr<IOStream> fileStream(pIOHandler->Open(file, mode));
-    if (!fileStream.get()) {
+    if (!fileStream) {
         throw DeadlyImportError("Failed to open file " + file + ".");
     }
 
@@ -477,9 +477,6 @@ void X3DImporter::ParseHelper_Node_Exit() {
     // check if we can walk up.
     if (mNodeElementCur != nullptr) {
         mNodeElementCur = mNodeElementCur->Parent;
-    } else {
-        int i = 0;
-        ++i;
     }
 }
 

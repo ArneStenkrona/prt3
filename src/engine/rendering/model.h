@@ -82,9 +82,6 @@ public:
 
     int32_t get_animation_index(char const * name) const;
     int32_t get_number_of_bones() const { return m_bones.size(); }
-    int32_t get_bone_index(char const * name) const;
-    glm::mat4 get_bone_transform(int index) const;
-    glm::mat4 get_bone_transform(char const * name) const;
 
     inline bool is_animated() const { return !m_animations.empty(); }
 
@@ -106,12 +103,12 @@ private:
     std::vector<BoneData> m_vertex_bone_buffer;
     std::vector<uint32_t> m_index_buffer;
     std::vector<Bone> m_bones;
+    std::vector<uint32_t> m_bone_to_node;
 
     // maps animation names to animations
     // TODO: replace with fixed string?
-    std::unordered_map<std::string, int> m_name_to_animation;
-    std::unordered_map<std::string, int> m_name_to_bone;
-    std::unordered_map<std::string, int> m_name_to_node;
+    std::unordered_map<std::string, int32_t> m_name_to_animation;
+    std::unordered_map<std::string, int32_t> m_name_to_node;
 
     void calculate_tangent_space();
     std::string get_texture(aiMaterial & aiMat, aiTextureType type, char const * model_path);
@@ -125,9 +122,8 @@ private:
 struct Model::Node {
     int32_t parent_index = -1;
     int32_t mesh_index = -1;
-    int32_t animation_index = -1;
     std::vector<uint32_t> child_indices;
-    std::vector<int32_t> bone_indices;
+    int32_t bone_index = -1;
     int32_t channel_index = -1;
     Transform transform;
     Transform inherited_transform;
@@ -136,13 +132,15 @@ struct Model::Node {
 
 struct Model::Bone {
     glm::mat4 offset_matrix;
-    glm::mat4 mesh_transform;
+    glm::mat4 inverse_mesh_transform;
 };
 
 struct Model::Mesh {
     uint32_t start_index;
     uint32_t num_indices;
-    int32_t material_index = 0;
+    int32_t start_bone;
+    int32_t num_bones;
+    int32_t material_index;
     uint32_t node_index;
     std::string name;
 };

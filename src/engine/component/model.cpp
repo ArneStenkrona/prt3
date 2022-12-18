@@ -31,23 +31,29 @@ ModelComponent::ModelComponent(
     size_t n_path;
     read_stream(in, n_path);
 
-    static std::string path;
-    path.resize(n_path);
+    if (n_path > 0) {
+        static std::string path;
+        path.resize(n_path);
 
-    in.read(path.data(), path.size());
+        in.read(path.data(), path.size());
 
-    m_model_handle = man.upload_model(path);
+        m_model_handle = man.upload_model(path);
+    }
 }
 
 void ModelComponent::serialize(
     std::ostream & out,
     Scene const & scene
 ) const {
-    ModelManager const & man = scene.model_manager();
-    Model const & model = man.get_model(m_model_handle);
+    if (m_model_handle != NO_MODEL) {
+        ModelManager const & man = scene.model_manager();
+        Model const & model = man.get_model(m_model_handle);
 
-    std::string const & path = model.path();
+        std::string const & path = model.path();
 
-    write_stream(out, path.size());
-    out.write(path.data(), path.size());
+        write_stream(out, path.size());
+        out.write(path.data(), path.size());
+    } else {
+        write_stream(out, 0);
+    }
 }

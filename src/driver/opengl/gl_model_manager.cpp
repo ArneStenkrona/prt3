@@ -33,7 +33,7 @@ void GLModelManager::upload_model(ModelHandle handle,
     if (!model.is_animated()) {
         bind_vertex_buffer(model);
     } else {
-        bind_vertex_buffer(model);
+        bind_boned_vertex_buffer(model);
     }
 
     glGenBuffers(1, &ebo);
@@ -386,8 +386,8 @@ void GLModelManager::bind_boned_vertex_buffer(Model const & model) {
     if (bone_id_attr != -1) {
         glEnableVertexAttribArray(bone_id_attr);
         glCheckError();
-        glVertexAttribPointer(
-            bone_id_attr, 4, GL_UNSIGNED_INT, GL_FALSE,
+        glVertexAttribIPointer(
+            bone_id_attr, 4, GL_UNSIGNED_INT,
             sizeof(Model::BonedVertex),
             reinterpret_cast<void*>(56)
         );

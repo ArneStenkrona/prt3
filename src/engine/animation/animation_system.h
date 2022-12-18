@@ -8,24 +8,39 @@
 
 namespace prt3 {
 
+class Scene;
+class AnimatedModel;
+
 class AnimationSystem {
 public:
-    AnimationSystem(ModelManager & model_manager);
-
     AnimationID add_animation(
-        ModelHandle model_handle,
-        char const * animation_name
+        Scene const & scene,
+        ModelHandle model_handle
     );
 
     void remove_animation(AnimationID id);
 
-    void update(float delta_time);
+    Animation const & get_animation(AnimationID id) const
+    { return m_animations[id]; }
+    Animation & get_animation(AnimationID id) { return m_animations[id]; }
+
+
+    std::vector<Animation> const & animations() const { return m_animations; }
 
 private:
-    ModelManager & m_model_manager;
-
     std::vector<Animation> m_animations;
     std::vector<AnimationID> m_free_list;
+
+    void init_animation(
+        Scene const & scene,
+        ModelHandle model_handle,
+        AnimationID id
+    );
+
+    void update(Scene const & scene, float delta_time);
+
+    friend class Scene;
+    friend class AnimatedModel;
 };
 
 } // namespace prt3

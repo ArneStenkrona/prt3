@@ -17,7 +17,7 @@ void inner_show_component<ModelComponent>(
     EditorContext & context,
     NodeID id
 ) {
-    show_model_component<ModelComponent>(context, id);
+    show_model_component<ModelComponent>(context, id, false);
 }
 
 } // namespace prt3

@@ -23,8 +23,10 @@ public:
 
     NodeID node_id() const { return m_node_id; }
     ModelHandle model_handle() const { return m_model_handle; }
-    ModelHandle set_model_handle(ModelHandle handle)
-    { return m_model_handle = handle; }
+    void set_model_handle(
+        Scene &,
+        ModelHandle handle
+    ) { m_model_handle = handle; }
 
     void serialize(
         std::ostream & out,
@@ -36,7 +38,7 @@ public:
 
 private:
     NodeID m_node_id;
-    ModelHandle m_model_handle;
+    ModelHandle m_model_handle = NO_MODEL;
 
     void remove(Scene & /*scene*/) {}
 

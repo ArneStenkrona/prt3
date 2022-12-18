@@ -17,70 +17,11 @@ Scene::Scene(Context & context)
 {
     m_nodes.emplace_back(s_root_id);
     m_node_names.emplace_back("root");
-
-    // FOR DEBUGGING, WILL REMOVE ---->
-    // NodeID room = m_context->model_manager()
-    //     .add_model_to_scene_from_path(
-    //         "assets/models/test_room/test_room.fbx",
-    //         *this,
-    //         s_root_id
-    //     );
-
-    // Model room_model{"assets/models/test_room/test_room.fbx"};
-    // add_component<ColliderComponent>(room, room_model);
-
-    // set_ambient_light(glm::vec3{0.1f, 0.1f, 0.1f});
-
-    // // set_directional_light({{0.0f, -1.0f, 0.0f}, {0.8f, 0.8f, 0.8f}});
-    // // set_directional_light_on(true);
-
-    // NodeID cam_node = add_node_to_root("camera");
-    // set_node_local_position(cam_node, glm::vec3(2.1f, 2.1f, 2.1f));
-    // add_script<CameraController>(cam_node);
-
-    // NodeID character = m_context->model_manager()
-    //     .add_model_to_scene_from_path(
-    //         "assets/models/stranger/stranger.fbx",
-    //         *this,
-    //         s_root_id
-    //     );
-    // get_node(character).local_transform().scale = glm::vec3(0.45f);
-    // get_node(character).local_transform().position.y = 1.0f;
-
-    // NodeID light_id = add_node(character, "point_light");
-    // get_node(light_id).local_transform().position = glm::vec3{0.0f, 7.0f, 0.0f};
-    // PointLight light;
-    // light.color = glm::vec3(1.0f, 1.0f, 1.0f);
-    // light.quadratic_term = 0.02f;
-    // light.linear_term = 0.01f;
-    // light.constant_term = 0.1f;
-    // add_component<PointLightComponent>(light_id, light);
-
-    // add_script<CharacterController>(character);
-    // Sphere sphere{{0.0f, 1.0f, 0.0f}, 1.0f};
-    // add_component<ColliderComponent>(character, sphere);
-
-    // NodeID cube = m_context->model_manager()
-    //     .add_model_to_scene_from_path("assets/models/debug/character_cube.fbx",
-    //     *this,
-    //     s_root_id
-    // );
-    // get_node(cube).set_global_position(*this, glm::vec3(2.0f, 0.0f, 0.0f));
-
-    // add_component<ColliderComponent>(cube, Sphere{{0.0f, 1.0f, 0.0f}, 0.9f});
-
-
-    // m_transform_cache.collect_global_transforms(
-    //     m_nodes.data(),
-    //     m_nodes.size(),
-    //     s_root_id
-    // );
-    // <---- FOR DEBUGGING, WILL REMOVE
-
 }
 
 void Scene::update(float delta_time) {
     m_script_container.update(*this, delta_time);
+    m_animation_system.update(*this, delta_time);
 }
 
 NodeID Scene::add_node(NodeID parent_id, const char * name) {
@@ -174,6 +115,28 @@ void Scene::collect_world_render_data(
         m_transform_cache.global_transforms_history().data()
     );
 
+    std::vector<Animation> const & animations =
+        m_animation_system.animations();
+
+    world_data.bone_data.resize(animations.size() + 1);
+    size_t bone_data_back_index = animations.size();
+    for (glm::mat4 & bone : world_data.bone_data[bone_data_back_index].bones) {
+        bone = glm::mat4{1.0f};
+    }
+
+    size_t bone_data_i = 0;
+    for (Animation const & animation : animations) {
+        BoneData & bone_data = world_data.bone_data[bone_data_i];
+
+        assert(animation.transforms.size() < bone_data.size());
+
+        for (size_t i = 0; i < animation.transforms.size(); ++i) {
+            bone_data.bones[i] = animation.transforms[i];
+        }
+
+        ++bone_data_i;
+    }
+
     std::vector<Transform> const & global_transforms =
         m_transform_cache.global_transforms();
 
@@ -215,10 +178,7 @@ void Scene::collect_world_render_data(
         } else {
             AnimatedMeshRenderData data;
             data.mesh_data = mesh_data;
-            data.bones[0] = glm::mat4{1.0f};
-            data.bones[1] = glm::mat4{1.0f};
-            data.bones[2] = glm::mat4{1.0f};
-            data.bones[3] = glm::mat4{1.0f};
+            data.bone_data_index = bone_data_back_index;
             world_data.animated_mesh_data.push_back(data);
         }
 
@@ -228,8 +188,9 @@ void Scene::collect_world_render_data(
         }
     }
 
-    auto const & model_comps = m_component_manager.get_all_components<ModelComponent>();
     auto const & man = model_manager();
+
+    auto const & model_comps = m_component_manager.get_all_components<ModelComponent>();
     for (auto const & model_comp : model_comps) {
         ModelHandle handle = model_comp.model_handle();
         if (handle == NO_MODEL) {
@@ -238,8 +199,7 @@ void Scene::collect_world_render_data(
         NodeID id = model_comp.node_id();
         auto const & resources = man.model_resources().at(handle);
         auto const & model = man.get_model(handle);
-        // mesh_resource_ids
-        // material_resource_ids
+
         for (size_t i = 0; i < resources.mesh_resource_ids.size(); ++i) {
             auto const & model_node =
                 model.nodes()[model.meshes()[i].node_index];
@@ -251,9 +211,48 @@ void Scene::collect_world_render_data(
                 global_transforms[id].to_matrix()
                 * model_node.inherited_transform.to_matrix();
 
-            world_data.mesh_data.push_back(mesh_data);
+            if (!model.is_animated()) {
+                world_data.mesh_data.push_back(mesh_data);
+            } else {
+                AnimatedMeshRenderData data;
+                data.mesh_data = mesh_data;
+                data.bone_data_index = bone_data_back_index;
+                world_data.animated_mesh_data.push_back(data);
+            }
         }
+    }
 
+    auto const & anim_model_comps =
+        m_component_manager.get_all_components<AnimatedModel>();
+
+    for (auto const & model_comp : anim_model_comps) {
+        ModelHandle handle = model_comp.model_handle();
+        if (handle == NO_MODEL) {
+            continue;
+        }
+        NodeID id = model_comp.node_id();
+        auto const & resources = man.model_resources().at(handle);
+        auto const & model = man.get_model(handle);
+
+        AnimationID anim_id = model_comp.animation_id();
+
+        for (size_t i = 0; i < resources.mesh_resource_ids.size(); ++i) {
+            auto const & model_node =
+                model.nodes()[model.meshes()[i].node_index];
+
+            AnimatedMeshRenderData data;
+            MeshRenderData & mesh_data = data.mesh_data;
+            mesh_data.mesh_id = resources.mesh_resource_ids[i];
+            mesh_data.material_id = resources.material_resource_ids[i];
+            mesh_data.node = id;
+            mesh_data.transform =
+                global_transforms[id].to_matrix()
+                * model_node.inherited_transform.to_matrix();
+
+            data.mesh_data = mesh_data;
+            data.bone_data_index = anim_id;
+            world_data.animated_mesh_data.push_back(data);
+        }
     }
 
     std::vector<PointLightRenderData> point_lights;

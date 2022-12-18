@@ -35,7 +35,11 @@ struct MeshRenderData {
 
 struct AnimatedMeshRenderData {
     MeshRenderData mesh_data;
-    std::array<glm::mat4, 4> bones;
+    uint32_t bone_data_index;
+};
+
+struct BoneData {
+    std::array<glm::mat4, 100> bones;
 };
 
 struct WireframeRenderData {
@@ -60,6 +64,7 @@ struct LightRenderData {
 struct WorldRenderData {
     std::vector<MeshRenderData> mesh_data;
     std::vector<AnimatedMeshRenderData> animated_mesh_data;
+    std::vector<BoneData> bone_data;
     std::vector<MeshRenderData> selected_mesh_data;
     LightRenderData light_data;
 };
@@ -82,6 +87,7 @@ struct RenderData {
         world.light_data = {};
         world.mesh_data.resize(0);
         world.animated_mesh_data.resize(0);
+        world.bone_data.resize(0);
         world.selected_mesh_data.resize(0);
         editor_data.collider_data.line_data.resize(0);
     }

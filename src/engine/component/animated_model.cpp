@@ -11,17 +11,21 @@ using namespace prt3;
 
 AnimatedModel::AnimatedModel(Scene &, NodeID node_id)
  : m_node_id{node_id} {
-    m_model_handle = NO_MODEL;
 }
 
 AnimatedModel::AnimatedModel(
-    Scene &,
+    Scene & scene,
     NodeID node_id,
     ModelHandle model_handle
 )
  : m_node_id{node_id},
    m_model_handle{model_handle}
-{}
+{
+    if (m_model_handle != NO_MODEL) {
+        m_animation_id =
+            scene.animation_system().add_animation(scene, model_handle);
+    }
+}
 
 AnimatedModel::AnimatedModel(
     Scene & scene,
@@ -35,23 +39,58 @@ AnimatedModel::AnimatedModel(
     size_t n_path;
     read_stream(in, n_path);
 
-    static std::string path;
-    path.resize(n_path);
+    if (n_path > 0) {
+        static std::string path;
+        path.resize(n_path);
 
-    in.read(path.data(), path.size());
+        in.read(path.data(), path.size());
 
-    m_model_handle = man.upload_model(path);
+        m_model_handle = man.upload_model(path);
+    }
+
+    if (m_model_handle != NO_MODEL) {
+        m_animation_id =
+            scene.animation_system().add_animation(scene, m_model_handle);
+    }
+}
+
+void AnimatedModel::set_model_handle(
+    Scene & scene,
+    ModelHandle handle
+) {
+    m_model_handle = handle;
+    if (handle != NO_MODEL) {
+        if (m_animation_id == NO_ANIMATION) {
+            m_animation_id =
+                scene.animation_system().add_animation(scene, handle);
+        } else {
+            scene.animation_system().init_animation(scene, handle, m_animation_id);
+        }
+    } else {
+        scene.animation_system().remove_animation(m_animation_id);
+    }
 }
 
 void AnimatedModel::serialize(
     std::ostream & out,
     Scene const & scene
 ) const {
-    ModelManager const & man = scene.model_manager();
-    Model const & model = man.get_model(m_model_handle);
+    if (m_model_handle != NO_MODEL) {
+        ModelManager const & man = scene.model_manager();
 
-    std::string const & path = model.path();
+        Model const & model = man.get_model(m_model_handle);
 
-    write_stream(out, path.size());
-    out.write(path.data(), path.size());
+        std::string const & path = model.path();
+
+        write_stream(out, path.size());
+        out.write(path.data(), path.size());
+    } else {
+        write_stream(out, 0);
+    }
+}
+
+void AnimatedModel::remove(Scene & scene) {
+    if (m_animation_id != NO_ANIMATION) {
+        scene.animation_system().remove_animation(m_animation_id);
+    }
 }

@@ -133,7 +133,7 @@ private:
 
     void bind_bone_data(
         GLShader const & shader,
-        std::array<glm::mat4, 4> const & bone_data
+        BoneData const & bone_data
     );
 };
 

@@ -17,7 +17,7 @@ void inner_show_component<AnimatedModel>(
     EditorContext & context,
     NodeID id
 ) {
-    show_model_component<AnimatedModel>(context, id);
+    show_model_component<AnimatedModel>(context, id, true);
 }
 
 } // namespace prt3

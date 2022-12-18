@@ -15,6 +15,7 @@
 namespace prt3 {
 
 typedef int32_t AnimationID;
+constexpr int32_t NO_ANIMATION = -1;
 
 class AnimationSystem;
 

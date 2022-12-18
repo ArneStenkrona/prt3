@@ -314,7 +314,7 @@ struct Object {
     virtual bool IsSpecial() const { return false; }
 
     Object() = default;
-    virtual ~Object() {}
+    virtual ~Object() = default;
 
     //! Maps special IDs to another ID, where needed. Subclasses may override it (statically)
     static const char *TranslateId(Asset & /*r*/, const char *id) { return id; }
@@ -374,7 +374,7 @@ struct Accessor : public Object {
         }
 
         inline bool IsValid() const {
-            return data != 0;
+            return data != nullptr;
         }
     };
 
@@ -666,7 +666,7 @@ struct Mesh : public Object {
     std::vector<Primitive> primitives;
     std::list<SExtension *> Extension; ///< List of extensions used in mesh.
 
-    Mesh() {}
+    Mesh() = default;
 
     /// Destructor.
     ~Mesh() {
@@ -706,12 +706,12 @@ struct Node : public Object {
 
     Ref<Node> parent; //!< This is not part of the glTF specification. Used as a helper.
 
-    Node() {}
+    Node() = default;
     void Read(Value &obj, Asset &r);
 };
 
 struct Program : public Object {
-    Program() {}
+    Program() = default;
     void Read(Value &obj, Asset &r);
 };
 
@@ -830,7 +830,7 @@ struct Animation : public Object {
 //! Base class for LazyDict that acts as an interface
 class LazyDictBase {
 public:
-    virtual ~LazyDictBase() {}
+    virtual ~LazyDictBase() = default;
 
     virtual void AttachToDocument(Document &doc) = 0;
     virtual void DetachFromDocument() = 0;
@@ -873,7 +873,7 @@ class LazyDict : public LazyDictBase {
     Ref<T> Add(T *obj);
 
 public:
-    LazyDict(Asset &asset, const char *dictId, const char *extId = 0);
+    LazyDict(Asset &asset, const char *dictId, const char *extId = nullptr);
     ~LazyDict();
 
     Ref<T> Get(const char *id);
@@ -903,8 +903,10 @@ struct AssetMetadata {
     void Read(Document &doc);
 
     AssetMetadata() :
-            premultipliedAlpha(false), version() {
+            premultipliedAlpha(false) {
     }
+
+    operator bool() const { return version.size() && version[0] == '1'; }
 };
 
 //
@@ -968,17 +970,17 @@ public:
     Ref<Scene> scene;
 
 public:
-    Asset(IOSystem *io = 0) :
-            mIOSystem(io), 
-            asset(), 
-            accessors(*this, "accessors"), 
-            animations(*this, "animations"), 
-            buffers(*this, "buffers"), 
-            bufferViews(*this, "bufferViews"), 
-            cameras(*this, "cameras"), 
-            images(*this, "images"), 
-            materials(*this, "materials"), 
-            meshes(*this, "meshes"), 
+    Asset(IOSystem *io = nullptr) :
+            mIOSystem(io),
+            asset(),
+            accessors(*this, "accessors"),
+            animations(*this, "animations"),
+            buffers(*this, "buffers"),
+            bufferViews(*this, "bufferViews"),
+            cameras(*this, "cameras"),
+            images(*this, "images"),
+            materials(*this, "materials"),
+            meshes(*this, "meshes"),
             nodes(*this, "nodes"),
             samplers(*this, "samplers"),
             scenes(*this, "scenes"),

@@ -6,10 +6,10 @@
 #include "src/engine/scene/signal.h"
 #include "src/engine/scene/transform_cache.h"
 #include "src/engine/component/component_manager.h"
-
 #include "src/engine/component/script_set.h"
 #include "src/engine/component/script/script.h"
 #include "src/engine/physics/physics_system.h"
+#include "src/engine/animation/animation_system.h"
 #include "src/engine/rendering/renderer.h"
 #include "src/engine/rendering/camera.h"
 #include "src/engine/core/input.h"
@@ -154,6 +154,9 @@ public:
     PhysicsSystem const & physics_system() const { return m_physics_system; }
     PhysicsSystem & physics_system() { return m_physics_system; }
 
+    AnimationSystem const & animation_system() const { return m_animation_system; }
+    AnimationSystem & animation_system() { return m_animation_system; }
+
     ModelManager const & model_manager() const;
     Model const & get_model(ModelHandle handle) const;
 
@@ -177,6 +180,7 @@ private:
 
     ComponentManager m_component_manager;
     PhysicsSystem m_physics_system;
+    AnimationSystem m_animation_system;
 
     DirectionalLight m_directional_light;
     bool m_directional_light_on = false;
