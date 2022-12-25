@@ -1,17 +1,14 @@
-#include "animated_model.h"
+#include "armature.h"
 
 #include "src/engine/scene/scene.h"
-#include "src/util/serialization_util.h"
 
 using namespace prt3;
 
-#include "model.h"
-
-AnimatedModel::AnimatedModel(Scene &, NodeID node_id)
+Armature::Armature(Scene &, NodeID node_id)
  : m_node_id{node_id} {
 }
 
-AnimatedModel::AnimatedModel(
+Armature::Armature(
     Scene & scene,
     NodeID node_id,
     ModelHandle model_handle
@@ -25,7 +22,7 @@ AnimatedModel::AnimatedModel(
     }
 }
 
-AnimatedModel::AnimatedModel(
+Armature::Armature(
     Scene & scene,
     NodeID node_id,
     std::istream & in
@@ -52,7 +49,7 @@ AnimatedModel::AnimatedModel(
     }
 }
 
-void AnimatedModel::set_model_handle(
+void Armature::set_model_handle(
     Scene & scene,
     ModelHandle handle
 ) {
@@ -69,7 +66,7 @@ void AnimatedModel::set_model_handle(
     }
 }
 
-void AnimatedModel::serialize(
+void Armature::serialize(
     std::ostream & out,
     Scene const & scene
 ) const {
@@ -87,7 +84,7 @@ void AnimatedModel::serialize(
     }
 }
 
-void AnimatedModel::remove(Scene & scene) {
+void Armature::remove(Scene & scene) {
     if (m_animation_id != NO_ANIMATION) {
         scene.animation_system().remove_animation(m_animation_id);
     }

@@ -24,7 +24,7 @@ void Scene::update(float delta_time) {
     m_animation_system.update(*this, delta_time);
 }
 
-NodeID Scene::add_node(NodeID parent_id, const char * name) {
+NodeID Scene::add_node(NodeID parent_id, const char * name, UUID uuid) {
     NodeID id;
     if (m_free_list.empty()) {
         id = m_nodes.size();
@@ -39,6 +39,8 @@ NodeID Scene::add_node(NodeID parent_id, const char * name) {
 
     m_nodes[id].m_parent_id = parent_id;
     m_nodes[parent_id].m_children_ids.push_back(id);
+    m_node_uuids[id] = uuid;
+    m_uuid_to_node[uuid] = id;
 
     return id;
 }
@@ -334,6 +336,10 @@ void Scene::serialize(std::ostream & out) const {
 
     write_stream(out, n_compacted);
 
+    for (NodeID id = 0; id < n_compacted; ++id) {
+        write_stream(out, m_node_uuids.at(id));
+    }
+
     for (Node const & node : m_nodes) {
         if (node.id() == NO_NODE) {
             continue;
@@ -363,6 +369,13 @@ void Scene::deserialize(std::istream & in) {
 
     NodeID n_nodes;
     read_stream(in, n_nodes);
+    for (NodeID id = 0; id < n_nodes; ++id) {
+        UUID uuid;
+        read_stream(in, uuid);
+        m_node_uuids[id] = uuid;
+        m_uuid_to_node[uuid] = id;
+    }
+
     for (NodeID id = 0; id < n_nodes; ++id) {
         m_node_names.push_back({});
         auto & name = m_node_names.back();

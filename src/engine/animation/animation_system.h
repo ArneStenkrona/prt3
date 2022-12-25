@@ -10,6 +10,7 @@ namespace prt3 {
 
 class Scene;
 class AnimatedModel;
+class Armature;
 
 class AnimationSystem {
 public:
@@ -41,6 +42,7 @@ private:
 
     friend class Scene;
     friend class AnimatedModel;
+    friend class Armature;
 };
 
 } // namespace prt3

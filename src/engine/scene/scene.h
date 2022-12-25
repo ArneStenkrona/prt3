@@ -7,12 +7,15 @@
 #include "src/engine/scene/transform_cache.h"
 #include "src/engine/component/component_manager.h"
 #include "src/engine/component/script_set.h"
+#include "src/engine/component/armature.h"
+#include "src/engine/component/animated_mesh.h"
 #include "src/engine/component/script/script.h"
 #include "src/engine/physics/physics_system.h"
 #include "src/engine/animation/animation_system.h"
 #include "src/engine/rendering/renderer.h"
 #include "src/engine/rendering/camera.h"
 #include "src/engine/core/input.h"
+#include "src/util/uuid.h"
 
 #include <vector>
 #include <unordered_map>
@@ -47,8 +50,9 @@ public:
     void clear() { internal_clear(true); }
 
     NodeID add_node(NodeID parent_id, NodeName name)
-    { return add_node(parent_id, name.data()); }
-    NodeID add_node(NodeID parent_id, const char * name);
+    { return add_node(parent_id, name.data(), generate_uuid()); }
+    NodeID add_node(NodeID parent_id, const char * name)
+    { return add_node(parent_id, name, generate_uuid()); }
     NodeID add_node_to_root(const char * name) { return add_node(s_root_id, name); }
     NodeID get_next_available_node_id() const
     { return m_free_list.empty() ? m_nodes.size() : m_free_list.back(); }
@@ -66,6 +70,10 @@ public:
 
     Node const & get_node(NodeID id) const { return m_nodes[id]; }
     Node & get_node(NodeID id) { return m_nodes[id]; }
+    NodeID get_node_id_from_uuid(UUID uuid) const
+    { return m_uuid_to_node.at(uuid); };
+    UUID get_uuid_from_node_id(NodeID id) const
+    { return m_node_uuids.at(id); };
     Camera & get_camera() { return m_camera; }
     Input & get_input();
 
@@ -169,6 +177,8 @@ private:
     std::vector<Node> m_nodes;
     std::vector<NodeName> m_node_names;
     std::vector<NodeID> m_free_list;
+    std::unordered_map<NodeID, UUID> m_node_uuids;
+    std::unordered_map<UUID, NodeID> m_uuid_to_node;
 
     ScriptContainer m_script_container;
 
@@ -188,6 +198,8 @@ private:
     AmbientLight m_ambient_light;
 
     TransformCache m_transform_cache;
+
+    NodeID add_node(NodeID parent_id, const char * name, UUID uuid);
 
     void update(float delta_time);
 
@@ -224,10 +236,12 @@ private:
     friend class ScriptSet;
     friend class Editor;
     friend class EditorContext;
+    friend class Armature;
     friend AnimatedModel::AnimatedModel(Scene &, NodeID, std::istream &);
     friend ModelComponent::ModelComponent(Scene &, NodeID, std::istream &);
     friend MaterialComponent::MaterialComponent(Scene &, NodeID, std::istream &);
     friend Mesh::Mesh(Scene &, NodeID, std::istream &);
+    friend AnimatedMesh::AnimatedMesh(Scene &, NodeID, std::istream &);
 };
 
 } // namespace prt3
