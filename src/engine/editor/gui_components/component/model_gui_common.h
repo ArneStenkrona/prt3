@@ -52,6 +52,55 @@ private:
 };
 
 template<typename ModelComponentType>
+class ActionUnpackModel : public Action {
+public:
+    ActionUnpackModel(
+        EditorContext & editor_context,
+        NodeID node_id) : m_editor_context{&editor_context},
+        m_node_id{node_id}
+    {
+        Scene const & scene = m_editor_context->scene();
+
+        m_model_handle =
+            scene.get_component<ModelComponentType>(m_node_id).model_handle();
+    }
+
+protected:
+    virtual bool apply() {
+        Scene & scene = m_editor_context->scene();
+        auto & man = m_editor_context->get_model_manager();
+
+        scene.remove_component<ModelComponentType>(m_node_id);
+
+        man.add_model_to_scene(
+            scene, m_model_handle, m_node_id, true, m_unpacked_nodes);
+
+        return true;
+    }
+
+    virtual bool unapply() {
+        Scene & scene = m_editor_context->scene();
+
+        for (size_t i = m_unpacked_nodes.size(); i > 0;) {
+            --i;
+            scene.remove_node(m_unpacked_nodes[i]);
+        }
+
+        scene.add_component<ModelComponentType>(m_node_id, m_model_handle);
+
+        return true;
+    }
+
+private:
+    EditorContext * m_editor_context;
+    NodeID m_node_id;
+
+    ModelHandle m_model_handle;
+
+    std::vector<NodeID> m_unpacked_nodes;
+};
+
+template<typename ModelComponentType>
 void show_model_component(
     EditorContext & context,
     NodeID id,
@@ -85,6 +134,11 @@ void show_model_component(
             name.buf_size(),
             ImGuiInputTextFlags_ReadOnly
         );
+
+        if (ImGui::Button("unpack model")) {
+            context.editor()
+                .perform_action<ActionUnpackModel<ModelComponentType> >(id);
+        }
     } else {
         ImGui::TextColored(ImVec4(1.0f,1.0f,0.0f,1.0f), "%s", "no model");
     }

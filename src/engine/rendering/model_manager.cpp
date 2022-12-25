@@ -72,8 +72,12 @@ NodeID ModelManager::add_model_to_scene_from_path(
 NodeID ModelManager::add_model_to_scene(
     Scene & scene,
     ModelHandle handle,
-    NodeID base_node
+    NodeID base_node,
+    bool use_base_as_model_root,
+    std::vector<NodeID> & new_nodes
 ) {
+    new_nodes.clear();
+
     if (!model_is_uploaded(handle)) {
         upload_model(handle);
     }
@@ -87,8 +91,21 @@ NodeID ModelManager::add_model_to_scene(
     };
 
     NodeID model_node_id = scene.get_next_available_node_id();
+    thread_local std::vector<QueueElement> queue;
 
-    std::vector<QueueElement> queue{ { 0, base_node} };
+    if (use_base_as_model_root) {
+        Model::Node const & model_node = model.nodes()[0];
+
+        if (model_node.mesh_index != -1) {
+            assert(false);
+        }
+
+        for (uint32_t const & index : model_node.child_indices) {
+            queue.push_back({index, base_node});
+        }
+    } else {
+        queue.push_back({ 0, base_node});
+    }
 
     while (!queue.empty()) {
         size_t model_node_index = queue.back().model_node_index;
@@ -97,6 +114,7 @@ NodeID ModelManager::add_model_to_scene(
 
         Model::Node const & model_node = model.nodes()[model_node_index];
         NodeID node_id = scene.add_node(parent_id, model_node.name.c_str());
+        new_nodes.push_back(node_id);
         scene.get_node(node_id).local_transform() = model_node.transform;
 
         if (model_node.mesh_index != -1) {

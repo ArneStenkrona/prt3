@@ -83,8 +83,28 @@ public:
 
     std::vector<Model> const & models() const { return m_models; }
 
+    ModelResource const & get_model_resource(ModelHandle handle) const
+    { return m_model_resources.at(handle); }
+
     std::unordered_map<ModelHandle, ModelResource> const & model_resources() const
     { return m_model_resources; }
+
+    NodeID add_model_to_scene(
+        Scene & scene,
+        ModelHandle handle,
+        NodeID base_node,
+        bool use_base_as_model_root,
+        std::vector<NodeID> & new_nodes
+    );
+
+    NodeID add_model_to_scene(
+        Scene & scene,
+        ModelHandle handle,
+        NodeID base_node
+    ) {
+        thread_local std::vector<NodeID> temp;
+        return add_model_to_scene(scene, handle, base_node, false, temp);
+    }
 
 private:
     typedef int ModelResourceIndex;
@@ -101,7 +121,6 @@ private:
 
     std::unordered_map<std::string, ModelHandle> m_path_to_model_handle;
 
-    NodeID add_model_to_scene(Scene & scene, ModelHandle handle, NodeID parent_id);
     bool model_is_uploaded(ModelHandle handle);
     /* upload to graphics device */
     void upload_model(ModelHandle handle);
