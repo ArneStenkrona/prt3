@@ -20,8 +20,16 @@ Scene::Scene(Context & context)
 }
 
 void Scene::update(float delta_time) {
-    m_script_container.update(*this, delta_time);
     m_animation_system.update(*this, delta_time);
+
+    auto & armatures
+        = m_component_manager.get_all_components<Armature>();
+
+    for (Armature & armature : armatures) {
+        armature.update(*this);
+    }
+
+    m_script_container.update(*this, delta_time);
 }
 
 NodeID Scene::add_node(NodeID parent_id, const char * name, UUID uuid) {
@@ -96,6 +104,18 @@ bool Scene::remove_node(NodeID id) {
     }
 
     return true;
+}
+
+std::string Scene::get_node_path(NodeID id) const {
+    NodeID curr_id = id;
+    thread_local std::string path;
+    path = "";
+    while (curr_id != NO_NODE) {
+        path = "/" + (get_node_name(curr_id).data() + path);
+        curr_id = get_node(curr_id).parent_id();
+    }
+
+    return path;
 }
 
 Input & Scene::get_input() {
@@ -264,6 +284,51 @@ void Scene::collect_world_render_data(
                 selected_incl_children.end()) {
                 world_data.selected_mesh_data.push_back(mesh_data);
             }
+        }
+    }
+
+    auto const & anim_mesh_comps =
+        m_component_manager.get_all_components<AnimatedMesh>();
+    for (auto const & mesh_comp : anim_mesh_comps) {
+        if (mesh_comp.resource_id() == NO_RESOURCE) {
+            continue;
+        }
+
+        NodeID id = mesh_comp.node_id();
+        MeshRenderData mesh_data;
+        mesh_data.mesh_id = mesh_comp.resource_id();
+        mesh_data.node = id;
+
+        mesh_data.transform = global_transforms[id].to_matrix();
+        mesh_data.material_id = has_component<MaterialComponent>(id) ?
+            get_component<MaterialComponent>(id).resource_id() : NO_RESOURCE;
+
+        ModelHandle model_handle =
+            model_manager().get_model_handle_from_mesh_id(
+                mesh_comp.resource_id()
+            );
+
+        NodeID armature_id = mesh_comp.armature_id();
+
+        AnimationID anim_id = bone_data_back_index;
+        if (armature_id != NO_NODE &&
+            node_exists(armature_id) &&
+            has_component<Armature>(armature_id) &&
+            get_component<Armature>(armature_id).model_handle() == model_handle
+        ) {
+            Armature const & armature = get_component<Armature>(armature_id);
+
+            anim_id = armature.animation_id();
+        }
+
+        AnimatedMeshRenderData data;
+        data.mesh_data = mesh_data;
+        data.bone_data_index = anim_id;
+        world_data.animated_mesh_data.push_back(data);
+
+        if (selected_incl_children.find(id) !=
+            selected_incl_children.end()) {
+            world_data.selected_mesh_data.push_back(mesh_data);
         }
     }
 

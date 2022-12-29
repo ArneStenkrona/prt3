@@ -2,6 +2,7 @@
 #define PRT3_ANIMATION_H
 
 #include "src/engine/rendering/model_manager.h"
+#include "src/engine/component/transform.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -36,6 +37,7 @@ struct Animation {
     float blend_factor;
 
     std::vector<glm::mat4> transforms;
+    std::vector<Transform> local_transforms;
 };
 
 } // namespace prt3

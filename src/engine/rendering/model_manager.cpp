@@ -74,6 +74,7 @@ NodeID ModelManager::add_model_to_scene(
     ModelHandle handle,
     NodeID base_node,
     bool use_base_as_model_root,
+    bool as_animated,
     std::vector<NodeID> & new_nodes
 ) {
     new_nodes.clear();
@@ -90,7 +91,9 @@ NodeID ModelManager::add_model_to_scene(
         NodeID parent_id;
     };
 
-    NodeID model_node_id = scene.get_next_available_node_id();
+    NodeID model_node_id = use_base_as_model_root ?
+                           base_node :
+                           scene.get_next_available_node_id();
     thread_local std::vector<QueueElement> queue;
 
     if (use_base_as_model_root) {
@@ -105,6 +108,11 @@ NodeID ModelManager::add_model_to_scene(
         }
     } else {
         queue.push_back({ 0, base_node});
+
+    }
+
+    if (as_animated) {
+        scene.add_component<Armature>(model_node_id, handle);
     }
 
     while (!queue.empty()) {
@@ -121,7 +129,11 @@ NodeID ModelManager::add_model_to_scene(
             ResourceID mesh_id = resource.mesh_resource_ids[model_node.mesh_index];
             ResourceID material_id = resource.material_resource_ids[model_node.mesh_index];
 
-            scene.add_component<Mesh>(node_id, mesh_id);
+            if (as_animated) {
+                scene.add_component<AnimatedMesh>(node_id, mesh_id, model_node_id);
+            } else {
+                scene.add_component<Mesh>(node_id, mesh_id);
+            }
             scene.add_component<MaterialComponent>(node_id, material_id);
         }
 

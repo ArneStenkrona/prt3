@@ -53,6 +53,8 @@ void AnimationSystem::init_animation(
     m_animations[id].blend_factor = 0.0f;
     m_animations[id].transforms
         .resize(model.bones().size(), glm::mat4{1.0f});
+    m_animations[id].local_transforms
+        .resize(model.bones().size(), {});
 }
 
 void AnimationSystem::update(Scene const & scene, float delta_time) {
@@ -70,14 +72,16 @@ void AnimationSystem::update(Scene const & scene, float delta_time) {
                 animation.clip_a.animation_index,
                 animation.clip_a.t,
                 animation.clip_a.looping,
-                animation.transforms.data()
+                animation.transforms.data(),
+                animation.local_transforms.data()
             );
         } else if (animation.blend_factor == 1.0f) {
             model.sample_animation(
                 animation.clip_b.animation_index,
                 animation.clip_b.t,
                 animation.clip_b.looping,
-                animation.transforms.data()
+                animation.transforms.data(),
+                animation.local_transforms.data()
             );
         } else {
             model.blend_animation(
@@ -88,7 +92,8 @@ void AnimationSystem::update(Scene const & scene, float delta_time) {
                 animation.clip_b.t,
                 animation.clip_b.looping,
                 animation.blend_factor,
-                animation.transforms.data()
+                animation.transforms.data(),
+                animation.local_transforms.data()
             );
         }
     }

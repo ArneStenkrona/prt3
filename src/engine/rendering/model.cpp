@@ -40,7 +40,8 @@ void Model::sample_animation(
     uint32_t animation_index,
     float t,
     bool looping,
-    glm::mat4 * transforms
+    glm::mat4 * transforms,
+    Transform * local_transforms
 ) const {
     auto const & animation = m_animations[animation_index];
 
@@ -92,6 +93,12 @@ void Model::sample_animation(
                     glm::quat rot = glm::slerp(prev_rot, next_rot, frac);
                     glm::vec3 scale = glm::lerp(prev_scale, next_scale, frac);
                     tform = glm::translate(pos) * glm::toMat4(rot) * glm::scale(scale);
+
+                    if (node.bone_index != -1) {
+                        local_transforms[node.bone_index].position = pos;
+                        local_transforms[node.bone_index].rotation = rot;
+                        local_transforms[node.bone_index].scale = scale;
+                    }
                 }
 
                 transforms[i] = tform * transforms[i];
@@ -110,7 +117,8 @@ void Model::blend_animation(
     float t_b,
     bool looping_b,
     float blend_factor,
-    glm::mat4 * transforms
+    glm::mat4 * transforms,
+    Transform * local_transforms
 ) const {
     auto const & animation_a = m_animations[animation_index_a];
     auto const & animation_b = m_animations[animation_index_b];
@@ -203,6 +211,10 @@ void Model::blend_animation(
                     glm::vec3 scale = glm::lerp(scale_a, scale_b, blend_factor);
 
                     tform = glm::translate(pos) * glm::toMat4(rot) * glm::scale(scale);
+
+                    local_transforms[m_nodes[node_index].bone_index].position = pos;
+                    local_transforms[m_nodes[node_index].bone_index].rotation = rot;
+                    local_transforms[m_nodes[node_index].bone_index].scale = scale;
                 }
 
                 transforms[i] = tform * transforms[i];

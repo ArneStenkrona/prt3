@@ -94,6 +94,7 @@ public:
         ModelHandle handle,
         NodeID base_node,
         bool use_base_as_model_root,
+        bool as_animated,
         std::vector<NodeID> & new_nodes
     );
 
@@ -103,7 +104,7 @@ public:
         NodeID base_node
     ) {
         thread_local std::vector<NodeID> temp;
-        return add_model_to_scene(scene, handle, base_node, false, temp);
+        return add_model_to_scene(scene, handle, base_node, false, false, temp);
     }
 
 private:

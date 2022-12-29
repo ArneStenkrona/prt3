@@ -56,8 +56,10 @@ class ActionUnpackModel : public Action {
 public:
     ActionUnpackModel(
         EditorContext & editor_context,
-        NodeID node_id) : m_editor_context{&editor_context},
-        m_node_id{node_id}
+        NodeID node_id,
+        bool animated) : m_editor_context{&editor_context},
+        m_node_id{node_id},
+        m_animated{animated}
     {
         Scene const & scene = m_editor_context->scene();
 
@@ -73,7 +75,7 @@ protected:
         scene.remove_component<ModelComponentType>(m_node_id);
 
         man.add_model_to_scene(
-            scene, m_model_handle, m_node_id, true, m_unpacked_nodes);
+            scene, m_model_handle, m_node_id, true, m_animated, m_unpacked_nodes);
 
         return true;
     }
@@ -86,6 +88,10 @@ protected:
             scene.remove_node(m_unpacked_nodes[i]);
         }
 
+        if (m_animated) {
+            scene.remove_component<Armature>(m_node_id);
+        }
+
         scene.add_component<ModelComponentType>(m_node_id, m_model_handle);
 
         return true;
@@ -94,6 +100,7 @@ protected:
 private:
     EditorContext * m_editor_context;
     NodeID m_node_id;
+    bool m_animated;
 
     ModelHandle m_model_handle;
 
@@ -134,11 +141,6 @@ void show_model_component(
             name.buf_size(),
             ImGuiInputTextFlags_ReadOnly
         );
-
-        if (ImGui::Button("unpack model")) {
-            context.editor()
-                .perform_action<ActionUnpackModel<ModelComponentType> >(id);
-        }
     } else {
         ImGui::TextColored(ImVec4(1.0f,1.0f,0.0f,1.0f), "%s", "no model");
     }
@@ -222,6 +224,32 @@ void show_model_component(
 
         ImGui::EndPopup();
     }
+}
+
+template<typename ModelComponentType>
+void show_unpack_model_component(
+    EditorContext & context,
+    NodeID id,
+    bool animated
+) {
+    Scene & scene = context.scene();
+
+    ModelComponentType & component = scene.get_component<ModelComponentType>(id);
+    ModelHandle handle = component.model_handle();
+
+    ImGui::PushItemWidth(160);
+
+    if (handle != NO_RESOURCE) {
+        if (ImGui::Button("unpack model")) {
+            context.editor()
+                .perform_action<ActionUnpackModel<ModelComponentType> >(
+                    id,
+                    animated
+                );
+        }
+    }
+
+    ImGui::PopItemWidth();
 }
 
 } // namespace prt3

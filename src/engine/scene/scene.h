@@ -74,6 +74,10 @@ public:
     { return m_uuid_to_node.at(uuid); };
     UUID get_uuid_from_node_id(NodeID id) const
     { return m_node_uuids.at(id); };
+    bool node_exists(NodeID id) const
+    { return m_nodes.size() > static_cast<size_t>(id) && m_nodes[id].id() != NO_NODE; }
+    std::string get_node_path(NodeID id) const;
+
     Camera & get_camera() { return m_camera; }
     Input & get_input();
 
@@ -105,6 +109,16 @@ public:
     template<typename ComponentType>
     ComponentType const & get_component(NodeID id) const {
         return m_component_manager.get_component<ComponentType>(id);
+    }
+
+    template<typename ComponentType>
+    std::vector<ComponentType> & get_all_components() {
+        return m_component_manager.get_all_components<ComponentType>();
+    }
+
+    template<typename ComponentType>
+    std::vector<ComponentType> const & get_all_components() const {
+        return m_component_manager.get_all_components<ComponentType>();
     }
 
     template<typename ComponentType>

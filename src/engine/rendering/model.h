@@ -66,7 +66,8 @@ public:
         uint32_t animation_index,
         float t,
         bool looping,
-        glm::mat4 * transforms
+        glm::mat4 * transforms,
+        Transform * local_transforms
     ) const;
 
     void blend_animation(
@@ -77,7 +78,8 @@ public:
         float t_b,
         bool looping_b,
         float blend_factor,
-        glm::mat4 * transforms
+        glm::mat4 * transforms,
+        Transform * local_transforms
     ) const;
 
     int32_t get_animation_index(char const * name) const;

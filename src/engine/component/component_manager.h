@@ -38,6 +38,11 @@ public:
     }
 
     template<typename ComponentType>
+    std::vector<ComponentType> & get_all_components() {
+        return get_component_storage<ComponentType>().get_all_components();
+    }
+
+    template<typename ComponentType>
     std::vector<ComponentType> const & get_all_components() const {
         return get_component_storage<ComponentType>().get_all_components();
     }

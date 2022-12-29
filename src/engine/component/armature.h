@@ -42,9 +42,26 @@ private:
     ModelHandle m_model_handle = NO_MODEL;
     AnimationID m_animation_id = NO_ANIMATION;
 
+    struct BonePair {
+        NodeID node_id;
+        uint32_t bone_index;
+    };
+
+    std::vector<BonePair> m_bone_map;
+
+    bool m_mapped = false;
+
+    bool validate_node_children(Scene & scene);
+    void recreate_nodes(Scene & scene);
+    void map_bones(Scene & scene);
+    void update_bone_transforms(Scene & scene);
+
     void remove(Scene & /*scene*/);
 
+    void update(Scene & scene);
+
     friend class ComponentStorage<Armature>;
+    friend class Scene;
 };
 
 } // namespace prt3
