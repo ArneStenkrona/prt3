@@ -147,7 +147,11 @@ NodeID ModelManager::add_model_to_scene(
     if (dot_pos != std::string::npos) {
         name = name.substr(0, dot_pos);
     }
-    scene.get_node_name(model_node_id) = name.c_str();
+
+    if (!use_base_as_model_root) {
+        scene.get_node_name(model_node_id) = name.c_str();
+    }
+
     return model_node_id;
 }
 
