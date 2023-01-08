@@ -46,7 +46,7 @@ public:
     NodeID parent_id() const { return m_parent_id; }
     std::vector<NodeID> const & children_ids() const { return m_children_ids; }
 
-    Collision move_and_collide(
+    CollisionResult move_and_collide(
         Scene & scene,
         glm::vec3 const & movement
     );

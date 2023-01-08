@@ -14,15 +14,23 @@ class PhysicsSystem;
 
 struct Collision {
     glm::vec3 normal;
+    glm::vec3 impulse;
     bool collided = false;
+};
+
+constexpr size_t MAX_COLLISION_ITER = 10;
+
+struct CollisionResult {
+    std::array<Collision, MAX_COLLISION_ITER> collisions;
+    unsigned int n_collisions;
     bool grounded = false;
     glm::vec3 ground_normal;
 };
 
 enum ColliderType : uint8_t {
-    collider_type_mesh,
-    collider_type_sphere,
-    collider_type_none,
+    collider_type_mesh = 0,
+    collider_type_sphere = 1,
+    collider_type_none = 2,
 };
 
 typedef uint16_t ColliderID;
@@ -51,6 +59,7 @@ public:
     AABB const & aabb() const { return m_aabb; };
 
     std::vector<glm::vec3> const & triangles() const { return m_triangles; }
+    std::vector<glm::vec3> const & triangle_cache() const { return m_triangle_cache; }
 private:
     std::vector<glm::vec3> m_triangles;
     std::vector<glm::vec3> m_triangle_cache;

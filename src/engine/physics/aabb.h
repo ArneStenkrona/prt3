@@ -15,6 +15,10 @@ struct AABB {
     glm::vec3 lower_bound;
     glm::vec3 upper_bound;
 
+    AABB sweep(glm::vec3 const & translation) const {
+        return { lower_bound + translation, upper_bound + translation };
+    }
+
     /**
      * @return surface area of the AABB
      */

@@ -89,12 +89,12 @@ void PhysicsSystem::remove_collider(ColliderTag tag) {
     m_aabb_tree.remove(tag);
 }
 
-Collision PhysicsSystem::move_and_collide(
+CollisionResult PhysicsSystem::move_and_collide(
     Scene & scene,
     NodeID node_id,
     glm::vec3 const & movement
 ) {
-    Collision res{};
+    CollisionResult res{};
 
     ColliderTag const & tag = m_tags[node_id];
     Node & node = scene.get_node(node_id);
@@ -105,7 +105,16 @@ Collision PhysicsSystem::move_and_collide(
     switch (tag.type) {
         case ColliderType::collider_type_sphere: {
             SphereCollider const & col = m_sphere_colliders[tag.id];
-            res = move_and_collide(scene, tag, col, movement, transform);
+            res = move_and_collide<SphereCollider, Sphere>(
+                scene, tag, col, movement, transform
+            );
+            break;
+        }
+        case ColliderType::collider_type_mesh: {
+            MeshCollider const & col = m_mesh_colliders[tag.id];
+            res = move_and_collide<MeshCollider, Triangle>(
+                scene, tag, col, movement, transform
+            );
             break;
         }
         // TODO: mesh
@@ -120,7 +129,11 @@ Collision PhysicsSystem::move_and_collide(
                 aabb = m_sphere_colliders[tag.id].get_shape(transform).aabb();
                 break;
             }
-            // TODO: mesh
+            case ColliderType::collider_type_mesh: {
+                m_mesh_colliders[tag.id].set_transform(transform);
+                aabb = m_mesh_colliders[tag.id].aabb();
+                break;
+            }
             default: {}
         }
         m_aabb_tree.update(tag, aabb);

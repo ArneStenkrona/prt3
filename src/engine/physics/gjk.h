@@ -43,17 +43,11 @@ void add_if_unique_edge(
     unsigned int a,
     unsigned int b);
 
-struct CollisionResult {
-    std::array<glm::vec3, 4> simplex;
-    bool collided = false;
-    float t;
-    unsigned int n_simplex;
-};
-
 struct GJKRes {
     std::array<glm::vec3, 4> simplex;
     unsigned int n_simplex;
     bool collided = false;
+    float t;
 };
 
 struct EPARes {
@@ -268,43 +262,42 @@ GJKRes gjk(ShapeA const & a,
 }
 
 template<typename ShapeA, typename ShapeB>
-CollisionResult find_collision(ShapeA const & a,
-                               ShapeB const & b,
-                               glm::vec3 const & velocity) {
+GJKRes find_collision_gjk(ShapeA const & a,
+                          ShapeB const & b,
+                          glm::vec3 const & velocity) {
     static constexpr unsigned int max_iter = 10;
     static constexpr float eps = 0.001f;
     float len = glm::length(velocity);
     float t_eps = len != 0.0f ? eps / len : 1.0f;
 
-    CollisionResult res;
     GJKRes gjk_res;
+    GJKRes gjk_res_cand;
 
-    gjk_res = gjk(a,
-                  b);
-    if (gjk_res.collided) {
+    gjk_res_cand = gjk(a, b);
+    if (gjk_res_cand.collided) {
         // try t = 0
-        res.simplex = gjk_res.simplex;
-        res.n_simplex = gjk_res.n_simplex;
-        res.collided = true;
-        res.t = 0.0f;
+        gjk_res.simplex = gjk_res_cand.simplex;
+        gjk_res.n_simplex = gjk_res_cand.n_simplex;
+        gjk_res.collided = true;
+        gjk_res.t = 0.0f;
     }
 
-    if (!gjk_res.collided) {
+    if (!gjk_res_cand.collided) {
         // try t = 1
-        gjk_res = gjk(a.sweep(velocity),
+        gjk_res_cand = gjk(a.sweep(velocity),
                     b);
-        if (gjk_res.collided) {
-            res.simplex = gjk_res.simplex;
-            res.n_simplex = gjk_res.n_simplex;
-            res.collided = true;
-            res.t = 1.0f;
+        if (gjk_res_cand.collided) {
+            gjk_res.simplex = gjk_res_cand.simplex;
+            gjk_res.n_simplex = gjk_res_cand.n_simplex;
+            gjk_res.collided = true;
+            gjk_res.t = 1.0f;
         }
     }
 
     // try to refine with binary search
     unsigned int iter = 0;
 
-    if (res.t != 0.0f) {
+    if (gjk_res.t != 0.0f) {
         float l = 0.0f;
         float r = 1.0f;
         float m;
@@ -315,27 +308,21 @@ CollisionResult find_collision(ShapeA const & a,
             glm::vec3 vel = m * velocity;
             auto swept = a.sweep(vel);
 
-            GJKRes gjk_cand = gjk(swept, b);
+            GJKRes gjk_res_cand = gjk(swept, b);
 
-            if (!gjk_cand.collided) {
+            if (!gjk_res_cand.collided) {
                 l = m;
             } else {
-                gjk_res = gjk_cand;
+                gjk_res = gjk_res_cand;
+                gjk_res.t = l;
                 r = m;
             }
 
             ++iter;
         } while (iter < max_iter && r - l >= t_eps);
-
-        if (gjk_res.collided) {
-            res.simplex = gjk_res.simplex;
-            res.n_simplex = gjk_res.n_simplex;
-            res.collided = true;
-            res.t = l;
-        }
     }
 
-    return res;
+    return gjk_res;
 }
 
 } // namespace prt3::collision_util

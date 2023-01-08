@@ -127,7 +127,7 @@ Transform Node::global_to_local_transform(
     return local;
 }
 
-Collision Node::move_and_collide(
+CollisionResult Node::move_and_collide(
     Scene & scene,
     glm::vec3 const & movement
 ) {

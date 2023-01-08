@@ -16,10 +16,46 @@
 
 namespace prt3 {
 
+struct SweptTriangle {
+    glm::vec3 a0;
+    glm::vec3 b0;
+    glm::vec3 c0;
+    glm::vec3 a1;
+    glm::vec3 b1;
+    glm::vec3 c1;
+
+    AABB aabb() const {
+        AABB aabb;
+        aabb.lower_bound = a0;
+        aabb.upper_bound = a0;
+
+        aabb.lower_bound = glm::min(aabb.lower_bound, b0);
+        aabb.upper_bound = glm::max(aabb.upper_bound, b0);
+
+        aabb.lower_bound = glm::min(aabb.lower_bound, c0);
+        aabb.upper_bound = glm::max(aabb.upper_bound, c0);
+
+        aabb.lower_bound = glm::min(aabb.lower_bound, a1);
+        aabb.upper_bound = glm::max(aabb.upper_bound, a1);
+
+        aabb.lower_bound = glm::min(aabb.lower_bound, b1);
+        aabb.upper_bound = glm::max(aabb.upper_bound, b1);
+
+        aabb.lower_bound = glm::min(aabb.lower_bound, c1);
+        aabb.upper_bound = glm::max(aabb.upper_bound, c1);
+
+        return aabb;
+    }
+};
+
 struct Triangle {
     glm::vec3 a;
     glm::vec3 b;
     glm::vec3 c;
+
+    SweptTriangle sweep(glm::vec3 const & translation) const {
+        return { a, b, c, a + translation, b + translation, c + translation };
+    }
 };
 
 struct SweptSphere {
@@ -69,6 +105,9 @@ inline std::istream & operator >> (
 
 
 glm::vec3 calculate_furthest_point(Triangle const & triangle,
+                                   glm::vec3 const & direction);
+
+glm::vec3 calculate_furthest_point(SweptTriangle const & swept_triangle,
                                    glm::vec3 const & direction);
 
 glm::vec3 calculate_furthest_point(Sphere const & sphere,
