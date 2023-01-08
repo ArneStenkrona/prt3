@@ -23,10 +23,10 @@ struct Transform {
     inline glm::vec3 get_right() const { return rotation * glm::vec3{ -1.0, 0.0, 0.0}; }
 
     glm::mat4 to_matrix() const {
-        glm::mat4 rotateM = glm::toMat4(glm::normalize(rotation));
         glm::mat4 scaleM = glm::scale(scale);
+        glm::mat4 rotateM = glm::toMat4(glm::normalize(rotation));
         glm::mat4 translateM = glm::translate(glm::mat4(1.0f), position);
-        return translateM * scaleM * rotateM;
+        return translateM * rotateM * scaleM;
     }
 
     Transform & from_matrix(glm::mat4 const & matrix) {
