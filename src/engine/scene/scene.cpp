@@ -157,8 +157,9 @@ void Scene::collect_world_render_data(
 
             animation.transforms[pair.bone_index] =
                 bones[pair.bone_index].inverse_mesh_transform *
+                inv *
                 m_transform_cache.global_transforms()[pair.node_id].to_matrix() *
-                inv * bones[pair.bone_index].offset_matrix;
+                bones[pair.bone_index].offset_matrix;
         }
     }
 
