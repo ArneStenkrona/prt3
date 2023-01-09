@@ -66,6 +66,7 @@ struct WorldRenderData {
     std::vector<AnimatedMeshRenderData> animated_mesh_data;
     std::vector<BoneData> bone_data;
     std::vector<MeshRenderData> selected_mesh_data;
+    std::vector<AnimatedMeshRenderData> selected_animated_mesh_data;
     LightRenderData light_data;
 };
 
@@ -89,6 +90,7 @@ struct RenderData {
         world.animated_mesh_data.resize(0);
         world.bone_data.resize(0);
         world.selected_mesh_data.resize(0);
+        world.selected_animated_mesh_data.resize(0);
         editor_data.collider_data.line_data.resize(0);
     }
 };

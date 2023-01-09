@@ -13,6 +13,7 @@ template<typename T>
 class ComponentStorage;
 
 class EditorContext;
+class Editor;
 
 class Armature {
 public:
@@ -55,6 +56,7 @@ private:
     void recreate_nodes(Scene & scene);
     void map_bones(Scene & scene);
     void update_bone_transforms(Scene & scene);
+    void validate_and_map_node_children(Scene & scene);
 
     void remove(Scene & /*scene*/);
 
@@ -62,6 +64,7 @@ private:
 
     friend class ComponentStorage<Armature>;
     friend class Scene;
+    friend class Editor;
 };
 
 } // namespace prt3

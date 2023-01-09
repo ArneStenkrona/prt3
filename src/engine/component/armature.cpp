@@ -262,3 +262,13 @@ void Armature::update(Scene & scene) {
 
     update_bone_transforms(scene);
 }
+
+void Armature::validate_and_map_node_children(Scene & scene) {
+    if (!validate_node_children(scene)) {
+        recreate_nodes(scene);
+    }
+
+    if (!m_mapped) {
+        map_bones(scene);
+    }
+}

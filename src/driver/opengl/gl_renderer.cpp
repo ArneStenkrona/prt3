@@ -27,7 +27,8 @@ GLRenderer::GLRenderer(
    m_downscale_factor{downscale_factor},
    m_material_manager{m_texture_manager},
    m_model_manager{m_material_manager},
-   m_selection_shader{nullptr}
+   m_selection_shader{nullptr},
+   m_animated_selection_shader{nullptr}
   {
     EmscriptenWebGLContextAttributes attrs;
 	attrs.antialias = true;
@@ -92,10 +93,16 @@ GLRenderer::GLRenderer(
         "assets/shaders/opengl/standard.vs",
         "assets/shaders/opengl/write_selected.fs"
     );
+
+    m_animated_selection_shader = new GLShader(
+        "assets/shaders/opengl/standard_animated.vs",
+        "assets/shaders/opengl/write_selected.fs"
+    );
 }
 
 GLRenderer::~GLRenderer() {
     delete m_selection_shader;
+    delete m_animated_selection_shader;
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL2_Shutdown();
 }
@@ -348,18 +355,40 @@ void GLRenderer::render_framebuffer(
         glUseProgram(m_selection_shader->shader());
         auto const & selected_meshes = render_data.world.selected_mesh_data;
         for (MeshRenderData const & selected_mesh_data : selected_meshes) {
-                bind_transform_and_camera_data(
-                    *m_selection_shader,
-                    selected_mesh_data.transform,
-                    render_data.camera_data
-                );
-                bind_node_data(
-                    *m_selection_shader,
-                    selected_mesh_data.node
-                );
+            bind_transform_and_camera_data(
+                *m_selection_shader,
+                selected_mesh_data.transform,
+                render_data.camera_data
+            );
+            bind_node_data(
+                *m_selection_shader,
+                selected_mesh_data.node
+            );
 
-                meshes.at(selected_mesh_data.mesh_id).draw_elements_triangles();
-            }
+            meshes.at(selected_mesh_data.mesh_id).draw_elements_triangles();
+        }
+
+        glUseProgram(m_animated_selection_shader->shader());
+        for (AnimatedMeshRenderData const & data :
+            render_data.world.selected_animated_mesh_data) {
+            MeshRenderData const & mesh_data = data.mesh_data;
+
+            bind_transform_and_camera_data(
+                *m_animated_selection_shader,
+                mesh_data.transform,
+                render_data.camera_data
+            );
+            bind_node_data(
+                *m_animated_selection_shader,
+                mesh_data.node
+            );
+            bind_bone_data(
+                *m_animated_selection_shader,
+                render_data.world.bone_data[data.bone_data_index]
+            );
+
+            meshes.at(mesh_data.mesh_id).draw_elements_triangles();
+        }
     }
 }
 

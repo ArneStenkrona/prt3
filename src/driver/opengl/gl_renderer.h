@@ -99,6 +99,7 @@ private:
     GLSourceBuffers m_source_buffers;
 
     GLShader * m_selection_shader;
+    GLShader * m_animated_selection_shader;
 
     uint32_t m_frame = 0; // will overflow after a few years
 

@@ -22,8 +22,8 @@ Scene::Scene(Context & context)
 void Scene::update(float delta_time) {
     m_animation_system.update(*this, delta_time);
 
-    auto & armatures
-        = m_component_manager.get_all_components<Armature>();
+    auto & armatures =
+        m_component_manager.get_all_components<Armature>();
 
     for (Armature & armature : armatures) {
         armature.update(*this);
@@ -136,6 +136,31 @@ void Scene::collect_world_render_data(
         m_transform_cache.global_transforms().data(),
         m_transform_cache.global_transforms_history().data()
     );
+
+    auto & armatures =
+        m_component_manager.get_all_components<Armature>();
+
+    for (Armature const & armature : armatures) {
+        glm::mat4 tform =
+            m_transform_cache.global_transforms()[armature.node_id()].to_matrix();
+
+        glm::mat4 inv = glm::inverse(tform);
+
+        Model const & model = model_manager().get_model(armature.model_handle());
+        auto const & bones = model.bones();
+
+        Animation & animation =
+            m_animation_system.m_animations[armature.animation_id()];
+
+        for (Armature::BonePair const & pair : armature.m_bone_map) {
+            if (!node_exists(pair.node_id)) continue;
+
+            animation.transforms[pair.bone_index] =
+                bones[pair.bone_index].inverse_mesh_transform *
+                m_transform_cache.global_transforms()[pair.node_id].to_matrix() *
+                inv * bones[pair.bone_index].offset_matrix;
+        }
+    }
 
     std::vector<Animation> const & animations =
         m_animation_system.animations();
@@ -282,7 +307,7 @@ void Scene::collect_world_render_data(
 
             if (selected_incl_children.find(id) !=
                 selected_incl_children.end()) {
-                world_data.selected_mesh_data.push_back(mesh_data);
+                world_data.selected_animated_mesh_data.push_back(data);
             }
         }
     }
@@ -328,7 +353,7 @@ void Scene::collect_world_render_data(
 
         if (selected_incl_children.find(id) !=
             selected_incl_children.end()) {
-            world_data.selected_mesh_data.push_back(mesh_data);
+            world_data.selected_animated_mesh_data.push_back(data);
         }
     }
 

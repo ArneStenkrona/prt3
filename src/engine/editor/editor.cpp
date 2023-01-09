@@ -67,4 +67,13 @@ void Editor::collect_collider_render_data(
         m_editor_context.get_selected_node(),
         data.collider_data
     );
+
+    auto & armatures =
+        m_context.edit_scene()
+        .m_component_manager
+        .get_all_components<Armature>();
+
+    for (Armature & armature : armatures) {
+        armature.validate_and_map_node_children(m_context.edit_scene());
+    }
 }
