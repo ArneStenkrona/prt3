@@ -85,55 +85,10 @@ void Armature::serialize(
 }
 
 bool Armature::validate_node_children(Scene & scene) {
-    // TODO: A solution that doesn't require expensive traversal.
-    //       Perhaps a flag that indicates if child nodes have
-    //       changed.
-    ModelManager const & man = scene.model_manager();
-
-    Model const & model = man.get_model(m_model_handle);
-
-    thread_local std::vector<uint32_t> indices;
-    indices.push_back(0);
-
-    thread_local std::unordered_set<NodeName> bone_names;
-    bone_names.clear();
-
-    for (Model::Node const & node : model.nodes()) {
-        if (node.bone_index != -1) {
-            bone_names.insert(node.name.c_str());
-        }
-    }
-
-    Node const & armature_node = scene.get_node(m_node_id);
-
-    thread_local std::vector<NodeID> ids;
-    for (NodeID id : armature_node.children_ids()) {
-        ids.push_back(id);
-    }
-
-    while (!ids.empty()) {
-        NodeID id = ids.back();
-        ids.pop_back();
-        Node const & node = scene.get_node(id);
-
-        NodeName const & name = scene.get_node_name(id);
-
-        if (bone_names.find(name) != bone_names.end()) {
-            bone_names.erase(name);
-        }
-
-        for (NodeID child_id : node.children_ids()) {
-            ids.push_back(child_id);
-        }
-    }
-
-    return bone_names.empty();
+    return !scene.get_node_mod_flag(m_node_id, Node::ModFlags::descendant_removed);
 }
 
 void Armature::recreate_nodes(Scene & scene) {
-    // TODO: A solution that doesn't require expensive traversal.
-    //       Perhaps a flag that indicates if child nodes have
-    //       changed.
     ModelManager const & man = scene.model_manager();
 
     Model const & model = man.get_model(m_model_handle);

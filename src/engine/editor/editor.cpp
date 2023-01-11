@@ -76,4 +76,5 @@ void Editor::collect_collider_render_data(
     for (Armature & armature : armatures) {
         armature.validate_and_map_node_children(m_context.edit_scene());
     }
+    m_context.edit_scene().clear_node_mod_flags();
 }

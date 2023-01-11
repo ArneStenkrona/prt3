@@ -17,6 +17,7 @@ Scene::Scene(Context & context)
 {
     m_nodes.emplace_back(s_root_id);
     m_node_names.emplace_back("root");
+    m_node_mod_flags.emplace_back(Node::ModFlags::none);
 }
 
 void Scene::update(float delta_time) {
@@ -29,7 +30,14 @@ void Scene::update(float delta_time) {
         armature.update(*this);
     }
 
+    clear_node_mod_flags();
     m_script_container.update(*this, delta_time);
+}
+
+void Scene::clear_node_mod_flags() {
+    for (Node::ModFlags & flags : m_node_mod_flags) {
+        flags = Node::ModFlags::none;
+    }
 }
 
 NodeID Scene::add_node(NodeID parent_id, const char * name, UUID uuid) {
@@ -38,11 +46,13 @@ NodeID Scene::add_node(NodeID parent_id, const char * name, UUID uuid) {
         id = m_nodes.size();
         m_nodes.emplace_back(id);
         m_node_names.emplace_back(name);
+        m_node_mod_flags.emplace_back(Node::ModFlags::none);
     } else {
         id = m_free_list.back();
         m_free_list.pop_back();
         m_nodes[id] = {id};
         m_node_names[id] = name;
+        m_node_mod_flags[id] = Node::ModFlags::none;
     }
 
     m_nodes[id].m_parent_id = parent_id;
@@ -69,6 +79,11 @@ bool Scene::remove_node(NodeID id) {
                     parent.m_children_ids.erase(it);
                     break;
                 }
+            }
+            NodeID ancestor_id = node.parent_id();
+            while (ancestor_id != NO_NODE) {
+                m_node_mod_flags[ancestor_id] = Node::ModFlags::descendant_removed;
+                ancestor_id = m_nodes[ancestor_id].parent_id();
             }
         }
     }
@@ -469,6 +484,7 @@ void Scene::deserialize(std::istream & in) {
 
     for (NodeID id = 0; id < n_nodes; ++id) {
         m_node_names.push_back({});
+        m_node_mod_flags.push_back(Node::ModFlags::none);
         auto & name = m_node_names.back();
         in.read(name.data(), name.writeable_size());
 
@@ -496,9 +512,11 @@ void Scene::deserialize(std::istream & in) {
 void Scene::internal_clear(bool place_root) {
     m_nodes.clear();
     m_node_names.clear();
+    m_node_mod_flags.clear();
     if (place_root) {
         m_nodes.emplace_back(s_root_id);
         m_node_names.emplace_back("root");
+        m_node_mod_flags.emplace_back(Node::ModFlags::none);
     }
 
     m_component_manager.clear();

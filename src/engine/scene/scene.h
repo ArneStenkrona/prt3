@@ -173,6 +173,14 @@ public:
     NodeName const & get_node_name(NodeID id) const { return m_node_names[id]; }
     NodeName & get_node_name(NodeID id) { return m_node_names[id]; }
 
+    // Mod flags are cleared just before scripts are updated
+    Node::ModFlags get_node_mod_flags(NodeID id) const
+    { return m_node_mod_flags[id]; }
+
+    // Mod flags are cleared just before scripts are updated
+    bool get_node_mod_flag(NodeID id, Node::ModFlags flag) const
+    { return m_node_mod_flags[id] & flag; }
+
     PhysicsSystem const & physics_system() const { return m_physics_system; }
     PhysicsSystem & physics_system() { return m_physics_system; }
 
@@ -190,6 +198,7 @@ private:
     static constexpr NodeID s_root_id = 0;
     std::vector<Node> m_nodes;
     std::vector<NodeName> m_node_names;
+    std::vector<Node::ModFlags> m_node_mod_flags;
     std::vector<NodeID> m_free_list;
     std::unordered_map<NodeID, UUID> m_node_uuids;
     std::unordered_map<UUID, NodeID> m_uuid_to_node;
@@ -216,6 +225,8 @@ private:
     NodeID add_node(NodeID parent_id, const char * name, UUID uuid);
 
     void update(float delta_time);
+
+    void clear_node_mod_flags();
 
     void collect_world_render_data(
         WorldRenderData & world_data,

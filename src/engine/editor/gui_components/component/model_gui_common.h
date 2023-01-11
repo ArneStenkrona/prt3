@@ -124,7 +124,7 @@ void show_model_component(
     if (handle != NO_RESOURCE) {
         Model const & model = man.get_model(handle);
 
-        static FixedString<64> model_path;
+        thread_local FixedString<64> model_path;
         model_path = model.path().c_str();
         ImGui::InputText(
             "path",
@@ -133,7 +133,7 @@ void show_model_component(
             ImGuiInputTextFlags_ReadOnly
         );
 
-        static FixedString<64> name;
+        thread_local FixedString<64> name;
         name = model.name().c_str();
         ImGui::InputText(
             "name",

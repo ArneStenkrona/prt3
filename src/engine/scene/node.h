@@ -22,10 +22,16 @@ constexpr NodeID NO_NODE = -1;
 
 typedef FixedString<64> NodeName;
 typedef FixedString<32> NodeTag;
+typedef uint8_t ModFlagIntType;
 
 class Scene;
 class Node {
 public:
+    enum ModFlags : ModFlagIntType {
+        none = 0,
+        descendant_removed = 1 << 0
+    };
+
     Node(NodeID id);
 
     Transform get_global_transform(Scene const & scene) const;
@@ -61,5 +67,21 @@ private:
 };
 
 } // namespace prt3
+
+inline prt3::Node::ModFlags operator|(prt3::Node::ModFlags a, prt3::Node::ModFlags b)
+{
+    return static_cast<prt3::Node::ModFlags>(
+        static_cast<prt3::ModFlagIntType>(a) |
+        static_cast<prt3::ModFlagIntType>(b)
+    );
+}
+
+inline prt3::Node::ModFlags operator&(prt3::Node::ModFlags a, prt3::Node::ModFlags b)
+{
+    return static_cast<prt3::Node::ModFlags>(
+        static_cast<prt3::ModFlagIntType>(a) &
+        static_cast<prt3::ModFlagIntType>(b)
+    );
+}
 
 #endif
