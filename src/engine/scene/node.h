@@ -29,7 +29,8 @@ class Node {
 public:
     enum ModFlags : ModFlagIntType {
         none = 0,
-        descendant_removed = 1 << 0
+        descendant_removed = 1 << 0,
+        descendant_added = 1 << 1
     };
 
     Node(NodeID id);

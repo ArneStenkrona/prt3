@@ -253,6 +253,15 @@ private:
 
     void internal_clear(bool place_root);
 
+    void mark_ancestors(NodeID id, Node::ModFlags flag) {
+        NodeID ancestor_id = m_nodes[id].parent_id();
+        while (ancestor_id != NO_NODE) {
+            m_node_mod_flags[ancestor_id] =
+                m_node_mod_flags[ancestor_id] | flag;
+            ancestor_id = m_nodes[ancestor_id].parent_id();
+        }
+    }
+
     ModelManager & model_manager();
 
     friend class Engine;

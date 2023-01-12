@@ -60,6 +60,8 @@ NodeID Scene::add_node(NodeID parent_id, const char * name, UUID uuid) {
     m_node_uuids[id] = uuid;
     m_uuid_to_node[uuid] = id;
 
+    mark_ancestors(id, Node::ModFlags::descendant_added);
+
     return id;
 }
 
@@ -80,11 +82,7 @@ bool Scene::remove_node(NodeID id) {
                     break;
                 }
             }
-            NodeID ancestor_id = node.parent_id();
-            while (ancestor_id != NO_NODE) {
-                m_node_mod_flags[ancestor_id] = Node::ModFlags::descendant_removed;
-                ancestor_id = m_nodes[ancestor_id].parent_id();
-            }
+            mark_ancestors(id, Node::ModFlags::descendant_removed);
         }
     }
 

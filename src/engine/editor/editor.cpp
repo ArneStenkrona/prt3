@@ -74,7 +74,12 @@ void Editor::collect_collider_render_data(
         .get_all_components<Armature>();
 
     for (Armature & armature : armatures) {
-        armature.validate_and_map_node_children(m_context.edit_scene());
+        auto flags =
+            m_context.edit_scene().get_node_mod_flags(armature.node_id());
+        if (flags | Node::ModFlags::descendant_removed ||
+            flags | Node::ModFlags::descendant_added) {
+            armature.map_bones(m_context.edit_scene());
+        }
     }
     m_context.edit_scene().clear_node_mod_flags();
 }

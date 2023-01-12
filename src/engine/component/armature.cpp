@@ -111,6 +111,7 @@ void Armature::recreate_nodes(Scene & scene) {
         NodeID node_id = elem.id;
         if (elem.id == NO_NODE) {
             node_id = scene.add_node(elem.parent_id, mn.name.c_str());
+            scene.get_node(node_id).local_transform() = mn.transform;
         }
 
         Node const & node = scene.get_node(node_id);
@@ -216,14 +217,4 @@ void Armature::update(Scene & scene) {
     }
 
     update_bone_transforms(scene);
-}
-
-void Armature::validate_and_map_node_children(Scene & scene) {
-    if (!validate_node_children(scene)) {
-        recreate_nodes(scene);
-    }
-
-    if (!m_mapped) {
-        map_bones(scene);
-    }
 }
