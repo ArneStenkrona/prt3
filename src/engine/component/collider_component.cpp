@@ -165,6 +165,20 @@ void ColliderComponent::set_collider(
     );
 }
 
+void ColliderComponent::set_collider(
+    Scene & scene,
+    Box const & box
+) {
+    PhysicsSystem & sys = scene.physics_system();
+    sys.remove_collider(m_tag);
+    m_tag = sys.add_box_collider(
+        m_node_id,
+        box.dimensions,
+        box.center,
+        scene.get_node(m_node_id).get_global_transform(scene)
+    );
+}
+
 void ColliderComponent::serialize(
     std::ostream & out,
     Scene const & scene
@@ -187,7 +201,13 @@ void ColliderComponent::serialize(
             out << col.base_shape();
             break;
         }
-        case ColliderType::collider_type_none: {}
+        case ColliderType::collider_type_box: {
+            BoxCollider const & col = sys.get_box_collider(m_tag.id);
+            write_stream(out, col.dimensions());
+            write_stream(out, col.center());
+            break;
+        }
+        default: {}
     }
 }
 
@@ -201,8 +221,9 @@ void ColliderComponent::deserialize(
 
     PhysicsSystem & sys = scene.physics_system();
 
-    read_stream(in, m_tag.type);
-    switch (m_tag.type) {
+    ColliderType type;
+    read_stream(in, type);
+    switch (type) {
         case ColliderType::collider_type_mesh: {
             std::vector<glm::vec3> tris;
             size_t n_tris;
@@ -230,7 +251,20 @@ void ColliderComponent::deserialize(
             );
             break;
         }
-        case ColliderType::collider_type_none: {}
+        case ColliderType::collider_type_box: {
+            glm::vec3 dimensions;
+            glm::vec3 center;
+            read_stream(in, dimensions);
+            read_stream(in, center);
+            m_tag = sys.add_box_collider(
+                m_node_id,
+                dimensions,
+                center,
+                scene.get_node(m_node_id).get_global_transform(scene)
+            );
+            break;
+        }
+        default: {}
     }
 }
 

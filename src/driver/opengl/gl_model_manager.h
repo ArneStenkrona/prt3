@@ -25,11 +25,15 @@ public:
         ModelResource const & resource
     );
 
-    ResourceID upload_line_mesh(std::vector<glm::vec3> const & vertices);
+    ResourceID upload_line_mesh(
+        glm::vec3 const * vertices,
+        size_t n
+    );
 
     void update_line_mesh(
         ResourceID id,
-        std::vector<glm::vec3> const & vertices
+        glm::vec3 const * vertices,
+        size_t n
     );
 
     void free_line_mesh(ResourceID id);

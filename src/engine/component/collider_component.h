@@ -48,6 +48,7 @@ public:
         std::vector<glm::vec3> const & triangles
     );
     void set_collider(Scene & scene, Sphere const & sphere);
+    void set_collider(Scene & scene, Box const & box);
 
     void serialize(
         std::ostream & out,

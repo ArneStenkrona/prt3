@@ -67,6 +67,23 @@ ColliderTag PhysicsSystem::add_sphere_collider(
     return tag;
 }
 
+ColliderTag PhysicsSystem::add_box_collider(
+    NodeID node_id,
+    glm::vec3 const & dimensions,
+    glm::vec3 const & center,
+    Transform const & transform
+) {
+    ColliderTag tag = create_box_collider(
+        dimensions,
+        center,
+        transform
+    );
+    m_tags[node_id] = tag;
+    m_node_ids[tag] = node_id;
+
+    return tag;
+}
+
 void PhysicsSystem::remove_collider(ColliderTag tag) {
     switch (tag.type) {
         case ColliderType::collider_type_mesh: {
@@ -77,7 +94,11 @@ void PhysicsSystem::remove_collider(ColliderTag tag) {
             m_sphere_colliders.erase(tag.id);
             break;
         }
-        case ColliderType::collider_type_none: {
+        case ColliderType::collider_type_box: {
+            m_box_colliders.erase(tag.id);
+            break;
+        }
+        default: {
             return;
         }
     }
@@ -103,13 +124,6 @@ CollisionResult PhysicsSystem::move_and_collide(
     Transform start_transform = transform;
 
     switch (tag.type) {
-        case ColliderType::collider_type_sphere: {
-            SphereCollider const & col = m_sphere_colliders[tag.id];
-            res = move_and_collide<SphereCollider, Sphere>(
-                scene, tag, col, movement, transform
-            );
-            break;
-        }
         case ColliderType::collider_type_mesh: {
             MeshCollider const & col = m_mesh_colliders[tag.id];
             res = move_and_collide<MeshCollider, Triangle>(
@@ -117,7 +131,20 @@ CollisionResult PhysicsSystem::move_and_collide(
             );
             break;
         }
-        // TODO: mesh
+        case ColliderType::collider_type_sphere: {
+            SphereCollider const & col = m_sphere_colliders[tag.id];
+            res = move_and_collide<SphereCollider, Sphere>(
+                scene, tag, col, movement, transform
+            );
+            break;
+        }
+        case ColliderType::collider_type_box: {
+            BoxCollider const & col = m_box_colliders[tag.id];
+            res = move_and_collide<BoxCollider, DiscreteConvexHull<8> >(
+                scene, tag, col, movement, transform
+            );
+            break;
+        }
         default: {}
     }
     node.set_global_transform(scene, transform);
@@ -125,13 +152,17 @@ CollisionResult PhysicsSystem::move_and_collide(
     if (transform != start_transform) {
         AABB aabb;
         switch (tag.type) {
+            case ColliderType::collider_type_mesh: {
+                m_mesh_colliders[tag.id].set_transform(transform);
+                aabb = m_mesh_colliders[tag.id].aabb();
+                break;
+            }
             case ColliderType::collider_type_sphere: {
                 aabb = m_sphere_colliders[tag.id].get_shape(transform).aabb();
                 break;
             }
-            case ColliderType::collider_type_mesh: {
-                m_mesh_colliders[tag.id].set_transform(transform);
-                aabb = m_mesh_colliders[tag.id].aabb();
+            case ColliderType::collider_type_box: {
+                aabb = m_box_colliders[tag.id].get_shape(transform).aabb();
                 break;
             }
             default: {}
@@ -234,6 +265,26 @@ ColliderTag PhysicsSystem::create_sphere_collider(
     return tag;
 }
 
+ColliderTag PhysicsSystem::create_box_collider(
+    glm::vec3 dimensions,
+    glm::vec3 center,
+    Transform const & transform
+) {
+    ColliderTag tag;
+    tag.type = ColliderType::collider_type_box;
+    tag.id = m_next_box_id;
+    ++m_next_box_id;
+
+    m_box_colliders[tag.id] = BoxCollider{dimensions, center};
+
+    m_aabb_tree.insert(
+        tag,
+        m_box_colliders[tag.id].get_shape(transform).aabb()
+    );
+
+    return tag;
+}
+
 Node & PhysicsSystem::get_node(Scene & scene, NodeID node_id) {
     return scene.get_node(node_id);
 }
@@ -275,15 +326,20 @@ void PhysicsSystem::update(
         if (stale) {
             stale_tags.push_back(tag);
             switch (tag.type) {
+                case ColliderType::collider_type_mesh: {
+                    MeshCollider & col = m_mesh_colliders[tag.id];
+                    col.set_transform(t_curr);
+                    AABB aabb = col.aabb();
+                    new_aabbs.push_back(aabb);
+                    break;
+                }
                 case ColliderType::collider_type_sphere: {
                     AABB aabb = m_sphere_colliders[tag.id].get_shape(t_curr).aabb();
                     new_aabbs.push_back(aabb);
                     break;
                 }
-                case ColliderType::collider_type_mesh: {
-                    MeshCollider & col = m_mesh_colliders[tag.id];
-                    col.set_transform(t_curr);
-                    AABB aabb = col.aabb();
+                case ColliderType::collider_type_box: {
+                    AABB aabb = m_box_colliders[tag.id].get_shape(t_curr).aabb();
                     new_aabbs.push_back(aabb);
                     break;
                 }
@@ -329,11 +385,10 @@ void PhysicsSystem::collect_collider_render_data(
 
             if (m_collider_meshes.find(tag) == m_collider_meshes.end()) {
                 m_collider_meshes[tag] =
-                    renderer.upload_line_mesh(lines);
+                    renderer.upload_line_mesh(lines.data(), lines.size());
             } else {
                 renderer.update_line_mesh(
-                    m_collider_meshes.at(tag),
-                    lines
+                    m_collider_meshes.at(tag), lines.data(), lines.size()
                 );
             }
 
@@ -391,9 +446,75 @@ void PhysicsSystem::collect_collider_render_data(
             }
 
             if (m_collider_meshes.find(tag) == m_collider_meshes.end()) {
-                m_collider_meshes[tag] = renderer.upload_line_mesh(lines);
+                m_collider_meshes[tag] =
+                    renderer.upload_line_mesh(lines.data(), lines.size());
             } else {
-                renderer.update_line_mesh(m_collider_meshes.at(tag), lines);
+                renderer.update_line_mesh(
+                    m_collider_meshes.at(tag), lines.data(), lines.size()
+                );
+            }
+
+            collider.m_changed = false;
+        }
+    }
+
+    for (auto & pair : m_box_colliders) {
+        auto & collider = pair.second;
+        if (collider.m_changed) {
+            ColliderTag tag;
+            tag.id = pair.first;
+            tag.type = ColliderType::collider_type_box;
+
+            std::array<glm::vec3, 24> lines;
+            glm::vec3 max = collider.center() + 0.5f * collider.dimensions();
+            glm::vec3 min = collider.center() - 0.5f * collider.dimensions();
+
+            // bottom
+            lines[0] = glm::vec3{min.x, min.y, min.z};
+            lines[1] = glm::vec3{min.x, min.y, max.z};
+
+            lines[2] = glm::vec3{min.x, min.y, max.z};
+            lines[3] = glm::vec3{max.x, min.y, max.z};
+
+            lines[4] = glm::vec3{max.x, min.y, max.z};
+            lines[5] = glm::vec3{max.x, min.y, min.z};
+
+            lines[6] = glm::vec3{max.x, min.y, min.z};
+            lines[7] = glm::vec3{min.x, min.y, min.z};
+
+            // top
+            lines[8] = glm::vec3{min.x, max.y, min.z};
+            lines[9] = glm::vec3{min.x, max.y, max.z};
+
+            lines[10] = glm::vec3{min.x, max.y, max.z};
+            lines[11] = glm::vec3{max.x, max.y, max.z};
+
+            lines[12] = glm::vec3{max.x, max.y, max.z};
+            lines[13] = glm::vec3{max.x, max.y, min.z};
+
+            lines[14] = glm::vec3{max.x, max.y, min.z};
+            lines[15] = glm::vec3{min.x, max.y, min.z};
+
+            // connections
+            lines[16] = glm::vec3{min.x, min.y, min.z};
+            lines[17] = glm::vec3{min.x, max.y, min.z};
+
+            lines[18] = glm::vec3{min.x, min.y, max.z};
+            lines[19] = glm::vec3{min.x, max.y, max.z};
+
+            lines[20] = glm::vec3{max.x, min.y, max.z};
+            lines[21] = glm::vec3{max.x, max.y, max.z};
+
+            lines[22] = glm::vec3{max.x, min.y, min.z};
+            lines[23] = glm::vec3{max.x, max.y, min.z};
+
+            if (m_collider_meshes.find(tag) == m_collider_meshes.end()) {
+                m_collider_meshes[tag] =
+                    renderer.upload_line_mesh(lines.data(), lines.size());
+            } else {
+                renderer.update_line_mesh(
+                    m_collider_meshes.at(tag), lines.data(), lines.size()
+                );
             }
 
             collider.m_changed = false;

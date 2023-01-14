@@ -35,6 +35,12 @@ public:
     SphereCollider & get_sphere_collider(ColliderID id)
     { return m_sphere_colliders.at(id); }
 
+    BoxCollider const & get_box_collider(ColliderID id) const
+    { return m_box_colliders.at(id); }
+
+    BoxCollider const & get_box_collider(ColliderID id)
+    { return m_box_colliders.at(id); }
+
     void collect_collider_render_data(
         Renderer & renderer,
         Transform const * transforms,
@@ -50,6 +56,8 @@ private:
     ColliderID m_next_mesh_id = 0;
     std::unordered_map<ColliderID, SphereCollider> m_sphere_colliders;
     ColliderID m_next_sphere_id = 0;
+    std::unordered_map<ColliderID, BoxCollider> m_box_colliders;
+    ColliderID m_next_box_id = 0;
 
     DynamicAABBTree m_aabb_tree;
 
@@ -93,6 +101,13 @@ private:
         Transform const & transform
     );
 
+    ColliderTag add_box_collider(
+        NodeID node_id,
+        glm::vec3 const & dimensions,
+        glm::vec3 const & center,
+        Transform const & transform
+    );
+
     ColliderTag create_collider_from_triangles(
         std::vector<glm::vec3> && triangles,
         Transform const & transform
@@ -113,10 +128,16 @@ private:
         Transform const & transform
     );
 
+    ColliderTag create_box_collider(
+        glm::vec3 dimensions,
+        glm::vec3 center,
+        Transform const & transform
+    );
+
     void remove_collider(ColliderTag tag);
 
     Node & get_node(Scene & scene, NodeID node_id);
-    Transform get_global_transform(Scene & scene, NodeID node_id);
+    static Transform get_global_transform(Scene & scene, NodeID node_id);
 
     template<typename Collider, typename Shape>
     CollisionResult move_and_collide(
@@ -140,16 +161,16 @@ private:
             transform.position += curr_movement;
 
             thread_local std::array<std::vector<ColliderID>,
-                ColliderType::collider_type_none> candidates;
+                ColliderType::total_num_collider_type> candidates;
 
             ColliderTag closest_candidate;
             float t = std::numeric_limits<float>::max();
             closest_candidate.type = ColliderType::collider_type_none;
-            Sphere sphere_this;
             GJKRes gjk_res;
             Triangle tri_this;
             Sphere sphere_other;
             Triangle tri_other;
+            DiscreteConvexHull<8> box_other;
 
             // clear thread_local candidate buffer
             for (auto & candidate : candidates) {
@@ -158,29 +179,13 @@ private:
             m_aabb_tree.query(tag, aabb, candidates);
 
             for (unsigned int type_i = 0;
-                type_i < ColliderType::collider_type_none;
+                type_i < ColliderType::total_num_collider_type;
                 ++type_i
             ) {
                 ColliderType type =  static_cast<ColliderType>(type_i);
                 std::vector<ColliderID> const & ids = candidates[type];
 
                 switch (type) {
-                    case ColliderType::collider_type_sphere: {
-                        inner_collide<Collider, SphereCollider>(
-                            scene,
-                            collider,
-                            start_transform,
-                            curr_movement,
-                            ids,
-                            closest_candidate,
-                            t,
-                            gjk_res,
-                            tri_this,
-                            sphere_other,
-                            tri_other
-                        );
-                        break;
-                    }
                     case ColliderType::collider_type_mesh: {
                         inner_collide<Collider, MeshCollider>(
                             scene,
@@ -188,12 +193,47 @@ private:
                             start_transform,
                             curr_movement,
                             ids,
+                            m_node_ids,
+                            m_mesh_colliders,
                             closest_candidate,
                             t,
                             gjk_res,
                             tri_this,
-                            sphere_other,
-                            tri_other
+                            &tri_other
+                        );
+                        break;
+                    }
+                    case ColliderType::collider_type_sphere: {
+                        inner_collide<Collider, SphereCollider>(
+                            scene,
+                            collider,
+                            start_transform,
+                            curr_movement,
+                            ids,
+                            m_node_ids,
+                            m_sphere_colliders,
+                            closest_candidate,
+                            t,
+                            gjk_res,
+                            tri_this,
+                            &sphere_other
+                        );
+                        break;
+                    }
+                    case ColliderType::collider_type_box: {
+                        inner_collide<Collider, BoxCollider>(
+                            scene,
+                            collider,
+                            start_transform,
+                            curr_movement,
+                            ids,
+                            m_node_ids,
+                            m_box_colliders,
+                            closest_candidate,
+                            t,
+                            gjk_res,
+                            tri_this,
+                            &box_other
                         );
                         break;
                     }
@@ -205,26 +245,6 @@ private:
                 closest_candidate.type != ColliderType::collider_type_none;
 
             switch (closest_candidate.type) {
-                case ColliderType::collider_type_sphere: {
-                    auto swept = get_swept_shape<Collider, Shape>(
-                        start_transform,
-                        curr_movement * gjk_res.t,
-                        collider,
-                        tri_this
-                    );
-
-                    EPARes epa_res = epa(
-                        gjk_res.simplex,
-                        gjk_res.n_simplex,
-                        swept,
-                        sphere_other
-                    );
-
-                    collision.normal = epa_res.normal;
-                    collision.impulse = epa_res.normal * epa_res.penetration_depth;
-
-                    break;
-                }
                 case ColliderType::collider_type_mesh: {
                     auto swept = get_swept_shape<Collider, Shape>(
                         start_transform,
@@ -245,12 +265,53 @@ private:
 
                     break;
                 }
+                case ColliderType::collider_type_sphere: {
+                    auto swept = get_swept_shape<Collider, Shape>(
+                        start_transform,
+                        curr_movement * gjk_res.t,
+                        collider,
+                        tri_this
+                    );
+
+                    EPARes epa_res = epa(
+                        gjk_res.simplex,
+                        gjk_res.n_simplex,
+                        swept,
+                        sphere_other
+                    );
+
+                    collision.normal = epa_res.normal;
+                    collision.impulse = epa_res.normal * epa_res.penetration_depth;
+
+                    break;
+                }
+                case ColliderType::collider_type_box: {
+                    auto swept = get_swept_shape<Collider, Shape>(
+                        start_transform,
+                        curr_movement * gjk_res.t,
+                        collider,
+                        tri_this
+                    );
+
+                    EPARes epa_res = epa(
+                        gjk_res.simplex,
+                        gjk_res.n_simplex,
+                        swept,
+                        box_other
+                    );
+
+                    collision.normal = epa_res.normal;
+                    collision.impulse = epa_res.normal * epa_res.penetration_depth;
+
+                    break;
+                }
                 default: {
                     // No collision
                 }
             }
 
             if (collision.collided) {
+                collision.other = closest_candidate;
                 // check if grounded
                 if (glm::dot(collision.normal, glm::vec3{0.0f, 1.0f, 0.0f}) > 0.707) {
                     ret.grounded = true;
@@ -275,145 +336,36 @@ private:
     }
 
     template<typename Collider, typename Other>
-    void inner_collide(
-        Scene & scene,
-        Collider const & collider,
-        Transform const & transform,
-        glm::vec3 const & curr_movement,
-        std::vector<ColliderID> const & ids,
-        ColliderTag & closest_candidate,
-        float & t,
-        GJKRes & gjk_res,
-        Triangle & tri_this,
-        Sphere & sphere_other,
-        Triangle & tri_other
-    );
-
-    template<>
-    void inner_collide<SphereCollider, SphereCollider>(
-        Scene & scene,
-        SphereCollider const & collider,
-        Transform const & transform,
-        glm::vec3 const & curr_movement,
-        std::vector<ColliderID> const & ids,
-        ColliderTag & closest_candidate,
-        float & t,
-        GJKRes & gjk_res,
-        Triangle & /*tri_this*/,
-        Sphere & sphere_other,
-        Triangle & /*tri_other*/
-    ) {
-        Sphere shape = collider.get_shape(transform);
-
-        for (ColliderID id : ids) {
-            ColliderTag tag_other;
-            tag_other.id = id;
-            tag_other.type = ColliderType::collider_type_sphere;
-
-            NodeID other_node_id = m_node_ids.at(tag_other);
-            Transform transform_other = get_global_transform(scene, other_node_id);
-
-            Sphere shape_other =
-                m_sphere_colliders.at(id).get_shape(transform_other);
-
-            GJKRes gjk_cand =
-                find_collision_gjk(
-                    shape,
-                    shape_other,
-                    curr_movement
-                );
-
-            if (gjk_cand.collided && gjk_cand.t < t) {
-                closest_candidate = tag_other;
-                t = gjk_cand.t;
-                gjk_res = gjk_cand;
-                sphere_other = shape_other;
-            }
-        }
-    }
-
-    template<>
-    void inner_collide<SphereCollider, MeshCollider>(
-        Scene & /*scene*/,
-        SphereCollider const & collider,
-        Transform const & transform,
-        glm::vec3 const & curr_movement,
-        std::vector<ColliderID> const & ids,
-        ColliderTag & closest_candidate,
-        float & t,
-        GJKRes & gjk_res,
-        Triangle & /*tri_this*/,
-        Sphere & /*sphere_other*/,
-        Triangle & tri_other
-    ) {
-        Sphere shape = collider.get_shape(transform);
-        SweptSphere swept_shape = shape.sweep(curr_movement);
-        AABB aabb = swept_shape.aabb();
-
-        for (ColliderID id : ids) {
-            ColliderTag tag_other;
-            tag_other.id = id;
-            tag_other.type = ColliderType::collider_type_mesh;
-
-            MeshCollider const & mesh_collider = m_mesh_colliders[id];
-
-            thread_local std::vector<Triangle> tris;
-            tris.resize(0);
-            mesh_collider.collect_triangles(
-                aabb,
-                tris
-            );
-            for (Triangle tri : tris) {
-                GJKRes gjk_cand =
-                    find_collision_gjk(
-                        shape,
-                        tri,
-                        curr_movement
-                    );
-                if (gjk_cand.collided && gjk_cand.t < t) {
-                    closest_candidate = tag_other;
-                    t = gjk_cand.t;
-                    gjk_res = gjk_cand;
-                    tri_other = tri;
-                }
-            }
-        }
-    }
-
-    template<>
-    void inner_collide<MeshCollider, SphereCollider>(
-        Scene & scene,
-        MeshCollider const & collider,
-        Transform const & /*transform*/,
-        glm::vec3 const & curr_movement,
-        std::vector<ColliderID> const & ids,
-        ColliderTag & closest_candidate,
-        float & t,
-        GJKRes & gjk_res,
-        Triangle & tri_this,
-        Sphere & sphere_other,
-        Triangle & /*tri_other*/
-    ) {
-        for (size_t i = 0; i < collider.triangle_cache().size(); i += 3) {
-            Triangle triangle;
-            triangle.a = collider.triangle_cache()[i];
-            triangle.b = collider.triangle_cache()[i+1];
-            triangle.c = collider.triangle_cache()[i+2];
+    struct InnerCollide {
+        static void collide(
+            Scene & scene,
+            Collider const & collider,
+            Transform const & transform,
+            glm::vec3 const & curr_movement,
+            std::vector<ColliderID> const & ids,
+            std::unordered_map<ColliderTag, NodeID> const & node_ids,
+            std::unordered_map<ColliderID, Other> const & others,
+            ColliderTag & closest_candidate,
+            float & t,
+            GJKRes & gjk_res,
+            Triangle & /*tri_this*/,
+            void * data_other
+        ) {
+            auto shape = collider.get_shape(transform);
 
             for (ColliderID id : ids) {
                 ColliderTag tag_other;
                 tag_other.id = id;
-                tag_other.type = ColliderType::collider_type_sphere;
+                tag_other.type = Other::type;
 
-                NodeID other_node_id = m_node_ids.at(tag_other);
+                NodeID other_node_id = node_ids.at(tag_other);
                 Transform transform_other = get_global_transform(scene, other_node_id);
 
-                Sphere shape_other =
-                    m_sphere_colliders.at(id).get_shape(transform_other);
+                auto shape_other = others.at(id).get_shape(transform_other);
 
                 GJKRes gjk_cand =
                     find_collision_gjk(
-                        triangle,
+                        shape,
                         shape_other,
                         curr_movement
                     );
@@ -422,44 +374,42 @@ private:
                     closest_candidate = tag_other;
                     t = gjk_cand.t;
                     gjk_res = gjk_cand;
-                    tri_this = triangle;
-                    sphere_other = shape_other;
+                    *reinterpret_cast<decltype(shape_other)*>(data_other) =
+                        shape_other;
                 }
             }
         }
-    }
+    };
 
-    template<>
-    void inner_collide<MeshCollider, MeshCollider>(
-        Scene & /*scene*/,
-        MeshCollider const & collider,
-        Transform const & /*transform*/,
-        glm::vec3 const & curr_movement,
-        std::vector<ColliderID> const & ids,
-        ColliderTag & closest_candidate,
-        float & t,
-        GJKRes & gjk_res,
-        Triangle & tri_this,
-        Sphere & /*sphere_other*/,
-        Triangle & tri_other
-    ) {
-        // TODO: Use acceleration structure to avoid O(M*N)
-        for (size_t i = 0; i < collider.triangle_cache().size(); i += 3) {
-            Triangle triangle;
-            triangle.a = collider.triangle_cache()[i];
-            triangle.b = collider.triangle_cache()[i+1];
-            triangle.c = collider.triangle_cache()[i+2];
+    template<typename Collider>
+    struct InnerCollide<Collider, MeshCollider> {
+        static void collide(
+            Scene & /*scene*/,
+            Collider const & collider,
+            Transform const & transform,
+            glm::vec3 const & curr_movement,
+            std::vector<ColliderID> const & ids,
+            std::unordered_map<ColliderTag, NodeID> const & /*node_ids*/,
+            std::unordered_map<ColliderID, MeshCollider> const & others,
+            ColliderTag & closest_candidate,
+            float & t,
+            GJKRes & gjk_res,
+            Triangle & /*tri_this*/,
+            void * data_other
+        ) {
+            auto shape = collider.get_shape(transform);
+            auto swept_shape = shape.sweep(curr_movement);
+            AABB aabb = swept_shape.aabb();
 
-            AABB aabb = triangle.sweep(curr_movement).aabb();
+            thread_local std::vector<Triangle> tris;
 
             for (ColliderID id : ids) {
                 ColliderTag tag_other;
                 tag_other.id = id;
                 tag_other.type = ColliderType::collider_type_mesh;
 
-                MeshCollider const & mesh_collider = m_mesh_colliders[id];
+                MeshCollider const & mesh_collider = others.at(id);
 
-                thread_local std::vector<Triangle> tris;
                 tris.resize(0);
                 mesh_collider.collect_triangles(
                     aabb,
@@ -468,7 +418,7 @@ private:
                 for (Triangle tri : tris) {
                     GJKRes gjk_cand =
                         find_collision_gjk(
-                            triangle,
+                            shape,
                             tri,
                             curr_movement
                         );
@@ -476,12 +426,153 @@ private:
                         closest_candidate = tag_other;
                         t = gjk_cand.t;
                         gjk_res = gjk_cand;
-                        tri_this = triangle;
-                        tri_other = tri;
+                        *reinterpret_cast<Triangle*>(data_other) = tri;
                     }
                 }
             }
         }
+    };
+
+    template<typename Other>
+    struct InnerCollide<MeshCollider, Other> {
+        static void collide(
+            Scene & scene,
+            MeshCollider const & collider,
+            Transform const & /*transform*/,
+            glm::vec3 const & curr_movement,
+            std::vector<ColliderID> const & ids,
+            std::unordered_map<ColliderTag, NodeID> const & node_ids,
+            std::unordered_map<ColliderID, Other> const & others,
+            ColliderTag & closest_candidate,
+            float & t,
+            GJKRes & gjk_res,
+            Triangle & tri_this,
+            void * data_other
+        ) {
+            for (size_t i = 0; i < collider.triangle_cache().size(); i += 3) {
+                Triangle triangle;
+                triangle.a = collider.triangle_cache()[i];
+                triangle.b = collider.triangle_cache()[i+1];
+                triangle.c = collider.triangle_cache()[i+2];
+
+                for (ColliderID id : ids) {
+                    ColliderTag tag_other;
+                    tag_other.id = id;
+                    tag_other.type = Other::type;
+
+                    NodeID other_node_id = node_ids.at(tag_other);
+                    Transform transform_other = get_global_transform(scene, other_node_id);
+
+                    auto shape_other = others.at(id).get_shape(transform_other);
+
+                    GJKRes gjk_cand =
+                        find_collision_gjk(
+                            triangle,
+                            shape_other,
+                            curr_movement
+                        );
+
+                    if (gjk_cand.collided && gjk_cand.t < t) {
+                        closest_candidate = tag_other;
+                        t = gjk_cand.t;
+                        gjk_res = gjk_cand;
+                        tri_this = triangle;
+                        *reinterpret_cast<decltype(shape_other)*>(data_other) =
+                            shape_other;
+                    }
+                }
+            }
+        }
+    };
+
+    template<>
+    struct InnerCollide<MeshCollider, MeshCollider> {
+        static void collide(
+            Scene & /*scene*/,
+            MeshCollider const & collider,
+            Transform const & /*transform*/,
+            glm::vec3 const & curr_movement,
+            std::vector<ColliderID> const & ids,
+            std::unordered_map<ColliderTag, NodeID> const & /*node_ids*/,
+            std::unordered_map<ColliderID, MeshCollider> const & others,
+            ColliderTag & closest_candidate,
+            float & t,
+            GJKRes & gjk_res,
+            Triangle & tri_this,
+            void * data_other
+        ) {
+            // TODO: Use acceleration structure to avoid O(M*N)
+            for (size_t i = 0; i < collider.triangle_cache().size(); i += 3) {
+                Triangle triangle;
+                triangle.a = collider.triangle_cache()[i];
+                triangle.b = collider.triangle_cache()[i+1];
+                triangle.c = collider.triangle_cache()[i+2];
+
+                AABB aabb = triangle.sweep(curr_movement).aabb();
+
+                for (ColliderID id : ids) {
+                    ColliderTag tag_other;
+                    tag_other.id = id;
+                    tag_other.type = ColliderType::collider_type_mesh;
+
+                    MeshCollider const & mesh_collider = others.at(id);
+
+                    thread_local std::vector<Triangle> tris;
+                    tris.resize(0);
+                    mesh_collider.collect_triangles(
+                        aabb,
+                        tris
+                    );
+                    for (Triangle tri : tris) {
+                        GJKRes gjk_cand =
+                            find_collision_gjk(
+                                triangle,
+                                tri,
+                                curr_movement
+                            );
+                        if (gjk_cand.collided && gjk_cand.t < t) {
+                            closest_candidate = tag_other;
+                            t = gjk_cand.t;
+                            gjk_res = gjk_cand;
+                            tri_this = triangle;
+                            *reinterpret_cast<Triangle*>(data_other) =
+                                tri;
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    template<typename Collider, typename Other>
+    void inner_collide(
+        Scene & scene,
+        Collider const & collider,
+        Transform const & transform,
+        glm::vec3 const & curr_movement,
+        std::vector<ColliderID> const & ids,
+        std::unordered_map<ColliderTag, NodeID> const & node_ids,
+        std::unordered_map<ColliderID, Other> const & others,
+        ColliderTag & closest_candidate,
+        float & t,
+        GJKRes & gjk_res,
+        Triangle & tri_this,
+        void * data_other
+    ) {
+        InnerCollide<Collider, Other>::collide(
+            scene,
+            collider,
+            transform,
+            curr_movement,
+            ids,
+            node_ids,
+            others,
+            closest_candidate,
+            t,
+            gjk_res,
+            tri_this,
+            data_other
+        );
     }
 
     template<typename Collider>
@@ -489,14 +580,7 @@ private:
         Collider const & collider,
         Transform const & transform,
         glm::vec3 const & curr_movement
-    ) const;
-
-    template<>
-    AABB calculate_aabb<SphereCollider>(
-        SphereCollider const & collider,
-        Transform const & transform,
-        glm::vec3 const & curr_movement
-        ) const {
+    ) const {
         return collider.get_shape(transform).sweep(curr_movement).aabb();
     }
 
@@ -514,14 +598,6 @@ private:
         Transform const & transform,
         glm::vec3 const & curr_movement,
         Collider const & collider,
-        Triangle const & triangle
-    ) const;
-
-    template<>
-    SweptSphere get_swept_shape<SphereCollider, Sphere>(
-        Transform const & transform,
-        glm::vec3 const & curr_movement,
-        SphereCollider const & collider,
         Triangle const & /*triangle*/
     ) const {
         return collider.get_shape(transform).sweep(curr_movement);

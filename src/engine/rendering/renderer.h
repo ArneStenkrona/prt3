@@ -51,14 +51,15 @@ public:
     { m_render_backend->free_model(handle, resource); }
 
 
-    ResourceID upload_line_mesh(std::vector<glm::vec3> const & vertices)
-    { return m_render_backend->upload_line_mesh(vertices); }
+    ResourceID upload_line_mesh(glm::vec3 const * vertices, size_t n)
+    { return m_render_backend->upload_line_mesh(vertices, n); }
 
     void update_line_mesh(
         ResourceID id,
-        std::vector<glm::vec3> const & vertices
+        glm::vec3 const * vertices,
+        size_t n
     )
-    { m_render_backend->update_line_mesh(id, vertices); }
+    { m_render_backend->update_line_mesh(id, vertices, n); }
 
     void free_line_mesh(
         ResourceID id

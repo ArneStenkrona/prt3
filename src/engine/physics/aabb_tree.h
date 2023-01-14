@@ -35,7 +35,7 @@ public:
      */
     void query(ColliderTag caller, AABB const & aabb,
                std::array<std::vector<ColliderID>,
-               ColliderType::collider_type_none> & ids);
+               ColliderType::total_num_collider_type> & ids);
 
     /**
      * Finds all intersecting nodes for raycast

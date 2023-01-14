@@ -22,7 +22,7 @@ void DynamicAABBTree::query(ColliderTag caller,
         return;
     }
 
-    static std::vector<TreeIndex> node_stack;
+    thread_local std::vector<TreeIndex> node_stack;
     node_stack.push_back(m_root_index);
     while (!node_stack.empty()) {
         TreeIndex index = node_stack.back();
@@ -45,12 +45,12 @@ void DynamicAABBTree::query(
     ColliderTag caller,
     AABB const & aabb,
     std::array<std::vector<ColliderID>,
-        ColliderType::collider_type_none> & ids) {
+        ColliderType::total_num_collider_type> & ids) {
     if (m_size == 0) {
         return;
     }
 
-    static std::vector<TreeIndex> node_stack;
+    thread_local std::vector<TreeIndex> node_stack;
     node_stack.push_back(m_root_index);
     while (!node_stack.empty()) {
         TreeIndex index = node_stack.back();
@@ -77,7 +77,7 @@ void DynamicAABBTree::query_raycast(glm::vec3 const& origin,
         return;
     }
 
-    static std::vector<TreeIndex> node_stack;
+    thread_local std::vector<TreeIndex> node_stack;
     node_stack.push_back(m_root_index);
     while (!node_stack.empty()) {
         TreeIndex index = node_stack.back();
@@ -328,7 +328,7 @@ TreeIndex DynamicAABBTree::find_best_sibling(TreeIndex leaf_index) const {
     TreeNode const & leaf = m_nodes[leaf_index];
     TreeIndex best_sibling = m_root_index;
     float best_cost = (leaf.aabb + m_nodes[m_root_index].aabb).area();
-    static std::priority_queue<TreeNodeCost> q;
+    thread_local std::priority_queue<TreeNodeCost> q;
 
     q.push(sibling_cost(leaf, m_root_index, 0.0f));
     while (!q.empty()) {

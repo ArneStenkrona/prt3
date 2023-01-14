@@ -75,13 +75,22 @@ void inner_show_component<ColliderComponent>(
 
     ImGui::PushItemWidth(160);
 
-    static char const * types[] = { "mesh", "sphere" };
+    static char const * types[] = { "mesh", "sphere", "box" };
     static ColliderType types_enum[] = {
         ColliderType::collider_type_mesh,
-        ColliderType::collider_type_sphere
+        ColliderType::collider_type_sphere,
+        ColliderType::collider_type_box,
     };
+
+    static int enum_to_index[] = {
+        -1, // ColliderType::collider_type_none
+         0, // ColliderType::collider_type_mesh,
+         1, // ColliderType::collider_type_sphere,
+         2  // ColliderType::collider_type_box
+    };
+
     static int current_type = 0;
-    current_type = tag.type;
+    current_type = enum_to_index[tag.type];
 
     ImGui::Combo("type", &current_type, types, IM_ARRAYSIZE(types));
 
@@ -107,6 +116,18 @@ void inner_show_component<ColliderComponent>(
                 > >(
                     id,
                     sphere
+                );
+                tag = component.tag();
+                break;
+            }
+            case ColliderType::collider_type_box: {
+                Box box{};
+                box.dimensions = {1.0f, 1.0f, 1.0f};
+                context.editor().perform_action<ActionSetCollider<
+                    Box
+                > >(
+                    id,
+                    box
                 );
                 tag = component.tag();
                 break;
@@ -169,6 +190,39 @@ void inner_show_component<ColliderComponent>(
                 > >(
                     id,
                     base_shape
+                );
+                tag = component.tag();
+            }
+
+            break;
+        }
+        case ColliderType::collider_type_box: {
+            auto & col = sys.get_box_collider(tag.id);
+
+            bool edited = false;
+
+            glm::vec3 dimensions = col.dimensions();
+            float* dim_p = reinterpret_cast<float*>(&dimensions);
+            edited |= ImGui::InputFloat3(
+                "dimensions",
+                dim_p,
+                "%.2f"
+            );
+
+            glm::vec3 center = col.center();
+            float* center_p = reinterpret_cast<float*>(&center);
+            edited |= ImGui::InputFloat3(
+                "center",
+                center_p,
+                "%.2f"
+            );
+
+            if (edited) {
+                context.editor().perform_action<ActionSetCollider<
+                    Box
+                > >(
+                    id,
+                    Box{dimensions, center}
                 );
                 tag = component.tag();
             }

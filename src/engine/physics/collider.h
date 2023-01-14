@@ -12,9 +12,25 @@ namespace prt3 {
 
 class PhysicsSystem;
 
+enum ColliderType : uint8_t {
+    collider_type_none,
+    collider_type_mesh,
+    collider_type_sphere,
+    collider_type_box,
+    total_num_collider_type
+};
+
+typedef uint16_t ColliderID;
+
+struct ColliderTag {
+    ColliderType type;
+    ColliderID   id;
+};
+
 struct Collision {
     glm::vec3 normal;
     glm::vec3 impulse;
+    ColliderTag other;
     bool collided = false;
 };
 
@@ -27,19 +43,6 @@ struct CollisionResult {
     glm::vec3 ground_normal;
 };
 
-enum ColliderType : uint8_t {
-    collider_type_mesh = 0,
-    collider_type_sphere = 1,
-    collider_type_none = 2,
-};
-
-typedef uint16_t ColliderID;
-
-struct ColliderTag {
-    ColliderType type;
-    ColliderID   id;
-};
-
 inline bool operator==(ColliderTag const & lhs, ColliderTag const & rhs) {
     return lhs.type == rhs.type && lhs.id == rhs.id;
 }
@@ -50,6 +53,8 @@ inline bool operator!=(ColliderTag const & lhs, ColliderTag const & rhs) {
 
 class MeshCollider {
 public:
+    static constexpr ColliderType type = ColliderType::collider_type_mesh;
+
     void set_triangles(std::vector<glm::vec3> && triangles);
     void set_triangles(std::vector<glm::vec3> const & triangles);
     void set_triangles(std::vector<Triangle> && triangles);
@@ -76,6 +81,8 @@ private:
 
 class SphereCollider {
 public:
+    static constexpr ColliderType type = ColliderType::collider_type_sphere;
+
     SphereCollider() {}
     SphereCollider(Sphere const & sphere)
      : m_base_shape{sphere} {}
@@ -97,6 +104,73 @@ private:
     friend class PhysicsSystem;
 };
 
+struct Box {
+    glm::vec3 dimensions;
+    glm::vec3 center;
+};
+
+class BoxCollider {
+public:
+    static constexpr ColliderType type = ColliderType::collider_type_box;
+
+    BoxCollider() {}
+    BoxCollider(glm::vec3 dimensions, glm::vec3 center)
+     : m_dimensions{dimensions}, m_center{center} {}
+    BoxCollider(Box const & box)
+     : m_dimensions{box.dimensions}, m_center{box.center} {}
+
+    DiscreteConvexHull<8> get_shape(Transform const & transform) const {
+        DiscreteConvexHull<8> shape;
+
+        glm::mat4 mat = transform.to_matrix();
+
+        glm::vec3 max = m_center + 0.5f * m_dimensions;
+        glm::vec3 min = m_center - 0.5f * m_dimensions;
+        shape.vertices[0] = mat * (glm::vec4{min.x, min.y, min.z, 1.0f});
+        shape.vertices[1] = mat * (glm::vec4{min.x, min.y, max.z, 1.0f});
+        shape.vertices[2] = mat * (glm::vec4{min.x, max.y, min.z, 1.0f});
+        shape.vertices[3] = mat * (glm::vec4{min.x, max.y, max.z, 1.0f});
+        shape.vertices[4] = mat * (glm::vec4{max.x, min.y, min.z, 1.0f});
+        shape.vertices[5] = mat * (glm::vec4{max.x, min.y, max.z, 1.0f});
+        shape.vertices[6] = mat * (glm::vec4{max.x, max.y, min.z, 1.0f});
+        shape.vertices[7] = mat * (glm::vec4{max.x, max.y, max.z, 1.0f});
+
+        return shape;
+    }
+
+    DiscreteConvexHull<8> base_shape() const {
+        DiscreteConvexHull<8> shape;
+
+        glm::vec3 max = m_center + 0.5f * m_dimensions;
+        glm::vec3 min = m_center - 0.5f * m_dimensions;
+        shape.vertices[0] = glm::vec4{min.x, min.y, min.z, 1.0f};
+        shape.vertices[1] = glm::vec4{min.x, min.y, max.z, 1.0f};
+        shape.vertices[2] = glm::vec4{min.x, max.y, min.z, 1.0f};
+        shape.vertices[3] = glm::vec4{min.x, max.y, max.z, 1.0f};
+        shape.vertices[4] = glm::vec4{max.x, min.y, min.z, 1.0f};
+        shape.vertices[5] = glm::vec4{max.x, min.y, max.z, 1.0f};
+        shape.vertices[6] = glm::vec4{max.x, max.y, min.z, 1.0f};
+        shape.vertices[7] = glm::vec4{max.x, max.y, max.z, 1.0f};
+
+        return shape;
+    }
+
+    glm::vec3 dimensions() const { return m_dimensions; }
+    glm::vec3 center() const { return m_center; }
+
+    void set_dimensions(glm::vec3 dimensions)
+    { m_dimensions = dimensions; m_changed = true; }
+    void set_center(glm::vec3 center)
+    { m_center = center; m_changed = true; }
+private:
+    glm::vec3 m_dimensions;
+    glm::vec3 m_center;
+
+    bool m_changed = true;
+
+    friend class PhysicsSystem;
+};
+
 } // namespace prt3
 
 namespace std {
@@ -109,6 +183,5 @@ namespace std {
   };
 
 }
-
 
 #endif

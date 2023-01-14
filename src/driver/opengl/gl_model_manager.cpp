@@ -116,7 +116,8 @@ void GLModelManager::free_model(
 }
 
 ResourceID GLModelManager::upload_line_mesh(
-    std::vector<glm::vec3> const & vertices
+    glm::vec3 const * vertices,
+    size_t n
 ) {
     // upload model buffers
     GLuint vao;
@@ -135,8 +136,8 @@ ResourceID GLModelManager::upload_line_mesh(
 
     glBufferData(
         GL_ARRAY_BUFFER,
-        vertices.size() * sizeof(vertices[0]),
-        vertices.data(),
+        n * sizeof(vertices[0]),
+        vertices,
         GL_STATIC_DRAW
     );
     glCheckError();
@@ -165,7 +166,7 @@ ResourceID GLModelManager::upload_line_mesh(
     m_line_mesh_buffer_handles[id] = {vao, vbo};
 
     GLMesh & gl_mesh = m_meshes[id];
-    gl_mesh.init(vao, 0, static_cast<uint32_t>(vertices.size()));
+    gl_mesh.init(vao, 0, static_cast<uint32_t>(n));
 
     glBindVertexArray(0);
     glCheckError();
@@ -175,7 +176,8 @@ ResourceID GLModelManager::upload_line_mesh(
 
 void GLModelManager::update_line_mesh(
     ResourceID id,
-    std::vector<glm::vec3> const & vertices
+    glm::vec3 const * vertices,
+    size_t n
 ) {
     LineMeshBufferHandles buffers = m_line_mesh_buffer_handles[id];
 
@@ -184,8 +186,8 @@ void GLModelManager::update_line_mesh(
 
     glBufferData(
         GL_ARRAY_BUFFER,
-        vertices.size() * sizeof(vertices[0]),
-        vertices.data(),
+        n * sizeof(vertices[0]),
+        vertices,
         GL_STATIC_DRAW
     );
     glCheckError();

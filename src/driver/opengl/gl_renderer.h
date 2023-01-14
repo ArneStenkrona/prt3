@@ -51,14 +51,18 @@ public:
     )
     { m_model_manager.free_model(handle, resource); }
 
-    virtual ResourceID upload_line_mesh(std::vector<glm::vec3> const & vertices)
-    { return m_model_manager.upload_line_mesh(vertices); }
+    virtual ResourceID upload_line_mesh(
+        glm::vec3 const * vertices,
+        size_t n
+    )
+    { return m_model_manager.upload_line_mesh(vertices, n); }
 
     virtual void update_line_mesh(
         ResourceID id,
-        std::vector<glm::vec3> const & vertices
+        glm::vec3 const * vertices,
+        size_t n
     )
-    { m_model_manager.update_line_mesh(id, vertices); }
+    { m_model_manager.update_line_mesh(id, vertices, n); }
 
     virtual void free_line_mesh(ResourceID id)
     { m_model_manager.free_line_mesh(id); }

@@ -103,6 +103,40 @@ inline std::istream & operator >> (
     return in;
 }
 
+template<size_t N>
+struct DiscreteConvexHull {
+    static_assert(N > 0);
+
+    enum {
+        Size = N
+    };
+
+    // No guarantee that all vertices are on the boundary
+    std::array<glm::vec3, N> vertices;
+
+    DiscreteConvexHull<2*N> sweep(glm::vec3 const & translation) const {
+        DiscreteConvexHull<2*N> swept;
+        for (size_t i = 0; i < vertices.size(); ++i) {
+            swept.vertices[i] = vertices[i];
+            swept.vertices[vertices.size() + i] = vertices[i] + translation;
+        }
+        return swept;
+    }
+
+    AABB aabb() const {
+        AABB aabb;
+        aabb.lower_bound = vertices[0];
+        aabb.upper_bound = vertices[0];
+
+        for (glm::vec3 const & vertex : vertices) {
+            aabb.lower_bound = glm::min(aabb.lower_bound, vertex);
+            aabb.upper_bound = glm::max(aabb.upper_bound, vertex);
+        }
+
+        return aabb;
+    }
+};
+
 
 glm::vec3 calculate_furthest_point(Triangle const & triangle,
                                    glm::vec3 const & direction);
@@ -115,6 +149,25 @@ glm::vec3 calculate_furthest_point(Sphere const & sphere,
 
 glm::vec3 calculate_furthest_point(SweptSphere const & swept_sphere,
                                    glm::vec3 const & direction);
+
+template<size_t N>
+glm::vec3 calculate_furthest_point(
+    DiscreteConvexHull<N> const & hull,
+    glm::vec3 const & direction
+) {
+    glm::vec3 max_point = hull.vertices[0];
+    float max_dist = glm::dot(hull.vertices[0], direction);
+
+    for (size_t i = 1; i < N; ++i) {
+        float dist = glm::dot(hull.vertices[i], direction);
+        if (dist > max_dist) {
+            max_point = hull.vertices[i];
+            max_dist = dist;
+        }
+    }
+
+    return max_point;
+}
 
 template<typename ShapeA, typename ShapeB>
 glm::vec3 calculate_support(ShapeA const & a,
