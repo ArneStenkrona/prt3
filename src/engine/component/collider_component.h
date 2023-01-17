@@ -19,36 +19,61 @@ class ComponentStorage;
 class ColliderComponent {
 public:
     ColliderComponent(Scene & scene, NodeID node_id);
-    ColliderComponent(Scene & scene, NodeID node_id, ModelHandle model_handle);
-    ColliderComponent(Scene & scene, NodeID node_id, Model const & model);
     ColliderComponent(
         Scene & scene,
         NodeID node_id,
+        ColliderType type,
+        ModelHandle model_handle
+    );
+    ColliderComponent(
+        Scene & scene,
+        NodeID node_id,
+        ColliderType type,
+        Model const & model
+    );
+    ColliderComponent(
+        Scene & scene,
+        NodeID node_id,
+        ColliderType type,
         std::vector<glm::vec3> && triangles
     );
     ColliderComponent(
         Scene & scene,
         NodeID node_id,
+        ColliderType type,
         std::vector<glm::vec3> const & triangles
     );
-    ColliderComponent(Scene & scene, NodeID node_id, Sphere const & sphere);
+    ColliderComponent(
+        Scene & scene,
+        NodeID node_id,
+        ColliderType type,
+        Sphere const & sphere
+    );
+    ColliderComponent(
+        Scene & scene,
+        NodeID node_id,
+        ColliderType type,
+        Box const & box
+    );
     ColliderComponent(Scene & scene, NodeID node_id, std::istream & in);
 
     NodeID node_id() const { return m_node_id; }
     ColliderTag tag() const { return m_tag; }
 
-    void set_collider(Scene & scene, ModelHandle model_handle);
-    void set_collider(Scene & scene, Model const & model);
+    void set_collider(Scene & scene, ColliderType type, ModelHandle model_handle);
+    void set_collider(Scene & scene, ColliderType type, Model const & model);
     void set_collider(
         Scene & scene,
+        ColliderType type,
         std::vector<glm::vec3> && triangles
     );
     void set_collider(
         Scene & scene,
+        ColliderType type,
         std::vector<glm::vec3> const & triangles
     );
-    void set_collider(Scene & scene, Sphere const & sphere);
-    void set_collider(Scene & scene, Box const & box);
+    void set_collider(Scene & scene, ColliderType type, Sphere const & sphere);
+    void set_collider(Scene & scene, ColliderType type, Box const & box);
 
     void serialize(
         std::ostream & out,
@@ -66,7 +91,7 @@ public:
 private:
 
     NodeID m_node_id;
-    ColliderTag m_tag = { collider_type_none, 0 };
+    ColliderTag m_tag = { 0, ColliderShape::none, ColliderType::collider };
 
     void remove(Scene & scene);
 

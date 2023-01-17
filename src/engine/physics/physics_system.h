@@ -11,10 +11,55 @@
 #include "src/engine/scene/node.h"
 #include "src/engine/rendering/render_data.h"
 #include "src/engine/rendering/renderer.h"
+#include "src/engine/physics/collider_container.h"
 
 #include <unordered_map>
+#include <unordered_set>
 #include <cstdint>
 #include <utility>
+#include <functional>
+
+namespace prt3 {
+
+class Overlap {
+public:
+    Overlap(NodeID a, NodeID b) {
+        if (a < b) {
+            m_a = a;
+            m_b = b;
+        } else {
+            m_a = b;
+            m_b = a;
+        }
+    }
+
+    NodeID a() const { return m_a; }
+    NodeID b() const { return m_b; }
+
+private:
+    NodeID m_a;
+    NodeID m_b;
+};
+
+inline bool operator==(Overlap const & lhs, Overlap const & rhs) {
+    return lhs.a() == rhs.a() && lhs.b() == rhs.b();
+}
+
+inline bool operator!=(Overlap const & lhs, Overlap const & rhs) {
+    return lhs.a() != rhs.a() || lhs.b() != rhs.b();
+}
+
+} // namespace prt3
+
+namespace std {
+  template <>
+  struct hash<prt3::Overlap> {
+    size_t operator()(prt3::Overlap const & o) const {
+      return hash<prt3::NodeID>()(o.a()) ^
+             (hash<prt3::NodeID>()(o.b()) << 1);
+    }
+  };
+} // namespace std
 
 namespace prt3 {
 
@@ -26,20 +71,93 @@ public:
         glm::vec3 const & movement
     );
 
-    MeshCollider const & get_mesh_collider(ColliderID id) const
-    { return m_mesh_colliders.at(id); }
+    MeshCollider const & get_mesh_collider(ColliderID id, ColliderType type) const
+    { return get_container(type).meshes.map.at(id); }
 
-    SphereCollider const & get_sphere_collider(ColliderID id) const
-    { return m_sphere_colliders.at(id); }
+    SphereCollider const & get_sphere_collider(ColliderID id, ColliderType type) const
+    { return get_container(type).spheres.map.at(id); }
 
-    SphereCollider & get_sphere_collider(ColliderID id)
-    { return m_sphere_colliders.at(id); }
+    SphereCollider & get_sphere_collider(ColliderID id,  ColliderType type)
+    { return get_container(type).spheres.map.at(id); }
 
-    BoxCollider const & get_box_collider(ColliderID id) const
-    { return m_box_colliders.at(id); }
+    BoxCollider const & get_box_collider(ColliderID id,  ColliderType type) const
+    { return get_container(type).boxes.map.at(id); }
 
-    BoxCollider const & get_box_collider(ColliderID id)
-    { return m_box_colliders.at(id); }
+    BoxCollider const & get_box_collider(ColliderID id,  ColliderType type)
+    { return get_container(type).boxes.map.at(id); }
+
+    void set_collision_layer(ColliderTag tag, CollisionLayer layer) {
+        switch (tag.shape) {
+            case ColliderShape::mesh:
+                get_container(tag.type).meshes.map.at(tag.id).set_layer(layer);
+                break;
+            case ColliderShape::sphere:
+                get_container(tag.type).spheres.map.at(tag.id).set_layer(layer);
+                break;
+            case ColliderShape::box:
+                get_container(tag.type).boxes.map.at(tag.id).set_layer(layer);
+                break;
+            default: assert(false);
+        }
+    }
+
+    CollisionLayer get_collision_layer(
+        ColliderTag tag
+    ) const {
+        switch (tag.shape) {
+            case ColliderShape::mesh:
+                return get_container(tag.type).meshes.map.at(tag.id).get_layer();
+            case ColliderShape::sphere:
+                return get_container(tag.type).spheres.map.at(tag.id).get_layer();
+            case ColliderShape::box:
+                return get_container(tag.type).boxes.map.at(tag.id).get_layer();
+            default: assert(false); return {};
+        }
+    }
+
+    void set_collision_mask(ColliderTag tag, CollisionLayer mask) {
+        switch (tag.shape) {
+            case ColliderShape::mesh:
+                get_container(tag.type).meshes.map.at(tag.id).set_mask(mask);
+                break;
+            case ColliderShape::sphere:
+                get_container(tag.type).spheres.map.at(tag.id).set_mask(mask);
+                break;
+            case ColliderShape::box:
+                get_container(tag.type).boxes.map.at(tag.id).set_mask(mask);
+                break;
+            default: assert(false);
+        }
+    }
+
+    CollisionLayer get_collision_mask(
+        ColliderTag tag
+    ) const {
+        switch (tag.shape) {
+            case ColliderShape::mesh:
+                return get_container(tag.type).meshes.map.at(tag.id).get_mask();
+            case ColliderShape::sphere:
+                return get_container(tag.type).spheres.map.at(tag.id).get_mask();
+            case ColliderShape::box:
+                return get_container(tag.type).boxes.map.at(tag.id).get_mask();
+            default: assert(false); return {};
+        }
+    }
+
+    void update_mesh_data(
+        Renderer & renderer,
+        ColliderType type
+    );
+
+    void update_sphere_data(
+        Renderer & renderer,
+        ColliderType type
+    );
+
+    void update_box_data(
+        Renderer & renderer,
+        ColliderType type
+    );
 
     void collect_collider_render_data(
         Renderer & renderer,
@@ -52,14 +170,8 @@ private:
     std::unordered_map<NodeID, ColliderTag> m_tags;
     std::unordered_map<ColliderTag, NodeID> m_node_ids;
 
-    std::unordered_map<ColliderID, MeshCollider> m_mesh_colliders;
-    ColliderID m_next_mesh_id = 0;
-    std::unordered_map<ColliderID, SphereCollider> m_sphere_colliders;
-    ColliderID m_next_sphere_id = 0;
-    std::unordered_map<ColliderID, BoxCollider> m_box_colliders;
-    ColliderID m_next_box_id = 0;
-
-    DynamicAABBTree m_aabb_tree;
+    ColliderContainer m_colliders;
+    ColliderContainer m_areas;
 
     std::unordered_map<ColliderTag, ResourceID> m_collider_meshes;
 
@@ -70,20 +182,33 @@ private:
         Transform const * transforms_history
     );
 
+    void update_areas(
+        Transform const * transforms,
+        Transform const * transforms_history
+    );
+
+    ColliderContainer const & get_container(ColliderType type) const
+    { return type == ColliderType::collider ? m_colliders : m_areas; }
+    ColliderContainer & get_container(ColliderType type)
+    { return type == ColliderType::collider ? m_colliders : m_areas; }
+
     ColliderTag add_mesh_collider(
         NodeID node_id,
+        ColliderType type,
         std::vector<glm::vec3> && triangles,
         Transform const & transform
     );
 
     ColliderTag add_mesh_collider(
         NodeID node_id,
+        ColliderType type,
         std::vector<glm::vec3> const & triangles,
         Transform const & transform
     );
 
     ColliderTag add_mesh_collider(
         NodeID node_id,
+        ColliderType type,
         Model const & model,
         Transform const & transform
     );
@@ -97,12 +222,14 @@ private:
 
     ColliderTag add_sphere_collider(
         NodeID node_id,
+        ColliderType type,
         Sphere const & sphere,
         Transform const & transform
     );
 
     ColliderTag add_box_collider(
         NodeID node_id,
+        ColliderType type,
         glm::vec3 const & dimensions,
         glm::vec3 const & center,
         Transform const & transform
@@ -110,34 +237,118 @@ private:
 
     ColliderTag create_collider_from_triangles(
         std::vector<glm::vec3> && triangles,
-        Transform const & transform
+        Transform const & transform,
+        ColliderType type
     );
 
     ColliderTag create_collider_from_triangles(
         std::vector<glm::vec3> const & triangles,
-        Transform const & transform
+        Transform const & transform,
+        ColliderType type
     );
 
     ColliderTag create_collider_from_model(
         Model const & model,
-        Transform const & transform
+        Transform const & transform,
+        ColliderType type
     );
 
     ColliderTag create_sphere_collider(
         Sphere const & sphere,
-        Transform const & transform
+        Transform const & transform,
+        ColliderType type
     );
 
     ColliderTag create_box_collider(
         glm::vec3 dimensions,
         glm::vec3 center,
-        Transform const & transform
+        Transform const & transform,
+        ColliderType type
     );
 
     void remove_collider(ColliderTag tag);
 
     Node & get_node(Scene & scene, NodeID node_id);
     static Transform get_global_transform(Scene & scene, NodeID node_id);
+
+    template<typename Collider>
+    void get_overlaps(
+        ColliderTag tag,
+        Collider const & collider,
+        Transform const * transforms,
+        Transform const * transforms_history,
+        std::unordered_set<Overlap> & overlaps
+    ) {
+        NodeID node_id = m_node_ids.at(tag);
+        Transform const & transform = transforms[node_id];
+        Transform const & old_transform = transforms_history[node_id];
+
+        Transform tform;
+        tform.position = old_transform.position;
+        tform.scale = transform.scale;
+        tform.rotation = transform.rotation;
+
+        glm::vec3 pos_diff = transform.position - old_transform.position;
+
+        AABB aabb = calculate_aabb(collider, tform, pos_diff);
+
+        std::array<ColliderType, 2> types =
+        {
+            ColliderType::collider,
+            ColliderType::area,
+        };
+
+        for (size_t i = 0; i < types.size(); ++i) {
+            ColliderType type = types[i];
+            ColliderContainer & container = get_container(type);
+
+            thread_local std::array<std::vector<ColliderID>,
+            ColliderShape::total_num_collider_shape> candidates;
+
+            // clear thread_local candidate buffer
+            for (auto & candidate : candidates) {
+                candidate.resize(0);
+            }
+
+            container.aabb_tree.query(tag, collider.get_mask(), aabb, candidates);
+
+            inner_get_overlaps<Collider, MeshCollider>(
+                tag,
+                collider,
+                transforms,
+                transforms_history,
+                candidates[ColliderShape::mesh],
+                m_node_ids,
+                container.meshes.map,
+                type,
+                overlaps
+            );
+
+            inner_get_overlaps<Collider, SphereCollider>(
+                tag,
+                collider,
+                transforms,
+                transforms_history,
+                candidates[ColliderShape::sphere],
+                m_node_ids,
+                container.spheres.map,
+                type,
+                overlaps
+            );
+
+            inner_get_overlaps<Collider, BoxCollider>(
+                tag,
+                collider,
+                transforms,
+                transforms_history,
+                candidates[ColliderShape::box],
+                m_node_ids,
+                container.boxes.map,
+                type,
+                overlaps
+            );
+        }
+    }
 
     template<typename Collider, typename Shape>
     CollisionResult move_and_collide(
@@ -147,6 +358,8 @@ private:
         glm::vec3 const & movement,
         Transform & transform
     ) {
+        assert(tag.type == ColliderType::collider);
+
         unsigned int iteration = 0;
 
         CollisionResult ret{};
@@ -161,91 +374,73 @@ private:
             transform.position += curr_movement;
 
             thread_local std::array<std::vector<ColliderID>,
-                ColliderType::total_num_collider_type> candidates;
+                ColliderShape::total_num_collider_shape> candidates;
 
+            // clear thread_local candidate buffer
+            for (auto & candidate : candidates) {
+                candidate.resize(0);
+            }
+
+            m_colliders.aabb_tree.query(tag, collider.get_mask(), aabb, candidates);
             ColliderTag closest_candidate;
             float t = std::numeric_limits<float>::max();
-            closest_candidate.type = ColliderType::collider_type_none;
+            closest_candidate.shape = ColliderShape::none;
             GJKRes gjk_res;
             Triangle tri_this;
             Sphere sphere_other;
             Triangle tri_other;
             DiscreteConvexHull<8> box_other;
 
-            // clear thread_local candidate buffer
-            for (auto & candidate : candidates) {
-                candidate.resize(0);
-            }
-            m_aabb_tree.query(tag, aabb, candidates);
+            inner_collide<Collider, MeshCollider>(
+                scene,
+                collider,
+                start_transform,
+                curr_movement,
+                candidates[ColliderShape::mesh],
+                m_node_ids,
+                m_colliders.meshes.map,
+                closest_candidate,
+                t,
+                gjk_res,
+                tri_this,
+                &tri_other
+            );
 
-            for (unsigned int type_i = 0;
-                type_i < ColliderType::total_num_collider_type;
-                ++type_i
-            ) {
-                ColliderType type =  static_cast<ColliderType>(type_i);
-                std::vector<ColliderID> const & ids = candidates[type];
+            inner_collide<Collider, SphereCollider>(
+                scene,
+                collider,
+                start_transform,
+                curr_movement,
+                candidates[ColliderShape::sphere],
+                m_node_ids,
+                m_colliders.spheres.map,
+                closest_candidate,
+                t,
+                gjk_res,
+                tri_this,
+                &sphere_other
+            );
 
-                switch (type) {
-                    case ColliderType::collider_type_mesh: {
-                        inner_collide<Collider, MeshCollider>(
-                            scene,
-                            collider,
-                            start_transform,
-                            curr_movement,
-                            ids,
-                            m_node_ids,
-                            m_mesh_colliders,
-                            closest_candidate,
-                            t,
-                            gjk_res,
-                            tri_this,
-                            &tri_other
-                        );
-                        break;
-                    }
-                    case ColliderType::collider_type_sphere: {
-                        inner_collide<Collider, SphereCollider>(
-                            scene,
-                            collider,
-                            start_transform,
-                            curr_movement,
-                            ids,
-                            m_node_ids,
-                            m_sphere_colliders,
-                            closest_candidate,
-                            t,
-                            gjk_res,
-                            tri_this,
-                            &sphere_other
-                        );
-                        break;
-                    }
-                    case ColliderType::collider_type_box: {
-                        inner_collide<Collider, BoxCollider>(
-                            scene,
-                            collider,
-                            start_transform,
-                            curr_movement,
-                            ids,
-                            m_node_ids,
-                            m_box_colliders,
-                            closest_candidate,
-                            t,
-                            gjk_res,
-                            tri_this,
-                            &box_other
-                        );
-                        break;
-                    }
-                    default: {}
-                }
-            }
+            inner_collide<Collider, BoxCollider>(
+                scene,
+                collider,
+                start_transform,
+                curr_movement,
+                candidates[ColliderShape::box],
+                m_node_ids,
+                m_colliders.boxes.map,
+                closest_candidate,
+                t,
+                gjk_res,
+                tri_this,
+                &box_other
+            );
 
             collision.collided =
-                closest_candidate.type != ColliderType::collider_type_none;
+                closest_candidate.shape != ColliderShape::none;
 
-            switch (closest_candidate.type) {
-                case ColliderType::collider_type_mesh: {
+            switch (closest_candidate.shape) {
+                case ColliderShape::mesh: {
                     auto swept = get_swept_shape<Collider, Shape>(
                         start_transform,
                         curr_movement * gjk_res.t,
@@ -265,7 +460,7 @@ private:
 
                     break;
                 }
-                case ColliderType::collider_type_sphere: {
+                case ColliderShape::sphere: {
                     auto swept = get_swept_shape<Collider, Shape>(
                         start_transform,
                         curr_movement * gjk_res.t,
@@ -285,7 +480,7 @@ private:
 
                     break;
                 }
-                case ColliderType::collider_type_box: {
+                case ColliderShape::box: {
                     auto swept = get_swept_shape<Collider, Shape>(
                         start_transform,
                         curr_movement * gjk_res.t,
@@ -337,7 +532,7 @@ private:
 
     template<typename Collider, typename Other>
     struct InnerCollide {
-        static void collide(
+        inline static void collide(
             Scene & scene,
             Collider const & collider,
             Transform const & transform,
@@ -356,7 +551,8 @@ private:
             for (ColliderID id : ids) {
                 ColliderTag tag_other;
                 tag_other.id = id;
-                tag_other.type = Other::type;
+                tag_other.shape = Other::shape;
+                tag_other.type = ColliderType::collider;
 
                 NodeID other_node_id = node_ids.at(tag_other);
                 Transform transform_other = get_global_transform(scene, other_node_id);
@@ -383,7 +579,7 @@ private:
 
     template<typename Collider>
     struct InnerCollide<Collider, MeshCollider> {
-        static void collide(
+        inline static void collide(
             Scene & /*scene*/,
             Collider const & collider,
             Transform const & transform,
@@ -406,7 +602,8 @@ private:
             for (ColliderID id : ids) {
                 ColliderTag tag_other;
                 tag_other.id = id;
-                tag_other.type = ColliderType::collider_type_mesh;
+                tag_other.shape = ColliderShape::mesh;
+                tag_other.type = ColliderType::collider;
 
                 MeshCollider const & mesh_collider = others.at(id);
 
@@ -435,7 +632,7 @@ private:
 
     template<typename Other>
     struct InnerCollide<MeshCollider, Other> {
-        static void collide(
+        inline static void collide(
             Scene & scene,
             MeshCollider const & collider,
             Transform const & /*transform*/,
@@ -458,7 +655,8 @@ private:
                 for (ColliderID id : ids) {
                     ColliderTag tag_other;
                     tag_other.id = id;
-                    tag_other.type = Other::type;
+                    tag_other.shape = Other::shape;
+                    tag_other.type = ColliderType::collider;
 
                     NodeID other_node_id = node_ids.at(tag_other);
                     Transform transform_other = get_global_transform(scene, other_node_id);
@@ -487,7 +685,7 @@ private:
 
     template<>
     struct InnerCollide<MeshCollider, MeshCollider> {
-        static void collide(
+        inline static void collide(
             Scene & /*scene*/,
             MeshCollider const & collider,
             Transform const & /*transform*/,
@@ -513,7 +711,8 @@ private:
                 for (ColliderID id : ids) {
                     ColliderTag tag_other;
                     tag_other.id = id;
-                    tag_other.type = ColliderType::collider_type_mesh;
+                    tag_other.shape = ColliderShape::mesh;
+                    tag_other.type = ColliderType::collider;
 
                     MeshCollider const & mesh_collider = others.at(id);
 
@@ -575,8 +774,265 @@ private:
         );
     }
 
+    template<typename Collider, typename Other>
+    struct InnerGetOverlaps {
+        inline static void get_overlaps(
+            ColliderTag tag,
+            Collider const & collider,
+            Transform const * transforms,
+            Transform const * transforms_history,
+            std::vector<ColliderID> const & ids,
+            std::unordered_map<ColliderTag, NodeID> const & node_ids,
+            std::unordered_map<ColliderID, Other> const & others,
+            ColliderType other_type,
+            std::unordered_set<Overlap> & overlaps
+        ) {
+            NodeID node_id = node_ids.at(tag);
+
+            Transform tform;
+            tform.position = transforms_history[node_id].position;
+            tform.scale = transforms[node_id].scale;
+            tform.rotation = transforms[node_id].rotation;
+
+            glm::vec3 pos_diff =
+                transforms[node_id].position -
+                transforms_history[node_id].position;
+
+            auto shape = collider.get_shape(transforms[node_id]).sweep(pos_diff);
+
+            for (ColliderID id : ids) {
+                ColliderTag tag_other;
+                tag_other.id = id;
+                tag_other.shape = Other::shape;
+                tag_other.type = other_type;
+
+                NodeID other_node_id = node_ids.at(tag_other);
+
+                Transform tform_other;
+                tform_other.position = transforms_history[other_node_id].position;
+                tform_other.scale = transforms[other_node_id].scale;
+                tform_other.rotation = transforms[other_node_id].rotation;
+
+                glm::vec3 other_pos_diff =
+                    transforms[other_node_id].position -
+                    transforms_history[other_node_id].position;
+
+                auto shape_other =
+                    others.at(id).get_shape(tform_other).sweep(other_pos_diff);
+
+                GJKRes gjk_cand = gjk(shape, shape_other);
+
+                if (gjk_cand.collided) {
+                    overlaps.insert({node_id, other_node_id});
+                }
+            }
+        }
+    };
+
     template<typename Collider>
-    AABB calculate_aabb(
+    struct InnerGetOverlaps<Collider, MeshCollider> {
+        inline static void get_overlaps(
+            ColliderTag tag,
+            Collider const & collider,
+            Transform const * transforms,
+            Transform const * transforms_history,
+            std::vector<ColliderID> const & ids,
+            std::unordered_map<ColliderTag, NodeID> const & node_ids,
+            std::unordered_map<ColliderID, MeshCollider> const & others,
+            ColliderType other_type,
+            std::unordered_set<Overlap> & overlaps
+        ) {
+            NodeID node_id = node_ids.at(tag);
+
+            Transform tform;
+            tform.position = transforms_history[node_id].position;
+            tform.scale = transforms[node_id].scale;
+            tform.rotation = transforms[node_id].rotation;
+
+            glm::vec3 pos_diff =
+                transforms[node_id].position -
+                transforms_history[node_id].position;
+
+            auto shape = collider.get_shape(transforms[node_id]).sweep(pos_diff);
+
+            thread_local std::vector<Triangle> tris;
+
+            for (ColliderID id : ids) {
+                ColliderTag tag_other;
+                tag_other.id = id;
+                tag_other.shape = ColliderShape::mesh;
+                tag_other.type = other_type;
+
+                MeshCollider const & mesh_collider = others.at(id);
+
+                NodeID other_node_id = node_ids.at(tag_other);
+
+                // Triangles are currently not swept in overlap, too
+                // cumbersome to implement (it would require
+                // MeshCollider::collect_triangles() to take into
+                // acount swept triangles).
+                tris.resize(0);
+                mesh_collider.collect_triangles(
+                    shape.aabb(),
+                    tris
+                );
+                for (Triangle tri : tris) {
+                    GJKRes gjk_cand = gjk(shape, tri);
+
+                    if (gjk_cand.collided) {
+                        overlaps.insert({node_id, other_node_id});
+                        break;
+                    }
+                }
+            }
+        }
+    };
+
+    template<typename Other>
+    struct InnerGetOverlaps<MeshCollider, Other> {
+        inline static void get_overlaps(
+            ColliderTag tag,
+            MeshCollider const & collider,
+            Transform const * transforms,
+            Transform const * transforms_history,
+            std::vector<ColliderID> const & ids,
+            std::unordered_map<ColliderTag, NodeID> const & node_ids,
+            std::unordered_map<ColliderID, Other> const & others,
+            ColliderType other_type,
+            std::unordered_set<Overlap> & overlaps
+        ) {
+            NodeID node_id = node_ids.at(tag);
+
+            glm::vec3 pos_diff = transforms[node_id].position -
+                                 transforms_history[node_id].position;
+
+            for (size_t i = 0; i < collider.triangle_cache().size(); i += 3) {
+                Triangle triangle;
+                triangle.a = collider.triangle_cache()[i];
+                triangle.b = collider.triangle_cache()[i+1];
+                triangle.c = collider.triangle_cache()[i+2];
+
+                SweptTriangle swept = triangle.sweep(pos_diff);
+                AABB aabb = swept.aabb();
+
+                for (ColliderID id : ids) {
+                    ColliderTag tag_other;
+                    tag_other.id = id;
+                    tag_other.shape = Other::shape;
+                    tag_other.type = other_type;
+
+                    NodeID other_node_id = node_ids.at(tag_other);
+
+                    Transform tform_other;
+                    tform_other.position = transforms_history[other_node_id].position;
+                    tform_other.scale = transforms[other_node_id].scale;
+                    tform_other.rotation = transforms[other_node_id].rotation;
+
+                    glm::vec3 other_pos_diff =
+                        transforms[other_node_id].position -
+                        transforms_history[other_node_id].position;
+
+                    auto shape_other =
+                        others.at(id).get_shape(tform_other).sweep(other_pos_diff);
+
+                    if (AABB::intersect(aabb, shape_other.aabb())) {
+                        GJKRes gjk_cand = gjk(swept, shape_other);
+
+                        if (gjk_cand.collided) {
+                            overlaps.insert({node_id, other_node_id});
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    template<>
+    struct InnerGetOverlaps<MeshCollider, MeshCollider> {
+        inline static void get_overlaps(
+            ColliderTag tag,
+            MeshCollider const & collider,
+            Transform const * transforms,
+            Transform const * transforms_history,
+            std::vector<ColliderID> const & ids,
+            std::unordered_map<ColliderTag, NodeID> const & node_ids,
+            std::unordered_map<ColliderID, MeshCollider> const & others,
+            ColliderType /*other_type*/,
+            std::unordered_set<Overlap> & overlaps
+        ) {
+            NodeID node_id = node_ids.at(tag);
+
+            glm::vec3 pos_diff = transforms[node_id].position -
+                                 transforms_history[node_id].position;
+
+            // TODO: Use acceleration structure to avoid O(M*N)
+            for (size_t i = 0; i < collider.triangle_cache().size(); i += 3) {
+                Triangle triangle;
+                triangle.a = collider.triangle_cache()[i];
+                triangle.b = collider.triangle_cache()[i+1];
+                triangle.c = collider.triangle_cache()[i+2];
+
+                SweptTriangle swept = triangle.sweep(pos_diff);
+                AABB aabb = swept.aabb();
+
+                for (ColliderID id : ids) {
+                    ColliderTag tag_other;
+                    tag_other.id = id;
+                    tag_other.shape = ColliderShape::mesh;
+                    tag_other.type = ColliderType::collider;
+
+                    MeshCollider const & mesh_collider = others.at(id);
+                    NodeID other_node_id = node_ids.at(tag_other);
+
+                    thread_local std::vector<Triangle> tris;
+                    tris.resize(0);
+                    mesh_collider.collect_triangles(
+                        aabb,
+                        tris
+                    );
+
+                    for (Triangle tri : tris) {
+                        if (AABB::intersect(aabb, tri.aabb())) {
+                            GJKRes gjk_cand = gjk(swept, tri);
+
+                            if (gjk_cand.collided) {
+                                overlaps.insert({node_id, other_node_id});
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    template<typename Collider, typename Other>
+    inline void inner_get_overlaps(
+        ColliderTag tag,
+        Collider const & collider,
+        Transform const * transforms,
+        Transform const * transforms_history,
+        std::vector<ColliderID> const & ids,
+        std::unordered_map<ColliderTag, NodeID> const & node_ids,
+        std::unordered_map<ColliderID, Other> const & others,
+        ColliderType other_type,
+        std::unordered_set<Overlap> & overlaps
+    ) {
+        InnerGetOverlaps<Collider, Other>::get_overlaps(
+            tag,
+            collider,
+            transforms,
+            transforms_history,
+            ids,
+            node_ids,
+            others,
+            other_type,
+            overlaps
+        );
+    }
+
+    template<typename Collider>
+    inline AABB calculate_aabb(
         Collider const & collider,
         Transform const & transform,
         glm::vec3 const & curr_movement
@@ -585,7 +1041,7 @@ private:
     }
 
     template<>
-    AABB calculate_aabb<MeshCollider>(
+    inline AABB calculate_aabb<MeshCollider>(
         MeshCollider const & collider,
         Transform const & /*transform*/,
         glm::vec3 const & curr_movement
@@ -594,7 +1050,7 @@ private:
     }
 
     template<typename Collider, typename Shape>
-    decltype(std::declval<Shape>().sweep({})) get_swept_shape(
+    inline decltype(std::declval<Shape>().sweep({})) get_swept_shape(
         Transform const & transform,
         glm::vec3 const & curr_movement,
         Collider const & collider,
@@ -604,7 +1060,7 @@ private:
     }
 
     template<>
-    SweptTriangle get_swept_shape<MeshCollider, Triangle>(
+    inline SweptTriangle get_swept_shape<MeshCollider, Triangle>(
         Transform const & /*transform*/,
         glm::vec3 const & curr_movement,
         MeshCollider const & /*collider*/,

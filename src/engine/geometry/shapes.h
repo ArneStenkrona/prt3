@@ -56,6 +56,20 @@ struct Triangle {
     SweptTriangle sweep(glm::vec3 const & translation) const {
         return { a, b, c, a + translation, b + translation, c + translation };
     }
+
+    AABB aabb() const {
+        AABB aabb;
+        aabb.lower_bound = a;
+        aabb.upper_bound = a;
+
+        aabb.lower_bound = glm::min(aabb.lower_bound, b);
+        aabb.upper_bound = glm::max(aabb.upper_bound, b);
+
+        aabb.lower_bound = glm::min(aabb.lower_bound, c);
+        aabb.upper_bound = glm::max(aabb.upper_bound, c);
+
+        return aabb;
+    }
 };
 
 struct SweptSphere {

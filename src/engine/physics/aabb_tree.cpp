@@ -16,6 +16,7 @@ void DynamicAABBTree::clear() {
 }
 
 void DynamicAABBTree::query(ColliderTag caller,
+                            CollisionLayer mask,
                             AABB const & aabb,
                             std::vector<ColliderTag> & tags) {
     if (m_size == 0) {
@@ -30,7 +31,8 @@ void DynamicAABBTree::query(ColliderTag caller,
         TreeNode const & node = m_nodes[index];
         if (AABB::intersect(node.aabb, aabb)) {
             if (node.is_leaf()) {
-                if (caller != node.collider_tag) {
+                if (caller != node.collider_tag &&
+                    mask & node.layer) {
                     tags.push_back(node.collider_tag);
                 }
             } else {
@@ -43,9 +45,10 @@ void DynamicAABBTree::query(ColliderTag caller,
 
 void DynamicAABBTree::query(
     ColliderTag caller,
+    CollisionLayer mask,
     AABB const & aabb,
     std::array<std::vector<ColliderID>,
-        ColliderType::total_num_collider_type> & ids) {
+        ColliderShape::total_num_collider_shape> & ids) {
     if (m_size == 0) {
         return;
     }
@@ -58,8 +61,9 @@ void DynamicAABBTree::query(
         TreeNode const & node = m_nodes[index];
         if (AABB::intersect(node.aabb, aabb)) {
             if (node.is_leaf()) {
-                if (caller != node.collider_tag) {
-                    ids[node.collider_tag.type].push_back(node.collider_tag.id);
+                if (caller != node.collider_tag &&
+                    mask & node.layer) {
+                    ids[node.collider_tag.shape].push_back(node.collider_tag.id);
                 }
             } else {
                 node_stack.push_back(node.left);
@@ -72,6 +76,7 @@ void DynamicAABBTree::query(
 void DynamicAABBTree::query_raycast(glm::vec3 const& origin,
                                     glm::vec3 const& direction,
                                     float max_distance,
+                                    CollisionLayer mask,
                                     std::vector<ColliderTag> & tags) {
     if (m_size == 0) {
         return;
@@ -84,7 +89,7 @@ void DynamicAABBTree::query_raycast(glm::vec3 const& origin,
         node_stack.pop_back();
         TreeNode const & node = m_nodes[index];
         if (AABB::intersect_ray(node.aabb, origin, direction, max_distance)) {
-            if (node.is_leaf()) {
+            if (node.is_leaf() && mask & node.layer) {
                 tags.push_back(node.collider_tag);
             } else {
                 node_stack.push_back(node.left);
@@ -95,39 +100,41 @@ void DynamicAABBTree::query_raycast(glm::vec3 const& origin,
 }
 
 void DynamicAABBTree::insert(ColliderTag const & tag,
+                             CollisionLayer layer,
                              AABB const & aabb) {
-    insert_leaf(tag, aabb);
+    insert_leaf(tag, layer, aabb);
 }
 
 void DynamicAABBTree::insert(ColliderTag const * tags,
+                             CollisionLayer const * layers,
                              AABB const * aabbs,
                              size_t n) {
     for (size_t i = 0; i < n; ++i) {
-        insert_leaf(tags[i], aabbs[i]);
+        insert_leaf(tags[i], layers[i], aabbs[i]);
     }
 }
 
-void DynamicAABBTree::update(ColliderTag const & tag, AABB const & aabb) {
-    TreeIndex index = m_tag_to_index[tag];
+void DynamicAABBTree::update(UpdatePackage const & package) {
+
+    TreeIndex index = m_tag_to_index[package.tag];
     TreeNode & node = m_nodes[index];
-    if (!node.aabb.contains(aabb)) {
+    if (!node.aabb.contains(package.aabb)) {
         ColliderTag tag = node.collider_tag;
         remove(m_tag_to_index[tag]);
-        insert_leaf(tag, aabb);
+        insert_leaf(tag, package.layer, package.aabb);
     }
 }
 
-void DynamicAABBTree::update(ColliderTag const * tags,
-                             AABB const * aabbs,
+void DynamicAABBTree::update(UpdatePackage const * packages,
                              size_t n) {
     for (size_t i = 0; i < n; ++i) {
-        ColliderTag const & tag = tags[i];
+        ColliderTag const & tag = packages[i].tag;
         TreeIndex index = m_tag_to_index[tag];
         TreeNode & node = m_nodes[index];
-        if (!node.aabb.contains(aabbs[i])) {
+        if (!node.aabb.contains(packages[i].aabb)) {
             ColliderTag tag = node.collider_tag;
             remove(m_tag_to_index[tag]);
-            insert_leaf(tag, aabbs[i]);
+            insert_leaf(tag, packages[i].layer, packages[i].aabb);
         }
     }
 }
@@ -151,11 +158,13 @@ float DynamicAABBTree::cost() const {
 }
 
 TreeIndex DynamicAABBTree::insert_leaf(ColliderTag tag,
+                                       CollisionLayer layer,
                                        AABB const & aabb) {
     // insert new node into vector
     TreeIndex leaf_index = allocate_tree_node();
 
     m_nodes[leaf_index].collider_tag = tag;
+    m_nodes[leaf_index].layer = layer;
     // add buffer to aabb
     m_nodes[leaf_index].aabb.lower_bound = aabb.lower_bound - buffer;
     m_nodes[leaf_index].aabb.upper_bound = aabb.upper_bound + buffer;

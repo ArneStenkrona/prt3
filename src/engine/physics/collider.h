@@ -12,19 +12,34 @@ namespace prt3 {
 
 class PhysicsSystem;
 
-enum ColliderType : uint8_t {
-    collider_type_none,
-    collider_type_mesh,
-    collider_type_sphere,
-    collider_type_box,
-    total_num_collider_type
+namespace ColliderNS {
+
+enum ShapeEnum : uint8_t {
+    none,
+    mesh,
+    sphere,
+    box,
+    total_num_collider_shape
 };
+
+enum TypeEnum : uint8_t {
+    collider,
+    area
+};
+
+} // namespace ColliderShape
+
+typedef ColliderNS::ShapeEnum ColliderShape;
+typedef ColliderNS::TypeEnum ColliderType;
 
 typedef uint16_t ColliderID;
 
+typedef uint16_t CollisionLayer;
+
 struct ColliderTag {
+    ColliderID id;
+    ColliderShape shape;
     ColliderType type;
-    ColliderID   id;
 };
 
 struct Collision {
@@ -44,16 +59,16 @@ struct CollisionResult {
 };
 
 inline bool operator==(ColliderTag const & lhs, ColliderTag const & rhs) {
-    return lhs.type == rhs.type && lhs.id == rhs.id;
+    return lhs.type == rhs.type && lhs.shape == rhs.shape && lhs.id == rhs.id;
 }
 
 inline bool operator!=(ColliderTag const & lhs, ColliderTag const & rhs) {
-    return lhs.type != rhs.type || lhs.id != rhs.id;
+    return lhs.type != rhs.type || lhs.shape != rhs.shape || lhs.id != rhs.id;
 }
 
 class MeshCollider {
 public:
-    static constexpr ColliderType type = ColliderType::collider_type_mesh;
+    static constexpr ColliderShape shape = ColliderShape::mesh;
 
     void set_triangles(std::vector<glm::vec3> && triangles);
     void set_triangles(std::vector<glm::vec3> const & triangles);
@@ -65,6 +80,14 @@ public:
 
     std::vector<glm::vec3> const & triangles() const { return m_triangles; }
     std::vector<glm::vec3> const & triangle_cache() const { return m_triangle_cache; }
+
+    CollisionLayer get_layer() const { return m_layer; }
+    void set_layer(CollisionLayer layer)
+    { m_layer = layer; m_layer_changed = true; }
+    CollisionLayer get_mask() const { return m_mask; }
+    void set_mask(CollisionLayer mask)
+    { m_mask = mask; }
+
 private:
     std::vector<glm::vec3> m_triangles;
     std::vector<glm::vec3> m_triangle_cache;
@@ -72,7 +95,10 @@ private:
     Transform m_transform;
     AABB m_aabb;
 
-    bool m_changed = true;
+    CollisionLayer m_layer;
+    CollisionLayer m_mask;
+    bool m_layer_changed = false;
+    mutable bool m_changed = true;
 
     void update_triangle_cache();
 
@@ -81,7 +107,7 @@ private:
 
 class SphereCollider {
 public:
-    static constexpr ColliderType type = ColliderType::collider_type_sphere;
+    static constexpr ColliderShape shape = ColliderShape::sphere;
 
     SphereCollider() {}
     SphereCollider(Sphere const & sphere)
@@ -96,10 +122,21 @@ public:
     Sphere const & base_shape() const { return m_base_shape; }
     void set_base_shape(Sphere const & shape)
     { m_base_shape = shape; m_changed = true; }
+
+    CollisionLayer get_layer() const { return m_layer; }
+    void set_layer(CollisionLayer layer)
+    { m_layer = layer; m_layer_changed = true; }
+    CollisionLayer get_mask() const { return m_mask; }
+    void set_mask(CollisionLayer mask)
+    { m_mask = mask; }
+
 private:
     Sphere m_base_shape;
 
-    bool m_changed = true;
+    CollisionLayer m_layer;
+    CollisionLayer m_mask;
+    bool m_layer_changed = false;
+    mutable bool m_changed = true;
 
     friend class PhysicsSystem;
 };
@@ -111,7 +148,7 @@ struct Box {
 
 class BoxCollider {
 public:
-    static constexpr ColliderType type = ColliderType::collider_type_box;
+    static constexpr ColliderShape shape = ColliderShape::box;
 
     BoxCollider() {}
     BoxCollider(glm::vec3 dimensions, glm::vec3 center)
@@ -162,11 +199,22 @@ public:
     { m_dimensions = dimensions; m_changed = true; }
     void set_center(glm::vec3 center)
     { m_center = center; m_changed = true; }
+
+    CollisionLayer get_layer() const { return m_layer; }
+    void set_layer(CollisionLayer layer)
+    { m_layer = layer; m_layer_changed = true; }
+    CollisionLayer get_mask() const { return m_mask; }
+    void set_mask(CollisionLayer mask)
+    { m_mask = mask; }
+
 private:
     glm::vec3 m_dimensions;
     glm::vec3 m_center;
 
-    bool m_changed = true;
+    CollisionLayer m_layer;
+    CollisionLayer m_mask;
+    bool m_layer_changed = false;
+    mutable bool m_changed = true;
 
     friend class PhysicsSystem;
 };
@@ -178,10 +226,10 @@ namespace std {
   struct hash<prt3::ColliderTag> {
     size_t operator()(prt3::ColliderTag const & t) const {
       return hash<prt3::ColliderType>()(t.type) ^
-             (hash<prt3::ColliderID>()(t.id) << 1);
+             (hash<prt3::ColliderShape>()(t.shape) << 1) ^
+             (hash<prt3::ColliderID>()(t.id) << 2);
     }
   };
-
 }
 
 #endif

@@ -6,12 +6,14 @@ using namespace prt3;
 
 ColliderTag PhysicsSystem::add_mesh_collider(
     NodeID node_id,
+    ColliderType type,
     std::vector<glm::vec3> && triangles,
     Transform const & transform
 ) {
     ColliderTag tag = create_collider_from_triangles(
         std::move(triangles),
-        transform
+        transform,
+        type
     );
 
     m_tags[node_id] = tag;
@@ -22,12 +24,14 @@ ColliderTag PhysicsSystem::add_mesh_collider(
 
 ColliderTag PhysicsSystem::add_mesh_collider(
     NodeID node_id,
+    ColliderType type,
     std::vector<glm::vec3> const & triangles,
     Transform const & transform
 ) {
     ColliderTag tag = create_collider_from_triangles(
         triangles,
-        transform
+        transform,
+        type
     );
 
     m_tags[node_id] = tag;
@@ -38,12 +42,14 @@ ColliderTag PhysicsSystem::add_mesh_collider(
 
 ColliderTag PhysicsSystem::add_mesh_collider(
     NodeID node_id,
+    ColliderType type,
     Model const & model,
     Transform const & transform
 ) {
     ColliderTag tag = create_collider_from_model(
         model,
-        transform
+        transform,
+        type
     );
 
     m_tags[node_id] = tag;
@@ -54,12 +60,14 @@ ColliderTag PhysicsSystem::add_mesh_collider(
 
 ColliderTag PhysicsSystem::add_sphere_collider(
     NodeID node_id,
+    ColliderType type,
     Sphere const & sphere,
     Transform const & transform
 ) {
     ColliderTag tag = create_sphere_collider(
         sphere,
-        transform
+        transform,
+        type
     );
     m_tags[node_id] = tag;
     m_node_ids[tag] = node_id;
@@ -69,6 +77,7 @@ ColliderTag PhysicsSystem::add_sphere_collider(
 
 ColliderTag PhysicsSystem::add_box_collider(
     NodeID node_id,
+    ColliderType type,
     glm::vec3 const & dimensions,
     glm::vec3 const & center,
     Transform const & transform
@@ -76,7 +85,8 @@ ColliderTag PhysicsSystem::add_box_collider(
     ColliderTag tag = create_box_collider(
         dimensions,
         center,
-        transform
+        transform,
+        type
     );
     m_tags[node_id] = tag;
     m_node_ids[tag] = node_id;
@@ -85,17 +95,18 @@ ColliderTag PhysicsSystem::add_box_collider(
 }
 
 void PhysicsSystem::remove_collider(ColliderTag tag) {
-    switch (tag.type) {
-        case ColliderType::collider_type_mesh: {
-            m_mesh_colliders.erase(tag.id);
+    ColliderContainer & container = get_container(tag.type);
+    switch (tag.shape) {
+        case ColliderShape::mesh: {
+            container.meshes.map.erase(tag.id);
             break;
         }
-        case ColliderType::collider_type_sphere: {
-            m_sphere_colliders.erase(tag.id);
+        case ColliderShape::sphere: {
+            container.spheres.map.erase(tag.id);
             break;
         }
-        case ColliderType::collider_type_box: {
-            m_box_colliders.erase(tag.id);
+        case ColliderShape::box: {
+            container.boxes.map.erase(tag.id);
             break;
         }
         default: {
@@ -107,7 +118,7 @@ void PhysicsSystem::remove_collider(ColliderTag tag) {
     m_node_ids.erase(tag);
     m_tags.erase(node_id);
 
-    m_aabb_tree.remove(tag);
+    container.aabb_tree.remove(tag);
 }
 
 CollisionResult PhysicsSystem::move_and_collide(
@@ -123,23 +134,23 @@ CollisionResult PhysicsSystem::move_and_collide(
     Transform transform = node.get_global_transform(scene);
     Transform start_transform = transform;
 
-    switch (tag.type) {
-        case ColliderType::collider_type_mesh: {
-            MeshCollider const & col = m_mesh_colliders[tag.id];
+    switch (tag.shape) {
+        case ColliderShape::mesh: {
+            MeshCollider const & col = m_colliders.meshes.map[tag.id];
             res = move_and_collide<MeshCollider, Triangle>(
                 scene, tag, col, movement, transform
             );
             break;
         }
-        case ColliderType::collider_type_sphere: {
-            SphereCollider const & col = m_sphere_colliders[tag.id];
+        case ColliderShape::sphere: {
+            SphereCollider const & col = m_colliders.spheres.map[tag.id];
             res = move_and_collide<SphereCollider, Sphere>(
                 scene, tag, col, movement, transform
             );
             break;
         }
-        case ColliderType::collider_type_box: {
-            BoxCollider const & col = m_box_colliders[tag.id];
+        case ColliderShape::box: {
+            BoxCollider const & col = m_colliders.boxes.map[tag.id];
             res = move_and_collide<BoxCollider, DiscreteConvexHull<8> >(
                 scene, tag, col, movement, transform
             );
@@ -150,68 +161,86 @@ CollisionResult PhysicsSystem::move_and_collide(
     node.set_global_transform(scene, transform);
 
     if (transform != start_transform) {
-        AABB aabb;
-        switch (tag.type) {
-            case ColliderType::collider_type_mesh: {
-                m_mesh_colliders[tag.id].set_transform(transform);
-                aabb = m_mesh_colliders[tag.id].aabb();
+        AABB aabb{};
+        CollisionLayer layer{};
+        switch (tag.shape) {
+            case ColliderShape::mesh: {
+                m_colliders.meshes.map[tag.id].set_transform(transform);
+                aabb = m_colliders.meshes.map[tag.id].aabb();
+                layer = m_colliders.meshes.map[tag.id].get_layer();
                 break;
             }
-            case ColliderType::collider_type_sphere: {
-                aabb = m_sphere_colliders[tag.id].get_shape(transform).aabb();
+            case ColliderShape::sphere: {
+                aabb = m_colliders.spheres.map[tag.id].get_shape(transform).aabb();
+                layer = m_colliders.spheres.map[tag.id].get_layer();
                 break;
             }
-            case ColliderType::collider_type_box: {
-                aabb = m_box_colliders[tag.id].get_shape(transform).aabb();
+            case ColliderShape::box: {
+                aabb = m_colliders.boxes.map[tag.id].get_shape(transform).aabb();
+                layer = m_colliders.boxes.map[tag.id].get_layer();
                 break;
             }
-            default: {}
+            default: { assert(false && "Invalid collision shape"); return res; }
         }
-        m_aabb_tree.update(tag, aabb);
+        m_colliders.aabb_tree.update({tag, layer, aabb});
     }
     return res;
 }
 
 ColliderTag PhysicsSystem::create_collider_from_triangles(
-        std::vector<glm::vec3> && triangles,
-        Transform const & transform
+    std::vector<glm::vec3> && triangles,
+    Transform const & transform,
+    ColliderType type
 ) {
-    ColliderTag tag;
-    tag.type = ColliderType::collider_type_mesh;
-    tag.id = m_next_mesh_id;
-    ++m_next_mesh_id;
+    ColliderContainer & container = get_container(type);
 
-    MeshCollider & col = m_mesh_colliders[tag.id];
+    ColliderTag tag;
+    tag.shape = ColliderShape::mesh;
+    tag.id = container.meshes.next_id;
+    tag.type = type;
+    ++container.meshes.next_id;
+
+    MeshCollider & col = container.meshes.map[tag.id];
     col.set_transform(transform);
     col.set_triangles(std::move(triangles));
+    col.set_layer(1 << 0);
+    col.set_mask(1 << 0);
 
-    m_aabb_tree.insert(tag, col.aabb());
+    container.aabb_tree.insert(tag, col.get_layer(), col.aabb());
 
     return tag;
 }
 
 ColliderTag PhysicsSystem::create_collider_from_triangles(
-        std::vector<glm::vec3> const & triangles,
-        Transform const & transform
+    std::vector<glm::vec3> const & triangles,
+    Transform const & transform,
+    ColliderType type
 ) {
-    ColliderTag tag;
-    tag.type = ColliderType::collider_type_mesh;
-    tag.id = m_next_mesh_id;
-    ++m_next_mesh_id;
+    ColliderContainer & container = get_container(type);
 
-    MeshCollider & col = m_mesh_colliders[tag.id];
+    ColliderTag tag;
+    tag.shape = ColliderShape::mesh;
+    tag.id = container.meshes.next_id;
+    tag.type = type;
+    ++container.meshes.next_id;
+
+    MeshCollider & col = container.meshes.map[tag.id];
     col.set_transform(transform);
     col.set_triangles(triangles);
+    col.set_layer(1 << 0);
+    col.set_mask(1 << 0);
 
-    m_aabb_tree.insert(tag, col.aabb());
+    container.aabb_tree.insert(tag, col.get_layer(), col.aabb());
 
     return tag;
 }
 
 ColliderTag PhysicsSystem::create_collider_from_model(
     Model const & model,
-    Transform const & transform
+    Transform const & transform,
+    ColliderType type
 ) {
+    ColliderContainer & container = get_container(type);
 
     std::vector<Model::Vertex> v_buf = model.vertex_buffer();
     std::vector<uint32_t> i_buf = model.index_buffer();
@@ -234,32 +263,44 @@ ColliderTag PhysicsSystem::create_collider_from_model(
     }
 
     ColliderTag tag;
-    tag.type = ColliderType::collider_type_mesh;
-    tag.id = m_next_mesh_id;
-    ++m_next_mesh_id;
+    tag.shape = ColliderShape::mesh;
+    tag.id = container.meshes.next_id;
+    tag.type = type;
+    ++container.meshes.next_id;
 
-    MeshCollider & col = m_mesh_colliders[tag.id];
+    MeshCollider & col = container.meshes.map[tag.id];
     col.set_transform(transform);
     col.set_triangles(std::move(tris));
+    col.set_layer(1 << 0);
+    col.set_mask(1 << 0);
 
-    m_aabb_tree.insert(tag, col.aabb());
+    container.aabb_tree.insert(tag, col.get_layer(), col.aabb());
 
     return tag;
 }
 
 ColliderTag PhysicsSystem::create_sphere_collider(
     Sphere const & sphere,
-    Transform const & transform) {
+    Transform const & transform,
+    ColliderType type
+) {
+    ColliderContainer & container = get_container(type);
+
     ColliderTag tag;
-    tag.type = ColliderType::collider_type_sphere;
-    tag.id = m_next_sphere_id;
-    ++m_next_sphere_id;
+    tag.shape = ColliderShape::sphere;
+    tag.id = container.spheres.next_id;
+    tag.type = type;
+    ++container.spheres.next_id;
 
-    m_sphere_colliders[tag.id] = SphereCollider{sphere};
+    container.spheres.map[tag.id] = SphereCollider{sphere};
+    SphereCollider & col = container.spheres.map.at(tag.id);
+    col.set_layer(1 << 0);
+    col.set_mask(1 << 0);
 
-    m_aabb_tree.insert(
+    container.aabb_tree.insert(
         tag,
-        m_sphere_colliders[tag.id].get_shape(transform).aabb()
+        col.get_layer(),
+        col.get_shape(transform).aabb()
     );
 
     return tag;
@@ -268,18 +309,26 @@ ColliderTag PhysicsSystem::create_sphere_collider(
 ColliderTag PhysicsSystem::create_box_collider(
     glm::vec3 dimensions,
     glm::vec3 center,
-    Transform const & transform
+    Transform const & transform,
+    ColliderType type
 ) {
+    ColliderContainer & container = get_container(type);
+
     ColliderTag tag;
-    tag.type = ColliderType::collider_type_box;
-    tag.id = m_next_box_id;
-    ++m_next_box_id;
+    tag.shape = ColliderShape::box;
+    tag.id = container.boxes.next_id;
+    tag.type = type;
+    ++container.boxes.next_id;
 
-    m_box_colliders[tag.id] = BoxCollider{dimensions, center};
+    container.boxes.map[tag.id] = BoxCollider{dimensions, center};
+    BoxCollider & col = container.boxes.map.at(tag.id);
+    col.set_layer(1 << 0);
+    col.set_mask(1 << 0);
 
-    m_aabb_tree.insert(
+    container.aabb_tree.insert(
         tag,
-        m_box_colliders[tag.id].get_shape(transform).aabb()
+        col.get_layer(),
+        col.get_shape(transform).aabb()
     );
 
     return tag;
@@ -297,76 +346,186 @@ void PhysicsSystem::clear() {
     m_tags.clear();
     m_node_ids.clear();
 
-    m_mesh_colliders.clear();
-    m_next_mesh_id = 0;
-    m_sphere_colliders.clear();
-    m_next_sphere_id = 0;
+    m_colliders.meshes.map.clear();
+    m_colliders.meshes.next_id = 0;
+    m_colliders.spheres.map.clear();
+    m_colliders.spheres.next_id = 0;
 
-    m_aabb_tree.clear();
+    m_colliders.aabb_tree.clear();
+
+    m_areas.meshes.map.clear();
+    m_areas.meshes.next_id = 0;
+    m_areas.spheres.map.clear();
+    m_areas.spheres.next_id = 0;
+
+    m_areas.aabb_tree.clear();
 }
 
 void PhysicsSystem::update(
     Transform const * transforms,
     Transform const * transforms_history
 ) {
-    thread_local std::vector<ColliderTag> stale_tags;
-    stale_tags.resize(0);
-    thread_local std::vector<AABB> new_aabbs;
-    new_aabbs.resize(0);
+    std::array<ColliderContainer *, 2> containers =
+    {
+        &m_colliders,
+        &m_areas
+    };
 
-    for (auto const & pair : m_tags) {
-        NodeID id = pair.first;
-        ColliderTag tag = pair.second;
-        Transform const & t_curr = transforms[id];
-        Transform const & t_hist = transforms_history[id];
+    std::array<ColliderType, 2> types =
+    {
+        ColliderType::collider,
+        ColliderType::area,
+    };
 
-        // TODO: add tolerance to aabbs
-        bool stale = t_curr != t_hist;
+    for (unsigned int i = 0; i < containers.size(); ++i) {
+        thread_local std::vector<DynamicAABBTree::UpdatePackage> packages;
+        packages.resize(0);
 
-        if (stale) {
-            stale_tags.push_back(tag);
-            switch (tag.type) {
-                case ColliderType::collider_type_mesh: {
-                    MeshCollider & col = m_mesh_colliders[tag.id];
-                    col.set_transform(t_curr);
-                    AABB aabb = col.aabb();
-                    new_aabbs.push_back(aabb);
-                    break;
-                }
-                case ColliderType::collider_type_sphere: {
-                    AABB aabb = m_sphere_colliders[tag.id].get_shape(t_curr).aabb();
-                    new_aabbs.push_back(aabb);
-                    break;
-                }
-                case ColliderType::collider_type_box: {
-                    AABB aabb = m_box_colliders[tag.id].get_shape(t_curr).aabb();
-                    new_aabbs.push_back(aabb);
-                    break;
-                }
-                default: {
-                    break;
-                }
+        ColliderContainer & container = *containers[i];
+        ColliderType type = types[i];
+
+        for (auto & pair : container.meshes.map) {
+            ColliderTag tag;
+            tag.id = pair.first;
+            tag.shape = ColliderShape::mesh;
+            tag.type = type;
+            NodeID id = m_node_ids.at(tag);
+
+            MeshCollider & col = pair.second;
+
+            Transform const & t_curr = transforms[id];
+            Transform const & t_hist = transforms_history[id];
+
+            bool stale = col.m_layer_changed || t_curr != t_hist;
+
+            if (stale) {
+                col.set_transform(t_curr);
+                packages.push_back({
+                    tag,
+                    col.get_layer(),
+                    col.aabb()
+                });
             }
         }
+
+        for (auto & pair : container.spheres.map) {
+            ColliderTag tag;
+            tag.id = pair.first;
+            tag.shape = ColliderShape::sphere;
+            tag.type = type;
+            NodeID id = m_node_ids.at(tag);
+
+            SphereCollider & col = pair.second;
+
+            Transform const & t_curr = transforms[id];
+            Transform const & t_hist = transforms_history[id];
+
+            bool stale = col.m_layer_changed || t_curr != t_hist;
+
+            if (stale) {
+                packages.push_back({
+                    tag,
+                    col.get_layer(),
+                    col.get_shape(t_curr).aabb()
+                });
+            }
+        }
+
+        for (auto & pair : container.boxes.map) {
+            ColliderTag tag;
+            tag.id = pair.first;
+            tag.shape = ColliderShape::box;
+            tag.type = type;
+            NodeID id = m_node_ids.at(tag);
+
+            BoxCollider & col = pair.second;
+
+            Transform const & t_curr = transforms[id];
+            Transform const & t_hist = transforms_history[id];
+
+            bool stale = col.m_layer_changed || t_curr != t_hist;
+
+            if (stale) {
+                packages.push_back({
+                    tag,
+                    col.get_layer(),
+                    col.get_shape(t_curr).aabb()
+                });
+            }
+        }
+
+        container.aabb_tree.update(
+            packages.data(),
+            packages.size()
+        );
     }
 
-    m_aabb_tree.update(stale_tags.data(),
-                       new_aabbs.data(),
-                       new_aabbs.size());
+    update_areas(transforms, transforms_history);
 }
 
-void PhysicsSystem::collect_collider_render_data(
-    Renderer & renderer,
+void PhysicsSystem::update_areas(
     Transform const * transforms,
-    NodeID selected,
-    ColliderRenderData & data
+    Transform const * transforms_history
 ) {
-    for (auto & pair : m_mesh_colliders) {
-        auto & collider = pair.second;
+    thread_local std::unordered_set<Overlap> overlaps;
+    overlaps.clear();
+
+    for (auto & pair : m_areas.meshes.map) {
+        ColliderTag tag;
+        tag.id = pair.first;
+        tag.shape = ColliderShape::mesh;
+        tag.type = ColliderType::area;
+        get_overlaps(
+            tag,
+            pair.second,
+            transforms,
+            transforms_history,
+            overlaps
+        );
+    }
+
+    for (auto & pair : m_areas.spheres.map) {
+        ColliderTag tag;
+        tag.id = pair.first;
+        tag.shape = ColliderShape::sphere;
+        tag.type = ColliderType::area;
+        get_overlaps(
+            tag,
+            pair.second,
+            transforms,
+            transforms_history,
+            overlaps
+        );
+    }
+
+    for (auto & pair : m_areas.boxes.map) {
+        ColliderTag tag;
+        tag.id = pair.first;
+        tag.shape = ColliderShape::box;
+        tag.type = ColliderType::area;
+        get_overlaps(
+            tag,
+            pair.second,
+            transforms,
+            transforms_history,
+            overlaps
+        );
+    }
+}
+
+void PhysicsSystem::update_mesh_data(
+    Renderer & renderer,
+    ColliderType type
+) {
+    ColliderContainer const & container = get_container(type);
+
+    for (auto const & pair : container.meshes.map) {
+        auto const & collider = pair.second;
         if (collider.m_changed) {
             ColliderTag tag;
             tag.id = pair.first;
-            tag.type = ColliderType::collider_type_mesh;
+            tag.shape = ColliderShape::mesh;
+            tag.type = type;
 
             auto const & tris = collider.triangles();
             size_t n = tris.size();
@@ -395,13 +554,21 @@ void PhysicsSystem::collect_collider_render_data(
             collider.m_changed = false;
         }
     }
+}
 
-    for (auto & pair : m_sphere_colliders) {
-        auto & collider = pair.second;
+void PhysicsSystem::update_sphere_data(
+    Renderer & renderer,
+    ColliderType type
+) {
+    ColliderContainer const & container = get_container(type);
+
+    for (auto const & pair : container.spheres.map) {
+        auto const & collider = pair.second;
         if (collider.m_changed) {
             ColliderTag tag;
             tag.id = pair.first;
-            tag.type = ColliderType::collider_type_sphere;
+            tag.shape = ColliderShape::sphere;
+            tag.type = type;
 
             // It might be easer to just have one shape for all spheres
             // and modify the model matrix, but when capsule colliders
@@ -457,13 +624,21 @@ void PhysicsSystem::collect_collider_render_data(
             collider.m_changed = false;
         }
     }
+}
 
-    for (auto & pair : m_box_colliders) {
-        auto & collider = pair.second;
+void PhysicsSystem::update_box_data(
+    Renderer & renderer,
+    ColliderType type
+) {
+    ColliderContainer const & container = get_container(type);
+
+    for (auto const & pair : container.boxes.map) {
+        auto const & collider = pair.second;
         if (collider.m_changed) {
             ColliderTag tag;
             tag.id = pair.first;
-            tag.type = ColliderType::collider_type_box;
+            tag.shape = ColliderShape::box;
+            tag.type = type;
 
             std::array<glm::vec3, 24> lines;
             glm::vec3 max = collider.center() + 0.5f * collider.dimensions();
@@ -519,6 +694,25 @@ void PhysicsSystem::collect_collider_render_data(
 
             collider.m_changed = false;
         }
+    }
+}
+
+void PhysicsSystem::collect_collider_render_data(
+    Renderer & renderer,
+    Transform const * transforms,
+    NodeID selected,
+    ColliderRenderData & data
+) {
+    std::array<ColliderType, 2> types =
+    {
+        ColliderType::collider,
+        ColliderType::area,
+    };
+
+    for (ColliderType type : types) {
+        update_mesh_data(renderer, type);
+        update_sphere_data(renderer, type);
+        update_box_data(renderer, type);
     }
 
     if (selected == NO_NODE) {

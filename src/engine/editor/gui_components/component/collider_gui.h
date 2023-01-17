@@ -21,9 +21,11 @@ public:
     ActionSetCollider(
         EditorContext & editor_context,
         NodeID node_id,
+        ColliderType type,
         ConstructorArgType const & constructor_arg
     ) : m_editor_context{&editor_context},
         m_node_id{node_id},
+        m_type{type},
         m_constructor_arg{constructor_arg}
     {
         Scene const & scene = m_editor_context->scene();
@@ -41,7 +43,7 @@ protected:
     virtual bool apply() {
         Scene & scene = m_editor_context->scene();
         scene.get_component<ColliderComponent>(m_node_id)
-            .set_collider(scene, m_constructor_arg);
+            .set_collider(scene, m_type, m_constructor_arg);
         return true;
     }
 
@@ -58,6 +60,7 @@ private:
 
     std::vector<char> m_original_data;
 
+    ColliderType m_type;
     ConstructorArgType m_constructor_arg;
 };
 
@@ -75,58 +78,76 @@ void inner_show_component<ColliderComponent>(
 
     ImGui::PushItemWidth(160);
 
-    static char const * types[] = { "mesh", "sphere", "box" };
-    static ColliderType types_enum[] = {
-        ColliderType::collider_type_mesh,
-        ColliderType::collider_type_sphere,
-        ColliderType::collider_type_box,
+    /* shape */
+    static char const * shapes[] = { "mesh", "sphere", "box" };
+    static ColliderShape shapes_enum[] = {
+        ColliderShape::mesh,
+        ColliderShape::sphere,
+        ColliderShape::box,
     };
 
     static int enum_to_index[] = {
-        -1, // ColliderType::collider_type_none
-         0, // ColliderType::collider_type_mesh,
-         1, // ColliderType::collider_type_sphere,
-         2  // ColliderType::collider_type_box
+        -1, // ColliderShape::none,
+         0, // ColliderShape::mesh,
+         1, // ColliderShape::sphere,
+         2  // ColliderShape::box
+    };
+
+    static int current_shape = 0;
+    current_shape = enum_to_index[tag.shape];
+
+    ImGui::Combo("shape", &current_shape, shapes, IM_ARRAYSIZE(shapes));
+
+    /* type */
+    static char const * types[] = { "collider", "area" };
+    static ColliderType types_enum[] = {
+        ColliderType::collider,
+        ColliderType::area
     };
 
     static int current_type = 0;
-    current_type = enum_to_index[tag.type];
+    current_type = tag.type;
 
     ImGui::Combo("type", &current_type, types, IM_ARRAYSIZE(types));
 
-    if (types_enum[current_type] != tag.type) {
+    if (shapes_enum[current_shape] != tag.shape ||
+        types_enum[current_type] != tag.type) {
+        tag.shape = shapes_enum[current_shape];
         tag.type = types_enum[current_type];
 
-        switch (tag.type) {
-            case ColliderType::collider_type_mesh: {
+        switch (tag.shape) {
+            case ColliderShape::mesh: {
                 context.editor().perform_action<ActionSetCollider<
                         std::vector<glm::vec3>
                     > >(
                     id,
+                    tag.type,
                     std::vector<glm::vec3>{}
                 );
                 tag = component.tag();
                 break;
             }
-            case ColliderType::collider_type_sphere: {
+            case ColliderShape::sphere: {
                 Sphere sphere{};
                 sphere.radius = 1.0f;
                 context.editor().perform_action<ActionSetCollider<
                     Sphere
                 > >(
                     id,
+                    tag.type,
                     sphere
                 );
                 tag = component.tag();
                 break;
             }
-            case ColliderType::collider_type_box: {
+            case ColliderShape::box: {
                 Box box{};
                 box.dimensions = {1.0f, 1.0f, 1.0f};
                 context.editor().perform_action<ActionSetCollider<
                     Box
                 > >(
                     id,
+                    tag.type,
                     box
                 );
                 tag = component.tag();
@@ -136,8 +157,8 @@ void inner_show_component<ColliderComponent>(
         }
     }
 
-    switch (tag.type) {
-        case ColliderType::collider_type_mesh: {
+    switch (tag.shape) {
+        case ColliderShape::mesh: {
             if (ImGui::Button("load data from model")) {
                 ImGui::OpenPopup("select_model_popup");
             }
@@ -153,6 +174,7 @@ void inner_show_component<ColliderComponent>(
                             Model
                         > >(
                             id,
+                            tag.type,
                             model
                         );
                         tag = component.tag();
@@ -162,8 +184,8 @@ void inner_show_component<ColliderComponent>(
             }
             break;
         }
-        case ColliderType::collider_type_sphere: {
-            auto & col = sys.get_sphere_collider(tag.id);
+        case ColliderShape::sphere: {
+            auto & col = sys.get_sphere_collider(tag.id, tag.type);
             Sphere base_shape = col.base_shape();
 
             bool edited = false;
@@ -189,6 +211,7 @@ void inner_show_component<ColliderComponent>(
                     Sphere
                 > >(
                     id,
+                    tag.type,
                     base_shape
                 );
                 tag = component.tag();
@@ -196,8 +219,8 @@ void inner_show_component<ColliderComponent>(
 
             break;
         }
-        case ColliderType::collider_type_box: {
-            auto & col = sys.get_box_collider(tag.id);
+        case ColliderShape::box: {
+            auto & col = sys.get_box_collider(tag.id, tag.type);
 
             bool edited = false;
 
@@ -222,6 +245,7 @@ void inner_show_component<ColliderComponent>(
                     Box
                 > >(
                     id,
+                    tag.type,
                     Box{dimensions, center}
                 );
                 tag = component.tag();

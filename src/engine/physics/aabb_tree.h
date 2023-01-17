@@ -21,70 +21,86 @@ public:
 
     /**
      * Finds all intersecting nodes for aabb
+     * @param caller tag of querying collider
+     * @param mask of querying collider
      * @param aabb aabb of query object
      * @param tags vector to store collider tags of nodes
      */
     void query(ColliderTag caller,
+               CollisionLayer mask,
                AABB const & aabb,
                std::vector<ColliderTag> & tags);
     /**
      * Finds all intersecting nodes for aabb
+     * @param caller tag of querying collider
+     * @param mask of querying collider
      * @param aabb aabb of query object
      * @param meshIndices vector to store mesh indices
      * @param capsuleIndices vector to store capsule indices
      */
-    void query(ColliderTag caller, AABB const & aabb,
+    void query(ColliderTag caller,
+               CollisionLayer mask,
+               AABB const & aabb,
                std::array<std::vector<ColliderID>,
-               ColliderType::total_num_collider_type> & ids);
+               ColliderShape::total_num_collider_shape> & ids);
 
     /**
      * Finds all intersecting nodes for raycast
      * @param origin origin of the ray
      * @param direction direction of the ray
      * @param max_distance maximum length of the ray
+     * @param mask mask
      * @param tags vector to store collider tags of nodes
      */
     void query_raycast(glm::vec3 const& origin,
                        glm::vec3 const& direction,
                        float max_distance,
+                       CollisionLayer mask,
                        std::vector<ColliderTag> & tags);
 
     /**
      * Inserts aabbs along with their collider tags into the tree
      * @param tag
+     * @param layer
      * @param aabb
      */
     void insert(ColliderTag const & tag,
+                CollisionLayer layer,
                 AABB const & aabb);
 
     /**
      * Inserts aabbs along with their collider tags into the tree
      * @param tags address of the start of the range of collider tags
+     * @param layers address of the start of the range of layers
      * @param aabbs address of the start of the range of aabbs
      * @param n number of aabbs to be inserted
      */
     void insert(ColliderTag const * tags,
+                CollisionLayer const * layers,
                 AABB const * aabbs,
                 size_t n);
 
-    /**
-     * Updates the nodes given by a range of tree indices which is then
-     * made up-to-date
-     * @param tag address of the start of the range of collider tags
-     *             of the aabbs that will be updated
-     * @param aabb address of the start of the range of aabbs
-     */
-    void update(ColliderTag const & tag, AABB const & aabb);
+    struct UpdatePackage {
+        ColliderTag tag;
+        CollisionLayer layer;
+        AABB aabb;
+    };
 
     /**
      * Updates the nodes given by a range of tree indices which is then
      * made up-to-date
-     * @param tags address of the start of the range of collider tags
-     *             of the aabbs that will be updated
-     * @param aabbs address of the start of the range of aabbs
+     * @param package
+     */
+    void update(UpdatePackage const & package);
+
+    /**
+     * Updates the nodes given by a range of tree indices which is then
+     * made up-to-date
+     * @param packages
      * @param n number of aabbs to update
      */
-    void update(ColliderTag const * tags, AABB const * aabbs, size_t n);
+    void update(UpdatePackage const * packages,
+                size_t n);
 
     /**
      * @param tag
@@ -116,7 +132,9 @@ private:
     std::vector<TreeNode> m_nodes;
     std::unordered_map<ColliderTag, TreeIndex> m_tag_to_index;
 
-    TreeIndex insert_leaf(ColliderTag tag, AABB const & aabb);
+    TreeIndex insert_leaf(ColliderTag tag,
+                         CollisionLayer layer,
+                         AABB const & aabb);
     void remove(TreeIndex index);
 
     void free_tree_node(TreeIndex index);
@@ -155,6 +173,7 @@ private:
             // };
             // struct {
                 ColliderTag collider_tag;
+                CollisionLayer layer;
                 // int32_t notUsed;
             // };
             // void *userData;
