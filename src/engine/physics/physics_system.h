@@ -166,6 +166,8 @@ public:
         ColliderRenderData & data
     );
 
+    std::vector<NodeID> const & get_overlaps(NodeID node_id) const;
+
 private:
     std::unordered_map<NodeID, ColliderTag> m_tags;
     std::unordered_map<ColliderTag, NodeID> m_node_ids;
@@ -174,6 +176,9 @@ private:
     ColliderContainer m_areas;
 
     std::unordered_map<ColliderTag, ResourceID> m_collider_meshes;
+
+    std::unordered_map<NodeID, unsigned int> m_node_to_overlaps;
+    std::vector<std::vector<NodeID> > m_overlaps;
 
     void clear();
 

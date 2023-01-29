@@ -511,6 +511,40 @@ void PhysicsSystem::update_areas(
             overlaps
         );
     }
+
+    m_node_to_overlaps.clear();
+    for (std::vector<NodeID> & overlaps : m_overlaps) {
+        overlaps.resize(0);
+    }
+
+    unsigned int next_ind = 0;
+    for (Overlap const & overlap : overlaps) {
+        if (m_node_to_overlaps.find(overlap.a()) == m_node_to_overlaps.end()) {
+            m_node_to_overlaps[overlap.a()] = next_ind;
+            ++next_ind;
+        }
+        if (m_node_to_overlaps.find(overlap.b()) == m_node_to_overlaps.end()) {
+            m_node_to_overlaps[overlap.b()] = next_ind;
+            ++next_ind;
+        }
+    }
+
+    if (next_ind > m_overlaps.size()) {
+        m_overlaps.resize(next_ind);
+    }
+
+    for (Overlap const & overlap : overlaps) {
+        m_overlaps[m_node_to_overlaps.at(overlap.a())].push_back(overlap.b());
+        m_overlaps[m_node_to_overlaps.at(overlap.b())].push_back(overlap.a());
+    }
+}
+
+std::vector<NodeID> const & PhysicsSystem::get_overlaps(NodeID node_id) const {
+    if (m_node_to_overlaps.find(node_id) == m_node_to_overlaps.end()) {
+        thread_local std::vector<NodeID> empty;
+        return empty;
+    }
+    return m_overlaps[m_node_to_overlaps.at(node_id)];
 }
 
 void PhysicsSystem::update_mesh_data(
