@@ -190,6 +190,9 @@ public:
     ModelManager const & model_manager() const;
     Model const & get_model(ModelHandle handle) const;
 
+    inline std::vector<NodeID> const & get_overlaps(NodeID node_id) const
+    { return m_physics_system.get_overlaps(node_id); }
+
 private:
     Context * m_context;
 
