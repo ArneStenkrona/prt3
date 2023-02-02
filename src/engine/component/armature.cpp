@@ -29,8 +29,6 @@ Armature::Armature(
 )
  : m_node_id{node_id}
 {
-    ModelManager & man = scene.model_manager();
-
     size_t n_path;
     read_stream(in, n_path);
 
@@ -40,7 +38,7 @@ Armature::Armature(
 
         in.read(path.data(), path.size());
 
-        m_model_handle = man.upload_model(path);
+        m_model_handle = scene.upload_model(path);
     }
 
     if (m_model_handle != NO_MODEL) {

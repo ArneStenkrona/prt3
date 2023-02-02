@@ -38,7 +38,7 @@ MaterialComponent::MaterialComponent(
     int32_t mesh_index;
     read_stream(in, mesh_index);
 
-    auto handle = man.upload_model(path);
+    auto handle = scene.upload_model(path);
     m_resource_id = man.get_material_id_from_mesh_index(
         handle,
         mesh_index

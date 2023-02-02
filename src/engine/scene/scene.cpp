@@ -204,7 +204,10 @@ void Scene::collect_world_render_data(
     thread_local std::unordered_set<NodeID> selected_incl_children;
     selected_incl_children.clear();
     thread_local std::vector<NodeID> queue;
-    queue.push_back(selected);
+    if (selected != NO_NODE) {
+        queue.push_back(selected);
+    }
+
     while (!queue.empty()) {
         NodeID curr = queue.back();
         Node const & curr_node = get_node(curr);
@@ -425,6 +428,10 @@ Model const & Scene::get_model(ModelHandle handle) const {
     return m_context->model_manager().get_model(handle);
 }
 
+SceneManager & Scene::scene_manager() {
+    return m_context->scene_manager();
+}
+
 void Scene::serialize(std::ostream & out) const {
     thread_local std::unordered_map<NodeID, NodeID> compacted_ids;
     compacted_ids.clear();
@@ -535,5 +542,5 @@ void Scene::internal_clear(bool place_root) {
 
     m_camera.transform() = {};
 
-    model_manager().clear();
+    m_referenced_models.clear();
 }

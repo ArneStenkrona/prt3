@@ -173,7 +173,7 @@ void show_model_component(
                     ImVec2(1400, 700)
             )) {
                 ModelHandle new_handle =
-                    man.upload_model(file_dialog.selected_path.c_str());
+                    scene.upload_model(file_dialog.selected_path.c_str());
                 if (new_handle == NO_MODEL) {
                     // failed to load
                     error_deadline = ImGui::GetTime() + 10.0;

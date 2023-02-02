@@ -51,6 +51,7 @@ public:
     struct AnimationNode;
     struct Node;
 
+    Model() {}
     Model(char const * path);
 
     std::vector<Node>      const & nodes()              const { return m_nodes; };
