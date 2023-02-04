@@ -2,8 +2,6 @@
 
 #include "src/engine/core/context.h"
 
-#include "src/engine/component/script/camera_controller.h"
-#include "src/engine/component/script/character_controller.h"
 #include "src/util/serialization_util.h"
 
 #include <algorithm>

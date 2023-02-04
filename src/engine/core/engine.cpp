@@ -1,5 +1,7 @@
 #include "engine.h"
 
+#include "src/engine/component/script/script_include.h"
+
 #include <iostream>
 #include <fstream>
 #include <algorithm>

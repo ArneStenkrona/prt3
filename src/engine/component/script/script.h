@@ -11,6 +11,35 @@
 #include <unordered_map>
 #include <iostream>
 
+#define REGISTER_SCRIPT(class_name, display_name, serialization_uuid)\
+public:\
+    virtual char const * name() { return #display_name; };\
+    virtual Script * copy() const { return new class_name(*this); }\
+    virtual UUID uuid() const {\
+        return serialization_uuid##ull;\
+    }\
+protected:\
+    static Script * deserialize(\
+        std::istream &,\
+        Scene & scene,\
+        NodeID node_id\
+    ) {\
+        return new class_name(scene, node_id);\
+    }\
+    static Script * new_instance(\
+        Scene & scene,\
+        NodeID node_id\
+    ) {\
+        return new class_name(scene, node_id);\
+    }\
+    inline static bool s_registered =\
+        Script::Register(\
+            serialization_uuid##ull,\
+            #display_name,\
+            class_name::deserialize,\
+            class_name::new_instance\
+        );\
+
 namespace prt3 {
 
 typedef unsigned int ScriptID;
