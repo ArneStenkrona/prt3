@@ -212,9 +212,11 @@ void Model::blend_animation(
 
                     tform = glm::translate(pos) * glm::toMat4(rot) * glm::scale(scale);
 
-                    local_transforms[m_nodes[node_index].bone_index].position = pos;
-                    local_transforms[m_nodes[node_index].bone_index].rotation = rot;
-                    local_transforms[m_nodes[node_index].bone_index].scale = scale;
+                    if (node.bone_index != -1) {
+                        local_transforms[node.bone_index].position = pos;
+                        local_transforms[node.bone_index].rotation = rot;
+                        local_transforms[node.bone_index].scale = scale;
+                    }
                 }
 
                 transforms[i] = tform * transforms[i];

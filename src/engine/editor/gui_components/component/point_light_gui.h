@@ -63,7 +63,7 @@ void inner_show_component<PointLightComponent>(
 
     change |= ImGui::ColorEdit4("albedo", color_p);
 
-    float rescale_factor = 10.0f;
+    float rescale_factor = 5.0f;
     float step_size = 0.01f;
 
     float quadratic = rescale_factor * light.quadratic_term - step_size;

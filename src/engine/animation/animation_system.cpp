@@ -44,7 +44,7 @@ void AnimationSystem::init_animation(
     m_animations[id].clip_a.paused = false;
     m_animations[id].clip_a.looping = true;
 
-    m_animations[id].clip_b.animation_index = -1;
+    m_animations[id].clip_b.animation_index = NO_ANIMATION;
     m_animations[id].clip_b.t = 0;
     m_animations[id].clip_b.speed = 1.0f;
     m_animations[id].clip_b.paused = false;
@@ -66,7 +66,7 @@ void AnimationSystem::update(Scene const & scene, float delta_time) {
         }
 
         Model const & model = models[animation.model_handle];
-        if (animation.clip_b.animation_index == -1 ||
+        if (animation.clip_b.animation_index == NO_ANIMATION ||
             animation.blend_factor == 0.0f) {
             model.sample_animation(
                 animation.clip_a.animation_index,
@@ -105,7 +105,8 @@ void AnimationSystem::update(Scene const & scene, float delta_time) {
 
         Model const & model = models[animation.model_handle];
 
-        if (!animation.clip_a.paused) {
+        if (animation.clip_a.animation_index != NO_ANIMATION &&
+            !animation.clip_a.paused) {
             Animation::Clip & clip = animation.clip_a;
             float duration =
                 model.animations()[clip.animation_index].duration;
@@ -115,7 +116,8 @@ void AnimationSystem::update(Scene const & scene, float delta_time) {
                 fmod(clip.t, duration);
         }
 
-        if (!animation.clip_b.paused) {
+        if (animation.clip_b.animation_index != NO_ANIMATION &&
+            !animation.clip_b.paused) {
             Animation::Clip & clip = animation.clip_b;
             float duration =
                 model.animations()[clip.animation_index].duration;
