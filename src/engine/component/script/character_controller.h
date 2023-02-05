@@ -96,7 +96,7 @@ public:
             anim.clip_a.speed = glm::mix(1.0f, 1.5f, anim.blend_factor);
             anim.clip_b.speed = glm::mix(1.0f, 1.5f, anim.blend_factor);
 
-            base_speed = glm::mix(0.0f, 2.5f, anim.blend_factor);
+            base_speed = glm::mix(0.0f, 3.5f, anim.blend_factor);
         } else {
             anim.clip_a.animation_index =
                 model.get_animation_index("walk");
@@ -108,7 +108,7 @@ public:
             anim.clip_a.speed = glm::mix(1.5f, 2.5f, anim.blend_factor);
             anim.clip_b.speed = glm::mix(1.5f, 2.5f, anim.blend_factor);
 
-            base_speed = glm::mix(2.5f, 12.0f, anim.blend_factor);
+            base_speed = glm::mix(3.5f, 12.0f, anim.blend_factor);
         }
 
         float speed = base_speed * delta_time;
