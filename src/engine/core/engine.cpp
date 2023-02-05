@@ -1,5 +1,7 @@
 #include "engine.h"
 
+#include "src/engine/component/script/script_include.h"
+
 #include <iostream>
 #include <fstream>
 #include <algorithm>
@@ -22,6 +24,8 @@ void Engine::set_scene_from_path(std::string const & path) {
 
 void Engine::execute_frame() {
     // loop begin
+    m_context.load_scene_if_queued();
+
     float fixed_delta_time = 1.0f / 60.0f;
 
     Input & input = m_context.input();
@@ -50,8 +54,6 @@ void Engine::execute_frame() {
             .process_input_events(m_context.input().event_queue());
     }
 
-
-
     thread_local RenderData render_data;
     render_data.clear();
     switch (m_mode) {
@@ -62,7 +64,7 @@ void Engine::execute_frame() {
 
             scene.collect_world_render_data(
                 render_data.world,
-                m_editor.selected_node()
+                NO_NODE
             );
 
             scene.get_camera().collect_camera_render_data(

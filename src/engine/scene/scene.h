@@ -25,6 +25,7 @@ namespace prt3 {
 
 class Context;
 class Editor;
+class SceneManager;
 
 class Scene {
 public:
@@ -56,6 +57,16 @@ public:
     NodeID add_node_to_root(const char * name) { return add_node(s_root_id, name); }
     NodeID get_next_available_node_id() const
     { return m_free_list.empty() ? m_nodes.size() : m_free_list.back(); }
+
+    ModelHandle upload_model(std::string const & path)
+    { return register_model(model_manager().upload_model(path)); }
+
+    ModelHandle add_model_to_scene_from_path(
+        std::string const & path,
+        NodeID parent_id
+    ) {  return register_model(model_manager()
+        .add_model_to_scene_from_path(path, *this, parent_id));
+    }
 
     NodeID get_root_id() const { return s_root_id; }
 
@@ -190,6 +201,14 @@ public:
     ModelManager const & model_manager() const;
     Model const & get_model(ModelHandle handle) const;
 
+    std::unordered_set<ModelHandle> const & referenced_models() const
+    { return m_referenced_models; }
+
+    SceneManager & scene_manager();
+
+    inline std::vector<NodeID> const & get_overlaps(NodeID node_id) const
+    { return m_physics_system.get_overlaps(node_id); }
+
 private:
     Context * m_context;
 
@@ -222,7 +241,12 @@ private:
 
     TransformCache m_transform_cache;
 
+    std::unordered_set<ModelHandle> m_referenced_models;
+
     NodeID add_node(NodeID parent_id, const char * name, UUID uuid);
+
+    ModelHandle register_model(ModelHandle handle)
+    { m_referenced_models.insert(handle); return handle; }
 
     void update(float delta_time);
 

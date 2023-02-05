@@ -135,6 +135,7 @@ void ColliderComponent::set_collider(
 ) {
     Model const & model = scene.get_model(model_handle);
     PhysicsSystem & sys = scene.physics_system();
+    sys.remove_collider(m_tag);
     m_tag = sys.add_mesh_collider(
         m_node_id,
         type,

@@ -175,21 +175,8 @@ public:
         return shape;
     }
 
-    DiscreteConvexHull<8> base_shape() const {
-        DiscreteConvexHull<8> shape;
-
-        glm::vec3 max = m_center + 0.5f * m_dimensions;
-        glm::vec3 min = m_center - 0.5f * m_dimensions;
-        shape.vertices[0] = glm::vec4{min.x, min.y, min.z, 1.0f};
-        shape.vertices[1] = glm::vec4{min.x, min.y, max.z, 1.0f};
-        shape.vertices[2] = glm::vec4{min.x, max.y, min.z, 1.0f};
-        shape.vertices[3] = glm::vec4{min.x, max.y, max.z, 1.0f};
-        shape.vertices[4] = glm::vec4{max.x, min.y, min.z, 1.0f};
-        shape.vertices[5] = glm::vec4{max.x, min.y, max.z, 1.0f};
-        shape.vertices[6] = glm::vec4{max.x, max.y, min.z, 1.0f};
-        shape.vertices[7] = glm::vec4{max.x, max.y, max.z, 1.0f};
-
-        return shape;
+    Box base_shape() const {
+        return Box{ m_dimensions, m_center };
     }
 
     glm::vec3 dimensions() const { return m_dimensions; }

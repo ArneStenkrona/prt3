@@ -34,16 +34,6 @@ class ModelManager {
 public:
     ModelManager(Context & context);
 
-    void clear();
-
-    ModelHandle upload_model(std::string const & path);
-    ModelHandle upload_animated_model(std::string const & path);
-
-    NodeID add_model_to_scene_from_path(
-        std::string const & path,
-        Scene & scene,
-        NodeID parent_id
-    );
 
     Model const & get_model_from_mesh_id(ResourceID id) const
     { return m_models.at(m_mesh_id_to_model.at(id)); }
@@ -122,9 +112,25 @@ private:
 
     std::unordered_map<std::string, ModelHandle> m_path_to_model_handle;
 
+    std::vector<ModelHandle> m_free_handles;
+
+    ModelHandle upload_model(std::string const & path);
+
+    NodeID add_model_to_scene_from_path(
+        std::string const & path,
+        Scene & scene,
+        NodeID parent_id
+    );
+
     bool model_is_uploaded(ModelHandle handle);
     /* upload to graphics device */
     void upload_model(ModelHandle handle);
+
+    void clear();
+    void free_model(ModelHandle handle);
+
+    friend class Scene;
+    friend class Context;
 };
 
 } // namespace prt3

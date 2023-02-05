@@ -29,6 +29,30 @@ void ModelManager::clear() {
     m_mesh_id_to_mesh_index.clear();
     m_material_id_to_mesh_index.clear();
     m_path_to_model_handle.clear();
+    m_free_handles.clear();
+}
+
+void ModelManager::free_model(ModelHandle handle) {
+    m_context.renderer().free_model(handle, m_model_resources.at(handle));
+
+    {
+        ModelResource const & res = m_model_resources.at(handle);
+        for (ResourceID id : res.mesh_resource_ids) {
+            m_mesh_id_to_model.erase(id);
+            m_mesh_id_to_mesh_index.erase(id);
+        }
+        for (ResourceID id : res.material_resource_ids) {
+            m_material_id_to_model.erase(id);
+            m_material_id_to_mesh_index.erase(id);
+        }
+        m_model_resources.erase(handle);
+    }
+
+    m_path_to_model_handle.erase(m_models[handle].path());
+    m_model_resources.erase(handle);
+    m_models[handle] = Model{};
+
+    m_free_handles.push_back(handle);
 }
 
 ModelHandle ModelManager::upload_model(
@@ -36,8 +60,15 @@ ModelHandle ModelManager::upload_model(
 ) {
     if (m_path_to_model_handle.find(path) == m_path_to_model_handle.end()) {
         // load from file
-        ModelHandle handle = m_models.size();
-        m_models.emplace_back(path.c_str());
+        ModelHandle handle;
+        if (m_free_handles.empty()) {
+            handle = m_models.size();
+            m_models.emplace_back(path.c_str());
+        } else {
+            handle = m_free_handles.back();
+            m_free_handles.pop_back();
+            new(&m_models[handle]) Model{path.c_str()};
+        }
 
         if (!m_models.back().valid()) {
             m_models.pop_back();
@@ -60,9 +91,15 @@ NodeID ModelManager::add_model_to_scene_from_path(
 ) {
     if (m_path_to_model_handle.find(path) == m_path_to_model_handle.end()) {
         // load from file
-        ModelHandle handle = m_models.size();
-        m_models.emplace_back(path.c_str());
-        m_path_to_model_handle.insert({path, handle});
+        ModelHandle handle;
+        if (m_free_handles.empty()) {
+            handle = m_models.size();
+            m_models.emplace_back(path.c_str());
+        } else {
+            handle = m_free_handles.back();
+            m_free_handles.pop_back();
+            new(&m_models[handle]) Model{path.c_str()};
+        }
     }
 
     ModelHandle handle = m_path_to_model_handle[path];

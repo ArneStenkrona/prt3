@@ -110,19 +110,23 @@ void inner_show_component<ColliderComponent>(
 
     ImGui::Combo("type", &current_type, types, IM_ARRAYSIZE(types));
 
-    if (shapes_enum[current_shape] != tag.shape ||
-        types_enum[current_type] != tag.type) {
-        tag.shape = shapes_enum[current_shape];
-        tag.type = types_enum[current_type];
+    bool shape_changed = shapes_enum[current_shape] != tag.shape;
+    bool type_changed = types_enum[current_type] != tag.type;
 
-        switch (tag.shape) {
+    if (shape_changed || type_changed) {
+        ColliderShape new_shape = shapes_enum[current_shape];
+        ColliderType new_type = types_enum[current_type];
+
+        switch (new_shape) {
             case ColliderShape::mesh: {
                 context.editor().perform_action<ActionSetCollider<
                         std::vector<glm::vec3>
                     > >(
                     id,
-                    tag.type,
-                    std::vector<glm::vec3>{}
+                    new_type,
+                    shape_changed ? std::vector<glm::vec3>{} :
+                                    sys.get_mesh_collider(tag.id, tag.type)
+                                    .triangles()
                 );
                 tag = component.tag();
                 break;
@@ -134,8 +138,10 @@ void inner_show_component<ColliderComponent>(
                     Sphere
                 > >(
                     id,
-                    tag.type,
-                    sphere
+                    new_type,
+                    shape_changed ? sphere :
+                                    sys.get_sphere_collider(tag.id, tag.type)
+                                    .base_shape()
                 );
                 tag = component.tag();
                 break;
@@ -147,13 +153,18 @@ void inner_show_component<ColliderComponent>(
                     Box
                 > >(
                     id,
-                    tag.type,
-                    box
+                    new_type,
+                    shape_changed ? box :
+                                    sys.get_box_collider(tag.id, tag.type)
+                                    .base_shape()
                 );
                 tag = component.tag();
                 break;
             }
-            default: {}
+            default: {
+                tag.shape = new_shape;
+                tag.type = new_type;
+            }
         }
     }
 
