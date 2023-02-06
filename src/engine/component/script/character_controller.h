@@ -127,7 +127,9 @@ public:
             );
         }
 
-        direction = glm::mix(direction, dir, dt_fac);
+        if (dir != glm::vec3{0.0f, 0.0f, 0.0f}) {
+            direction = glm::mix(direction, dir, dt_fac);
+        }
 
         glm::vec3 raw_look_dir = glm::vec3{direction.x, 0.0f, direction.z};
         if (raw_look_dir != glm::vec3{0.0f}) {
