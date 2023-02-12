@@ -6,6 +6,7 @@
 #include "src/engine/editor/gui_components/panel.h"
 #include "src/engine/component/transform.h"
 #include "src/util/template_util.h"
+#include "src/util/file_util.h"
 #include "src/engine/editor/gui_components/component/armature_gui.h"
 #include "src/engine/editor/gui_components/component/animated_mesh_gui.h"
 #include "src/engine/editor/gui_components/component/animated_model_gui.h"
@@ -18,6 +19,9 @@
 #include "src/engine/editor/action/action_transform_node.h"
 #include "src/engine/editor/action/action_add_component.h"
 #include "src/engine/editor/action/action_remove_component.h"
+#include "src/engine/scene/prefab.h"
+
+#include <fstream>
 
 using namespace prt3;
 
@@ -154,6 +158,32 @@ bool show_transform(Transform & transform) {
     return ret;
 }
 
+void show_save_as_prefab(EditorContext & context, NodeID id) {
+    thread_local bool open = false;
+
+    if (ImGui::Button("save prefab")) {
+        open = true;
+    }
+
+    if (open) {
+        auto & file_dialog = context.file_dialog();
+        ImGui::OpenPopup("save prefab");
+
+        if (file_dialog.showFileDialog("save prefab",
+            imgui_addons::ImGuiFileBrowser::DialogMode::SAVE, ImVec2(0, 0)
+            )
+        ) {
+            std::string const & path = file_dialog.selected_path;
+
+            std::ofstream out(path, std::ios::binary);
+            Prefab::serialize_node(context.scene(), id, out);
+            out.close();
+            emscripten_save_file_via_put(path);
+        }
+        open = ImGui::IsPopupOpen(ImGui::GetID("save prefab"), 0);
+    }
+}
+
 void prt3::node_inspector(EditorContext & context) {
     NodeID id = context.get_selected_node();
     Node & node = context.context().edit_scene().get_node(id);
@@ -172,6 +202,8 @@ void prt3::node_inspector(EditorContext & context) {
     ImGui::PopItemWidth();
 
     if (id != context.context().edit_scene().get_root_id()) {
+        show_save_as_prefab(context, id);
+
         Transform transform = node.local_transform();
         if (show_transform(transform)) {
             context.editor().perform_action<ActionTransformNode>(

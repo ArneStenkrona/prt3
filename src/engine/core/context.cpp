@@ -41,8 +41,6 @@ void Context::load_scene_if_queued() {
         m_game_scene.deserialize(in);
         in.close();
 
-        // TODO: clean up now unreferenced gpu resources
-
         m_scene_manager.reset_queue();
     }
 }

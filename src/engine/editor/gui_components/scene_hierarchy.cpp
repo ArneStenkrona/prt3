@@ -3,6 +3,7 @@
 #include "src/engine/editor/editor.h"
 #include "src/engine/editor/action/action_add_node.h"
 #include "src/engine/editor/action/action_remove_node.h"
+#include "src/engine/editor/action/action_instantiate_prefab.h"
 #include "src/util/fixed_string.h"
 #include "src/engine/editor/gui_components/panel.h"
 
@@ -13,6 +14,7 @@
 #include <vector>
 #include <cstring>
 #include <algorithm>
+#include <fstream>
 
 using namespace prt3;
 
@@ -159,5 +161,31 @@ void prt3::scene_hierarchy(EditorContext & context) {
                 to_remove
             );
         }
+    }
+
+    thread_local bool load_open = false;
+    if (ImGui::Button("load prefab")) {
+        load_open = true;
+    }
+    if (load_open) {
+        auto & file_dialog = context.file_dialog();
+        ImGui::OpenPopup("load prefab");
+
+        if (file_dialog.showFileDialog("load prefab",
+            imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(0, 0))
+        ) {
+            std::string const & path = file_dialog.selected_path;
+
+            NodeID parent = context.get_selected_node();
+            if (parent == NO_NODE) {
+                parent = scene.get_root_id();
+            }
+
+            context.editor().perform_action<ActionInstantiatePrefab>(
+                parent,
+                path.c_str()
+            );
+        }
+        load_open = ImGui::IsPopupOpen(ImGui::GetID("load prefab"), 0);
     }
 }

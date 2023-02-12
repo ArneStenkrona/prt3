@@ -46,7 +46,7 @@ bool ActionRemoveNode::unapply() {
 void ActionRemoveNode::serialize_node(std::ostream & out) const {
     Scene const & scene = m_editor_context->scene();
 
-    static std::vector<NodeID> queue;
+    thread_local std::vector<NodeID> queue;
     queue.push_back(m_node_id);
 
     NodeID n_nodes = 0;

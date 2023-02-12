@@ -65,6 +65,7 @@ private:
     std::vector<NodeID> m_children_ids;
 
     friend class Scene;
+    friend class Prefab;
 };
 
 } // namespace prt3

@@ -170,7 +170,7 @@ void show_model_component(
             if (file_dialog.showFileDialog(
                     "import model",
                     imgui_addons::ImGuiFileBrowser::DialogMode::OPEN,
-                    ImVec2(1400, 700)
+                    ImVec2(0, 0)
             )) {
                 ModelHandle new_handle =
                     scene.upload_model(file_dialog.selected_path.c_str());

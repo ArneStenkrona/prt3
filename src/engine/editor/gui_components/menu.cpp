@@ -55,7 +55,7 @@ void prt3::menu(EditorContext & context) {
         ImGui::OpenPopup("save scene");
 
         if (file_dialog.showFileDialog("save scene",
-            imgui_addons::ImGuiFileBrowser::DialogMode::SAVE, ImVec2(1400, 700))
+            imgui_addons::ImGuiFileBrowser::DialogMode::SAVE, ImVec2(0, 0))
         ) {
             std::string const & path = file_dialog.selected_path;
             save_scene(context.scene(), path);
@@ -68,7 +68,7 @@ void prt3::menu(EditorContext & context) {
         ImGui::OpenPopup("load scene");
 
         if (file_dialog.showFileDialog("load scene",
-            imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(1400, 700))
+            imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(0, 0))
         ) {
             std::string const & path = file_dialog.selected_path;
             load_scene(context.scene(), path);
