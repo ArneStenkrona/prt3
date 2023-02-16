@@ -21,7 +21,7 @@ class Engine {
 public:
     Engine();
 
-    void set_scene_from_path(std::string const & path);
+    void set_project_from_path(std::string const & path);
 
     void execute_frame();
 private:

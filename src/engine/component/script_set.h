@@ -33,6 +33,8 @@ public:
         return id;
     }
 
+    ScriptID add_script_from_uuid(Scene & scene, UUID uuid);
+
     template<typename T>
     T * get_script(Scene & scene) {
         for (ScriptID const & id : m_script_ids) {
@@ -80,8 +82,6 @@ private:
 
     ScriptID add_script_to_scene(Scene & scene, Script * script);
     Script * get_script_from_scene(Scene & scene, ScriptID id);
-
-    ScriptID add_script_from_uuid(Scene & scene, UUID uuid);
 
     void remove(Scene & scene);
 

@@ -248,6 +248,7 @@ private:
     ModelHandle register_model(ModelHandle handle)
     { m_referenced_models.insert(handle); return handle; }
 
+    void start() {}
     void update(float delta_time);
 
     void clear_node_mod_flags();
@@ -288,6 +289,7 @@ private:
 
     ModelManager & model_manager();
 
+    friend class Context;
     friend class Engine;
     friend class Renderer;
     friend class Node;

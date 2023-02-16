@@ -89,7 +89,11 @@ void Prefab::serialize_node(
 
         auto const & name = scene.get_node_name(node.id());
         out.write(name.data(), name.writeable_size());
-        out << node.local_transform();
+        if (id == node_id) {
+            out << Transform{};
+        } else {
+            out << node.local_transform();
+        }
 
         scene.serialize_components(out, id);
 

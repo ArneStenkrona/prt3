@@ -90,6 +90,9 @@ public:
     static std::unordered_map<UUID, char const *> const & script_names()
     { return s_script_names; }
 
+    static char const * get_script_name(UUID uuid)
+    { return s_script_names.at(uuid); }
+
 protected:
     NodeID node_id() const { return m_node_id; }
     Node & get_node(Scene & scene);

@@ -57,6 +57,7 @@ file(GLOB SOURCES
 "src/engine/physics/collider.cpp"
 "src/engine/physics/gjk.cpp"
 "src/engine/physics/physics_system.cpp"
+"src/engine/project/project.cpp"
 "src/engine/core/context.cpp"
 "src/engine/core/engine.cpp"
 "src/engine/core/input.cpp"

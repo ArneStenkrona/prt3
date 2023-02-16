@@ -13,19 +13,15 @@ using time_point = std::chrono::time_point<std::chrono::high_resolution_clock>;
 Engine::Engine()
  : m_editor{m_context},
    m_last_frame_time_point{std::chrono::high_resolution_clock::now()} {
-
+    set_mode_editor();
 }
 
-void Engine::set_scene_from_path(std::string const & path) {
-    std::ifstream in(path, std::ios::binary);
-    m_context.edit_scene().deserialize(in);
-    in.close();
+void Engine::set_project_from_path(std::string const & path) {
+    m_context.set_project_from_path(path);
 }
 
 void Engine::execute_frame() {
     // loop begin
-    m_context.load_scene_if_queued();
-
     float fixed_delta_time = 1.0f / 60.0f;
 
     Input & input = m_context.input();
@@ -58,6 +54,7 @@ void Engine::execute_frame() {
     render_data.clear();
     switch (m_mode) {
         case EngineMode::game: {
+            m_context.load_scene_if_queued();
             Scene & scene = m_context.game_scene();
 
             scene.update(fixed_delta_time);
@@ -96,7 +93,6 @@ void Engine::execute_frame() {
             break;
         }
     }
-
 
     // loop end
     measure_duration();
@@ -142,9 +138,11 @@ void Engine::measure_duration() {
 void Engine::set_mode_game() {
     m_mode = EngineMode::game;
     m_context.set_game_scene(m_context.edit_scene());
+    m_context.on_game_scene_start();
 }
 
 void Engine::set_mode_editor() {
     m_mode = EngineMode::editor;
+    m_context.scene_manager().reset_queue();
 }
 

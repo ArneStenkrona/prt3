@@ -8,8 +8,11 @@
 #include "src/engine/rendering/model_manager.h"
 #include "src/engine/physics/physics_system.h"
 #include "src/engine/core/input.h"
+#include "src/engine/project/project.h"
 
 namespace prt3 {
+
+class Engine;
 
 class Context {
 public:
@@ -27,9 +30,14 @@ public:
     Scene & game_scene() { return m_game_scene; }
     SceneManager & scene_manager() { return m_scene_manager; }
 
+    void set_project_from_path(std::string const & path);
+
     void set_game_scene(Scene const & scene) { m_game_scene = scene; }
 
     void load_scene_if_queued();
+    void on_game_scene_start();
+
+    void update_window_size(int w, int h);
 
 private:
     Renderer m_renderer;
@@ -38,10 +46,7 @@ private:
     Scene m_edit_scene;
     Scene m_game_scene;
     SceneManager m_scene_manager;
-
-    void update_window_size(int w, int h);
-
-    friend class Renderer;
+    Project m_project;
 };
 
 } // namespace prt3
