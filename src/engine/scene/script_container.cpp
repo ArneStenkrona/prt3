@@ -14,6 +14,8 @@ ScriptContainer & ScriptContainer::operator=(ScriptContainer const & other) {
         m_late_init_queue.insert(copy);
     }
 
+    m_next_id = other.m_next_id;
+
     return *this;
 }
 

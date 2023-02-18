@@ -71,6 +71,7 @@ file(GLOB SOURCES
 "src/engine/editor/gui_components/menu.cpp"
 "src/engine/editor/gui_components/node_inspector.cpp"
 "src/engine/editor/gui_components/panel.cpp"
+"src/engine/editor/gui_components/project_config.cpp"
 "src/engine/editor/gui_components/scene_hierarchy.cpp"
 "src/engine/editor/editor_camera.cpp"
 "src/engine/editor/editor_context.cpp"

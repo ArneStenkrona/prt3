@@ -22,6 +22,7 @@ public:
     imgui_addons::ImGuiFileBrowser & file_dialog() { return m_file_dialog; }
 
     Scene & scene() { return context().edit_scene(); }
+    Project & project() { return context().project(); }
 
     std::vector<Node> & get_scene_nodes()
     { return scene().m_nodes; }

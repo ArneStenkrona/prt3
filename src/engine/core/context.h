@@ -29,6 +29,7 @@ public:
     Scene & edit_scene() { return m_edit_scene; }
     Scene & game_scene() { return m_game_scene; }
     SceneManager & scene_manager() { return m_scene_manager; }
+    Project & project() { return m_project; }
 
     void set_project_from_path(std::string const & path);
 

@@ -4,7 +4,7 @@
 
 using namespace prt3;
 
-void Project::serialize(std::ostream & out) {
+void Project::serialize(std::ostream & out) const {
     write_string(out, m_main_scene_path);
 
     write_stream(out, m_autoload_scripts.size());

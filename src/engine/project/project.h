@@ -13,7 +13,7 @@ class Project {
 public:
     Project() {}
 
-    void serialize(std::ostream & out);
+    void serialize(std::ostream & out) const;
     void deserialize(std::istream & in);
 
     void add_autoload_script(UUID uuid) { m_autoload_scripts.insert(uuid); }
