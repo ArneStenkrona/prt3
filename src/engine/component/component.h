@@ -7,6 +7,7 @@
 #include "src/engine/component/armature.h"
 #include "src/engine/component/collider_component.h"
 #include "src/engine/component/mesh.h"
+#include "src/engine/component/door.h"
 #include "src/engine/component/material.h"
 #include "src/engine/component/model.h"
 #include "src/engine/component/point_light.h"
@@ -134,7 +135,8 @@ using ComponentTypes = type_pack<
     ScriptSet,
     AnimatedModel,
     AnimatedMesh,
-    Armature
+    Armature,
+    Door
 >;
 
 using ComponentStoragesType = wrap_arg_pack_in_storage<std::tuple, ComponentTypes>::type;

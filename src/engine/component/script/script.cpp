@@ -1,6 +1,7 @@
 #include "script.h"
 
 #include "src/engine/scene/scene.h"
+#include "src/engine/component/script/script_include.h"
 
 using namespace prt3;
 
@@ -14,15 +15,14 @@ bool Script::add_tag(Scene & scene, NodeTag const & tag) {
     return scene.add_tag_to_node(tag, m_node_id);
 }
 
-std::unordered_map<UUID, Script::TScriptDeserializer>
-    Script::s_deserializers;
+std::unordered_map<UUID, Script::TScriptDeserializer> *
+    Script::s_deserializers = nullptr;
 
-std::unordered_map<UUID, Script::TScriptInstantiator>
-    Script::s_instantiators;
+std::unordered_map<UUID, Script::TScriptInstantiator> *
+    Script::s_instantiators = nullptr;
 
-
-std::unordered_map<UUID, char const *>
-    Script::s_script_names;
+std::unordered_map<UUID, char const *> *
+    Script::s_script_names = nullptr;
 
 Script * Script::deserialize(
     UUID uuid,
@@ -30,7 +30,7 @@ Script * Script::deserialize(
     Scene & scene,
     NodeID node_id
 ) {
-    if (auto it = s_deserializers.find(uuid); it != s_deserializers.end()) {
+    if (auto it = s_deserializers->find(uuid); it != s_deserializers->end()) {
         return it->second(in, scene, node_id);
     }
 
@@ -42,7 +42,7 @@ Script * Script::instantiate(
     Scene & scene,
     NodeID node_id
 ) {
-    if (auto it = s_instantiators.find(uuid); it != s_instantiators.end()) {
+    if (auto it = s_instantiators->find(uuid); it != s_instantiators->end()) {
         return it->second(scene, node_id);
     }
 
@@ -55,11 +55,33 @@ bool Script::Register(
     Script::TScriptDeserializer deserializer,
     Script::TScriptInstantiator instantiator
 ) {
-    if (s_deserializers.find(uuid) != s_deserializers.end()) {
+    if (s_deserializers == nullptr) {
+        static std::unique_ptr<
+            std::unordered_map<UUID, Script::TScriptDeserializer>
+        > deserializers{
+            new std::unordered_map<UUID, Script::TScriptDeserializer>()
+        };
+        static std::unique_ptr<
+            std::unordered_map<UUID, Script::TScriptInstantiator>
+        > instantiators{
+            new std::unordered_map<UUID, Script::TScriptInstantiator>()
+        };
+        static std::unique_ptr<std::unordered_map<UUID, char const *>
+        > names{
+            new std::unordered_map<UUID, char const *>()
+        };
+
+        s_deserializers = deserializers.get();
+        s_instantiators = instantiators.get();
+        s_script_names = names.get();
+    }
+
+    if (s_deserializers->find(uuid) != s_deserializers->end()) {
         return false;
     }
-    s_script_names[uuid] = name;
-    s_deserializers[uuid] = deserializer;
-    s_instantiators[uuid] = instantiator;
+    (*s_script_names)[uuid] = name;
+    (*s_deserializers)[uuid] = deserializer;
+    (*s_instantiators)[uuid] = instantiator;
+
     return true;
 }

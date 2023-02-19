@@ -26,6 +26,9 @@ public:
     explicit CharacterController(Scene & scene, NodeID m_node_id)
         : Script(scene, m_node_id) {}
 
+    explicit CharacterController(std::istream &, Scene & scene, NodeID m_node_id)
+        : Script(scene, m_node_id) {}
+
     virtual void on_init(Scene & scene) {
         add_tag(scene, "player");
     }

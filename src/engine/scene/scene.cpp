@@ -29,6 +29,7 @@ void Scene::update(float delta_time) {
     }
 
     clear_node_mod_flags();
+    m_component_manager.update(*this);
     m_script_container.update(*this, delta_time);
 }
 
@@ -541,4 +542,17 @@ void Scene::internal_clear(bool place_root) {
     m_camera.transform() = {};
 
     m_referenced_models.clear();
+
+    m_autoload_scripts.clear();
+}
+
+void Scene::add_autoload_scripts(std::unordered_set<UUID> const & uuids) {
+    for (UUID uuid : uuids) {
+        NodeID node_id = add_node_to_root(Script::get_script_name(uuid));
+        add_component<ScriptSet>(node_id);
+
+        ScriptSet & script_set = get_component<ScriptSet>(node_id);
+        ScriptID script_id = script_set.add_script_from_uuid(*this, uuid);
+        m_autoload_scripts[uuid] = script_id;
+    }
 }

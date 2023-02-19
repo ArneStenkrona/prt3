@@ -209,6 +209,16 @@ public:
     inline std::vector<NodeID> const & get_overlaps(NodeID node_id) const
     { return m_physics_system.get_overlaps(node_id); }
 
+    Script * get_autoload_script(UUID uuid) {
+        if (m_autoload_scripts.find(uuid) == m_autoload_scripts.end())
+            return nullptr;
+        return m_script_container.get_script(m_autoload_scripts.at(uuid));
+    }
+
+    template<typename ScriptType>
+    ScriptType * get_autoload_script()
+    { return dynamic_cast<ScriptType*>(get_autoload_script(ScriptType::s_uuid)); }
+
 private:
     Context * m_context;
 
@@ -221,6 +231,7 @@ private:
     std::vector<NodeID> m_free_list;
     std::unordered_map<NodeID, UUID> m_node_uuids;
     std::unordered_map<UUID, NodeID> m_uuid_to_node;
+    std::unordered_map<UUID, ScriptID> m_autoload_scripts;
 
     ScriptContainer m_script_container;
 
@@ -275,6 +286,8 @@ private:
     void internal_remove_script(ScriptID id) {
         m_script_container.remove(id);
     }
+
+    void add_autoload_scripts(std::unordered_set<UUID> const & uuids);
 
     void internal_clear(bool place_root);
 

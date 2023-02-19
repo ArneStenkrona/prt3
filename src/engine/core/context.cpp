@@ -2,9 +2,11 @@
 
 #include "src/engine/component/script/script.h"
 #include "src/engine/component/script_set.h"
+#include "src/util/mem.h"
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <unordered_set>
 
 using namespace prt3;
@@ -53,22 +55,46 @@ void Context::load_scene_if_queued() {
             }
         }
 
+        /* save autoload state */
+        std::stringstream out_autoload;
+        thread_local std::vector<char> data;
+
+        for (UUID uuid : m_project.autoload_scripts()) {
+            Script const * script = m_game_scene.get_autoload_script(uuid);
+            if (script != nullptr) {
+                write_stream(out_autoload, true);
+                script->save_state(out_autoload);
+            } else {
+                write_stream(out_autoload, false);
+            }
+        }
+
+        std::string const & s = out_autoload.str();
+        data.reserve(s.size());
+        data.assign(s.begin(), s.end());
+
+        /* load scene */
         std::ifstream in(m_scene_manager.queued_scene_path(), std::ios::binary);
         m_game_scene.deserialize(in);
         in.close();
 
         m_scene_manager.reset_queue();
+        m_game_scene.add_autoload_scripts(m_project.autoload_scripts());
 
-        on_game_scene_start();
-    }
-}
+        /* restore autoload state */
+        imemstream in_autoload(data.data(), data.size());
 
-void Context::on_game_scene_start() {
-    for (UUID uuid : m_project.autoload_scripts()) {
-        NodeID id = m_game_scene.add_node_to_root(Script::get_script_name(uuid));
-        m_game_scene.add_component<ScriptSet>(id);
-        ScriptSet & script_set = m_game_scene.get_component<ScriptSet>(id);
-        script_set.add_script_from_uuid(m_game_scene, uuid);
+        for (UUID uuid : m_project.autoload_scripts()) {
+            bool serialized;
+            read_stream(in_autoload, serialized);
+
+            if (serialized) {
+                Script * script = m_game_scene.get_autoload_script(uuid);
+                script->restore_state(in_autoload);
+            }
+        }
+
+        /* start scene */
+        m_game_scene.start();
     }
-    m_game_scene.start();
 }

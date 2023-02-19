@@ -15,6 +15,9 @@ public:
     explicit CameraController(Scene & scene, NodeID m_node_id)
         : Script(scene, m_node_id) {}
 
+    explicit CameraController(std::istream &, Scene & scene, NodeID m_node_id)
+        : Script(scene, m_node_id) {}
+
     void set_target(NodeID target) {
         m_target = target;
     }

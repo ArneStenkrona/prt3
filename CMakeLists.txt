@@ -47,6 +47,7 @@ file(GLOB SOURCES
 "src/engine/component/armature.cpp"
 "src/engine/component/collider_component.cpp"
 "src/engine/component/component_manager.cpp"
+"src/engine/component/door.cpp"
 "src/engine/component/material.cpp"
 "src/engine/component/mesh.cpp"
 "src/engine/component/model.cpp"

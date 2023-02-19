@@ -13,6 +13,9 @@ public:
     explicit ExampleScript(Scene & scene, NodeID node_id)
         : Script(scene, node_id) {}
 
+    explicit ExampleScript(std::istream &, Scene & scene, NodeID node_id)
+        : Script(scene, node_id) {}
+
     virtual void on_init(Scene &) {
         std::cout << "on_init()" << std::endl;
     }

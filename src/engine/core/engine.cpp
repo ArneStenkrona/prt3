@@ -1,7 +1,5 @@
 #include "engine.h"
 
-#include "src/engine/component/script/script_include.h"
-
 #include <iostream>
 #include <fstream>
 #include <algorithm>
@@ -138,7 +136,10 @@ void Engine::measure_duration() {
 void Engine::set_mode_game() {
     m_mode = EngineMode::game;
     m_context.set_game_scene(m_context.edit_scene());
-    m_context.on_game_scene_start();
+    m_context.game_scene()
+        .add_autoload_scripts(m_context.project().autoload_scripts());
+    m_context.game_scene().start();
+
 }
 
 void Engine::set_mode_editor() {

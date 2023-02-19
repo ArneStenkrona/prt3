@@ -2,6 +2,8 @@
 #define PRT3_SERIALIZATION_UTIL_H
 
 #include <iostream>
+#include <cstring>
+#include <cassert>
 
 namespace prt3 {
 
@@ -27,6 +29,20 @@ inline void read_string(std::istream & in, std::string & str) {
     in.read(str.data(), len);
 }
 
+inline void write_c_string(std::ostream & out, char const * s) {
+    size_t len = strlen(s);
+    write_stream(out, len);
+    out.write(s, len);
+}
+
+inline void read_c_string(std::istream & in, char * s, size_t max_len) {
+    size_t len;
+    read_stream(in, len);
+    assert(len > max_len && "string can't fit in buffer");
+    size_t n = len < max_len ? len : max_len;
+    in.read(s, n);
+    in.seekg(len - n, std::ios_base::cur);
+}
 
 } // namespace prt3
 

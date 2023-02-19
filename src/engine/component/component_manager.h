@@ -118,6 +118,8 @@ private:
             >(m_component_storages);
     }
 
+    void update(Scene & scene) { inner_update(scene, m_component_storages); }
+
     void clear();
 
     template<size_t I = 0, typename... Tp>
@@ -235,6 +237,35 @@ private:
 
         if constexpr(I+1 != sizeof...(Tp))
             remove_components<I+1>(scene, id, t);
+    }
+
+    template <typename T, typename = int>
+    struct HasUpdate : std::false_type {
+    };
+
+    template <typename T>
+    struct HasUpdate<T, decltype(&T::update, 0)> : std::true_type {
+    };
+
+    template<typename T>
+    inline constexpr void update_if_exists(
+        Scene & scene,
+        ComponentStorage<T> & storage
+    ) {
+        if constexpr (HasUpdate<T>::value)
+            T::update(scene, storage.get_all_components());
+    }
+
+    template<size_t I = 0, typename... Tp>
+    void inner_update(
+        Scene & scene,
+        std::tuple<ComponentStorage<Tp>...> & t
+    ) {
+        auto & storage = std::get<I>(t);
+        update_if_exists(scene, storage);
+
+        if constexpr(I+1 != sizeof...(Tp))
+            inner_update<I+1>(scene, t);
     }
 
     friend class Scene;

@@ -11,6 +11,7 @@
 #include "src/engine/editor/gui_components/component/animated_mesh_gui.h"
 #include "src/engine/editor/gui_components/component/animated_model_gui.h"
 #include "src/engine/editor/gui_components/component/collider_gui.h"
+#include "src/engine/editor/gui_components/component/door_gui.h"
 #include "src/engine/editor/gui_components/component/material_gui.h"
 #include "src/engine/editor/gui_components/component/mesh_gui.h"
 #include "src/engine/editor/gui_components/component/model_gui.h"

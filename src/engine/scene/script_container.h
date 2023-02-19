@@ -24,6 +24,8 @@ public:
 
     std::unordered_map<ScriptID, Script *> & scripts() { return m_scripts; }
 
+    Script * get_script(ScriptID id) { return m_scripts.at(id); }
+
 private:
     std::unordered_map<ScriptID, Script *> m_scripts;
     std::unordered_set<Script *> m_init_queue;

@@ -36,7 +36,6 @@ public:
     void set_game_scene(Scene const & scene) { m_game_scene = scene; }
 
     void load_scene_if_queued();
-    void on_game_scene_start();
 
     void update_window_size(int w, int h);
 
