@@ -30,10 +30,15 @@ public:
         m_constructor_arg{constructor_arg}
     {
         Scene const & scene = m_editor_context->scene();
+        PhysicsSystem const & sys = scene.physics_system();
 
         std::stringstream stream;
-        scene.get_component<ColliderComponent>(m_node_id)
-            .serialize(stream, scene);
+        ColliderComponent const & comp =
+            scene.get_component<ColliderComponent>(m_node_id);
+        comp.serialize(stream, scene);
+
+        m_layer = sys.get_collision_layer(comp.tag());
+        m_mask = sys.get_collision_mask(comp.tag());
 
         std::string const & s = stream.str();
         m_original_data.reserve(s.size());
@@ -43,15 +48,30 @@ public:
 protected:
     virtual bool apply() {
         Scene & scene = m_editor_context->scene();
-        scene.get_component<ColliderComponent>(m_node_id)
-            .set_collider(scene, m_type, m_constructor_arg);
+        PhysicsSystem & sys = scene.physics_system();
+
+        ColliderComponent & comp =
+            scene.get_component<ColliderComponent>(m_node_id);
+        comp.set_collider(scene, m_type, m_constructor_arg);
+
+        sys.set_collision_layer(comp.tag(), m_layer);
+        sys.set_collision_mask(comp.tag(), m_mask);
+
         return true;
     }
 
     virtual bool unapply() {
         imemstream in(m_original_data.data(), m_original_data.size());
         Scene & scene = m_editor_context->scene();
-        scene.get_component<ColliderComponent>(m_node_id).deserialize(in, scene);
+        PhysicsSystem & sys = scene.physics_system();
+
+        ColliderComponent & comp =
+            scene.get_component<ColliderComponent>(m_node_id);
+        comp.deserialize(in, scene);
+
+        sys.set_collision_layer(comp.tag(), m_layer);
+        sys.set_collision_mask(comp.tag(), m_mask);
+
         return true;
     }
 
@@ -63,6 +83,9 @@ private:
 
     ColliderType m_type;
     ConstructorArgType m_constructor_arg;
+
+    CollisionLayer m_layer;
+    CollisionLayer m_mask;
 };
 
 class ActionSetCollisionLayerAndMask : public Action {

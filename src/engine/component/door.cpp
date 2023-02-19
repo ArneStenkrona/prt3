@@ -13,6 +13,7 @@ Door::Door(Scene & /*scene*/, NodeID node_id, std::istream & in)
  : m_node_id{node_id} {
     read_stream(in, m_id);
     read_stream(in, m_destination_id);
+    read_stream(in, m_entry_offset);
     read_c_string(
         in,
         m_destination_scene_path.data(),
@@ -26,6 +27,7 @@ void Door::serialize(
 ) const {
     write_stream(out, m_id);
     write_stream(out, m_destination_id);
+    write_stream(out, m_entry_offset);
     write_c_string(out, m_destination_scene_path.data());
 }
 

@@ -7,6 +7,7 @@
 #include <glm/gtx/euler_angles.hpp>
 
 #include <iostream>
+#include <cmath>
 
 namespace prt3 {
 
@@ -24,6 +25,11 @@ public:
 
     inline float get_target_distance() const { return m_target_distance; }
     inline void set_target_distance(float distance) { m_target_distance = distance; }
+
+    inline void set_direction(glm::vec3 direction) {
+        m_pitch = glm::degrees(glm::asin(-direction.y));
+        m_yaw = glm::degrees(std::atan2(direction.x, direction.z));
+    }
 
     virtual void on_late_init(Scene & scene) {
         NodeID player_id = scene.find_node_by_tag("player");

@@ -39,6 +39,13 @@ void inner_show_component<Door>(
         offsetof(Door, m_destination_id)
     );
 
+    edit_field<Door, glm::vec3>(
+        context,
+        id,
+        "entry offset",
+        offsetof(Door, m_entry_offset)
+    );
+
     ImGui::PopItemWidth();
 }
 

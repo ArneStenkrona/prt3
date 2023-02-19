@@ -2,13 +2,21 @@
 #define PRT3_GAME_STATE_H
 
 #include "src/engine/component/script/script.h"
+#include "src/engine/component/script/camera_controller.h"
 #include "src/engine/scene/scene.h"
 #include "src/engine/component/door.h"
 #include "src/util/serialization_util.h"
 #include "src/engine/scene/scene_manager.h"
 #include "src/engine/scene/prefab.h"
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
 #include <iostream>
+#include <cmath>
 
 namespace prt3 {
 
@@ -22,11 +30,22 @@ public:
 
     virtual void on_start(Scene & scene) {
         glm::vec3 spawn_position;
+        glm::vec3 dir = glm::vec3{0.0f, 0.0f, 1.0f};
         for (Door const & door : scene.get_all_components<Door>()) {
             if (door.id() == m_entry_door_id) {
                 Node const & door_node = scene.get_node(door.node_id());
-                spawn_position =
+                glm::vec3 door_position =
                     door_node.get_global_transform(scene).position;
+                spawn_position = door_position + door.entry_offset();
+
+                if (door.entry_offset().x != 0.0f ||
+                    door.entry_offset().z != 0.0f) {
+                    dir = glm::normalize(glm::vec3{
+                        door.entry_offset().x,
+                        0.0f,
+                        door.entry_offset().z
+                    });
+                }
                 break;
             }
         }
@@ -34,7 +53,22 @@ public:
         Node & node = scene.get_node(id);
         node.set_global_position(scene, spawn_position);
 
-        m_camera_prefab.instantiate(scene, scene.get_root_id());
+        float yaw = std::atan2(dir.x, dir.z);
+
+        glm::quat rot = glm::quat_cast(
+            glm::eulerAngleYXZ(yaw, 0.0f, 0.0f)
+        );
+
+        node.local_transform().rotation = node.local_transform().rotation * rot;
+
+        glm::vec3 camera_dir = glm::normalize(
+            glm::vec3{0.0f, 0.5f, 0.0f} - dir
+        );
+
+        NodeID cam_id = m_camera_prefab.instantiate(scene, scene.get_root_id());
+        CameraController & cam = *scene.get_component<ScriptSet>(cam_id)
+            .get_script<CameraController>(scene);
+        cam.set_direction(camera_dir);
     }
 
     virtual void on_init(Scene &) {

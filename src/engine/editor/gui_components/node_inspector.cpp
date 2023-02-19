@@ -202,21 +202,19 @@ void prt3::node_inspector(EditorContext & context) {
 
     ImGui::PopItemWidth();
 
-    if (id != context.context().edit_scene().get_root_id()) {
-        show_save_as_prefab(context, id);
+    show_save_as_prefab(context, id);
 
-        Transform transform = node.local_transform();
-        if (show_transform(transform)) {
-            context.editor().perform_action<ActionTransformNode>(
-                id,
-                node.local_transform(),
-                transform
-            );
-        }
-
-        show_components(context, id, ComponentTypes{});
-        show_add_component(context, id, ComponentTypes{});
+    Transform transform = node.local_transform();
+    if (show_transform(transform)) {
+        context.editor().perform_action<ActionTransformNode>(
+            id,
+            node.local_transform(),
+            transform
+        );
     }
+
+    show_components(context, id, ComponentTypes{});
+    show_add_component(context, id, ComponentTypes{});
 
     ImGui::PopID();
 }

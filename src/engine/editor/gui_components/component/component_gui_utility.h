@@ -79,6 +79,16 @@ bool display_value<int32_t>(char const * label, int32_t & val) {
     );
 }
 
+template<>
+bool display_value<glm::vec3>(char const * label, glm::vec3 & val) {
+    float* vecp = reinterpret_cast<float*>(&val);
+    return ImGui::InputFloat3(
+        label,
+        vecp,
+        "%.2f"
+    );
+}
+
 template<typename ComponentType, typename FieldType>
 void edit_field(
     EditorContext & context,

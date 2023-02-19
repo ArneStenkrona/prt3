@@ -34,6 +34,9 @@ public:
     DoorID const & destination_id() const { return m_destination_id; }
     DoorID & destination_id() { return m_destination_id; }
 
+    glm::vec3 const & entry_offset() const { return m_entry_offset; }
+    glm::vec3 & entry_offset() { return m_entry_offset; }
+
     FixedString<256> const & destination_scene_path() const
     { return m_destination_scene_path; }
     FixedString<256> & destination_scene_path()
@@ -53,6 +56,8 @@ private:
     DoorID m_id = 0;
     DoorID m_destination_id = 0;
     DoorPathType m_destination_scene_path;
+
+    glm::vec3 m_entry_offset = glm::vec3{0.0f};
 
     void remove(Scene & /*scene*/) {}
 
