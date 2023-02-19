@@ -259,7 +259,7 @@ private:
     ModelHandle register_model(ModelHandle handle)
     { m_referenced_models.insert(handle); return handle; }
 
-    void start() {}
+    void start();
     void update(float delta_time);
 
     void clear_node_mod_flags();

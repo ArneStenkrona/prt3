@@ -139,6 +139,14 @@ void DynamicAABBTree::update(UpdatePackage const * packages,
     }
 }
 
+void DynamicAABBTree::set_layer(
+    ColliderTag const & tag,
+    CollisionLayer layer
+) {
+    m_nodes[m_tag_to_index[tag]].layer = layer;
+}
+
+
 void DynamicAABBTree::remove(ColliderTag const & tag) {
     remove(m_tag_to_index[tag]);
 }

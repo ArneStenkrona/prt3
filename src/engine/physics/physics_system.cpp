@@ -350,6 +350,8 @@ void PhysicsSystem::clear() {
     m_colliders.meshes.next_id = 0;
     m_colliders.spheres.map.clear();
     m_colliders.spheres.next_id = 0;
+    m_colliders.boxes.map.clear();
+    m_colliders.boxes.next_id = 0;
 
     m_colliders.aabb_tree.clear();
 
@@ -357,6 +359,8 @@ void PhysicsSystem::clear() {
     m_areas.meshes.next_id = 0;
     m_areas.spheres.map.clear();
     m_areas.spheres.next_id = 0;
+    m_areas.boxes.map.clear();
+    m_areas.boxes.next_id = 0;
 
     m_areas.aabb_tree.clear();
 }

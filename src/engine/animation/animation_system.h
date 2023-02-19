@@ -39,6 +39,7 @@ private:
     );
 
     void update(Scene const & scene, float delta_time);
+    void clear();
 
     friend class Scene;
     friend class AnimatedModel;

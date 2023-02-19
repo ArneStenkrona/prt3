@@ -128,3 +128,8 @@ void AnimationSystem::update(Scene const & scene, float delta_time) {
         }
     }
 }
+
+void AnimationSystem::clear() {
+    m_animations.clear();
+    m_free_list.clear();
+}

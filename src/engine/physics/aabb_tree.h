@@ -103,6 +103,13 @@ public:
                 size_t n);
 
     /**
+     * Sets the collision layer of a node
+     * @param tag
+     * @param layer
+     */
+    void set_layer(ColliderTag const & tag, CollisionLayer layer);
+
+    /**
      * @param tag
      */
     void remove(ColliderTag const & tag);

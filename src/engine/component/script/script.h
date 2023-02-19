@@ -57,6 +57,7 @@ public:
 
     virtual char const * name() = 0;
 
+    virtual void on_start(Scene &) {}
     virtual void on_init(Scene &) {}
     virtual void on_late_init(Scene &) {}
     virtual void on_update(Scene & /*scene*/, float /*delta_time*/) {}
@@ -102,7 +103,6 @@ protected:
     Node & get_node(Scene & scene);
 
     bool add_tag(Scene & scene, NodeTag const & tag);
-
 
     static std::unordered_map<UUID, TScriptDeserializer> * s_deserializers;
     static std::unordered_map<UUID, TScriptInstantiator> * s_instantiators;

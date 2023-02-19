@@ -2,6 +2,7 @@
 #define PRT3_COLLIDER_GUI_H
 
 #include "src/engine/editor/gui_components/component/component_gui.h"
+#include "src/engine/editor/gui_components/component/component_gui_utility.h"
 #include "src/engine/editor/editor_context.h"
 #include "src/engine/scene/scene.h"
 #include "src/engine/component/collider_component.h"
@@ -62,6 +63,66 @@ private:
 
     ColliderType m_type;
     ConstructorArgType m_constructor_arg;
+};
+
+class ActionSetCollisionLayerAndMask : public Action {
+public:
+    ActionSetCollisionLayerAndMask(
+        EditorContext & editor_context,
+        NodeID node_id,
+        CollisionLayer layer,
+        CollisionLayer mask
+    ) : m_editor_context{&editor_context},
+        m_node_id{node_id},
+        m_layer{layer},
+        m_mask{mask}
+    {
+        Scene const & scene = m_editor_context->scene();
+        PhysicsSystem const & sys = scene.physics_system();
+
+        ColliderComponent const & comp =
+            scene.get_component<ColliderComponent>(node_id);
+
+        m_original_layer = sys.get_collision_layer(comp.tag());
+        m_original_mask = sys.get_collision_mask(comp.tag());
+    }
+
+protected:
+    virtual bool apply() {
+        Scene & scene = m_editor_context->scene();
+        PhysicsSystem & sys = scene.physics_system();
+
+        ColliderComponent const & comp =
+            scene.get_component<ColliderComponent>(m_node_id);
+
+        sys.set_collision_layer(comp.tag(), m_layer);
+        sys.set_collision_mask(comp.tag(), m_mask);
+
+        return true;
+    }
+
+    virtual bool unapply() {
+        Scene & scene = m_editor_context->scene();
+        PhysicsSystem & sys = scene.physics_system();
+
+        ColliderComponent const & comp =
+            scene.get_component<ColliderComponent>(m_node_id);
+
+        sys.set_collision_layer(comp.tag(), m_original_layer);
+        sys.set_collision_mask(comp.tag(), m_original_mask);
+
+        return true;
+    }
+
+private:
+    EditorContext * m_editor_context;
+    NodeID m_node_id;
+
+    CollisionLayer m_layer;
+    CollisionLayer m_mask;
+
+    CollisionLayer m_original_layer;
+    CollisionLayer m_original_mask;
 };
 
 template<>
@@ -177,8 +238,8 @@ void inner_show_component<ColliderComponent>(
             ModelManager & man = context.get_model_manager();
             std::vector<Model> const & models = man.models();
 
-            ImGui::SameLine();
             if (ImGui::BeginPopup("select_model_popup")) {
+                ImGui::SameLine();
                 for (Model const & model : models) {
                     if (ImGui::Selectable(model.path().c_str())) {
                         context.editor().perform_action<ActionSetCollider<
@@ -267,6 +328,25 @@ void inner_show_component<ColliderComponent>(
         default: {}
     }
 
+    bool mask_layer_changed = false;
+    CollisionLayer layer = sys.get_collision_layer(tag);
+
+    if (bit_field("layer", &layer)) {
+        mask_layer_changed = true;
+    }
+
+    CollisionLayer mask = sys.get_collision_mask(tag);
+    if (bit_field("mask", &mask)) {
+        mask_layer_changed = true;
+    }
+
+    if (mask_layer_changed) {
+        context.editor().perform_action<ActionSetCollisionLayerAndMask>(
+            id,
+            layer,
+            mask
+        );
+    }
 
     ImGui::PopItemWidth();
 }

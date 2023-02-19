@@ -99,6 +99,7 @@ public:
                 break;
             default: assert(false);
         }
+        get_container(tag.type).aabb_tree.set_layer(tag, layer);
     }
 
     CollisionLayer get_collision_layer(

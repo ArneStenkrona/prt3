@@ -13,10 +13,19 @@
 
 using namespace prt3;
 
-void save_scene(Scene const & scene, std::string const & path) {
+void new_scene(EditorContext & context) {
+    context.scene().clear();
+
+    context.editor().action_manager().clear();
+    context.editor().action_manager().reset_action_count();
+    context.set_selected_node(context.scene().get_root_id());
+}
+
+void save_scene(EditorContext & context, std::string const & path) {
     std::ofstream out(path, std::ios::binary);
 
-    scene.serialize(out);
+    context.scene().serialize(out);
+    context.set_save_point();
 
     out.close();
 
@@ -31,6 +40,7 @@ void load_scene(EditorContext & context, std::string const & path) {
     in.close();
 
     context.editor().action_manager().clear();
+    context.editor().action_manager().reset_action_count();
     context.set_selected_node(context.scene().get_root_id());
 }
 
@@ -64,26 +74,89 @@ void prt3::menu(EditorContext & context) {
 
     thread_local bool save_scene_open = false;
     thread_local bool load_scene_open = false;
+
+    enum UnsavedAction {
+        unsaved_action_new_scene,
+        unsaved_action_load_project,
+        unsaved_action_load_scene
+    };
+
+    bool show_unsaved = false;
+    thread_local UnsavedAction unsaved_action{};
+
+    if (!context.is_saved()) {
+        ImGui::TextUnformatted("*");
+    }
+
     if (ImGui::BeginMenu("file")) {
         if (ImGui::MenuItem("save project")) {
             save_project_open = true;
         }
 
         if (ImGui::MenuItem("load project")) {
-            load_project_open = true;
+            if (context.is_saved()) {
+                load_project_open = true;
+            } else {
+                show_unsaved = true;
+                unsaved_action = unsaved_action_load_project;
+            }
         }
 
         ImGui::Separator();
+
+        if (ImGui::MenuItem("new scene")) {
+            if (context.is_saved()) {
+                new_scene(context);
+            } else {
+                show_unsaved = true;
+                unsaved_action = unsaved_action_new_scene;
+            }
+        }
 
         if (ImGui::MenuItem("save scene")) {
             save_scene_open = true;
         }
 
         if (ImGui::MenuItem("load scene")) {
-            load_scene_open = true;
+            if (context.is_saved()) {
+                load_scene_open = true;
+            } else {
+                show_unsaved = true;
+                unsaved_action = unsaved_action_load_scene;
+            }
         }
 
         ImGui::EndMenu();
+    }
+
+    if (show_unsaved) {
+        ImGui::OpenPopup("unsaved changes");
+    }
+
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+    if (ImGui::BeginPopup("unsaved changes")) {
+        ImGui::TextUnformatted(
+            "You have unsaved changes.\nAre you sure you want to go ahead?"
+        );
+        ImGui::Separator();
+
+        if (ImGui::Button("OK", ImVec2(120, 0))) {
+            ImGui::CloseCurrentPopup();
+            switch (unsaved_action) {
+                case unsaved_action_new_scene: new_scene(context); break;
+                case unsaved_action_load_project: load_project_open = true; break;
+                case unsaved_action_load_scene: load_scene_open = true; break;
+            }
+        }
+
+        ImGui::SetItemDefaultFocus();
+        ImGui::SameLine();
+        if (ImGui::Button("cancel", ImVec2(120, 0))) {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
     }
 
     if (save_project_open) {
@@ -120,7 +193,7 @@ void prt3::menu(EditorContext & context) {
             imgui_addons::ImGuiFileBrowser::DialogMode::SAVE, ImVec2(0, 0))
         ) {
             std::string const & path = file_dialog.selected_path;
-            save_scene(context.scene(), path);
+            save_scene(context, path);
         }
         save_scene_open = ImGui::IsPopupOpen(ImGui::GetID("save scene"), 0);
     }

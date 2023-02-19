@@ -19,6 +19,12 @@ ScriptContainer & ScriptContainer::operator=(ScriptContainer const & other) {
     return *this;
 }
 
+void ScriptContainer::start(Scene & scene) {
+    for (auto & pair : m_scripts) {
+        pair.second->on_start(scene);
+    }
+}
+
 void ScriptContainer::update(Scene & scene, float delta_time) {
     for (Script * script : m_init_queue) {
         script->on_init(scene);

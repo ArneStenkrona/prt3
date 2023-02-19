@@ -36,6 +36,10 @@ public:
     NodeID get_selected_node() const { return m_selected_node; }
     void set_selected_node(NodeID id) { m_selected_node = id; }
 
+    void set_save_point();
+
+    bool is_saved() const;
+
 private:
     Editor & m_editor;
     Context & m_context;
@@ -43,6 +47,8 @@ private:
     imgui_addons::ImGuiFileBrowser m_file_dialog;
 
     NodeID m_selected_node = NO_NODE;
+
+    size_t m_save_point;
 };
 
 } // namespace prt3

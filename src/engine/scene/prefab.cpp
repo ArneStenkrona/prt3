@@ -11,15 +11,15 @@
 
 using namespace prt3;
 
-Prefab::Prefab(Scene const & scene, NodeID & node_id) {
-    std::stringstream stream;
+// Prefab::Prefab(Scene const & scene, NodeID & node_id) {
+//     std::stringstream stream;
 
-    serialize_node(scene, node_id, stream);
+//     serialize_node(scene, node_id, stream);
 
-    std::string const & s = stream.str();
-    m_data.reserve(s.size());
-    m_data.assign(s.begin(), s.end());
-}
+//     std::string const & s = stream.str();
+//     m_data.reserve(s.size());
+//     m_data.assign(s.begin(), s.end());
+// }
 
 Prefab::Prefab(char const * path) {
     std::ifstream file(path, std::ios::binary);
@@ -90,7 +90,9 @@ void Prefab::serialize_node(
         auto const & name = scene.get_node_name(node.id());
         out.write(name.data(), name.writeable_size());
         if (id == node_id) {
-            out << Transform{};
+            Transform tform = node.local_transform();
+            tform.position = glm::vec3{0.0f};
+            out << tform;
         } else {
             out << node.local_transform();
         }

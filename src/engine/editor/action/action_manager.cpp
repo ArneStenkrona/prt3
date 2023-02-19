@@ -19,6 +19,8 @@ bool ActionManager::undo() {
 
     Action * action = m_history.back();
     if (action->unapply()) {
+        --m_action_count;
+
         m_future.push_back(action);
         m_history.pop_back();
         return true;
@@ -35,6 +37,7 @@ bool ActionManager::redo() {
 
     Action * action = m_future.back();
     if (action->apply()) {
+        ++m_action_count;
         add_to_history(action);
         m_future.pop_back();
         return true;

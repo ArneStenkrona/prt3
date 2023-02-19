@@ -21,7 +21,6 @@ class ComponentManager;
 
 typedef int32_t DoorID;
 typedef FixedString<256> DoorPathType;
-static constexpr DoorID NO_DOOR = -1;
 
 class Door {
 public:
@@ -51,8 +50,8 @@ public:
 private:
     NodeID m_node_id;
 
-    DoorID m_id = NO_DOOR;
-    DoorID m_destination_id = NO_DOOR;
+    DoorID m_id = 0;
+    DoorID m_destination_id = 0;
     DoorPathType m_destination_scene_path;
 
     void remove(Scene & /*scene*/) {}

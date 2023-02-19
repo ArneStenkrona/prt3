@@ -12,6 +12,7 @@ class ScriptContainer {
 public:
     ScriptContainer & operator=(ScriptContainer const & other);
 
+    void start(Scene & scene);
     void update(Scene & scene, float delta_time);
     void clear();
 
