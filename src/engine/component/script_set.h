@@ -48,6 +48,18 @@ public:
     }
 
     template<typename T>
+    T const * get_script(Scene const & scene) const {
+        for (ScriptID const & id : m_script_ids) {
+            Script const * script = get_script_from_scene(scene, id);
+            T const * t_script = dynamic_cast<T const *>(script);
+            if (t_script) {
+                return t_script;
+            }
+        }
+        return nullptr;
+    }
+
+    template<typename T>
     ScriptID get_script_id(Scene & scene) {
         for (ScriptID const & id : m_script_ids) {
             Script * script = get_script_from_scene(scene, id);
@@ -82,6 +94,10 @@ private:
 
     ScriptID add_script_to_scene(Scene & scene, Script * script);
     Script * get_script_from_scene(Scene & scene, ScriptID id);
+    Script const * get_script_from_scene(
+        Scene const & scene,
+        ScriptID id
+    ) const;
 
     void remove(Scene & scene);
 

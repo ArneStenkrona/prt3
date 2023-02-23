@@ -49,8 +49,8 @@ public:
                 break;
             }
         }
-        NodeID id = m_player_prefab.instantiate(scene, scene.get_root_id());
-        Node & node = scene.get_node(id);
+        m_player_id = m_player_prefab.instantiate(scene, scene.get_root_id());
+        Node & node = scene.get_node(m_player_id);
         node.set_global_position(scene, spawn_position);
 
         float yaw = std::atan2(dir.x, dir.z);
@@ -59,16 +59,14 @@ public:
             glm::eulerAngleYXZ(yaw, 0.0f, 0.0f)
         );
 
-        node.local_transform().rotation = node.local_transform().rotation * rot;
+        node.set_global_rotation(scene, rot);
 
-        glm::vec3 camera_dir = glm::normalize(
-            glm::vec3{0.0f, 0.5f, 0.0f} - dir
-        );
-
-        NodeID cam_id = m_camera_prefab.instantiate(scene, scene.get_root_id());
-        CameraController & cam = *scene.get_component<ScriptSet>(cam_id)
+        m_camera_id = m_camera_prefab.instantiate(scene, scene.get_root_id());
+        CameraController & cam = *scene.get_component<ScriptSet>(m_camera_id)
             .get_script<CameraController>(scene);
-        cam.set_direction(camera_dir);
+
+        cam.yaw() = m_cam_yaw;
+        cam.pitch() = m_cam_pitch;
     }
 
     virtual void on_init(Scene &) {
@@ -77,12 +75,21 @@ public:
     virtual void on_update(Scene &, float) {
     }
 
-    virtual void save_state(std::ostream & out) const {
+    virtual void save_state(Scene const & scene, std::ostream & out) const {
         write_stream(out, m_entry_door_id);
+
+        CameraController const & cam = *scene.get_component<ScriptSet>(m_camera_id)
+            .get_script<CameraController>(scene);
+
+        write_stream(out, cam.yaw());
+        write_stream(out, cam.pitch());
     }
 
-    virtual void restore_state(std::istream & in) {
+    virtual void restore_state(Scene & /*scene*/, std::istream & in) {
         read_stream(in, m_entry_door_id);
+
+        read_stream(in, m_cam_yaw);
+        read_stream(in, m_cam_pitch);
     }
 
     void set_entry_door_id(DoorID id) { m_entry_door_id = id; }
@@ -91,6 +98,11 @@ private:
 
     Prefab m_player_prefab{"assets/prefabs/player.prefab"};
     Prefab m_camera_prefab{"assets/prefabs/camera.prefab"};
+    NodeID m_player_id;
+    NodeID m_camera_id;
+
+    float m_cam_yaw;
+    float m_cam_pitch;
 
 REGISTER_SCRIPT(GameState, game_state, 11630114958491958378)
 };

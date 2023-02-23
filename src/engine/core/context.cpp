@@ -63,7 +63,7 @@ void Context::load_scene_if_queued() {
             Script const * script = m_game_scene.get_autoload_script(uuid);
             if (script != nullptr) {
                 write_stream(out_autoload, true);
-                script->save_state(out_autoload);
+                script->save_state(m_game_scene, out_autoload);
             } else {
                 write_stream(out_autoload, false);
             }
@@ -90,7 +90,7 @@ void Context::load_scene_if_queued() {
 
             if (serialized) {
                 Script * script = m_game_scene.get_autoload_script(uuid);
-                script->restore_state(in_autoload);
+                script->restore_state(m_game_scene, in_autoload);
             }
         }
 

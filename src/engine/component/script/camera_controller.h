@@ -31,6 +31,12 @@ public:
         m_yaw = glm::degrees(std::atan2(direction.x, direction.z));
     }
 
+    inline float const & yaw() const { return m_yaw; }
+    inline float const & pitch() const { return m_pitch; }
+
+    inline float & yaw() { return m_yaw; }
+    inline float & pitch() { return m_pitch; }
+
     virtual void on_late_init(Scene & scene) {
         NodeID player_id = scene.find_node_by_tag("player");
         set_target(player_id);

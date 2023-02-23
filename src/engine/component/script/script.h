@@ -68,8 +68,10 @@ public:
         void * /*data*/
     ) {}
 
-    virtual void save_state(std::ostream & /*out*/) const {}
-    virtual void restore_state(std::istream & /*in*/) {}
+    // Only called for autoloaded scripts
+    virtual void save_state(Scene const & /*scene*/, std::ostream & /*out*/) const {}
+    // Only called for autoloaded scripts
+    virtual void restore_state(Scene & /*scene*/, std::istream & /*in*/) {}
 
     virtual void serialize(std::ostream & out) const {
         write_stream(out, uuid());

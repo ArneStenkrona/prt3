@@ -43,6 +43,13 @@ Script * ScriptSet::get_script_from_scene(Scene & scene, ScriptID id) {
     return scene.internal_get_script(id);
 }
 
+Script const * ScriptSet::get_script_from_scene(
+    Scene const & scene,
+    ScriptID id
+) const {
+    return scene.internal_get_script(id);
+}
+
 bool ScriptSet::remove_script(Scene & scene, ScriptID id) {
     for (auto it = m_script_ids.begin();
          it != m_script_ids.end();
