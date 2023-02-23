@@ -75,9 +75,12 @@ public:
     void set_node_local_position(NodeID node_id, glm::vec3 const & local_position)
     { m_nodes[node_id].m_local_transform.position = local_position; }
 
-    void set_directional_light(DirectionalLight light) { m_directional_light = light; }
-    void set_directional_light_on(bool on) { m_directional_light_on = on; }
-    void set_ambient_light(glm::vec3 color) { m_ambient_light.color = color; }
+    DirectionalLight const & directional_light() const { return m_directional_light; }
+    DirectionalLight & directional_light() { return m_directional_light; }
+    bool const & directional_light_on() const { return m_directional_light_on; }
+    bool & directional_light_on() { return m_directional_light_on; }
+    glm::vec3 const & ambient_light() const { return m_ambient_light.color; }
+    glm::vec3 & ambient_light() { return m_ambient_light.color; }
 
     Node const & get_node(NodeID id) const { return m_nodes[id]; }
     Node & get_node(NodeID id) { return m_nodes[id]; }

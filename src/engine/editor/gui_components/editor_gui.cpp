@@ -2,6 +2,7 @@
 
 #include "src/engine/editor/gui_components/menu.h"
 #include "src/engine/editor/gui_components/node_inspector.h"
+#include "src/engine/editor/gui_components/scene_inspector.h"
 #include "src/engine/editor/gui_components/scene_hierarchy.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -83,6 +84,19 @@ void prt3::editor_gui(EditorContext & context) {
     ImGui::End();
 
     ImGui::Begin("inspector");
-    node_inspector(context);
+    if (ImGui::BeginTabBar("inspector_tab_bar", ImGuiTabBarFlags_None))
+    {
+        if (ImGui::BeginTabItem("node"))
+        {
+            node_inspector(context);
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("scene"))
+        {
+            scene_inspector(context);
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabBar();
+    }
     ImGui::End();
 }
