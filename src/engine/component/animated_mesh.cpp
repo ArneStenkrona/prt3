@@ -40,10 +40,16 @@ AnimatedMesh::AnimatedMesh(Scene & scene, NodeID node_id, std::istream & in)
         mesh_index
     );
 
-    UUID uuid;
-    read_stream(in, uuid);
+    thread_local std::vector<int32_t> relative_path;
 
-    m_armature_id = scene.get_node_id_from_uuid(uuid);
+    read_stream(in, n_path);
+    relative_path.resize(n_path);
+    for (int32_t & i : relative_path) {
+        read_stream(in, i);
+    }
+
+    m_armature_id =
+        scene.get_node_id_from_relative_path(m_node_id, relative_path);
 }
 
 void AnimatedMesh::serialize(
@@ -60,5 +66,12 @@ void AnimatedMesh::serialize(
     out.write(path.data(), path.size());
 
     write_stream(out, man.get_mesh_index_from_mesh_id(id));
-    write_stream(out, scene.get_uuid_from_node_id(m_armature_id));
+
+    thread_local std::vector<int32_t> relative_path;
+    scene.find_relative_path(m_node_id, m_armature_id, relative_path);
+
+    write_stream(out, relative_path.size());
+    for (int32_t i : relative_path) {
+        write_stream(out, i);
+    }
 }

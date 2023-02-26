@@ -139,7 +139,6 @@ void Engine::set_mode_game() {
     m_context.game_scene()
         .add_autoload_scripts(m_context.project().autoload_scripts());
     m_context.game_scene().start();
-
 }
 
 void Engine::set_mode_editor() {

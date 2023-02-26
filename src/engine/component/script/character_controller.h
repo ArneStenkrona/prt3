@@ -65,12 +65,12 @@ public:
 
         float dt_fac = 10.0f * delta_time;
 
-        AnimatedModel & model_comp =
-            scene.get_component<AnimatedModel>(node_id());
+        Armature & armature =
+            scene.get_component<Armature>(node_id());
         Animation & anim =
-            scene.animation_system().get_animation(model_comp.animation_id());
+            scene.animation_system().get_animation(armature.animation_id());
         Model const & model =
-            scene.get_model(model_comp.model_handle());
+            scene.get_model(armature.model_handle());
 
         switch (state) {
             case IDLE: {

@@ -11,16 +11,6 @@
 
 using namespace prt3;
 
-// Prefab::Prefab(Scene const & scene, NodeID & node_id) {
-//     std::stringstream stream;
-
-//     serialize_node(scene, node_id, stream);
-
-//     std::string const & s = stream.str();
-//     m_data.reserve(s.size());
-//     m_data.assign(s.begin(), s.end());
-// }
-
 Prefab::Prefab(char const * path) {
     std::ifstream file(path, std::ios::binary);
 
@@ -97,8 +87,6 @@ void Prefab::serialize_node(
             out << node.local_transform();
         }
 
-        scene.serialize_components(out, id);
-
         // Traverse the children in reverse order in order
         // so that by adding them one bye one results
         // in a vector with the same ordering
@@ -106,6 +94,18 @@ void Prefab::serialize_node(
         while (it != node.children_ids().begin()) {
             --it;
             queue.push_back(*it);
+        }
+    }
+
+    queue.push_back(node_id);
+    while (!queue.empty()) {
+        NodeID id = queue.back();
+        queue.pop_back();
+
+        scene.serialize_components(out, id);
+
+        for (NodeID const & child_id : scene.get_node(id).children_ids()) {
+            queue.push_back(child_id);
         }
     }
 }
@@ -141,10 +141,21 @@ NodeID Prefab::deserialize_node(Scene & scene, NodeID parent, std::istream & in)
         Node & node = scene.get_node(id);
         in >> node.local_transform();
 
-        scene.deserialize_components(in, id);
-
         if (i == 0) {
             ret = id;
+        }
+    }
+
+    thread_local std::vector<NodeID> queue;
+    queue.push_back(ret);
+    while (!queue.empty()) {
+        NodeID id = queue.back();
+        queue.pop_back();
+
+        scene.deserialize_components(in, id);
+
+        for (NodeID const & child_id : scene.get_node(id).children_ids()) {
+            queue.push_back(child_id);
         }
     }
 

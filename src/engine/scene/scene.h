@@ -58,6 +58,17 @@ public:
     NodeID get_next_available_node_id() const
     { return m_free_list.empty() ? m_nodes.size() : m_free_list.back(); }
 
+    void find_relative_path(
+        NodeID a_id,
+        NodeID b_id,
+        std::vector<int32_t> & result
+    ) const;
+
+    NodeID get_node_id_from_relative_path(
+        NodeID id,
+        std::vector<int32_t> const & path
+    );
+
     ModelHandle upload_model(std::string const & path)
     { return register_model(model_manager().upload_model(path)); }
 

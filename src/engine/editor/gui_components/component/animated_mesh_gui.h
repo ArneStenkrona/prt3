@@ -54,6 +54,8 @@ void inner_show_component<AnimatedMesh>(
     EditorContext & context,
     NodeID id
 ) {
+    ImGui::NewLine();
+
     show_mesh_component<AnimatedMesh>(context, id);
 
     Scene const & scene = context.scene();
@@ -68,7 +70,7 @@ void inner_show_component<AnimatedMesh>(
     thread_local std::string error;
     error = "";
 
-    if (armature_id != NO_NODE) {
+    if (armature_id == NO_NODE) {
         armature_path = "none";
     } else if (!scene.node_exists(armature_id)) {
         armature_path = "missing node";

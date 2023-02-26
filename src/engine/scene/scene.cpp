@@ -134,6 +134,95 @@ std::string Scene::get_node_path(NodeID id) const {
     return path;
 }
 
+void Scene::find_relative_path(
+    NodeID a_id,
+    NodeID b_id,
+    std::vector<int32_t> & result
+) const {
+    NodeID lca = NO_NODE; // lowest common ancestor
+
+    unsigned int depth_a = 0;
+    unsigned int depth_b = 0;
+    NodeID a_curr_id = a_id;
+    while (a_curr_id != get_root_id()) {
+        ++depth_a;
+        a_curr_id = get_node(a_curr_id).parent_id();
+    }
+    NodeID b_curr_id = b_id;
+    while (b_curr_id != get_root_id()) {
+        ++depth_b;
+        b_curr_id = get_node(b_curr_id).parent_id();
+    }
+
+    a_curr_id = a_id;
+    b_curr_id = b_id;
+    if (depth_a > depth_b) {
+        unsigned int diff = depth_a - depth_b;
+        while (diff != 0) {
+            a_curr_id = get_node(a_curr_id).parent_id();
+            --diff;
+        }
+    } else if (depth_a < depth_b) {
+        unsigned int diff = depth_b - depth_a;
+        while (diff != 0) {
+            b_curr_id = get_node(b_curr_id).parent_id();
+            --diff;
+        }
+    }
+
+    while (a_curr_id != b_curr_id) {
+        a_curr_id = get_node(a_curr_id).parent_id();
+        b_curr_id = get_node(b_curr_id).parent_id();
+    }
+    lca = a_curr_id;
+
+    thread_local std::vector<int32_t> reverse;
+    reverse.resize(0);
+
+    NodeID curr_id = b_id;
+    while (curr_id != lca) {
+        NodeID parent_id = get_node(curr_id).parent_id();
+
+        uint32_t child_ind = 0;
+        for (NodeID const & id : get_node(parent_id).children_ids()) {
+            if (id == curr_id) {
+                break;
+            }
+            ++child_ind;
+        }
+
+        reverse.push_back(child_ind);
+        curr_id = parent_id;
+    }
+
+    curr_id = a_id;
+    while (curr_id != lca) {
+        reverse.push_back(-1); // -1 == UP
+        curr_id = get_node(curr_id).parent_id();
+    }
+
+    result.resize(reverse.size());
+
+    for (unsigned int i = 0; i < result.size(); ++i) {
+        result[i] = reverse[reverse.size() - (i + 1)];
+    }
+}
+
+NodeID Scene::get_node_id_from_relative_path(
+    NodeID id,
+    std::vector<int32_t> const & path
+) {
+    NodeID res = id;
+    for (int32_t i : path) {
+        if (i == -1) {
+            res = get_node(res).parent_id();
+        } else {
+            res = get_node(res).children_ids()[i];
+        }
+    }
+    return res;
+}
+
 Input & Scene::get_input() {
     return m_context->input();
 }

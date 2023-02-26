@@ -518,12 +518,17 @@ void Model::load_with_assimp() {
         aiAnimation const * aiAnim = scene->mAnimations[i];
 
         // trim names such as "armature|<animationName>"
-        char const * toCopy = strchr(aiAnim->mName.C_Str(), '|');
-        if (toCopy != nullptr) {
+        char const * to_copy = strchr(aiAnim->mName.C_Str(), '|');
+        if (to_copy != nullptr) {
             char nameBuf[256];
-            ++toCopy;
-            strcpy(nameBuf, toCopy);
-            m_name_to_animation.insert({nameBuf, i});
+            ++to_copy;
+            strcpy(nameBuf, to_copy);
+            if (m_name_to_animation.find(nameBuf) != m_name_to_animation.end()) {
+                // TODO: Better resolution for this issue.
+                m_name_to_animation.insert({aiAnim->mName.C_Str(), i});
+            } else {
+                m_name_to_animation.insert({nameBuf, i});
+            }
         } else {
             m_name_to_animation.insert({aiAnim->mName.C_Str(), i});
         }

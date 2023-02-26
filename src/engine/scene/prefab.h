@@ -10,7 +10,6 @@ namespace prt3 {
 
 class Prefab {
 public:
-    // Prefab(Scene const & scene, NodeID & node_id);
     Prefab(char const * path);
 
     NodeID instantiate(Scene & scene, NodeID parent);
