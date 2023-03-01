@@ -520,14 +520,14 @@ void Model::load_with_assimp() {
         // trim names such as "armature|<animationName>"
         char const * to_copy = strchr(aiAnim->mName.C_Str(), '|');
         if (to_copy != nullptr) {
-            char nameBuf[256];
+            char name_buf[256];
             ++to_copy;
-            strcpy(nameBuf, to_copy);
-            if (m_name_to_animation.find(nameBuf) != m_name_to_animation.end()) {
+            strcpy(name_buf, to_copy);
+            if (m_name_to_animation.find(name_buf) != m_name_to_animation.end()) {
                 // TODO: Better resolution for this issue.
                 m_name_to_animation.insert({aiAnim->mName.C_Str(), i});
             } else {
-                m_name_to_animation.insert({nameBuf, i});
+                m_name_to_animation.insert({name_buf, i});
             }
         } else {
             m_name_to_animation.insert({aiAnim->mName.C_Str(), i});

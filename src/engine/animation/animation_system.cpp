@@ -108,23 +108,26 @@ void AnimationSystem::update(Scene const & scene, float delta_time) {
         if (animation.clip_a.animation_index != NO_ANIMATION &&
             !animation.clip_a.paused) {
             Animation::Clip & clip = animation.clip_a;
-            float duration =
-                model.animations()[clip.animation_index].duration;
+
+            Model::Animation const & model_anim = model.animations()[clip.animation_index];
+            float duration = model_anim.duration / model_anim.ticks_per_second;
+
             clip.t += clip.speed * delta_time;
             clip.t = clip.looping ?
-                glm::max(clip.t, duration) :
-                fmod(clip.t, duration);
+                fmod(clip.t, duration) :
+                glm::min(clip.t, duration);
         }
 
         if (animation.clip_b.animation_index != NO_ANIMATION &&
             !animation.clip_b.paused) {
             Animation::Clip & clip = animation.clip_b;
-            float duration =
-                model.animations()[clip.animation_index].duration;
+
+            Model::Animation const & model_anim = model.animations()[clip.animation_index];
+            float duration = model_anim.duration / model_anim.ticks_per_second;
             clip.t += clip.speed * delta_time;
             clip.t = clip.looping ?
-                glm::max(clip.t, duration) :
-                fmod(clip.t, duration);
+                fmod(clip.t, duration) :
+                glm::min(clip.t, duration);
         }
     }
 }

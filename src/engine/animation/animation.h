@@ -28,6 +28,12 @@ struct Animation {
         float speed = 1.0f;
         bool paused = false;
         bool looping = false;
+
+        float frac(Model const & model) const {
+            Model::Animation const & animation = model.animations()[animation_index];
+            float duration = animation.duration / animation.ticks_per_second;
+            return t / duration;
+        }
     };
 
     ModelHandle model_handle;
