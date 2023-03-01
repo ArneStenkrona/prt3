@@ -195,7 +195,7 @@ public:
                     m_state = IDLE;
                 } else if (a_frac >= 0.4f) {
                     if (m_input.direction != glm::vec3{0.0f}) {
-                        m_state = IDLE;
+                        m_state = WALK;
                         return true;
                     }
                     if (input.get_key_down(KeyCode::KEY_CODE_SPACE)) {
@@ -204,11 +204,11 @@ public:
                     }
 
                 }
-                if (input.get_key_down(KeyCode::KEY_CODE_RETURN)) {
-                    if (a_frac < 0.75f) {
+                if (a_frac >= 0.22f) {
+                    if (input.get_key_down(KeyCode::KEY_CODE_RETURN)) {
                         m_state = m_state == ATTACK_1 ? ATTACK_2 : ATTACK_1;
+                        return true;
                     }
-                    return true;
                 }
                 break;
             }
@@ -237,9 +237,17 @@ public:
                     m_state = IDLE;
                     return true;
                 }
-                if (a_frac >= 0.4f) {
+                if (a_frac >= 0.25f) {
                     if (m_input.direction != glm::vec3{0.0f}) {
-                        m_state = IDLE;
+                        m_state = WALK;
+                        return true;
+                    }
+                    if (input.get_key_down(KeyCode::KEY_CODE_SPACE)) {
+                        m_state = JUMP;
+                        return true;
+                    }
+                    if (input.get_key_down(KeyCode::KEY_CODE_RETURN)) {
+                        m_state = ATTACK_1;
                         return true;
                     }
                 }
@@ -262,6 +270,7 @@ public:
 
         if (data.transition > 0.0f) {
             animation.clip_b = animation.clip_a;
+            animation.clip_b.paused = true;
         } else {
             animation.clip_b = data.clip_b;
             animation.clip_b.t = t_b;
@@ -287,6 +296,13 @@ public:
         switch (m_state) {
             case IDLE: {
                 m_run_factor = 0.0f;
+                break;
+            }
+            case ATTACK_1:
+            case ATTACK_2: {
+                if (m_input.direction != glm::vec3{0.0f}) {
+                    m_direction = m_input.direction;
+                }
                 break;
             }
             case JUMP: {
@@ -401,13 +417,14 @@ public:
     }
 
     void handle_state(Scene & scene, float delta_time) {
-
         Armature & armature =
             scene.get_component<Armature>(node_id());
         Animation & anim =
             scene.animation_system().get_animation(armature.animation_id());
         Model const & model =
             scene.get_model(armature.model_handle());
+
+        float dt_fac = 10.0f * delta_time;
 
         switch (m_state) {
             case IDLE:
@@ -418,7 +435,6 @@ public:
                     target_run_factor = m_input.run ? 2.0f : 1.0f;
                 }
 
-                float dt_fac = 10.0f * delta_time;
                 m_run_factor = glm::mix(m_run_factor, target_run_factor, dt_fac);
 
                 float vel_mag = 0.0f;
@@ -436,36 +452,42 @@ public:
                 float a_frac = anim.clip_a.frac(model);
 
                 float vel_mag = 0.0f;
-                if (0.1f < a_frac && a_frac < 0.2f) {
+                if (0.1f < a_frac && a_frac < 0.15f) {
                     vel_mag = m_state == ATTACK_1 ? 16.0f : 18.0f;
                 } else {
                     vel_mag = 0.0f;
                 }
-                m_velocity = m_direction * vel_mag;
+                glm::vec3 target_vel = m_direction * vel_mag;
+                m_velocity = glm::mix(m_velocity, target_vel, dt_fac);
 
                 break;
             }
             case JUMP: {
                 float a_frac = anim.clip_a.frac(model);
                 if (a_frac >= 0.25f && !m_jumped) {
-                    m_gravity_velocity = -17.5f;
+                    m_gravity_velocity = -14.5f;
+                    float vel_mag = m_input.last_grounded_run ? 12.0f : 6.0f;
+                    m_velocity = m_input.last_grounded_direction *  vel_mag;
                     m_jumped = true;
                 }
 
-                if (m_grounded) {
-                    m_velocity = glm::vec3{0.0f};
-                } else {
-                    float vel_mag = m_input.last_grounded_run ? 9.0f : 6.0f;
-                    m_velocity = m_input.last_grounded_direction * vel_mag;
+                float vel_mag = 0.0f;
+                if (!m_grounded) {
+                    vel_mag = m_input.run ? 12.0f : 6.0f;
                 }
-
+                glm::vec3 target_vel = m_input.direction * vel_mag;
+                m_velocity = glm::mix(m_velocity, target_vel, dt_fac);
                 break;
             }
             case FALL: {
+                float vel_mag = m_input.run ? 5.0f : 2.5f;
+                glm::vec3 target_vel = m_input.direction * vel_mag;
+                m_velocity = glm::mix(m_velocity, target_vel, dt_fac);
                 break;
             }
             case LAND: {
-                m_velocity = glm::vec3{0.0f};
+                glm::vec3 target_vel = glm::vec3{0.0f};
+                m_velocity = glm::mix(m_velocity, target_vel, dt_fac);
                 break;
             }
             case TOTAL_NUM_STATES: { assert(false); }
@@ -529,7 +551,7 @@ public:
     }
 
 private:
-    static constexpr float gravity_constant = 1.5f;
+    static constexpr float gravity_constant = 1.0f;
     static constexpr float terminal_velocity = 35.0f;
     float m_gravity_velocity = 0.0f;
     glm::vec3 m_gravity_direction{0.0f, -1.0f, 0.0f};
