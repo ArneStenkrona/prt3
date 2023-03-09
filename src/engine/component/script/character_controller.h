@@ -17,16 +17,18 @@ namespace prt3 {
 
 class CharacterController : public Script {
 public:
-    enum State {
-        IDLE,
-        WALK,
-        RUN,
-        ATTACK_1,
-        ATTACK_2,
-        JUMP,
-        FALL,
-        LAND,
-        TOTAL_NUM_STATES
+    typedef uint32_t StateType;
+    enum State : StateType {
+        NONE             = 0,
+        IDLE             = 1 << 0,
+        WALK             = 1 << 1,
+        RUN              = 1 << 2,
+        ATTACK_1         = 1 << 3,
+        ATTACK_2         = 1 << 4,
+        JUMP             = 1 << 5,
+        FALL             = 1 << 6,
+        LAND             = 1 << 7,
+        TOTAL_NUM_STATES = 8 // number of states, excluding 'none'
     };
 
     struct StateData {
@@ -61,7 +63,7 @@ public:
         Model const & model =
             scene.get_model(armature.model_handle());
 
-        m_state_data[IDLE] = {
+        get_state_data(IDLE) = {
             .transition = 0.0f,
             .clip_a = { .animation_index = model.get_animation_index("idle"),
                         .paused = false,
@@ -71,7 +73,7 @@ public:
             .inherit_animation_time = true
         };
 
-        m_state_data[WALK] = {
+        get_state_data(WALK) = {
             .transition = 0.0f,
             .clip_a = { .animation_index = model.get_animation_index("walk"),
                         .paused = false,
@@ -83,7 +85,7 @@ public:
             .inherit_animation_time = true
         };
 
-        m_state_data[RUN] = {
+        get_state_data(RUN) = {
             .transition = 0.0f,
             .clip_a = { .animation_index = model.get_animation_index("run"),
                         .paused = false,
@@ -95,7 +97,7 @@ public:
             .inherit_animation_time = true
         };
 
-        m_state_data[ATTACK_1] = {
+        get_state_data(ATTACK_1) = {
             .transition = 0.05f,
             .clip_a = { .animation_index = model.get_animation_index("attack1"),
                         .paused = false,
@@ -105,7 +107,7 @@ public:
             .inherit_animation_time = false
         };
 
-        m_state_data[ATTACK_2] = {
+        get_state_data(ATTACK_2) = {
             .transition = 0.05f,
             .clip_a = { .animation_index = model.get_animation_index("attack2"),
                         .paused = false,
@@ -115,7 +117,7 @@ public:
             .inherit_animation_time = false
         };
 
-        m_state_data[JUMP] = {
+        get_state_data(JUMP) = {
             .transition = 0.02f,
             .clip_a = { .animation_index = model.get_animation_index("jump"),
                         .speed = 1.25f,
@@ -126,7 +128,7 @@ public:
             .inherit_animation_time = false
         };
 
-        m_state_data[FALL] = {
+        get_state_data(FALL) = {
             .transition = 0.02f,
             .clip_a = { .animation_index = model.get_animation_index("fall"),
                         .paused = false,
@@ -136,7 +138,7 @@ public:
             .inherit_animation_time = false
         };
 
-        m_state_data[LAND] = {
+        get_state_data(LAND) = {
             .transition = 0.02f,
             .clip_a = { .animation_index = model.get_animation_index("land"),
                         .speed = 1.5f,
@@ -160,106 +162,129 @@ public:
         Model const & model =
             scene.get_model(armature.model_handle());
 
-        switch (m_state) {
-            case IDLE:
-            case WALK:
-            case RUN: {
-                float eps = 0.05f;
-                if (m_run_factor <= eps && m_state != IDLE) {
-                    m_state = IDLE;
-                    return true;
-                }
-                if (eps < m_run_factor && m_run_factor <= 1.0f && m_state != WALK) {
-                    m_state = WALK;
-                    return true;
-                }
-                if (1.0f < m_run_factor && m_state != RUN) {
-                    m_state = RUN;
-                    return true;
-                }
+        float a_frac = anim.clip_a.frac(model);
 
-                if (input.get_key_down(KeyCode::KEY_CODE_RETURN)) {
-                    m_state = ATTACK_1;
-                    return true;
-                }
-                if (input.get_key_down(KeyCode::KEY_CODE_SPACE)) {
-                    m_state = JUMP;
-                    return true;
+        StateType transition_mask = NONE;
+        bool busy = true;
+        switch (m_state) {
+            case IDLE: {
+                transition_mask = WALK | ATTACK_1 | JUMP;
+                busy = false;
+                break;
+            }
+            case WALK: {
+                transition_mask = IDLE | RUN | ATTACK_1 | JUMP;
+                busy = false;
+                break;
+            }
+            case RUN: {
+                transition_mask = IDLE | WALK | ATTACK_1 | JUMP;
+                busy = false;
+                break;
+            }
+            case ATTACK_1: {
+                busy = false;
+                if (a_frac >= 1.0f) {
+                    transition_mask = IDLE | ATTACK_2;
+                } else if (a_frac >= 0.4f) {
+                    transition_mask = WALK | ATTACK_2 | JUMP;
+                } else if (a_frac >= 0.22f) {
+                    transition_mask = ATTACK_2;
+                } else {
+                    busy = true;
                 }
                 break;
             }
-            case ATTACK_1:
             case ATTACK_2: {
-                float a_frac = anim.clip_a.frac(model);
+                busy = false;
                 if (a_frac >= 1.0f) {
-                    m_state = IDLE;
+                    transition_mask = IDLE | ATTACK_1;
                 } else if (a_frac >= 0.4f) {
-                    if (m_input.direction != glm::vec3{0.0f}) {
-                        m_state = WALK;
-                        return true;
-                    }
-                    if (input.get_key_down(KeyCode::KEY_CODE_SPACE)) {
-                        m_state = JUMP;
-                        return true;
-                    }
-
-                }
-                if (a_frac >= 0.22f) {
-                    if (input.get_key_down(KeyCode::KEY_CODE_RETURN)) {
-                        m_state = m_state == ATTACK_1 ? ATTACK_2 : ATTACK_1;
-                        return true;
-                    }
+                    transition_mask = WALK | ATTACK_1 | JUMP;
+                } else if (a_frac >= 0.22f) {
+                    transition_mask = ATTACK_1;
+                } else {
+                    busy = true;
                 }
                 break;
             }
             case JUMP: {
-                float a_frac = anim.clip_a.frac(model);
                 if (a_frac >= 1.0f) {
                     m_state = FALL;
-                    return true;
+                    transition_mask = FALL;
+                    busy = false;
                 }
                 if (m_grounded && a_frac > 0.5f) {
-                    m_state = LAND;
-                    return true;
+                    transition_mask = LAND;
+                    busy = false;
                 }
                 break;
             }
             case FALL: {
-                if (m_grounded) {
-                    m_state = LAND;
-                    return true;
-                }
+                transition_mask = LAND;
+                busy = false;
                 break;
             }
             case LAND: {
-                float a_frac = anim.clip_a.frac(model);
                 if (a_frac >= 1.0f) {
-                    m_state = IDLE;
-                    return true;
-                }
-                if (a_frac >= 0.25f) {
-                    if (m_input.direction != glm::vec3{0.0f}) {
-                        m_state = WALK;
-                        return true;
-                    }
-                    if (input.get_key_down(KeyCode::KEY_CODE_SPACE)) {
-                        m_state = JUMP;
-                        return true;
-                    }
-                    if (input.get_key_down(KeyCode::KEY_CODE_RETURN)) {
-                        m_state = ATTACK_1;
-                        return true;
-                    }
+                    transition_mask = IDLE;
+                    busy = false;
+                } else if (a_frac >= 0.25f) {
+                    transition_mask = WALK | JUMP | ATTACK_1;
+                    busy = false;
                 }
                 break;
             }
-            case TOTAL_NUM_STATES: { assert(false); }
+            default: { assert(false); }
+        }
+
+        auto attempt_queue_state =
+            [&transition_mask, this](State state) {
+                this->m_queued_state =
+                    state & transition_mask ? state : this->m_queued_state;
+            };
+
+        float eps = 0.05f;
+        if (m_run_factor <= eps) {
+            attempt_queue_state(IDLE);
+        }
+
+        if ((eps < m_run_factor || m_input.direction != glm::vec3{0.0f}) &&
+            m_run_factor <= 1.0f) {
+            attempt_queue_state(WALK);
+        }
+
+        if (1.0f < m_run_factor) {
+            attempt_queue_state(RUN);
+        }
+
+        if (input.get_key_down(KeyCode::KEY_CODE_RETURN)) {
+            attempt_queue_state(ATTACK_1);
+            attempt_queue_state(ATTACK_2);
+        }
+
+        if (input.get_key_down(KeyCode::KEY_CODE_SPACE)) {
+            attempt_queue_state(JUMP);
+        }
+
+        if (!m_grounded) {
+            attempt_queue_state(FALL);
+        }
+
+        if (m_grounded) {
+            attempt_queue_state(LAND);
+        }
+
+        if (!busy && m_queued_state != NONE) {
+            m_state = m_queued_state;
+            m_queued_state = NONE;
+            return true;
         }
         return false;
     }
 
     void init_animation(Animation  & animation) {
-        StateData const & data = m_state_data[m_state];
+        StateData const & data = get_state_data(m_state);
 
         float t_a = data.clip_a.t;
         float t_b = data.clip_b.t;
@@ -280,7 +305,7 @@ public:
     }
 
     void init_state(Scene & scene) {
-        if (m_state_data[m_state].transition != 0.0f) {
+        if (get_state_data(m_state).transition != 0.0f) {
             m_transition = 0.0f;
             m_transition_complete = false;
         } else {
@@ -298,18 +323,26 @@ public:
                 m_run_factor = 0.0f;
                 break;
             }
+            case WALK:
+            case RUN: {
+                break;
+            }
             case ATTACK_1:
             case ATTACK_2: {
+                m_run_factor = 0.0f;
                 if (m_input.direction != glm::vec3{0.0f}) {
                     m_direction = m_input.direction;
                 }
                 break;
             }
             case JUMP: {
+                m_run_factor = 0.0f;
                 m_jumped = false;
                 break;
             }
-            default: {}
+            default: {
+                m_run_factor = 0.0f;
+            }
         }
     }
 
@@ -335,7 +368,7 @@ public:
     }
 
     void update_animation(Animation & animation) {
-        StateData const & data = m_state_data[m_state];
+        StateData const & data = get_state_data(m_state);
 
         bool exit_transition = false;
         if (data.transition > 0.0f &&
@@ -490,14 +523,14 @@ public:
                 m_velocity = glm::mix(m_velocity, target_vel, dt_fac);
                 break;
             }
-            case TOTAL_NUM_STATES: { assert(false); }
+            default: { assert(false); }
         }
     }
 
     void update_direction(Scene & scene, float delta_time) {
         float dt_fac = 10.0f * delta_time;
 
-        if (m_state_data[m_state].can_change_direction &&
+        if (get_state_data(m_state).can_change_direction &&
             m_input.direction != glm::vec3{0.0f}) {
             m_direction = glm::mix(m_direction, m_input.direction, dt_fac);
         }
@@ -560,6 +593,7 @@ private:
     glm::vec3 m_velocity = glm::vec3{0.0f};
 
     State m_state = IDLE;
+    State m_queued_state = NONE;
 
     float m_transition = 0.0f;
     bool m_transition_complete = false;
@@ -570,6 +604,24 @@ private:
     CharacterInput m_input;
 
     std::array<StateData, TOTAL_NUM_STATES> m_state_data;
+
+    inline State bit_index_to_state(StateType bit_index) {
+        return static_cast<State>(1 << bit_index);
+    }
+
+    inline StateData & get_state_data(State state) {
+        switch (state) {
+            case IDLE: return m_state_data[0];
+            case WALK: return m_state_data[1];
+            case RUN: return m_state_data[2];
+            case ATTACK_1: return m_state_data[3];
+            case ATTACK_2: return m_state_data[4];
+            case JUMP: return m_state_data[5];
+            case FALL: return m_state_data[6];
+            case LAND: return m_state_data[7];
+            default: { assert(false); return m_state_data[0]; }
+        }
+    }
 
 REGISTER_SCRIPT(CharacterController, character_controller, 7387722065150816170)
 };
