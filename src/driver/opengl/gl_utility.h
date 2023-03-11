@@ -8,7 +8,7 @@
 
 namespace prt3 {
 
-typedef FixedString<64> UniformVarString;
+typedef FixedString<64> GLVarString;
 
 GLenum glCheckError_(const char *file, int line);
 

@@ -400,65 +400,65 @@ void GLRenderer::bind_light_data(
     GLShader const & s,
     LightRenderData const & light_data
 ) {
-    static const UniformVarString n_point_lights_str = "u_NumberOfPointLights";
+    static const GLVarString n_point_lights_str = "u_NumberOfPointLights";
     glUniform1i(s.get_uniform_loc(n_point_lights_str), static_cast<int>(light_data.number_of_point_lights));
 
-    static const UniformVarString point_lights_0_pos_str = "u_PointLights[0].position";
+    static const GLVarString point_lights_0_pos_str = "u_PointLights[0].position";
     glUniform3fv(s.get_uniform_loc(point_lights_0_pos_str), 1, &light_data.point_lights[0].position[0]);
-    static const UniformVarString point_lights_0_col_str = "u_PointLights[0].color";
+    static const GLVarString point_lights_0_col_str = "u_PointLights[0].color";
     glUniform3fv(s.get_uniform_loc(point_lights_0_col_str), 1, &light_data.point_lights[0].light.color[0]);
-    static const UniformVarString point_lights_0_a_str = "u_PointLights[0].a";
+    static const GLVarString point_lights_0_a_str = "u_PointLights[0].a";
     glUniform1f(s.get_uniform_loc(point_lights_0_a_str), light_data.point_lights[0].light.quadratic_term);
-    static const UniformVarString point_lights_0_b_str = "u_PointLights[0].b";
+    static const GLVarString point_lights_0_b_str = "u_PointLights[0].b";
     glUniform1f(s.get_uniform_loc(point_lights_0_b_str), light_data.point_lights[0].light.linear_term);
-    static const UniformVarString point_lights_0_c_str = "u_PointLights[0].c";
+    static const GLVarString point_lights_0_c_str = "u_PointLights[0].c";
     glUniform1f(s.get_uniform_loc(point_lights_0_c_str), light_data.point_lights[0].light.constant_term);
 
-    static const UniformVarString point_lights_1_pos_str = "u_PointLights[1].position";
+    static const GLVarString point_lights_1_pos_str = "u_PointLights[1].position";
     glUniform3fv(s.get_uniform_loc(point_lights_1_pos_str), 1, &light_data.point_lights[1].position[0]);
-    static const UniformVarString point_lights_1_col_str = "u_PointLights[1].color";
+    static const GLVarString point_lights_1_col_str = "u_PointLights[1].color";
     glUniform3fv(s.get_uniform_loc(point_lights_1_col_str), 1, &light_data.point_lights[1].light.color[0]);
-    static const UniformVarString point_lights_1_a_str = "u_PointLights[1].a";
+    static const GLVarString point_lights_1_a_str = "u_PointLights[1].a";
     glUniform1f(s.get_uniform_loc(point_lights_1_a_str), light_data.point_lights[1].light.quadratic_term);
-    static const UniformVarString point_lights_1_b_str = "u_PointLights[1].b";
+    static const GLVarString point_lights_1_b_str = "u_PointLights[1].b";
     glUniform1f(s.get_uniform_loc(point_lights_1_b_str), light_data.point_lights[1].light.linear_term);
-    static const UniformVarString point_lights_1_c_str = "u_PointLights[1].c";
+    static const GLVarString point_lights_1_c_str = "u_PointLights[1].c";
     glUniform1f(s.get_uniform_loc(point_lights_1_c_str), light_data.point_lights[1].light.constant_term);
 
 
-    static const UniformVarString point_lights_2_pos_str = "u_PointLights[2].position";
+    static const GLVarString point_lights_2_pos_str = "u_PointLights[2].position";
     glUniform3fv(s.get_uniform_loc(point_lights_2_pos_str), 1, &light_data.point_lights[2].position[0]);
-    static const UniformVarString point_lights_2_col_str = "u_PointLights[2].color";
+    static const GLVarString point_lights_2_col_str = "u_PointLights[2].color";
     glUniform3fv(s.get_uniform_loc(point_lights_2_col_str), 1, &light_data.point_lights[2].light.color[0]);
-    static const UniformVarString point_lights_2_a_str = "u_PointLights[2].a";
+    static const GLVarString point_lights_2_a_str = "u_PointLights[2].a";
     glUniform1f(s.get_uniform_loc(point_lights_2_a_str), light_data.point_lights[2].light.quadratic_term);
-    static const UniformVarString point_lights_2_b_str = "u_PointLights[2].b";
+    static const GLVarString point_lights_2_b_str = "u_PointLights[2].b";
     glUniform1f(s.get_uniform_loc(point_lights_2_b_str), light_data.point_lights[2].light.linear_term);
-    static const UniformVarString point_lights_2_c_str = "u_PointLights[2].c";
+    static const GLVarString point_lights_2_c_str = "u_PointLights[2].c";
     glUniform1f(s.get_uniform_loc(point_lights_2_c_str), light_data.point_lights[2].light.constant_term);
 
 
-    static const UniformVarString point_lights_3_pos_str = "u_PointLights[3].position";
+    static const GLVarString point_lights_3_pos_str = "u_PointLights[3].position";
     glUniform3fv(s.get_uniform_loc(point_lights_3_pos_str), 1, &light_data.point_lights[3].position[0]);
-    static const UniformVarString point_lights_3_col_str = "u_PointLights[3].color";
+    static const GLVarString point_lights_3_col_str = "u_PointLights[3].color";
     glUniform3fv(s.get_uniform_loc(point_lights_3_col_str), 1, &light_data.point_lights[3].light.color[0]);
-    static const UniformVarString point_lights_3_a_str = "u_PointLights[3].a";
+    static const GLVarString point_lights_3_a_str = "u_PointLights[3].a";
     glUniform1f(s.get_uniform_loc(point_lights_3_a_str), light_data.point_lights[3].light.quadratic_term);
-    static const UniformVarString point_lights_3_b_str = "u_PointLights[3].b";
+    static const GLVarString point_lights_3_b_str = "u_PointLights[3].b";
     glUniform1f(s.get_uniform_loc(point_lights_3_b_str), light_data.point_lights[3].light.linear_term);
-    static const UniformVarString point_lights_3_c_str = "u_PointLights[3].c";
+    static const GLVarString point_lights_3_c_str = "u_PointLights[3].c";
     glUniform1f(s.get_uniform_loc(point_lights_3_c_str), light_data.point_lights[3].light.constant_term);
 
     glm::vec3 dir_light_dir = glm::normalize(light_data.directional_light.direction);
-    static const UniformVarString dir_light_dir_str = "u_DirectionalLight.direction";
+    static const GLVarString dir_light_dir_str = "u_DirectionalLight.direction";
     glUniform3fv(s.get_uniform_loc(dir_light_dir_str), 1, &dir_light_dir[0]);
-    static const UniformVarString dir_light_col_str = "u_DirectionalLight.color";
+    static const GLVarString dir_light_col_str = "u_DirectionalLight.color";
     glUniform3fv(s.get_uniform_loc(dir_light_col_str), 1, &light_data.directional_light.color[0]);
 
-    static const UniformVarString dir_light_on_str = "u_DirectionalLightOn";
+    static const GLVarString dir_light_on_str = "u_DirectionalLightOn";
     glUniform1i(s.get_uniform_loc(dir_light_on_str), static_cast<int>(light_data.directional_light_on));
 
-    static const UniformVarString ambient_light_str = "u_AmbientLight";
+    static const GLVarString ambient_light_str = "u_AmbientLight";
     glUniform3fv(s.get_uniform_loc(ambient_light_str), 1, &light_data.ambient_light.color[0]);
 }
 
@@ -472,16 +472,16 @@ void GLRenderer::bind_transform_and_camera_data(
     glm::mat4 mvp_matrix = camera_data.projection_matrix * mv_matrix;
     glm::mat3 inv_tpos_matrix = glm::inverse(glm::transpose(m_matrix));
 
-    static const UniformVarString view_pos_str = "u_ViewPosition";
+    static const GLVarString view_pos_str = "u_ViewPosition";
     glUniform3fv(s.get_uniform_loc(view_pos_str), 1, &camera_data.view_position[0]);
 
-    static const UniformVarString mmatrix_str = "u_MMatrix";
+    static const GLVarString mmatrix_str = "u_MMatrix";
     glUniformMatrix4fv(s.get_uniform_loc(mmatrix_str), 1, GL_FALSE, &m_matrix[0][0]);
-    static const UniformVarString mvmatrix_str = "u_MVMatrix";
+    static const GLVarString mvmatrix_str = "u_MVMatrix";
     glUniformMatrix4fv(s.get_uniform_loc(mvmatrix_str), 1, GL_FALSE, &mv_matrix[0][0]);
-    static const UniformVarString mvpmatrix_str = "u_MVPMatrix";
+    static const GLVarString mvpmatrix_str = "u_MVPMatrix";
     glUniformMatrix4fv(s.get_uniform_loc(mvpmatrix_str), 1, GL_FALSE, &mvp_matrix[0][0]);
-    static const UniformVarString inv_tpos_matrix_str = "u_InvTposMMatrix";
+    static const GLVarString inv_tpos_matrix_str = "u_InvTposMMatrix";
     glUniformMatrix3fv(s.get_uniform_loc(inv_tpos_matrix_str), 1, GL_FALSE, &inv_tpos_matrix[0][0]);
 }
 
@@ -489,7 +489,7 @@ void GLRenderer::bind_node_data(
     GLShader const & shader,
     NodeID node_id
 ) {
-    static const UniformVarString node_str = "u_ID";
+    static const GLVarString node_str = "u_ID";
     GLuint u_node_id = static_cast<GLuint>(node_id);
     glUniform1ui(shader.get_uniform_loc(node_str), GLuint(u_node_id));
 }
@@ -498,31 +498,31 @@ void GLRenderer::bind_material_data(
     GLShader const & s,
     GLMaterial const & material
 ) {
-    static const UniformVarString albedo_map_str = "u_AlbedoMap";
+    static const GLVarString albedo_map_str = "u_AlbedoMap";
     glUniform1i(s.get_uniform_loc(albedo_map_str), 0);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, material.albedo_map());
 
-    static const UniformVarString normal_map_str = "u_NormalMap";
+    static const GLVarString normal_map_str = "u_NormalMap";
     glUniform1i(s.get_uniform_loc(normal_map_str), 1);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, material.normal_map());
 
-    static const UniformVarString metallic_map_str = "u_MetallicMap";
+    static const GLVarString metallic_map_str = "u_MetallicMap";
     glUniform1i(s.get_uniform_loc(metallic_map_str), 2);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, material.metallic_map());
 
-    static const UniformVarString roughness_map_str = "u_RoughnessMap";
+    static const GLVarString roughness_map_str = "u_RoughnessMap";
     glUniform1i(s.get_uniform_loc(roughness_map_str), 3);
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, material.roughness_map());
 
-    static const UniformVarString albedo_str = "u_Albedo";
+    static const GLVarString albedo_str = "u_Albedo";
     glUniform4fv(s.get_uniform_loc(albedo_str), 1, &material.material().albedo[0]);
-    static const UniformVarString metallic_str = "u_Metallic";
+    static const GLVarString metallic_str = "u_Metallic";
     glUniform1f(s.get_uniform_loc(metallic_str), material.material().metallic);
-    static const UniformVarString roughness_str = "u_Roughness";
+    static const GLVarString roughness_str = "u_Roughness";
     glUniform1f(s.get_uniform_loc(roughness_str), material.material().roughness);
 }
 
@@ -530,6 +530,6 @@ void GLRenderer::bind_bone_data(
     GLShader const & s,
     BoneData const & bone_data
 ) {
-    static const UniformVarString bones_str = "u_Bones";
+    static const GLVarString bones_str = "u_Bones";
     glUniformMatrix4fv(s.get_uniform_loc(bones_str), bone_data.bones.size(), GL_FALSE, &bone_data.bones[0][0][0]);
 }

@@ -79,7 +79,7 @@ void GLPostProcessingPass::render(
 
     GLenum tex_offset = 0;
     {
-        static UniformVarString prev_color_buffer = "u_PreviousColorBuffer";
+        static GLVarString prev_color_buffer = "u_PreviousColorBuffer";
         GLint loc = m_shader.get_uniform_loc(prev_color_buffer);
         if (loc != -1) {
             glUniform1i(loc, tex_offset);

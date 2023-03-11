@@ -18,7 +18,7 @@ struct UniformName {
     UniformName(char const * c, GLuint v)
     : name{c}, value{v} {}
 
-    UniformVarString name = "";
+    GLVarString name = "";
     GLuint value = 0;
 };
 

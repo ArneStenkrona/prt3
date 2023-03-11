@@ -19,10 +19,12 @@ public:
     ~GLShader() { glDeleteShader(m_shader); }
     GLint shader() const { return m_shader; }
 
-    GLint get_uniform_loc(UniformVarString const & uniform) const;
+    GLint get_uniform_loc(GLVarString const & uniform) const;
+    GLint get_attrib_loc(GLVarString const & attrib) const;
 private:
     GLuint m_shader;
-    mutable std::unordered_map<UniformVarString, GLint> m_uniform_cache;
+    mutable std::unordered_map<GLVarString, GLint> m_uniform_cache;
+    mutable std::unordered_map<GLVarString, GLint> m_attrib_cache;
 };
 
 } // namespace prt3

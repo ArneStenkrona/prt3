@@ -142,9 +142,10 @@ ResourceID GLModelManager::upload_line_mesh(
     );
     glCheckError();
 
-    GLuint shader_program = m_material_manager.wireframe_shader().shader();
+    GLShader const & shader = m_material_manager.wireframe_shader();
 
-    GLint pos_attr = glGetAttribLocation(shader_program, "a_Position");
+    static const GLVarString pos_str = "a_Position";
+    GLint pos_attr = shader.get_attrib_loc(pos_str);
     glCheckError();
     glEnableVertexAttribArray(pos_attr);
     glCheckError();
@@ -215,9 +216,10 @@ void GLModelManager::bind_vertex_buffer(Model const & model) {
     );
     glCheckError();
 
-    GLuint shader_program = m_material_manager.standard_shader().shader();
+    GLShader const & shader = m_material_manager.standard_shader();
 
-    GLint pos_attr = glGetAttribLocation(shader_program, "a_Position");
+    static const GLVarString pos_str = "a_Position";
+    GLint pos_attr = shader.get_attrib_loc(pos_str);
     glCheckError();
     glEnableVertexAttribArray(pos_attr);
     glCheckError();
@@ -231,7 +233,8 @@ void GLModelManager::bind_vertex_buffer(Model const & model) {
     );
     glCheckError();
 
-    GLint normal_attr = glGetAttribLocation(shader_program, "a_Normal");
+    static const GLVarString normal_str = "a_Normal";
+    GLint normal_attr = shader.get_attrib_loc(normal_str);
     glCheckError();
     glEnableVertexAttribArray(normal_attr);
     glCheckError();
@@ -245,7 +248,8 @@ void GLModelManager::bind_vertex_buffer(Model const & model) {
     );
     glCheckError();
 
-    GLint texcoord_attr = glGetAttribLocation(shader_program, "a_TexCoordinate");
+    static const GLVarString tex_coord_str = "a_TexCoordinate";
+    GLint texcoord_attr = shader.get_attrib_loc(tex_coord_str);
     glCheckError();
     glEnableVertexAttribArray(texcoord_attr);
     glCheckError();
@@ -259,7 +263,8 @@ void GLModelManager::bind_vertex_buffer(Model const & model) {
     );
     glCheckError();
 
-    GLint tan_attr = glGetAttribLocation(shader_program, "a_Tangent");
+    static const GLVarString tan_str = "a_Tangent";
+    GLint tan_attr = shader.get_attrib_loc(tan_str);
     glCheckError();
     if (tan_attr != -1) {
         glEnableVertexAttribArray(tan_attr);
@@ -275,7 +280,8 @@ void GLModelManager::bind_vertex_buffer(Model const & model) {
         glCheckError();
     }
 
-    GLint bitan_attr = glGetAttribLocation(shader_program, "a_Bitangent");
+    static const GLVarString bitan_str = "a_Bitangent";
+    GLint bitan_attr = shader.get_attrib_loc(bitan_str);
     glCheckError();
     if (bitan_attr != -1) {
         glEnableVertexAttribArray(bitan_attr);
