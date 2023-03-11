@@ -34,6 +34,12 @@ struct Animation {
             float duration = animation.duration / animation.ticks_per_second;
             return t / duration;
         }
+
+        void set_frac(Model const & model, float frac) {
+            Model::Animation const & animation = model.animations()[animation_index];
+            float duration = animation.duration / animation.ticks_per_second;
+            t = frac * duration;
+        }
     };
 
     ModelHandle model_handle;
