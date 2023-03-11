@@ -32,6 +32,7 @@ public:
         LAND             = 1 << 9,
         TOTAL_NUM_STATES = 10 // number of states, excluding 'none'
     };
+    static constexpr StateType all_states = ~0;
 
     struct StateData {
         float transition;
@@ -191,116 +192,128 @@ public:
         float coyote_time = 0.1f;
 
         StateType transition_mask = NONE;
-        bool busy = true;
+        StateType queueable_mask = NONE;
         switch (m_state) {
             case IDLE: {
                 transition_mask = WALK | ATTACK_1 | JUMP;
                 if (m_grounded_timer > coyote_time) transition_mask |= FALL;
-                busy = false;
+                queueable_mask = transition_mask;
                 break;
             }
             case WALK: {
                 transition_mask = IDLE | RUN | ATTACK_1 | JUMP;
                 if (m_grounded_timer > coyote_time) transition_mask |= FALL;
-                busy = false;
+                queueable_mask = transition_mask;
                 break;
             }
             case RUN: {
                 transition_mask = IDLE | WALK | ATTACK_1 | JUMP;
                 if (m_grounded_timer > coyote_time) transition_mask |= FALL;
-                busy = false;
+                queueable_mask = transition_mask;
                 break;
             }
             case ATTACK_1: {
-                busy = false;
+                queueable_mask = ATTACK_2 | JUMP;
                 if (a_frac >= 1.0f) {
-                    transition_mask = IDLE | ATTACK_2;
+                    transition_mask = IDLE | WALK | ATTACK_2;
+                    queueable_mask |= IDLE | WALK;
                 } else if (a_frac >= 0.4f) {
                     transition_mask = WALK | ATTACK_2 | JUMP;
+                    queueable_mask |= WALK;
                 } else if (a_frac >= 0.22f) {
                     transition_mask = ATTACK_2;
-                } else {
-                    busy = true;
                 }
-                if (m_grounded_timer > coyote_time) transition_mask |= FALL;
+
+                if (m_grounded_timer > coyote_time) {
+                    transition_mask |= FALL;
+                    queueable_mask |= FALL;
+                }
                 break;
             }
             case ATTACK_2: {
-                busy = false;
+                // busy = false;
+                queueable_mask = ATTACK_1 | JUMP;
                 if (a_frac >= 1.0f) {
-                    transition_mask = IDLE | ATTACK_1;
+                    transition_mask = IDLE | WALK | ATTACK_1;
+                    queueable_mask |= IDLE | WALK;
                 } else if (a_frac >= 0.4f) {
                     transition_mask = WALK | ATTACK_1 | JUMP;
+                    queueable_mask |= WALK;
                 } else if (a_frac >= 0.22f) {
                     transition_mask = ATTACK_1;
-                } else {
-                    busy = true;
                 }
-                if (m_grounded_timer > coyote_time) transition_mask |= FALL;
+
+                if (m_grounded_timer > coyote_time) {
+                    transition_mask |= FALL;
+                    queueable_mask |= FALL;
+                }
                 break;
             }
             case ATTACK_AIR_1: {
-                busy = false;
+                queueable_mask = ATTACK_AIR_2 | JUMP;
                 if (a_frac >= 1.0f) {
                     transition_mask = FALL | ATTACK_AIR_2 | LAND;
+                    queueable_mask |= FALL | LAND;
                 } else if (a_frac >= 0.17f) {
                     transition_mask = ATTACK_AIR_2 | LAND;
+                    queueable_mask |= LAND;
                     if (m_jump_count < 2) {
                         transition_mask |= JUMP;
-                        busy = false;
                     }
                 }
                 break;
             }
             case ATTACK_AIR_2: {
-                busy = false;
+                queueable_mask = ATTACK_AIR_1 | JUMP;
                 if (a_frac >= 1.0f) {
                     transition_mask = FALL | ATTACK_AIR_1 | LAND;
+                    queueable_mask |= FALL | LAND;
                 } else if (a_frac >= 0.17f) {
                     transition_mask = ATTACK_AIR_1 | LAND;
+                    queueable_mask |= LAND;
                     if (m_jump_count < 2) {
                         transition_mask |= JUMP;
-                        busy = false;
                     }
                 }
                 break;
             }
             case JUMP: {
+                queueable_mask = ATTACK_AIR_1 | JUMP;
                 if (a_frac >= 1.0f) {
-                    m_state = FALL;
                     transition_mask = FALL;
-                    busy = false;
+                    queueable_mask = FALL;
                 }
+
                 if (m_grounded && a_frac > 0.5f) {
                     transition_mask = LAND;
-                    busy = false;
+                    queueable_mask = LAND;
                 }
+
                 if (!m_grounded) {
                     transition_mask |= ATTACK_AIR_1;
-                    busy = false;
                 }
+
                 if (m_jump_count < 2 && a_frac > 0.5f) {
                     transition_mask |= JUMP;
-                    busy = false;
                 }
                 break;
             }
             case FALL: {
                 transition_mask = LAND | ATTACK_AIR_1;
+                queueable_mask = LAND | ATTACK_AIR_1 | JUMP;
                 if (m_jump_count < 2) {
                     transition_mask |= JUMP;
-                    busy = false;
                 }
-                busy = false;
                 break;
             }
             case LAND: {
+                queueable_mask = JUMP | ATTACK_1;
                 if (a_frac >= 1.0f) {
                     transition_mask = IDLE;
-                    busy = false;
+                    queueable_mask |= IDLE;
                 } else if (a_frac >= 0.25f) {
                     transition_mask = WALK | JUMP | ATTACK_1;
-                    busy = false;
+                    queueable_mask |= WALK;
                 }
                 break;
             }
@@ -308,9 +321,9 @@ public:
         }
 
         auto attempt_queue_state =
-            [&transition_mask, this](State state) {
+            [&queueable_mask, this](State state) {
                 this->m_queued_state =
-                    state & transition_mask ? state : this->m_queued_state;
+                    state & queueable_mask ? state : this->m_queued_state;
             };
 
         float eps = 0.05f;
@@ -346,7 +359,7 @@ public:
             attempt_queue_state(LAND);
         }
 
-        if (!busy && m_queued_state != NONE) {
+        if (transition_mask & m_queued_state) {
             m_state = m_queued_state;
             m_queued_state = NONE;
             return true;
