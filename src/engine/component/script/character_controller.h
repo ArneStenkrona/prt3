@@ -427,7 +427,6 @@ public:
                 if (m_input.direction != glm::vec3{0.0f}) {
                     m_direction = m_input.direction;
                 }
-                m_gravity_velocity = glm::min(m_gravity_velocity, 0.0f);
                 break;
             }
             case JUMP: {
@@ -440,6 +439,10 @@ public:
                     m_input.last_grounded_direction : m_input.direction;
                 m_run_jump = m_jump_count == 0 ? m_input.last_grounded_run : false;
                 break;
+            }
+            case FALL: {
+                m_run_factor = 0.0f;
+                m_jump_count = m_jump_count == 0 ? 1 : m_jump_count;
             }
             default: {
                 m_run_factor = 0.0f;
@@ -515,34 +518,39 @@ public:
         m_input.attack = input.get_key_down(KeyCode::KEY_CODE_RETURN);
         m_input.jump = input.get_key_down(KeyCode::KEY_CODE_SPACE);
 
-        glm::vec3 raw_input_dir{0.0f};
+        glm::vec2 raw_input_dir{0.0f};
 
         if (input.get_key(KeyCode::KEY_CODE_W)) {
-            raw_input_dir += glm::vec3{1.0f, 0.0f, 0.0f};
+            raw_input_dir += glm::vec2{0.0f, 1.0f};
         }
         if (input.get_key(KeyCode::KEY_CODE_S)) {
-            raw_input_dir -= glm::vec3{1.0f, 0.0f, 0.0f};
+            raw_input_dir -= glm::vec2{0.0f, 1.0f};
         }
         if (input.get_key(KeyCode::KEY_CODE_A)) {
-            raw_input_dir -= glm::vec3{0.0f, 0.0f, 1.0f};
+            raw_input_dir -= glm::vec2{1.0f, 0.0f};
         }
         if (input.get_key(KeyCode::KEY_CODE_D)) {
-            raw_input_dir += glm::vec3{0.0f, 0.0f, 1.0f};
+            raw_input_dir += glm::vec2{1.0f, 0.0f};
         }
 
         m_input.direction = glm::vec3{ 0.0f };
         // project input according to camera
-        if (raw_input_dir != glm::vec3{0.0f}) {
+        if (raw_input_dir != glm::vec2{0.0f}) {
             // compute look direction
             Camera const & camera = scene.get_camera();
-            glm::vec3 cf = camera.get_front();
-            glm::vec3 cr = camera.get_right();
+            glm::vec3 c_proj_x = camera.get_right();
+            constexpr float quarter_pi = glm::pi<float>() / 4.0f;
+            glm::vec3 c_proj_y =
+                glm::abs(glm::asin(-camera.get_front().y)) <= quarter_pi ?
+                camera.get_front() :
+                glm::sign(-camera.get_front().y) * camera.get_up();
+
             m_input.direction = glm::normalize(
-                raw_input_dir.x * glm::vec3{cf.x, 0.0f, cf.z} +
-                raw_input_dir.z * glm::vec3{cr.x, 0.0f, cr.z} +
-                glm::vec3{0.0f, raw_input_dir.y, 0.0f}
+                raw_input_dir.x * glm::vec3{c_proj_x.x, 0.0f, c_proj_x.z} +
+                raw_input_dir.y * glm::vec3{c_proj_y.x, 0.0f, c_proj_y.z}
             );
         }
+
         if (m_grounded) {
             m_input.last_grounded_direction = m_input.direction;
             m_input.last_grounded_run = m_input.run;

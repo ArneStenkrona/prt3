@@ -27,8 +27,8 @@ public:
     inline void set_target_distance(float distance) { m_target_distance = distance; }
 
     inline void set_direction(glm::vec3 direction) {
-        m_pitch = glm::degrees(glm::asin(-direction.y));
-        m_yaw = glm::degrees(std::atan2(direction.x, direction.z));
+        m_pitch = glm::asin(-direction.y);
+        m_yaw = std::atan2(direction.x, direction.z);
     }
 
     inline float const & yaw() const { return m_yaw; }
@@ -60,15 +60,15 @@ public:
         m_pitch -= dy;
 
         // constrainPitch should have its effect here
-        if (m_pitch > 89.0f) {
-            m_pitch = 89.0f;
+        if (m_pitch > glm::radians(89.0f)) {
+            m_pitch = glm::radians(89.0f);
         }
-        if (m_pitch < -89.0f) {
-            m_pitch = -89.0f;
+        if (m_pitch < glm::radians(-89.0f)) {
+            m_pitch = glm::radians(-89.0f);
         }
 
         cam_tform.rotation = glm::quat_cast(
-            glm::eulerAngleYXZ(glm::radians(m_yaw), glm::radians(-m_pitch), 0.0f)
+            glm::eulerAngleYXZ(m_yaw, -m_pitch, 0.0f)
         );
 
         glm::vec3 target_pos{0.0f, 0.0f, 0.0f};
@@ -88,7 +88,7 @@ public:
 private:
     float m_yaw;
     float m_pitch;
-    float m_mouse_sensitivity = 0.3f;
+    float m_mouse_sensitivity = 0.005236f;
 
     NodeID m_target = NO_NODE;
     float m_target_distance = 25.0f;
