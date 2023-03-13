@@ -92,9 +92,9 @@ void GLTextureManager::load_texture(char const * path) {
 }
 
 GLuint GLTextureManager::load_texture(unsigned char * data,
-                                int w, int h,
-                                GLenum format,
-                                bool mipmap) {
+                                      int w, int h,
+                                      GLenum format,
+                                      bool mipmap) {
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);

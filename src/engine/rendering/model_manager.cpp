@@ -202,7 +202,8 @@ void ModelManager::upload_model(ModelHandle handle) {
 
     m_context.renderer().upload_model(handle, model, resource);
 
-    std::vector<uint32_t> queue{ 0 };
+    thread_local std::vector<uint32_t> queue;
+    queue.push_back(0);
     while (!queue.empty()) {
         size_t model_node_index = queue.back();
         queue.pop_back();

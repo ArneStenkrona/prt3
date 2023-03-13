@@ -21,12 +21,22 @@ using namespace prt3;
 
 Model::Model(char const * path)
  : m_path{path} {
-    char const * slash = std::strchr(path, '/');
+    // auto start_time = std::chrono::high_resolution_clock::now();
+
+    char const * slash = std::strrchr(path, '/');
     m_name = slash ? slash + 1 : 0;
     if (!deserialize_model()) {
         load_with_assimp();
         serialize_model();
     }
+
+    // auto end_time = std::chrono::high_resolution_clock::now();
+
+    // auto duration =
+    //     std::chrono::duration_cast<std::chrono::milliseconds>
+    //     (end_time-start_time);
+
+    // std::cout << m_name << " load time: " << duration.count() << " ms" << std::endl;
 }
 
 int32_t Model::get_animation_index(char const * name) const {
@@ -60,17 +70,22 @@ void Model::sample_animation(
 
                 int32_t channel_index = node.channel_index;
                 if (channel_index != -1) {
-                    auto const & channel = animation.channels[channel_index];
+                    uint32_t channel_buf_index =
+                        animation.start_index + channel_index;
+                    uint32_t start_key_index =
+                        m_channels[channel_buf_index].start_index;
+                    uint32_t num_frames =
+                        m_channels[channel_buf_index].num_indices;
+                    AnimationKey const * channel = &m_keys[start_key_index];
 
                     float duration = animation.duration / animation.ticks_per_second;
                     float clip_time = t / duration;
 
                     // calculate prev and next frame
-                    int num_frames = animation.channels[channel_index].keys.size();
                     float frac_frame = clip_time * num_frames;
-                    int prev_frame = static_cast<int>(frac_frame);
+                    unsigned int prev_frame = static_cast<unsigned int>(frac_frame);
                     float frac = frac_frame - prev_frame;
-                    int next_frame = (prev_frame + 1);
+                    unsigned int next_frame = (prev_frame + 1);
 
                     if (looping) {
                         prev_frame = prev_frame % num_frames;
@@ -80,14 +95,14 @@ void Model::sample_animation(
                         next_frame = glm::min(next_frame, num_frames - 1);
                     }
 
-                    glm::vec3 const & prev_pos = channel.keys[prev_frame].position;
-                    glm::vec3 const & next_pos = channel.keys[next_frame].position;
+                    glm::vec3 const & prev_pos = channel[prev_frame].position;
+                    glm::vec3 const & next_pos = channel[next_frame].position;
 
-                    glm::quat const & prev_rot = channel.keys[prev_frame].rotation;
-                    glm::quat const & next_rot = channel.keys[next_frame].rotation;
+                    glm::quat const & prev_rot = channel[prev_frame].rotation;
+                    glm::quat const & next_rot = channel[next_frame].rotation;
 
-                    glm::vec3 const & prev_scale = channel.keys[prev_frame].scaling;
-                    glm::vec3 const & next_scale = channel.keys[next_frame].scaling;
+                    glm::vec3 const & prev_scale = channel[prev_frame].scaling;
+                    glm::vec3 const & next_scale = channel[next_frame].scaling;
 
                     glm::vec3 pos = glm::lerp(prev_pos, next_pos, frac);
                     glm::quat rot = glm::slerp(prev_rot, next_rot, frac);
@@ -138,8 +153,21 @@ void Model::blend_animation(
 
                 int32_t channel_index = node.channel_index;
                 if (channel_index != -1) {
-                    auto & channel_a = animation_a.channels[channel_index];
-                    auto & channel_b = animation_b.channels[channel_index];
+                    uint32_t channel_buf_index_a =
+                        animation_a.start_index + channel_index;
+                    uint32_t start_key_index_a =
+                        m_channels[channel_buf_index_a].start_index;
+                    uint32_t num_frames_a =
+                        m_channels[channel_buf_index_a].num_indices;
+                    AnimationKey const * channel_a = &m_keys[start_key_index_a];
+
+                    uint32_t channel_buf_index_b =
+                        animation_b.start_index + channel_index;
+                    uint32_t start_key_index_b =
+                        m_channels[channel_buf_index_b].start_index;
+                    uint32_t num_frames_b =
+                        m_channels[channel_buf_index_b].num_indices;
+                    AnimationKey const * channel_b = &m_keys[start_key_index_b];
 
                     float duration_a = animation_a.duration / animation_a.ticks_per_second;
                     float clip_time_a = t_a / duration_a;
@@ -148,11 +176,10 @@ void Model::blend_animation(
                     float clip_time_b = t_b / duration_b;
 
                     // calculate prev and next frame for clip A
-                    int num_frames_a = animation_a.channels[channel_index].keys.size();
                     float frac_frame_a = clip_time_a * num_frames_a;
-                    int prev_frame_a = static_cast<int>(frac_frame_a);
+                    unsigned int prev_frame_a = static_cast<unsigned int>(frac_frame_a);
                     float frac_a = frac_frame_a - prev_frame_a;
-                    int next_frame_a = (prev_frame_a + 1);
+                    unsigned int next_frame_a = (prev_frame_a + 1);
 
                     if (looping_a) {
                         prev_frame_a = prev_frame_a % num_frames_a;
@@ -163,11 +190,10 @@ void Model::blend_animation(
                     }
 
                     // calculate prev and next frame for clip B
-                    int num_frames_b = animation_b.channels[channel_index].keys.size();
                     float frac_frame_b = clip_time_b * num_frames_b;
-                    int prev_frame_b = static_cast<int>(frac_frame_b);
+                    unsigned int prev_frame_b = static_cast<unsigned int>(frac_frame_b);
                     float frac_b = frac_frame_b - prev_frame_b;
-                    int next_frame_b = (prev_frame_b + 1);
+                    unsigned int next_frame_b = (prev_frame_b + 1);
 
                     if (looping_b) {
                         prev_frame_b = prev_frame_b % num_frames_b;
@@ -178,28 +204,28 @@ void Model::blend_animation(
                     }
 
                     // clip A
-                    glm::vec3 const & prev_pos_a = channel_a.keys[prev_frame_a].position;
-                    glm::vec3 const & next_pos_a = channel_a.keys[next_frame_a].position;
+                    glm::vec3 const & prev_pos_a = channel_a[prev_frame_a].position;
+                    glm::vec3 const & next_pos_a = channel_a[next_frame_a].position;
 
-                    glm::quat const & prev_rot_a = channel_a.keys[prev_frame_a].rotation;
-                    glm::quat const & next_rot_a = channel_a.keys[next_frame_a].rotation;
+                    glm::quat const & prev_rot_a = channel_a[prev_frame_a].rotation;
+                    glm::quat const & next_rot_a = channel_a[next_frame_a].rotation;
 
-                    glm::vec3 const & prev_scale_a = channel_a.keys[prev_frame_a].scaling;
-                    glm::vec3 const & next_scale_a = channel_a.keys[next_frame_a].scaling;
+                    glm::vec3 const & prev_scale_a = channel_a[prev_frame_a].scaling;
+                    glm::vec3 const & next_scale_a = channel_a[next_frame_a].scaling;
 
                     glm::vec3 pos_a = glm::lerp(prev_pos_a, next_pos_a, frac_a);
                     glm::quat rot_a = glm::slerp(prev_rot_a, next_rot_a, frac_a);
                     glm::vec3 scale_a = glm::lerp(prev_scale_a, next_scale_a, frac_a);
 
                     // clip B
-                    glm::vec3 const & prev_pos_b = channel_b.keys[prev_frame_b].position;
-                    glm::vec3 const & next_pos_b = channel_b.keys[next_frame_b].position;
+                    glm::vec3 const & prev_pos_b = channel_b[prev_frame_b].position;
+                    glm::vec3 const & next_pos_b = channel_b[next_frame_b].position;
 
-                    glm::quat const & prev_rot_b = channel_b.keys[prev_frame_b].rotation;
-                    glm::quat const & next_rot_b = channel_b.keys[next_frame_b].rotation;
+                    glm::quat const & prev_rot_b = channel_b[prev_frame_b].rotation;
+                    glm::quat const & next_rot_b = channel_b[next_frame_b].rotation;
 
-                    glm::vec3 const & prev_scale_b = channel_b.keys[prev_frame_b].scaling;
-                    glm::vec3 const & next_scale_b = channel_b.keys[next_frame_b].scaling;
+                    glm::vec3 const & prev_scale_b = channel_b[prev_frame_b].scaling;
+                    glm::vec3 const & next_scale_b = channel_b[next_frame_b].scaling;
 
                     glm::vec3 pos_b = glm::lerp(prev_pos_b, next_pos_b, frac_b);
                     glm::quat rot_b = glm::slerp(prev_rot_b, next_rot_b, frac_b);
@@ -536,11 +562,16 @@ void Model::load_with_assimp() {
         Animation & anim = m_animations[i];
         anim.duration = aiAnim->mDuration;
         anim.ticks_per_second = aiAnim->mTicksPerSecond;
-        anim.channels.resize(aiAnim->mNumChannels);
+        size_t n_channels = aiAnim->mNumChannels;
+        size_t n_channels_prev = m_channels.size();
+        m_channels.resize(m_channels.size() + n_channels);
+        anim.start_index = n_channels_prev;
+        anim.num_indices = n_channels;
 
-        for (size_t j = 0; j < aiAnim->mNumChannels; ++j) {
+        Channel * channels = &m_channels[n_channels_prev];
+
+        for (size_t j = 0; j < n_channels; ++j) {
             aiNodeAnim const * aiChannel = aiAnim->mChannels[j];
-            AnimationNode & channel = anim.channels[j];
 
             assert(m_name_to_node.find(aiChannel->mNodeName.C_Str())
                 != m_name_to_node.end() &&
@@ -554,15 +585,21 @@ void Model::load_with_assimp() {
                 aiChannel->mNumPositionKeys == aiChannel->mNumScalingKeys &&
                     "number of position, rotation and scaling keys need to match");
 
-            channel.keys.resize(aiChannel->mNumPositionKeys);
+            size_t n_keys = aiChannel->mNumPositionKeys;
+            size_t n_keys_prev = m_keys.size();
+            m_keys.resize(m_keys.size() + n_keys);
+            AnimationKey * keys = &m_keys[n_keys_prev];
 
-            for (size_t k = 0; k < channel.keys.size(); ++k) {
+            channels[j].start_index = n_keys_prev;
+            channels[j].num_indices = n_keys;
+
+            for (size_t k = 0; k < n_keys; ++k) {
                 aiVector3D const & aiPos = aiChannel->mPositionKeys[k].mValue;
                 aiQuaternion const & aiRot = aiChannel->mRotationKeys[k].mValue;
                 aiVector3D const & aiScale = aiChannel->mScalingKeys[k].mValue;
-                channel.keys[k].position = { aiPos.x, aiPos.y, aiPos.z };
-                channel.keys[k].rotation = { aiRot.w, aiRot.x, aiRot.y, aiRot.z };
-                channel.keys[k].scaling = { aiScale.x, aiScale.y, aiScale.z };
+                keys[k].position = { aiPos.x, aiPos.y, aiPos.z };
+                keys[k].rotation = { aiRot.w, aiRot.x, aiRot.y, aiRot.z };
+                keys[k].scaling = { aiScale.x, aiScale.y, aiScale.z };
             }
         }
     }
@@ -631,16 +668,23 @@ void Model::serialize_model() {
         write_stream(out, animation.duration);
         write_stream(out, animation.ticks_per_second);
 
-        write_stream(out, animation.channels.size());
-        for (AnimationNode const & channel : animation.channels) {
-            write_stream(out, channel.keys.size());
-            for (AnimationKey const & key : channel.keys) {
-                write_stream(out, key.position);
-                write_stream(out, key.rotation);
-                write_stream(out, key.scaling);
-            }
-        }
+        write_stream(out, animation.start_index);
+        write_stream(out, animation.num_indices);
     }
+
+    write_stream(out, m_channels.size());
+    for (Channel const & channel : m_channels) {
+        write_stream(out, channel.start_index);
+        write_stream(out, channel.num_indices);
+    }
+
+    write_stream(out, m_keys.size());
+    for (AnimationKey const & key : m_keys) {
+        write_stream(out, key.position);
+        write_stream(out, key.rotation);
+        write_stream(out, key.scaling);
+    }
+
     thread_local std::vector<std::string const *> animation_names;
     assert(m_animations.size() == m_name_to_animation.size() && "sizes differ");
     animation_names.resize(m_animations.size());
@@ -708,7 +752,8 @@ void Model::serialize_model() {
 }
 
 bool Model::deserialize_model() {
-    std::string serialized_path = m_path + serialized_postfix;
+    thread_local std::string serialized_path;
+    serialized_path = m_path + serialized_postfix;
 
     std::ifstream in(serialized_path, std::ios::binary);
     if (!in.is_open()) {
@@ -773,20 +818,24 @@ bool Model::deserialize_model() {
     for (Animation & animation : m_animations) {
         read_stream(in, animation.duration);
         read_stream(in, animation.ticks_per_second);
+        read_stream(in, animation.start_index);
+        read_stream(in, animation.num_indices);
+    }
 
-        size_t n_channels;
-        read_stream(in, n_channels);
-        animation.channels.resize(n_channels);
-        for (AnimationNode & channel : animation.channels) {
-            size_t n_keys;
-            read_stream(in, n_keys);
-            channel.keys.resize(n_keys);
-            for (AnimationKey & key : channel.keys) {
-                read_stream(in, key.position);
-                read_stream(in, key.rotation);
-                read_stream(in, key.scaling);
-            }
-        }
+    size_t n_channels;
+    read_stream(in, n_channels);
+    m_channels.resize(n_channels);
+    for (Channel & channel : m_channels) {
+        read_stream(in, channel.start_index);
+        read_stream(in, channel.num_indices);
+    }
+    size_t n_keys;
+    read_stream(in, n_keys);
+    m_keys.resize(n_keys);
+    for (AnimationKey & key : m_keys) {
+        read_stream(in, key.position);
+        read_stream(in, key.rotation);
+        read_stream(in, key.scaling);
     }
 
     for (int i = 0; i < static_cast<int>(m_animations.size()); ++i) {

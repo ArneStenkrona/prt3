@@ -49,6 +49,7 @@ public:
     struct AnimatedVertex;
     struct AnimationKey;
     struct AnimationNode;
+    struct Channel;
     struct Node;
 
     Model() {}
@@ -101,12 +102,16 @@ private:
     std::vector<Node> m_nodes;
     std::vector<Mesh> m_meshes;
     std::vector<Animation> m_animations;
+    std::vector<AnimationKey> m_keys;
+    std::vector<Channel> m_channels;
     std::vector<Material> m_materials;
     std::vector<Vertex> m_vertex_buffer;
     std::vector<BoneData> m_vertex_bone_buffer;
     std::vector<uint32_t> m_index_buffer;
     std::vector<Bone> m_bones;
     std::vector<uint32_t> m_bone_to_node;
+
+
 
     // maps animation names to animations
     // TODO: replace with fixed string?
@@ -158,10 +163,16 @@ struct Model::AnimationNode {
     std::vector<AnimationKey> keys;
 };
 
+struct Model::Channel {
+    uint32_t start_index;
+    uint32_t num_indices;
+};
+
 struct Model::Animation {
     float duration;
     double ticks_per_second;
-    std::vector<AnimationNode> channels;
+    uint32_t start_index;
+    uint32_t num_indices;
 };
 
 struct Model::BoneData {

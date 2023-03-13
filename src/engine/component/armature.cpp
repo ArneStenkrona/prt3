@@ -33,7 +33,7 @@ Armature::Armature(
     read_stream(in, n_path);
 
     if (n_path > 0) {
-        static std::string path;
+        thread_local std::string path;
         path.resize(n_path);
 
         in.read(path.data(), path.size());
