@@ -611,7 +611,7 @@ void Model::load_with_assimp() {
 
         assert(m_name_to_node.find(bone_name) != m_name_to_node.end() &&
                "No corresponding node for bone");
-        size_t node_index = m_name_to_node.at(bone_name);
+        size_t node_index = m_name_to_node.at(bone_name.c_str());
         assert(m_nodes[node_index].bone_index == -1);
         m_nodes[node_index].bone_index = i;
 
@@ -673,17 +673,16 @@ void Model::serialize_model() {
     }
 
     write_stream(out, m_channels.size());
-    for (Channel const & channel : m_channels) {
-        write_stream(out, channel.start_index);
-        write_stream(out, channel.num_indices);
-    }
+    out.write(
+        reinterpret_cast<char*>(m_channels.data()),
+        m_channels.size() * sizeof(m_channels[0])
+    );
 
     write_stream(out, m_keys.size());
-    for (AnimationKey const & key : m_keys) {
-        write_stream(out, key.position);
-        write_stream(out, key.rotation);
-        write_stream(out, key.scaling);
-    }
+    out.write(
+        reinterpret_cast<char*>(m_keys.data()),
+        m_keys.size() * sizeof(m_keys[0])
+    );
 
     thread_local std::vector<std::string const *> animation_names;
     assert(m_animations.size() == m_name_to_animation.size() && "sizes differ");
@@ -717,31 +716,29 @@ void Model::serialize_model() {
     }
 
     write_stream(out, m_vertex_buffer.size());
-    for (Vertex const & vertex : m_vertex_buffer) {
-        write_stream(out, vertex.position);
-        write_stream(out, vertex.normal);
-        write_stream(out, vertex.texture_coordinate);
-        write_stream(out, vertex.tangent);
-        write_stream(out, vertex.bitangent);
-    }
+    out.write(
+        reinterpret_cast<char*>(m_vertex_buffer.data()),
+        m_vertex_buffer.size() * sizeof(m_vertex_buffer[0])
+    );
 
     write_stream(out, m_vertex_bone_buffer.size());
-    for (BoneData const & bone_data : m_vertex_bone_buffer) {
-        write_stream(out, bone_data.bone_ids);
-        write_stream(out, bone_data.bone_weights);
-    }
+    out.write(
+        reinterpret_cast<char*>(m_vertex_bone_buffer.data()),
+        m_vertex_bone_buffer.size() * sizeof(m_vertex_bone_buffer[0])
+    );
 
     write_stream(out, m_index_buffer.size());
-    for (uint32_t const & index : m_index_buffer) {
-        write_stream(out, index);
-    }
+    out.write(
+        reinterpret_cast<char*>(m_index_buffer.data()),
+        m_index_buffer.size() * sizeof(m_index_buffer[0])
+    );
 
     write_stream(out, m_bones.size());
-    for (Bone const & bone : m_bones) {
-        write_stream(out, bone.offset_matrix);
-        write_stream(out, bone.inverse_mesh_transform);
+    out.write(
+        reinterpret_cast<char*>(m_bones.data()),
+        m_bones.size() * sizeof(m_bones[0])
+    );
 
-    }
     for (uint32_t const & node_index : m_bone_to_node) {
         write_stream(out, node_index);
     }
@@ -793,6 +790,7 @@ bool Model::deserialize_model() {
     }
 
     int node_ind = 0;
+    m_name_to_node.reserve(m_nodes.size());
     for (Node const & node : m_nodes) {
         m_name_to_node[node.name] = node_ind;
         ++node_ind;
@@ -825,19 +823,20 @@ bool Model::deserialize_model() {
     size_t n_channels;
     read_stream(in, n_channels);
     m_channels.resize(n_channels);
-    for (Channel & channel : m_channels) {
-        read_stream(in, channel.start_index);
-        read_stream(in, channel.num_indices);
-    }
+    in.read(
+        reinterpret_cast<char*>(m_channels.data()),
+        n_channels * sizeof(m_channels[0])
+    );
+
     size_t n_keys;
     read_stream(in, n_keys);
     m_keys.resize(n_keys);
-    for (AnimationKey & key : m_keys) {
-        read_stream(in, key.position);
-        read_stream(in, key.rotation);
-        read_stream(in, key.scaling);
-    }
+    in.read(
+        reinterpret_cast<char*>(m_keys.data()),
+        n_keys * sizeof(m_keys[0])
+    );
 
+    m_name_to_animation.reserve(m_animations.size());
     for (int i = 0; i < static_cast<int>(m_animations.size()); ++i) {
         thread_local std::string name;
         read_string(in, name);
@@ -867,40 +866,40 @@ bool Model::deserialize_model() {
     size_t n_vertex_buffer;
     read_stream(in, n_vertex_buffer);
     m_vertex_buffer.resize(n_vertex_buffer);
-    for (Vertex & vertex : m_vertex_buffer) {
-        read_stream(in, vertex.position);
-        read_stream(in, vertex.normal);
-        read_stream(in, vertex.texture_coordinate);
-        read_stream(in, vertex.tangent);
-        read_stream(in, vertex.bitangent);
-    }
+    in.read(
+        reinterpret_cast<char*>(m_vertex_buffer.data()),
+        n_vertex_buffer * sizeof(m_vertex_buffer[0])
+    );
 
     size_t n_vertex_bone_buffer;
     read_stream(in, n_vertex_bone_buffer);
     m_vertex_bone_buffer.resize(n_vertex_bone_buffer);
-    for (BoneData & bone_data : m_vertex_bone_buffer) {
-        read_stream(in, bone_data.bone_ids);
-        read_stream(in, bone_data.bone_weights);
-    }
+    in.read(
+        reinterpret_cast<char*>(m_vertex_bone_buffer.data()),
+        n_vertex_bone_buffer * sizeof(m_vertex_bone_buffer[0])
+    );
+
 
     size_t n_index_buffer;
     read_stream(in, n_index_buffer);
     m_index_buffer.resize(n_index_buffer);
-    for (uint32_t & index : m_index_buffer) {
-        read_stream(in, index);
-    }
+    in.read(
+        reinterpret_cast<char*>(m_index_buffer.data()),
+        n_index_buffer * sizeof(m_index_buffer[0])
+    );
 
     size_t n_bones;
     read_stream(in, n_bones);
     m_bones.resize(n_bones);
     m_bone_to_node.resize(n_bones);
-    for (Bone & bone : m_bones) {
-        read_stream(in, bone.offset_matrix);
-        read_stream(in, bone.inverse_mesh_transform);
-    }
-    for (uint32_t & node_index : m_bone_to_node) {
-        read_stream(in, node_index);
-    }
+    in.read(
+        reinterpret_cast<char*>(m_bones.data()),
+        n_bones * sizeof(m_bones[0])
+    );
+    in.read(
+        reinterpret_cast<char*>(m_bone_to_node.data()),
+        n_bones * sizeof(m_bone_to_node[0])
+    );
 
     in.close();
 

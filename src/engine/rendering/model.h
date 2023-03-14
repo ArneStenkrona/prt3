@@ -111,8 +111,6 @@ private:
     std::vector<Bone> m_bones;
     std::vector<uint32_t> m_bone_to_node;
 
-
-
     // maps animation names to animations
     // TODO: replace with fixed string?
     std::unordered_map<std::string, int32_t> m_name_to_animation;
@@ -135,6 +133,7 @@ struct Model::Node {
     int32_t channel_index = -1;
     Transform transform;
     Transform inherited_transform;
+    // std::string name;
     std::string name;
 };
 
@@ -150,6 +149,7 @@ struct Model::Mesh {
     int32_t num_bones;
     int32_t material_index;
     uint32_t node_index;
+    // std::string name;
     std::string name;
 };
 

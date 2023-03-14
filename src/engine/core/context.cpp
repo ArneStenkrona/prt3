@@ -43,7 +43,7 @@ void Context::set_project_from_path(std::string const & path) {
 
 void Context::load_scene_if_queued() {
     if (m_scene_manager.scene_queued()) {
-        auto start_time = std::chrono::high_resolution_clock::now();
+        // auto start_time = std::chrono::high_resolution_clock::now();
 
         thread_local std::unordered_set<ModelHandle> models_to_keep;
         thread_local std::unordered_set<ModelHandle> models_to_delete;
@@ -101,12 +101,12 @@ void Context::load_scene_if_queued() {
         /* start scene */
         m_game_scene.start();
 
-        auto end_time = std::chrono::high_resolution_clock::now();
+        // auto end_time = std::chrono::high_resolution_clock::now();
 
-        auto duration =
-            std::chrono::duration_cast<std::chrono::milliseconds>
-            (end_time-start_time);
+        // auto duration =
+        //     std::chrono::duration_cast<std::chrono::milliseconds>
+        //     (end_time-start_time);
 
-        std::cout << "load time: " << duration.count() << " ms" << std::endl;
+        // std::cout << "load time: " << duration.count() << " ms" << std::endl;
     }
 }
