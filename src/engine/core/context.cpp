@@ -37,7 +37,6 @@ void Context::set_project_from_path(std::string const & path) {
         std::ifstream scene_in(m_project.main_scene_path(), std::ios::binary);
         m_edit_scene.deserialize(scene_in);
         scene_in.close();
-
     }
 }
 

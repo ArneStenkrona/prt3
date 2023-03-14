@@ -100,6 +100,7 @@ file(GLOB SOURCES
 "lib/imgui-filebrowser/dirent/*.cpp"
 "lib/ImGuizmo/*.cpp"
 "lib/hash-library/md5.cpp"
+"lib/hash-library/crc32.cpp"
 )
 
 add_subdirectory(lib/glm EXCLUDE_FROM_ALL)

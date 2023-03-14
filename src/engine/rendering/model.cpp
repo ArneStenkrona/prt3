@@ -626,7 +626,7 @@ static std::string const serialized_postfix = "_prt3cache";
 void Model::serialize_model() {
     std::string serialized_path = m_path + serialized_postfix;
 
-    MD5String checksum = compute_md5(m_path.c_str());
+    CRC32String checksum = compute_crc32(m_path.c_str());
 
     std::ofstream out(serialized_path, std::ios::binary);
 
@@ -757,9 +757,9 @@ bool Model::deserialize_model() {
         return false;
     }
 
-    MD5String current_checksum = compute_md5(m_path.c_str());
+    CRC32String current_checksum = compute_crc32(m_path.c_str());
 
-    MD5String checksum;
+    CRC32String checksum;
     in.read(checksum.data(), checksum.writeable_size());
 
     if (checksum != current_checksum) {
@@ -820,6 +820,7 @@ bool Model::deserialize_model() {
         read_stream(in, animation.num_indices);
     }
 
+
     size_t n_channels;
     read_stream(in, n_channels);
     m_channels.resize(n_channels);
@@ -878,7 +879,6 @@ bool Model::deserialize_model() {
         reinterpret_cast<char*>(m_vertex_bone_buffer.data()),
         n_vertex_bone_buffer * sizeof(m_vertex_bone_buffer[0])
     );
-
 
     size_t n_index_buffer;
     read_stream(in, n_index_buffer);

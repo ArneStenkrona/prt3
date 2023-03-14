@@ -4,13 +4,16 @@
 #include "src/util/fixed_string.h"
 
 #include "md5.h"
+#include "crc32.h"
 
 
 namespace prt3 {
 
 typedef FixedString<2 * MD5::HashBytes + 1> MD5String;
+typedef FixedString<2 * CRC32::HashBytes + 1> CRC32String;
 
 MD5String compute_md5(char const * path);
+CRC32String compute_crc32(char const * path);
 
 } // namespace prt3
 
