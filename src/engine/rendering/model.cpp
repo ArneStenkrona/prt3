@@ -16,6 +16,7 @@
 #include <iostream>
 #include <cstring>
 #include <fstream>
+#include <cstdio>
 
 using namespace prt3;
 
@@ -752,15 +753,18 @@ bool Model::deserialize_model() {
     thread_local std::string serialized_path;
     serialized_path = m_path + serialized_postfix;
 
-    std::ifstream in(serialized_path, std::ios::binary);
-    if (!in.is_open()) {
+    std::FILE * in;
+
+    in = std::fopen(serialized_path.c_str(), "rb");
+
+    if (!in) {
         return false;
     }
 
     CRC32String current_checksum = compute_crc32(m_path.c_str());
 
     CRC32String checksum;
-    in.read(checksum.data(), checksum.writeable_size());
+    std::fread(checksum.data(), 1, checksum.writeable_size(), in);
 
     if (checksum != current_checksum) {
         return false;
@@ -776,8 +780,14 @@ bool Model::deserialize_model() {
         read_stream(in, node.mesh_index);
         read_stream(in, node.channel_index);
         read_stream(in, node.bone_index);
-        in >> node.transform;
-        in >> node.inherited_transform;
+
+        read_stream(in, node.transform.rotation);
+        read_stream(in, node.transform.position);
+        read_stream(in, node.transform.scale);
+
+        read_stream(in, node.inherited_transform.rotation);
+        read_stream(in, node.inherited_transform.position);
+        read_stream(in, node.inherited_transform.scale);
 
         read_string(in, node.name);
 
@@ -820,22 +830,16 @@ bool Model::deserialize_model() {
         read_stream(in, animation.num_indices);
     }
 
-
     size_t n_channels;
     read_stream(in, n_channels);
     m_channels.resize(n_channels);
-    in.read(
-        reinterpret_cast<char*>(m_channels.data()),
-        n_channels * sizeof(m_channels[0])
-    );
+    read_stream_n(in, m_channels.data(), n_channels);
+
 
     size_t n_keys;
     read_stream(in, n_keys);
     m_keys.resize(n_keys);
-    in.read(
-        reinterpret_cast<char*>(m_keys.data()),
-        n_keys * sizeof(m_keys[0])
-    );
+    read_stream_n(in, m_keys.data(), n_keys);
 
     m_name_to_animation.reserve(m_animations.size());
     for (int i = 0; i < static_cast<int>(m_animations.size()); ++i) {
@@ -867,41 +871,26 @@ bool Model::deserialize_model() {
     size_t n_vertex_buffer;
     read_stream(in, n_vertex_buffer);
     m_vertex_buffer.resize(n_vertex_buffer);
-    in.read(
-        reinterpret_cast<char*>(m_vertex_buffer.data()),
-        n_vertex_buffer * sizeof(m_vertex_buffer[0])
-    );
+    read_stream_n(in, m_vertex_buffer.data(), n_vertex_buffer);
 
     size_t n_vertex_bone_buffer;
     read_stream(in, n_vertex_bone_buffer);
     m_vertex_bone_buffer.resize(n_vertex_bone_buffer);
-    in.read(
-        reinterpret_cast<char*>(m_vertex_bone_buffer.data()),
-        n_vertex_bone_buffer * sizeof(m_vertex_bone_buffer[0])
-    );
+    read_stream_n(in, m_vertex_bone_buffer.data(), n_vertex_bone_buffer);
 
     size_t n_index_buffer;
     read_stream(in, n_index_buffer);
     m_index_buffer.resize(n_index_buffer);
-    in.read(
-        reinterpret_cast<char*>(m_index_buffer.data()),
-        n_index_buffer * sizeof(m_index_buffer[0])
-    );
+    read_stream_n(in, m_index_buffer.data(), n_index_buffer);
 
     size_t n_bones;
     read_stream(in, n_bones);
     m_bones.resize(n_bones);
     m_bone_to_node.resize(n_bones);
-    in.read(
-        reinterpret_cast<char*>(m_bones.data()),
-        n_bones * sizeof(m_bones[0])
-    );
-    in.read(
-        reinterpret_cast<char*>(m_bone_to_node.data()),
-        n_bones * sizeof(m_bone_to_node[0])
-    );
+    read_stream_n(in, m_bones.data(), n_bones);
+    read_stream_n(in, m_bone_to_node.data(), n_bones);
 
-    in.close();
+    std::fclose(in);
 
     return true;
 }
