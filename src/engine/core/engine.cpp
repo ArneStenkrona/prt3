@@ -1,6 +1,7 @@
 #include "engine.h"
 
-#include <iostream>
+#include "src/util/checksum.h"
+
 #include <fstream>
 #include <algorithm>
 
@@ -126,8 +127,7 @@ void Engine::measure_duration() {
     }
 
     if (m_print_framerate && m_frame_number % 10 == 0) {
-        std::cout << "framerate: " << fps
-                  << " fps (" << avg_ms << " ms)" << std::endl;
+        PRT3LOG("framerate: %f (%f ms)\n", fps, avg_ms);
     }
 
     m_last_frame_time_point = now;

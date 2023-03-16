@@ -1,8 +1,9 @@
 #include "gl_texture_manager.h"
 
+#include "src/util/log.h"
+
 #include <SDL_image.h>
 
-#include <iostream>
 #include <cassert>
 
 using namespace prt3;
@@ -83,8 +84,8 @@ void GLTextureManager::load_texture(char const * path) {
             );
         } else {
             // TODO: proper error handling
-            std::cout << "failed to load texture at path \"" << path << "\"." << std::endl;
-            std::cout << "IMG_Load: " << IMG_GetError() << std::endl;
+            PRT3ERROR("failed to load tecture at path \"%s\".\n", path);
+            PRT3ERROR("IMG_Load: %s.\n", IMG_GetError());
         }
     } else {
         // No texture path

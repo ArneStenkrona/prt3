@@ -2,6 +2,7 @@
 
 #include "src/driver/opengl/gl_shader_utility.h"
 #include "src/driver/opengl/gl_utility.h"
+#include "src/util/log.h"
 
 #include "glm/gtx/string_cast.hpp"
 
@@ -15,7 +16,6 @@
 #include <vector>
 #include <unordered_map>
 #include <cassert>
-#include <iostream>
 
 using namespace prt3;
 
@@ -30,7 +30,7 @@ GLRenderer::GLRenderer(
    m_selection_shader{nullptr},
    m_animated_selection_shader{nullptr}
   {
-    EmscriptenWebGLContextAttributes attrs;
+    EmscriptenWebGLContextAttributes attrs{};
 	attrs.antialias = true;
 	attrs.majorVersion = 2;
 	attrs.minorVersion = 0;
@@ -41,7 +41,7 @@ GLRenderer::GLRenderer(
 
 	if (emscripten_webgl_make_context_current(webgl_context) !=
         EMSCRIPTEN_RESULT_SUCCESS) {
-        std::cout << "Failed to make context current." << std::endl;
+        PRT3LOG("%s\n", "Failed to make context current.");
     }
 
     /* Enable GL functionality */

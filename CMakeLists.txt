@@ -104,6 +104,11 @@ file(GLOB SOURCES
 )
 
 add_subdirectory(lib/glm EXCLUDE_FROM_ALL)
+
+set(ASSIMP_NO_EXPORT ON)
+set(ASSIMP_BUILD_TESTS OFF)
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
+set(ASSIMP_BUILD_FBX_IMPORTER ON)
 add_subdirectory(lib/assimp EXCLUDE_FROM_ALL)
 
 # Add the executable
@@ -117,7 +122,7 @@ add_dependencies(prt3 copy_resources)
 # Wasm specific
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
     set(CMAKE_CXX_FLAGS "-s USE_SDL=2 -s USE_SDL_IMAGE=2")
-    set_target_properties(prt3 PROPERTIES LINK_FLAGS "${CMAKE_LINK_FLAGS} -std=c++17 -MMD -MP -Oz -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1 -sLLD_REPORT_UNDEFINED -sASSERTIONS --pre-js settings.js --embed-file assets --embed-file run.py -sALLOW_MEMORY_GROWTH -s EXCEPTION_DEBUG -sNO_DISABLE_EXCEPTION_CATCHING -s SDL2_IMAGE_FORMATS='[\"bmp\",\"png\"]' -sMAX_WEBGL_VERSION=2 -sGL_PREINITIALIZED_CONTEXT -s TOTAL_MEMORY=323813376 -sWASM_BIGINT -O1")
+    set_target_properties(prt3 PROPERTIES LINK_FLAGS "${CMAKE_LINK_FLAGS} -std=c++17 -MMD -MP -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1 -sLLD_REPORT_UNDEFINED -sASSERTIONS --pre-js settings.js --embed-file assets -sALLOW_MEMORY_GROWTH -s DISABLE_EXCEPTION_CATCHING=1 -s SDL2_IMAGE_FORMATS='[\"bmp\",\"png\"]' -sMAX_WEBGL_VERSION=2 -sGL_PREINITIALIZED_CONTEXT -s TOTAL_MEMORY=323813376 -sWASM_BIGINT -sERROR_ON_WASM_CHANGES_AFTER_LINK -O1")
 endif ()
 
 # Set compiler flags

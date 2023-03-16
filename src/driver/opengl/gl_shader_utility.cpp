@@ -1,5 +1,7 @@
 #include "gl_shader_utility.h"
 
+#include "src/util/log.h"
+
 using namespace prt3;
 
 GLuint glshaderutility::create_shader(const char* vertexPath,
@@ -13,27 +15,29 @@ GLuint glshaderutility::create_shader(const char* vertexPath,
     std::ifstream fShaderFile;
     std::ifstream gShaderFile;
     // ensure ifstream objects can throw exceptions:
-    vShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
-    fShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
-    gShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
-    try
-    {
-        // open files
-        vShaderFile.open(vertexPath);
-        fShaderFile.open(fragmentPath);
-        std::stringstream vShaderStream, fShaderStream;
-        // read file's buffer contents into streams
-        vShaderStream << vShaderFile.rdbuf();
-        fShaderStream << fShaderFile.rdbuf();
-        // close file handlers
-        vShaderFile.close();
-        fShaderFile.close();
-        // convert stream into string
-        vertexCode = vShaderStream.str();
-        fragmentCode = fShaderStream.str();
-    } catch (std::ifstream::failure& e) {
-        std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ: " << e.what() << std::endl;
-    }
+    // vShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
+    // fShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
+    // gShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
+    // try
+    // {
+    // open files
+    vShaderFile.open(vertexPath);
+    fShaderFile.open(fragmentPath);
+    std::stringstream vShaderStream, fShaderStream;
+    // read file's buffer contents into streams
+    vShaderStream << vShaderFile.rdbuf();
+    fShaderStream << fShaderFile.rdbuf();
+    // close file handlers
+    vShaderFile.close();
+    fShaderFile.close();
+    // convert stream into string
+    vertexCode = vShaderStream.str();
+    fragmentCode = fShaderStream.str();
+
+    // TODO: error handling
+    // } catch (std::ifstream::failure& e) {
+    //     std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ: " << e.what() << std::endl;
+    // }
     const char* vShaderCode = vertexCode.c_str();
     const char * fShaderCode = fragmentCode.c_str();
     // 2. compile shaders
@@ -60,7 +64,7 @@ GLuint glshaderutility::create_shader(const char* vertexPath,
     return id;
 }
 
-void glshaderutility::check_compile_errors(GLuint shader, std::string type) {
+void glshaderutility::check_compile_errors(GLuint shader, std::string const & type) {
     GLint success;
     GLchar infoLog[1024];
     if(type != "PROGRAM")
@@ -69,7 +73,7 @@ void glshaderutility::check_compile_errors(GLuint shader, std::string type) {
         if(!success)
         {
             glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+            PRT3ERROR("ERROR::SHADER_COMPILATION_ERROR of type: %s\n%s\n -- --------------------------------------------------- -- ", type.c_str(), infoLog);
         }
     }
     else
@@ -78,7 +82,7 @@ void glshaderutility::check_compile_errors(GLuint shader, std::string type) {
         if(!success)
         {
             glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+            PRT3ERROR("ERROR::PROGRAM_LINKING_ERROR of type: %s\n%s\n -- --------------------------------------------------- -- ", type.c_str(), infoLog);
         }
     }
 }

@@ -5,9 +5,9 @@
 #include "src/util/serialization_util.h"
 #include "src/engine/component/component.h"
 #include "src/util/template_util.h"
+#include "src/util/log.h"
 
 #include <unordered_map>
-#include <iostream>
 
 namespace prt3 {
 
@@ -167,7 +167,7 @@ private:
         read_stream(in, r_magic_num_i);
         if (r_magic_num_i != magic_num_i) {
             // TODO: error handling
-            std::cout << "deserialize_storage(): error!" << std::endl;
+            PRT3ERROR("deserialize_store(): error!\n");
         }
 
         auto & storage = std::get<I>(t);
@@ -211,7 +211,7 @@ private:
         read_stream(in, r_magic_num_i);
         if (r_magic_num_i != magic_num_i) {
             // TODO: error handling
-            std::cout << "deserialize_components(): error!" << std::endl;
+            PRT3ERROR("deserialize_components(): error!\n");
         }
 
         unsigned char has;

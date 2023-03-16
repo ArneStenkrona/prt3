@@ -2,6 +2,7 @@
 
 #include "src/util/file_util.h"
 #include "src/util/checksum.h"
+#include "src/util/log.h"
 
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/euler_angles.hpp>
@@ -13,7 +14,6 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include <iostream>
 #include <cstring>
 #include <fstream>
 #include <cstdio>
@@ -36,8 +36,7 @@ Model::Model(char const * path)
     // auto duration =
     //     std::chrono::duration_cast<std::chrono::milliseconds>
     //     (end_time-start_time);
-
-    // std::cout << m_name << " load time: " << duration.count() << " ms" << std::endl;
+    // PRT3LOG("load time: %llu ms\n", duration.count());
 }
 
 int32_t Model::get_animation_index(char const * name) const {
@@ -342,7 +341,7 @@ void Model::load_with_assimp() {
 
     // check if import failed
     if(!scene) {
-        std::cout << importer.GetErrorString() << std::endl;
+        PRT3ERROR("%s\n", importer.GetErrorString());
         m_valid = false;
         return;
         // assert(false && "failed to load file!");

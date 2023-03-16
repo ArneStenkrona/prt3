@@ -3,8 +3,7 @@
 
 #include "src/engine/component/script/script.h"
 #include "src/engine/scene/scene.h"
-
-#include <iostream>
+#include "src/util/log.h"
 
 namespace prt3 {
 
@@ -17,10 +16,10 @@ public:
         : Script(scene, node_id) {}
 
     virtual void on_init(Scene &) {
-        std::cout << "on_init()" << std::endl;
+        PRT3LOG("on_init()\n");
     }
     virtual void on_update(Scene &, float) {
-        std::cout << "on_update()" << std::endl;
+        PRT3LOG("on_update()\n");
     }
 
 REGISTER_SCRIPT(ExampleScript, example, 10447271495191217112)
