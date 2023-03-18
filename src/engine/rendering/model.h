@@ -3,6 +3,7 @@
 
 #include "src/engine/rendering/material.h"
 #include "src/engine/component/transform.h"
+#include "src/util/math_util.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -16,6 +17,8 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <cstring>
+#include <algorithm>
 
 namespace std {
     // thanks, Basile Starynkevitch!
@@ -48,7 +51,6 @@ public:
     struct Animation;
     struct AnimatedVertex;
     struct AnimationKey;
-    struct AnimationNode;
     struct Channel;
     struct Node;
 
@@ -102,7 +104,15 @@ private:
     std::vector<Node> m_nodes;
     std::vector<Mesh> m_meshes;
     std::vector<Animation> m_animations;
-    std::vector<AnimationKey> m_keys;
+    // std::vector<AnimationKey> m_keys;
+
+    std::vector<uint8_t> m_position_locations;
+    std::vector<glm::vec3> m_position_keys;
+    std::vector<uint8_t> m_rotation_locations;
+    std::vector<glm::quat> m_rotation_keys;
+    std::vector<uint8_t> m_scale_locations;
+    std::vector<glm::vec3> m_scale_keys;
+
     std::vector<Channel> m_channels;
     std::vector<Material> m_materials;
     std::vector<Vertex> m_vertex_buffer;
@@ -149,30 +159,33 @@ struct Model::Mesh {
     int32_t num_bones;
     int32_t material_index;
     uint32_t node_index;
-    // std::string name;
+
     std::string name;
 };
 
-struct Model::AnimationKey {
-    glm::vec3 position;
-    glm::quat rotation;
-    glm::vec3 scaling;
-};
-
-struct Model::AnimationNode {
-    std::vector<AnimationKey> keys;
-};
+// struct Model::AnimationKey {
+//     glm::vec3 position;
+//     glm::quat rotation;
+//     glm::vec3 scaling;
+// };
 
 struct Model::Channel {
-    uint32_t start_index;
-    uint32_t num_indices;
+    // uint32_t start_index;
+    // uint32_t num_indices;
+    uint16_t n_frames;
+    uint16_t loc_start_index;
+    uint32_t pos_start_index;
+    uint32_t rot_start_index;
+    uint32_t scale_start_index;
 };
 
 struct Model::Animation {
     float duration;
-    double ticks_per_second;
-    uint32_t start_index;
-    uint32_t num_indices;
+    float ticks_per_second;
+    uint16_t start_index;
+    uint16_t num_indices;
+    // uint32_t start_index;
+    // uint32_t num_indices;
 };
 
 struct Model::BoneData {

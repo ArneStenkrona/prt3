@@ -14,6 +14,11 @@ inline void write_stream(std::ostream & out, T const & val) {
 }
 
 template<typename T>
+inline void write_stream_n(std::ostream & out, T const * val, size_t n) {
+    out.write(reinterpret_cast<char const *>(val), n * sizeof(T));
+}
+
+template<typename T>
 inline void read_stream(std::istream & in, T & val) {
     in.read(reinterpret_cast<char*>(&val), sizeof(val));
 }
