@@ -23,7 +23,7 @@ public:
 
     void set_project_from_path(std::string const & path);
 
-    void execute_frame();
+    bool execute_frame();
 private:
     void measure_duration();
 

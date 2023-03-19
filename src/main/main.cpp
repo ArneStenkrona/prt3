@@ -1,4 +1,5 @@
 #include "src/engine/core/engine.h"
+#include "src/main/args.h"
 
 #include "src/util/file_util.h"
 
@@ -10,37 +11,46 @@
 #include <cstring>
 
 prt3::Engine engine;
+#ifdef __EMSCRIPTEN__
 void main_loop() { engine.execute_frame(); }
+#endif //  __EMSCRIPTEN__
 
-struct Args {
-    std::string project_path;
-};
-
-Args parse_args(int argc, char** argv) {
-    Args args;
+void parse_args(int argc, char** argv) {
+    prt3::Args & args = prt3::Args::instance();
 
     if (argc <= 0) {
-        return {};
+        return;
     }
+
     for (int i = 0; i < argc; ++i) {
         char const * arg = argv[i];
 
-        if (strstr(arg, "project=") != nullptr) {
-            args.project_path = strchr(arg, '=') + 1;
+        if (strstr(arg, "--project=") != nullptr) {
+            args.m_project_path = strchr(arg, '=') + 1;
+        }
+
+        if (strstr(arg, "--force-cached") != nullptr) {
+            char const * val = strchr(arg, '=') + 1;
+            if (strcmp(val, "true") == 0 ||
+                strcmp(val, "1") == 0) {
+                args.m_force_cached = true;
+            }
         }
     }
-
-    return args;
 }
 
 int main(int argc, char** argv) {
-    Args args = parse_args(argc, argv);
+    parse_args(argc, argv);
 
-    if (!args.project_path.empty()) {
-        engine.set_project_from_path(args.project_path);
+    if (!prt3::Args::project_path().empty()) {
+        engine.set_project_from_path(prt3::Args::project_path());
     }
 
+#ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(main_loop, 0, true);
+#else // __EMSCRIPTEN__
+    while (engine.execute_frame()) {}
+#endif //  __EMSCRIPTEN__
 
     return EXIT_SUCCESS;
 }

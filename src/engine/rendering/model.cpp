@@ -1,5 +1,6 @@
 #include "model.h"
 
+#include "src/main/args.h"
 #include "src/util/file_util.h"
 #include "src/util/checksum.h"
 #include "src/util/log.h"
@@ -972,13 +973,15 @@ bool Model::deserialize_model() {
         return false;
     }
 
-    CRC32String current_checksum = compute_crc32(m_path.c_str());
-
     CRC32String checksum;
     std::fread(checksum.data(), 1, checksum.writeable_size(), in);
 
-    if (checksum != current_checksum) {
-        return false;
+    if (!Args::force_cached()) {
+        CRC32String current_checksum = compute_crc32(m_path.c_str());
+
+        if (checksum != current_checksum) {
+            return false;
+        }
     }
 
     read_stream(in, m_valid);

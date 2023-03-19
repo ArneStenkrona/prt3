@@ -19,7 +19,7 @@ void Engine::set_project_from_path(std::string const & path) {
     m_context.set_project_from_path(path);
 }
 
-void Engine::execute_frame() {
+bool Engine::execute_frame() {
     // loop begin
     float fixed_delta_time = 1.0f / 60.0f;
 
@@ -97,6 +97,8 @@ void Engine::execute_frame() {
     measure_duration();
 
     ++m_frame_number;
+
+    return true;
 }
 
 void Engine::measure_duration() {
