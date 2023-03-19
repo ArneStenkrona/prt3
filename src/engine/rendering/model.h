@@ -104,7 +104,6 @@ private:
     std::vector<Node> m_nodes;
     std::vector<Mesh> m_meshes;
     std::vector<Animation> m_animations;
-    // std::vector<AnimationKey> m_keys;
 
     std::vector<uint8_t> m_position_locations;
     std::vector<glm::vec3> m_position_keys;
@@ -163,15 +162,7 @@ struct Model::Mesh {
     std::string name;
 };
 
-// struct Model::AnimationKey {
-//     glm::vec3 position;
-//     glm::quat rotation;
-//     glm::vec3 scaling;
-// };
-
 struct Model::Channel {
-    // uint32_t start_index;
-    // uint32_t num_indices;
     uint16_t n_frames;
     uint16_t loc_start_index;
     uint32_t pos_start_index;
@@ -184,8 +175,6 @@ struct Model::Animation {
     float ticks_per_second;
     uint16_t start_index;
     uint16_t num_indices;
-    // uint32_t start_index;
-    // uint32_t num_indices;
 };
 
 struct Model::BoneData {

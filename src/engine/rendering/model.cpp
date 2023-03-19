@@ -207,13 +207,6 @@ void Model::blend_animation(
 
                 int32_t channel_index = node.channel_index;
                 if (channel_index != -1) {
-                    // uint32_t channel_buf_index_a =
-                    //     animation_a.start_index + channel_index;
-                    // uint32_t start_key_index_a =
-                    //     channel_info_a.start_index;
-                    // uint32_t num_frames_a =
-                    //     channel_info_a.num_indices;
-                    // AnimationKey const * channel_a = &m_keys[start_key_index_a];
                     uint32_t channel_buf_index_a =
                         animation_a.start_index + channel_index;
                     auto const & channel_info_a = m_channels[channel_buf_index_a];
@@ -233,13 +226,6 @@ void Model::blend_animation(
                     uint8_t const * rot_locs_a = &m_rotation_locations[loc_start_a];
                     uint8_t const * scale_locs_a = &m_scale_locations[loc_start_a];
 
-                    // uint32_t channel_buf_index_b =
-                    //     animation_b.start_index + channel_index;
-                    // uint32_t start_key_index_b =
-                    //     m_channels[channel_buf_index_b].start_index;
-                    // uint32_t num_frames_b =
-                    //     m_channels[channel_buf_index_b].num_indices;
-                    // AnimationKey const * channel_b = &m_keys[start_key_index_b];
                     uint32_t channel_buf_index_b =
                         animation_b.start_index + channel_index;
                     auto const & channel_info_b = m_channels[channel_buf_index_b];
@@ -694,39 +680,12 @@ void Model::load_with_assimp() {
                     "number of position, rotation and scaling keys need to match");
 
             size_t n_keys = aiChannel->mNumPositionKeys;
-            // size_t n_keys_prev = m_keys.size();
-            // m_keys.resize(m_keys.size() + n_keys);
-            // AnimationKey * keys = &m_keys[n_keys_prev];
-
-            // channels[j].start_index = n_keys_prev;
-            // channels[j].num_indices = n_keys;
-
-            // for (size_t k = 0; k < n_keys; ++k) {
-            //     aiVector3D const & aiPos = aiChannel->mPositionKeys[k].mValue;
-            //     aiQuaternion const & aiRot = aiChannel->mRotationKeys[k].mValue;
-            //     aiVector3D const & aiScale = aiChannel->mScalingKeys[k].mValue;
-            //     keys[k].position = { aiPos.x, aiPos.y, aiPos.z };
-            //     keys[k].rotation = { aiRot.w, aiRot.x, aiRot.y, aiRot.z };
-            //     keys[k].scaling = { aiScale.x, aiScale.y, aiScale.z };
-            // }
 
             channels[j].n_frames = n_keys;
             channels[j].loc_start_index = m_position_locations.size();
             channels[j].pos_start_index = m_position_keys.size();
             channels[j].rot_start_index = m_rotation_keys.size();
             channels[j].scale_start_index = m_scale_keys.size();
-
-            // sample_index = i
-            // [ ..., loci, ...]
-
-            // [ 0 1 0 1 0 1 0 1 0 1 1 1 ... [summa] 0 1 0 1 1 1 ]
-            // [ 256 bit, 16bit sum, ... ]
-            // popcnt x 4 + add
-            // compressed_index = loci
-            // [ V0, V1, V2, V3 ... ]
-
-            // sample_index = i               i
-            // [ V0, V1, V1, V3, V3, V3, ..., Vi, ... ]
 
             size_t loc_start = m_position_locations.size();
             size_t n_byte_bytes = 2 * (n_keys / 256);
@@ -862,13 +821,7 @@ void Model::serialize_model() {
     }
 
     write_stream(out, m_animations.size());
-    for (Animation const & animation : m_animations) {
-        write_stream(out, animation.duration);
-        write_stream(out, animation.ticks_per_second);
-
-        write_stream(out, animation.start_index);
-        write_stream(out, animation.num_indices);
-    }
+    write_stream_n(out, m_animations.data(), m_animations.size());
 
     write_stream(out, m_channels.size());
     out.write(
@@ -876,15 +829,9 @@ void Model::serialize_model() {
         m_channels.size() * sizeof(m_channels[0])
     );
 
-    // write_stream(out, m_keys.size());
-    // out.write(
-    //     reinterpret_cast<char*>(m_keys.data()),
-    //     m_keys.size() * sizeof(m_keys[0])
-    // );
     write_stream(out, m_position_keys.size());
     write_stream_n(out, m_position_keys.data(), m_position_keys.size());
     write_stream(out, m_position_locations.size());
-
     write_stream_n(out, m_position_locations.data(), m_position_locations.size());
 
     write_stream(out, m_rotation_keys.size());
@@ -1037,22 +984,13 @@ bool Model::deserialize_model() {
     size_t n_animations;
     read_stream(in, n_animations);
     m_animations.resize(n_animations);
-    for (Animation & animation : m_animations) {
-        read_stream(in, animation.duration);
-        read_stream(in, animation.ticks_per_second);
-        read_stream(in, animation.start_index);
-        read_stream(in, animation.num_indices);
-    }
+    read_stream_n(in, m_animations.data(), n_animations);
 
     size_t n_channels;
     read_stream(in, n_channels);
     m_channels.resize(n_channels);
     read_stream_n(in, m_channels.data(), n_channels);
 
-    // size_t n_keys;
-    // read_stream(in, n_keys);
-    // m_keys.resize(n_keys);
-    // read_stream_n(in, m_keys.data(), n_keys);
     size_t n_pos_keys;
     read_stream(in, n_pos_keys);
     m_position_keys.resize(n_pos_keys);
