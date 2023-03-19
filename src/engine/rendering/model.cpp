@@ -769,7 +769,7 @@ void Model::load_with_assimp() {
 
                 size_t bit_index = k % 256 + (k / 256) * 16;
 
-                if (!ai_pos.Equal(last_pos)) {
+                if (!ai_pos.Equal(last_pos, 0.001f)) {
                     m_position_keys.emplace_back(
                         glm::vec3{ ai_pos.x, ai_pos.y, ai_pos.z }
                     );
@@ -779,7 +779,7 @@ void Model::load_with_assimp() {
                     last_pos = ai_pos;
                 }
 
-                if (!ai_rot.Equal(last_rot)) {
+                if (!ai_rot.Equal(last_rot, 0.001f)) {
                     m_rotation_keys.emplace_back(
                         glm::quat{ ai_rot.w, ai_rot.x, ai_rot.y, ai_rot.z }
                     );
@@ -789,7 +789,7 @@ void Model::load_with_assimp() {
                     last_rot = ai_rot;
                 }
 
-                if (!ai_scale.Equal(last_scale)) {
+                if (!ai_scale.Equal(last_scale, 0.001f)) {
                     m_scale_keys.emplace_back(
                         glm::vec3{ ai_scale.x, ai_scale.y, ai_scale.z }
                     );
