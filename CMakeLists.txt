@@ -92,6 +92,7 @@ file(GLOB SOURCES
 "src/engine/scene/transform_cache.cpp"
 "src/util/checksum.cpp"
 "src/util/file_util.cpp"
+"src/util/geometry_util.cpp"
 # libs
 "lib/imgui/*.cpp"
 "lib/imgui/backends/imgui_impl_sdl.cpp"
