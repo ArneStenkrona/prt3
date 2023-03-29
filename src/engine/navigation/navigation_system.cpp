@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <queue>
+#include <set>
 
 using namespace prt3;
 
@@ -18,7 +19,10 @@ struct Column {
 struct Span {
     uint16_t low;
     uint16_t high;
+    uint32_t x;
+    uint32_t z;
     int32_t next_index;
+    int32_t region_index;
     union {
         struct {
             int16_t north;
@@ -28,6 +32,24 @@ struct Span {
         };
         uint16_t neighbours[4];
     };
+    uint32_t distance_to_region_center;
+};
+
+union NeighbourDiff {
+    struct {
+        bool north;
+        bool east;
+        bool south;
+        bool west;
+    };
+    bool dir[4];
+};
+
+struct VertexData {
+    glm::vec3 position;
+    int32_t external_region_index;
+    int32_t internal_region_index;
+    uint32_t raw_index;
 };
 
 inline bool connected(
@@ -57,11 +79,266 @@ inline bool connected(
     return false;
 }
 
+uint32_t calc_corner_height_index(
+    uint32_t span_index,
+    std::vector<Span> const & spans,
+    unsigned int neighbour_dir
+) {
+    Span const & span = spans[span_index];
+    auto max_floor = span.low;
+
+    int32_t diag_span_index = -1;
+
+    unsigned int dir_offset = (neighbour_dir + 1 ) % 4;
+
+    int32_t axis_span_index = span.neighbours[neighbour_dir];
+    if (axis_span_index != -1) {
+        Span const & axis_span = spans[axis_span_index];
+        max_floor = glm::max(max_floor, axis_span.low);
+        diag_span_index = axis_span.neighbours[dir_offset];
+    }
+
+    axis_span_index = span.neighbours[dir_offset];
+    if (axis_span_index != -1) {
+        Span const & axis_span = spans[axis_span_index];
+        max_floor = glm::max(max_floor, axis_span.low);
+        if (diag_span_index == -1) {
+            diag_span_index = axis_span.neighbours[neighbour_dir];
+        }
+    }
+
+    if (diag_span_index) {
+        Span const & diag_span = spans[diag_span_index];
+        max_floor = glm::max(max_floor, diag_span.low);
+    }
+
+    return max_floor;
+}
+
+void expand_regions(
+    std::set<uint32_t> const & span_indices,
+    std::vector<Span> & spans,
+    int max_iter
+) {
+    if (span_indices.empty()) return;
+
+    int iter = 0;
+
+    while (max_iter != -1 && iter > max_iter) {
+        unsigned int skipped = 0;
+
+        for (uint32_t index : span_indices) {
+            Span & span = spans[index];
+
+            if (span.region_index != -1) {
+                ++skipped;
+                continue;
+            }
+
+            int32_t region_index = -1;
+            uint32_t distance_to_region_center =
+                std::numeric_limits<uint32_t>::max();
+
+            for (unsigned dir = 0; dir < 4; ++dir) {
+                auto ni = span.neighbours[dir];
+                if (ni == -1) continue;
+                Span & neighbour = spans[ni];
+                if (neighbour.region_index == -1) continue;
+                if (neighbour.distance_to_region_center + 2 <
+                    distance_to_region_center) {
+
+                    region_index = neighbour.region_index;
+                    distance_to_region_center =
+                        neighbour.distance_to_region_center + 2;
+                }
+            }
+
+            if (region_index != -1) {
+                span.region_index = region_index;
+                span.distance_to_region_center = distance_to_region_center;
+            } else {
+                ++skipped;
+            }
+        }
+
+        if (skipped == span_indices.size()) {
+            break;
+        }
+
+        ++iter;
+    }
+}
+
+void build_raw_contour(
+    glm::vec3 origin,
+    float granularity,
+    uint32_t span_index,
+    std::vector<Span> const & spans,
+    unsigned int start_dir,
+    std::vector<NeighbourDiff> & neighbour_diffs,
+    std::vector<VertexData> & vertices,
+    bool & only_connected_to_null
+) {
+    uint32_t raw_index = 0;
+
+    unsigned dir = start_dir;
+
+    Span const & span = spans[span_index];
+    uint32_t x = span.x;
+    uint32_t y = span.low;
+    uint32_t z = span.z;
+
+    uint32_t curr_i = span_index;
+
+    while (true) {
+        if (neighbour_diffs[curr_i].dir[dir]) {
+            float pos_x = origin.x + granularity * x;
+            float pos_y = origin.y + granularity *
+                          calc_corner_height_index(curr_i, spans, dir);
+            float pos_z = origin.z + granularity * z;
+
+            // TODO: double-check this
+            switch (dir) {
+                case 1: pos_x += granularity; break;
+                case 2: pos_x += granularity; pos_y -= granularity; break;
+                case 3: pos_y -= granularity; break;
+            }
+
+            int32_t region_index_dir = -1;
+            int32_t neighbour_index = spans[curr_i].neighbours[dir];
+            if (neighbour_index) {
+                region_index_dir = spans[neighbour_index].region_index;
+            }
+
+            if (region_index_dir != -1) {
+                only_connected_to_null = false;
+            }
+
+            VertexData vertex;
+            vertex.position = glm::vec3{pos_x, pos_y, pos_z};
+            vertex.external_region_index = region_index_dir;
+            vertex.internal_region_index = spans[curr_i].region_index;
+
+            vertex.raw_index = raw_index;
+            vertices.push_back(vertex);
+
+            neighbour_diffs[curr_i].dir[dir] = false;
+            dir = (dir + 1) % 4;
+            ++raw_index;
+        } else {
+            curr_i = spans[curr_i].neighbours[dir];
+
+            // TODO: double check
+            switch (dir) {
+                case 0: ++z; break;
+                case 1: ++x; break;
+                case 2: --z; break;
+                case 3: --x; break;
+            }
+
+            dir = (dir + 3) % 4;
+        }
+
+        if (curr_i == span_index && dir == start_dir) {
+            break;
+        }
+    }
+}
+
+void reinsert_null_region_vertices(
+    std::vector<VertexData> const & raw_vertices,
+    std::vector<VertexData> & simplified_vertices
+) {
+    unsigned int vert_a = 0;
+    while (vert_a < simplified_vertices.size()) {
+        uint32_t vert_b = (vert_a + 1) % simplified_vertices.size();
+        uint32_t raw_index_1 = simplified_vertices[vert_a].raw_index;
+        uint32_t raw_index_2 = simplified_vertices[vert_b].raw_index;
+        uint32_t vertex_to_test = (raw_index_1 + 1) % raw_vertices.size();
+
+        float max_deviation = 0.0f;
+        int32_t vertex_to_insert = -1;
+
+        if (raw_vertices[vertex_to_test].external_region_index == -1) {
+            while (vertex_to_test != raw_index_2) {
+                float deviation = point_dist_to_segment(
+                    raw_vertices[vertex_to_test].position,
+                    simplified_vertices[vert_a].position,
+                    simplified_vertices[vert_b].position
+                )
+
+                if (deviation > max_deviation) {
+                    max_deviation = deviation;
+                    vertex_to_insert = vertex_to_test
+                }
+
+                vertex_to_test = (vertex_to_test + 1) % raw_vertices.size();
+            }
+        }
+
+        if (vertex_to_insert != -1 && max_deviation > edge_max_deviation) {
+            // insert vertex_to_insert at vert_a + 1
+        } else {
+            ++vert_a;
+        }
+    }
+}
+
+void simplify_contour(
+    bool only_connected_to_null,
+    std::vector<VertexData> const & raw_vertices,
+    std::vector<VertexData> & simplified_vertices
+) {
+    if (only_connected_to_null) {
+        VertexData bottom_left = raw_vertices[0];
+
+        VertexData top_right = raw_vertices[0];
+
+        for (VertexData const & vertex : raw_vertices) {
+            glm::vec3 pos = vertex.position;
+
+            if (pos.x < bottom_left.position.x ||
+                (pos.x == bottom_left.position.x &&
+                 pos.y < bottom_left.position.y )) {
+                bottom_left = vertex;
+            }
+
+            if (pos.x > top_right.position.x ||
+                (pos.x == top_right.position.x &&
+                 pos.y > top_right.position.y )) {
+                top_right = vertex;
+            }
+        }
+
+        simplified_vertices.push_back(bottom_left);
+        simplified_vertices.push_back(top_right);
+    } else {
+        for (unsigned int i = 0; i < raw_vertices.size(); ++i) {
+            int32_t region_1 = raw_vertices[i].external_region_index;
+            unsigned int next_i = (i + 1) % raw_vertices.size();
+            int32_t region_2 = raw_vertices[next_i].external_region_index;
+
+            if (region_1 != region_2) {
+                simplified_vertices.push_back(raw_vertices[i]);
+            }
+        }
+    }
+
+    if (raw_vertices.size() == 0 || simplified_vertices.size() == 0) {
+        return;
+    }
+
+    reinsert_null_region_vertices(raw_vertices, simplified_vertices);
+    check_null_region_max_edge(raw_vertices, simplified_vertices);
+    remove_duuplicate_vertices(simplified_vertices);
+}
+
 // Many thanks to https://javid.nl/atlas.html for an excellent
 // breakdown of navigation mesh generation
 NavMeshID generate_nav_mesh(
     float granularity,
     float min_height,
+    float min_width,
     glm::vec3 const * geometry_data,
     size_t n_geometry
 ) {
@@ -135,7 +412,7 @@ NavMeshID generate_nav_mesh(
     std::vector<bool> voxels;
     voxels.resize(dim.x * dim.y * dim.z);
 
-    glm::vec3 o = aabb.lower_bound;
+    glm::vec3 origin = aabb.lower_bound;
 
     constexpr ColliderTag tag = { -1, ColliderShape::none, ColliderType::collider };
     std::vector<ColliderTag> tags;
@@ -146,7 +423,7 @@ NavMeshID generate_nav_mesh(
             for (unsigned int iy = 0; iy < dim.y; ++iy) {
                 AABB voxel_aabb;
                 voxel_aabb.lower_bound =
-                    o + glm::vec3{ix, iy, iz} * granularity;
+                    origin + glm::vec3{ix, iy, iz} * granularity;
                 voxel_aabb.upper_bound =
                     voxel_aabb.lower_bound + glm::vec3{granularity};
 
@@ -160,7 +437,7 @@ NavMeshID generate_nav_mesh(
 
                 for (ColliderTag const & tag : tags) {
                     if (triangle_box_overlap(
-                        o + glm::vec3{granularity / 2.0f},
+                        origin + glm::vec3{granularity / 2.0f},
                         glm::vec3{granularity / 2.0f},
                         geometry_data[3 * tag.id],
                         geometry_data[3 * tag.id + 1],
@@ -180,8 +457,8 @@ NavMeshID generate_nav_mesh(
     std::vector<Column> columns;
     columns.resize(dim.x * dim.z);
 
-    for (unsigned int ix = 0; ix < dim.x; ++ix) {
-        for (unsigned int iz = 0; iz < dim.z; ++iz) {
+    for (uint32_t ix = 0; ix < dim.x; ++ix) {
+        for (uint32_t iz = 0; iz < dim.z; ++iz) {
             uint32_t iv = (ix * dim.z * dim.y) + iz * dim.y;
             uint32_t span_start = spans.size();
 
@@ -194,7 +471,14 @@ NavMeshID generate_nav_mesh(
                         spans.emplace_back(Span{
                             start,
                             iy,
-                            -1
+                            ix,
+                            iz,
+                            -1,
+                            -1,
+                            -1,
+                            -1,
+                            -1,
+                            0
                         });
                     } else {
                         start = iy;
@@ -217,6 +501,7 @@ NavMeshID generate_nav_mesh(
 
     /* Generate distance field */
     uint16_t req_height =  static_cast<uint16_t>(ceil(min_height / granularity));
+    uint16_t req_width =  static_cast<uint16_t>(ceil(min_width / granularity));
 
     for (unsigned int ix = 0; ix < dim.x; ++ix) {
         for (unsigned int iz = 0; iz < dim.z; ++iz) {
@@ -306,4 +591,179 @@ NavMeshID generate_nav_mesh(
     }
 
     /* Create regions */
+    std::set<uint32_t> flooded_spans;
+
+    std::queue<uint32_t> span_queue;
+
+    int expand_iter = 4 + req_width;
+
+    int32_t region_index = 0;
+
+    for (auto current_dist = max_dist;
+        current_dist >= req_width;
+        --current_dist) {
+        for (size_t i = 0; i < spans.size(); ++i) {
+            Span & span = spans[i];
+            if (distances[i] == current_dist && span.region_index == -1) {
+                flooded_spans.insert(i);
+            }
+        }
+
+        if (region_index > 0) {
+            expand_regions(flooded_spans, spans, expand_iter);
+        } else {
+            expand_regions(flooded_spans, spans, -1);
+        }
+
+        for (auto it = flooded_spans.begin();
+             it != flooded_spans.end();
+        ) {
+            auto fill_to = glm::max(
+                uint16_t(current_dist - 2),
+                req_width
+            );
+
+            unsigned region_size = 0;
+
+            span_queue.push(*it);
+            while (!span_queue.empty()) {
+                Span & span = spans[span_queue.front()];
+
+                bool is_on_border = false;
+
+                for (unsigned dir = 0; dir < 4; ++dir) {
+                    auto ni = span.neighbours[dir];
+                    if (ni < 0) continue;
+                    Span & neighbour = spans[ni];
+
+                    if (neighbour.region_index != -1 &&
+                        neighbour.region_index != region_index) {
+                        is_on_border = true;
+                        break;
+                    }
+
+                    unsigned diag_dir = (dir + 1) % 4;
+                    auto dni = neighbour.neighbours[diag_dir];
+                    if (dni < 0) continue;
+                    Span & diag_neighbour = spans[dni];
+
+                    if (diag_neighbour.region_index != -1 &&
+                        diag_neighbour.region_index != region_index) {
+                        is_on_border = true;
+                        break;
+                    }
+                }
+
+                if (is_on_border) {
+                    span.region_index = -1;
+                    span_queue.pop();
+                    continue;
+                }
+
+                ++region_size;
+
+                for (unsigned dir = 0; dir < 4; ++dir) {
+                    auto ni = span.neighbours[dir];
+                    if (ni < 0) continue;
+                    Span & neighbour = spans[ni];
+
+                    if (distances[ni] >= fill_to &&
+                        neighbour.region_index == -1) {
+                        neighbour.region_index = region_index;
+                        neighbour.distance_to_region_center = 0;
+                        span_queue.push(ni);
+                    }
+                }
+
+                span_queue.pop();
+            }
+
+            if (region_size > 0) {
+                ++region_index;
+                flooded_spans.erase(it++);
+            } else {
+                ++it;
+            }
+        }
+
+        --current_dist;
+    }
+
+    flooded_spans.clear();
+    for (uint32_t i = 0; i < spans.size(); ++i) {
+        Span const & span = spans[i];
+
+        if (distances[i] > req_width && span.region_index == -1) {
+            flooded_spans.insert(i);
+        }
+    }
+
+    if (req_width > 0) {
+        expand_regions(flooded_spans, spans, expand_iter * 8);
+    } else {
+        expand_regions(flooded_spans, spans, -1);
+    }
+
+    /* Contour */
+    std::vector<NeighbourDiff> neighbour_diffs;
+    neighbour_diffs.resize(spans.size());
+
+    for (unsigned i = 0; i < spans.size(); ++ i) {
+        Span const & span = spans[i];
+        for (unsigned dir = 0; dir < 4; ++dir) {
+            int32_t ni = span.neighbours[dir];
+            if (ni == -1 || spans[ni].region_index != span.region_index) {
+                neighbour_diffs[i].dir[dir] = true;
+            }
+        }
+    }
+
+    std::vector<VertexData> raw_vertices;
+    std::vector<VertexData> simplified_vertices;
+
+    for (unsigned i = 0; i < spans.size(); ++ i) {
+        Span const & span = spans[i];
+
+        bool diff = neighbour_diffs[i].north |
+                    neighbour_diffs[i].east  |
+                    neighbour_diffs[i].south |
+                    neighbour_diffs[i].west;
+
+        if (span.region_index == -1 || diff) {
+            continue;
+        }
+
+        unsigned dir = 0;
+        bool only_connected_to_null = true;
+
+        while (!neighbour_diffs[i].dir[dir]) {
+            ++dir;
+        }
+
+        raw_vertices.resize(0);
+        simplified_vertices.resize(0);
+
+        build_raw_contour(
+            origin,
+            granularity,
+            i,
+            spans,
+            dir,
+            neighbour_diffs,
+            raw_vertices,
+            only_connected_to_null
+        );
+
+        simplify_contour(
+            only_connected_to_null,
+            raw_vertices,
+            simplified_vertices
+        );
+
+        simplified_vertices.insert(
+            simplified_vertices.end(),
+            raw_vertices.begin(),
+            raw_vertices.end()
+        );
+    }
 }
