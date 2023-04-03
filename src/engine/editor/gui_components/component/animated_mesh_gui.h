@@ -63,7 +63,8 @@ void inner_show_component<AnimatedMesh>(
     NodeID armature_id = component.armature_id();
 
     ModelManager const & man = scene.model_manager();
-    ModelHandle model_handle =
+    ModelHandle model_handle = component.resource_id() == NO_RESOURCE ?
+        component.resource_id() :
         man.get_model_handle_from_mesh_id(component.resource_id());
 
     thread_local std::string armature_path;

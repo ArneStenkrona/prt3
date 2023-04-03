@@ -20,11 +20,16 @@ AnimatedMesh::AnimatedMesh(
    m_armature_id{armature_id} {}
 
 AnimatedMesh::AnimatedMesh(Scene & scene, NodeID node_id, std::istream & in)
- : m_node_id{node_id} {
+ : m_node_id{node_id},
+   m_resource_id{NO_RESOURCE} {
     ModelManager & man = scene.model_manager();
 
     size_t n_path;
     read_stream(in, n_path);
+
+    if (n_path == 0) {
+        return;
+    }
 
     static std::string path;
     path.resize(n_path);
@@ -58,20 +63,25 @@ void AnimatedMesh::serialize(
 ) const {
     ModelManager const & man = scene.model_manager();
     ResourceID id = m_resource_id;
-    Model const & model = man.get_model_from_mesh_id(id);
 
-    std::string const & path = model.path();
+    if (id != NO_RESOURCE) {
+        Model const & model = man.get_model_from_mesh_id(id);
 
-    write_stream(out, path.size());
-    out.write(path.data(), path.size());
+        std::string const & path = model.path();
 
-    write_stream(out, man.get_mesh_index_from_mesh_id(id));
+        write_stream(out, path.size());
+        out.write(path.data(), path.size());
 
-    thread_local std::vector<int32_t> relative_path;
-    scene.find_relative_path(m_node_id, m_armature_id, relative_path);
+        write_stream(out, man.get_mesh_index_from_mesh_id(id));
 
-    write_stream(out, relative_path.size());
-    for (int32_t i : relative_path) {
-        write_stream(out, i);
+        thread_local std::vector<int32_t> relative_path;
+        scene.find_relative_path(m_node_id, m_armature_id, relative_path);
+
+        write_stream(out, relative_path.size());
+        for (int32_t i : relative_path) {
+            write_stream(out, i);
+        }
+    } else {
+        write_stream(out, size_t{0});
     }
 }

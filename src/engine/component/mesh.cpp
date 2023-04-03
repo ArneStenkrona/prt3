@@ -14,11 +14,16 @@ Mesh::Mesh(Scene &, NodeID node_id, ResourceID resource_id)
    m_resource_id{resource_id} {}
 
 Mesh::Mesh(Scene & scene, NodeID node_id, std::istream & in)
- : m_node_id{node_id} {
+ : m_node_id{node_id},
+   m_resource_id{NO_RESOURCE} {
     ModelManager & man = scene.model_manager();
 
     size_t n_path;
     read_stream(in, n_path);
+
+    if (n_path == 0) {
+        return;
+    }
 
     static std::string path;
     path.resize(n_path);
@@ -41,12 +46,17 @@ void Mesh::serialize(
 ) const {
     ModelManager const & man = scene.model_manager();
     ResourceID id = m_resource_id;
-    Model const & model = man.get_model_from_mesh_id(id);
 
-    std::string const & path = model.path();
+    if (id != NO_RESOURCE) {
+        Model const & model = man.get_model_from_mesh_id(id);
 
-    write_stream(out, path.size());
-    out.write(path.data(), path.size());
+        std::string const & path = model.path();
 
-    write_stream(out, man.get_mesh_index_from_mesh_id(id));
+        write_stream(out, path.size());
+        out.write(path.data(), path.size());
+
+        write_stream(out, man.get_mesh_index_from_mesh_id(id));
+    } else {
+        write_stream(out, size_t{0});
+    }
 }
