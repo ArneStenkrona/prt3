@@ -1,13 +1,12 @@
 #include "navigation_system.h"
 
-#include "src/engine/physics/aabb.h"
-#include "src/engine/physics/aabb_tree.h"
 #include "src/util/log.h"
 #include "src/util/geometry_util.h"
 
 #include <vector>
 #include <queue>
 #include <set>
+#include <unordered_map>
 
 using namespace prt3;
 
@@ -50,6 +49,11 @@ struct VertexData {
     int32_t external_region_index;
     int32_t internal_region_index;
     uint32_t raw_index;
+};
+
+struct TriangleData {
+    uint32_t index;
+    bool is_triangle_center_index;
 };
 
 inline bool connected(
@@ -245,47 +249,125 @@ void build_raw_contour(
     }
 }
 
+inline float point_dist_to_segment(glm::vec3 p, glm::vec3 l1, glm::vec3 l2) {
+    float line_dist = glm::distance2(l1, l2);
+    if (line_dist == 0) return glm::distance(p, l1);
+    float t = glm::clamp(glm::dot(p - l1, l2 - l1) / line_dist, 0.0f, 1.0f);
+    return glm::distance(p, t * (l2 - l1));
+}
+
 void reinsert_null_region_vertices(
+    float max_edge_deviation,
     std::vector<VertexData> const & raw_vertices,
     std::vector<VertexData> & simplified_vertices
 ) {
-    unsigned int vert_a = 0;
-    while (vert_a < simplified_vertices.size()) {
-        uint32_t vert_b = (vert_a + 1) % simplified_vertices.size();
-        uint32_t raw_index_1 = simplified_vertices[vert_a].raw_index;
-        uint32_t raw_index_2 = simplified_vertices[vert_b].raw_index;
-        uint32_t vertex_to_test = (raw_index_1 + 1) % raw_vertices.size();
+    unsigned int vertex_a = 0;
+    while (vertex_a < simplified_vertices.size()) {
+        uint32_t vertex_b = (vertex_a + 1) % simplified_vertices.size();
+        uint32_t raw_index_a = simplified_vertices[vertex_a].raw_index;
+        uint32_t raw_index_b = simplified_vertices[vertex_b].raw_index;
+        uint32_t vertex_to_test = (raw_index_a + 1) % raw_vertices.size();
 
         float max_deviation = 0.0f;
         int32_t vertex_to_insert = -1;
 
         if (raw_vertices[vertex_to_test].external_region_index == -1) {
-            while (vertex_to_test != raw_index_2) {
+            while (vertex_to_test != raw_index_b) {
                 float deviation = point_dist_to_segment(
                     raw_vertices[vertex_to_test].position,
-                    simplified_vertices[vert_a].position,
-                    simplified_vertices[vert_b].position
-                )
+                    simplified_vertices[vertex_a].position,
+                    simplified_vertices[vertex_b].position
+                );
 
                 if (deviation > max_deviation) {
                     max_deviation = deviation;
-                    vertex_to_insert = vertex_to_test
+                    vertex_to_insert = vertex_to_test;
                 }
 
                 vertex_to_test = (vertex_to_test + 1) % raw_vertices.size();
             }
         }
 
-        if (vertex_to_insert != -1 && max_deviation > edge_max_deviation) {
-            // insert vertex_to_insert at vert_a + 1
+        if (vertex_to_insert != -1 && max_deviation > max_edge_deviation) {
+            simplified_vertices.insert(
+                simplified_vertices.begin() + vertex_a + 1,
+                raw_vertices[vertex_to_insert]
+            );
         } else {
-            ++vert_a;
+            ++vertex_a;
+        }
+    }
+}
+
+void check_null_region_max_edge(
+    float granularity,
+    float max_edge_length,
+    std::vector<VertexData> const & raw_vertices,
+    std::vector<VertexData> & simplified_vertices
+) {
+    if (max_edge_length < granularity) {
+        return;
+    }
+
+    uint32_t vertex_a = 0;
+    while (vertex_a < simplified_vertices.size()) {
+        uint32_t vertex_b = (vertex_a + 1) % simplified_vertices.size();
+        uint32_t raw_index_a = simplified_vertices[vertex_a].raw_index;
+        uint32_t raw_index_b = simplified_vertices[vertex_b].raw_index;
+
+        int32_t new_vertex = -1;
+        uint32_t vertex_to_test = (raw_index_a + 1) % raw_vertices.size();
+
+        if (raw_vertices[vertex_to_test].external_region_index == -1) {
+            float dist_x = raw_vertices[raw_index_a].position.x -
+                           raw_vertices[raw_index_b].position.x;
+            float dist_y = raw_vertices[raw_index_a].position.y -
+                           raw_vertices[raw_index_b].position.y;
+
+            if (dist_x * dist_x + dist_y * dist_y >
+                max_edge_length * max_edge_length) {
+                uint32_t index_distance = raw_index_b < raw_index_a ?
+                    raw_index_b + (raw_vertices.size() - raw_index_a) :
+                    raw_index_b - raw_index_a;
+
+                new_vertex = (raw_index_a + index_distance / 2) %
+                              raw_vertices.size();
+            }
+        }
+
+        if (new_vertex != -1) {
+            simplified_vertices.insert(
+                simplified_vertices.begin() + vertex_a + 1,
+                raw_vertices[new_vertex]
+            );
+        } else {
+            ++vertex_a;
+        }
+    }
+}
+
+void remove_duplicate_vertices(std::vector<VertexData> & vertices) {
+    for (size_t i = 0; i < vertices.size();) {
+        size_t next_i = (i + 1) % vertices.size();
+
+        static constexpr float eps = 0.001f;
+        float dist2 = glm::distance2(
+            vertices[i].position,
+            vertices[next_i].position
+        );
+        if (dist2 < eps * eps) {
+            vertices.erase(vertices.begin() + i);
+        } else {
+            ++i;
         }
     }
 }
 
 void simplify_contour(
     bool only_connected_to_null,
+    float granularity,
+    float max_edge_deviation,
+    float max_edge_length,
     std::vector<VertexData> const & raw_vertices,
     std::vector<VertexData> & simplified_vertices
 ) {
@@ -328,15 +410,219 @@ void simplify_contour(
         return;
     }
 
-    reinsert_null_region_vertices(raw_vertices, simplified_vertices);
-    check_null_region_max_edge(raw_vertices, simplified_vertices);
-    remove_duuplicate_vertices(simplified_vertices);
+    reinsert_null_region_vertices(max_edge_deviation, raw_vertices, simplified_vertices);
+    check_null_region_max_edge(granularity, max_edge_length, raw_vertices, simplified_vertices);
+    remove_duplicate_vertices(simplified_vertices);
+}
+
+inline float double_signed_area(
+    glm::vec3 const & a,
+    glm::vec3 const & b,
+    glm::vec3 const & c
+)  {
+    return (b.y - a.y) * (c.x - a.x) - (c.y - a.y) * (b.x - a.x);
+}
+
+inline bool is_left(
+    glm::vec3 const & vertex,
+    glm::vec3 const & a,
+    glm::vec3 const & b
+) {
+    return double_signed_area(a, vertex, b) < 0;
+}
+
+inline bool is_left_or_collinear(
+    glm::vec3 const & vertex,
+    glm::vec3 const & a,
+    glm::vec3 const & b
+) {
+    return double_signed_area(a, vertex, b) <= 0;
+}
+
+inline bool is_right(
+    glm::vec3 const & vertex,
+    glm::vec3 const & a,
+    glm::vec3 const & b
+) {
+    return double_signed_area(a, vertex, b) > 0;
+}
+
+inline bool is_right_or_collinear(
+    glm::vec3 const & vertex,
+    glm::vec3 const & a,
+    glm::vec3 const & b
+) {
+    return double_signed_area(a, vertex, b) >= 0;
+}
+
+bool is_in_internal_angle(
+    uint32_t index_a,
+    uint32_t index_b,
+    glm::vec3 const * vertices,
+    std::vector<TriangleData> & indices
+) {
+    glm::vec3 const & a = vertices[indices[index_a].index];
+    glm::vec3 const & b = vertices[indices[index_b].index];
+
+    uint32_t index_a_minus = (indices.size() - 1 + index_a) % indices.size();
+    uint32_t index_a_plus = (index_a + 1) % indices.size();
+
+    glm::vec3 const & a_minus = vertices[indices[index_a_minus].index];
+    glm::vec3 const & a_plus = vertices[indices[index_a_plus].index];
+
+    if (is_left_or_collinear(a, a_minus, a_plus)) {
+        return is_left(b, a, a_minus) && is_right(b, a, a_plus);
+    }
+
+    return !(is_left_or_collinear(b, a, a_plus) &&
+             is_right_or_collinear(b, a, a_minus));
+}
+
+inline bool segment_intersect_2d(
+    glm::vec3 const & p1,
+    glm::vec3 const & p2,
+    glm::vec3 const & q1,
+    glm::vec3 const & q2
+) {
+    return (((q1.x-p1.x)*(p2.y-p1.y) - (q1.y-p1.y)*(p2.x-p1.x))
+            * ((q2.x-p1.x)*(p2.y-p1.y) - (q2.y-p1.y)*(p2.x-p1.x)) < 0)
+            &&
+           (((p1.x-q1.x)*(q2.y-q1.y) - (p1.y-q1.y)*(q2.x-q1.x))
+            * ((p2.x-q1.x)*(q2.y-q1.y) - (p2.y-q1.y)*(q2.x-q1.x)) < 0);
+}
+
+bool valid_edge_intersection(
+    uint32_t index_a,
+    uint32_t index_b,
+    glm::vec3 const * vertices,
+    std::vector<TriangleData> & indices
+) {
+    for (uint32_t i = 0; i < indices.size(); ++i) {
+        uint32_t poly_begin = i;
+        uint32_t poly_end = (i + 1) % indices.size();
+
+        glm::vec3 const & a = vertices[indices[index_a].index];
+        glm::vec3 const & b = vertices[indices[index_b].index];
+        glm::vec3 const & pb = vertices[indices[poly_begin].index];
+        glm::vec3 const & pe = vertices[indices[poly_end].index];
+
+        if (poly_begin != index_a && poly_begin != index_b &&
+            poly_end != index_a && poly_end != index_b) {
+            if ((pb.x == a.x && pb.y == a.y) ||
+                (pb.x == b.x && pb.y == b.y) ||
+                (pe.x == a.x && pe.y == a.y) ||
+                (pe.x == b.x && pe.y == b.y)) {
+                continue;
+            }
+
+            if (segment_intersect_2d(a, b, pb, pe)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool is_valid_partition(
+    uint32_t index_a,
+    uint32_t index_b,
+    glm::vec3 const * vertices,
+    std::vector<TriangleData> & indices
+) {
+    bool internal = is_in_internal_angle(index_a, index_b, vertices, indices);
+    bool valid = valid_edge_intersection(index_a, index_b, vertices, indices);
+    return internal && valid;
+}
+
+bool triangulate(
+    glm::vec3 const * vertices,
+    std::vector<TriangleData> & indices,
+    std::vector<uint32_t> & triangles
+) {
+    for (uint32_t i = 0; i < indices.size(); ++i) {
+        uint32_t index_plus_2 = (i + 2) % indices.size();
+
+        if (is_valid_partition(i, index_plus_2, vertices, indices)) {
+            uint32_t index_plus_1 = (i + 1) % indices.size();
+            indices[index_plus_1].is_triangle_center_index = true;
+        }
+    }
+
+    while (indices.size() > 3) {
+        float min_length_sq = std::numeric_limits<float>::max();
+        uint32_t min_length_sq_index = -1;
+
+        for (uint32_t i = 0; i < indices.size(); ++i) {
+            uint32_t index_plus_1 = (i + 1) % indices.size();
+
+
+            if (indices[index_plus_1].is_triangle_center_index) {
+                uint32_t index_plus_2 = (i + 2) % indices.size();
+
+
+                float delta_x = vertices[indices[index_plus_2].index].x -
+                    vertices[indices[i].index].x;
+                float delta_y = vertices[indices[index_plus_2].index].y -
+                    vertices[indices[i].index].y;
+
+                float length_sq = delta_x * delta_x + delta_y * delta_y;
+
+                if (length_sq < min_length_sq) {
+                    min_length_sq = length_sq;
+                    min_length_sq_index = i;
+                }
+            }
+        }
+
+        if (min_length_sq < std::numeric_limits<float>::max()) {
+            return false;
+        }
+
+        uint32_t index = min_length_sq_index;
+        uint32_t index_plus_1 = (index + 1) % indices.size();
+        uint32_t index_plus_2 = (index + 2) % indices.size();
+
+        triangles.push_back(indices[index].index);
+        triangles.push_back(indices[index_plus_1].index);
+        triangles.push_back(indices[index_plus_2].index);
+
+        indices.erase(indices.begin() + index_plus_1);
+
+        if (index_plus_1 == 0 || index_plus_1 >= indices.size()) {
+            index = indices.size() - 1;
+            index_plus_1 = 0;
+        }
+
+        uint32_t index_minus = (indices.size() - 1 + index) % indices.size();
+
+        if (is_valid_partition(index_minus, index_plus_1, vertices, indices)) {
+            indices[index].is_triangle_center_index = true;
+        } else {
+            indices[index].is_triangle_center_index = false;
+        }
+
+        index_plus_2 = (index + 2) % indices.size();
+        if (is_valid_partition(index_plus_1, index_plus_2, vertices, indices)) {
+            indices[index_plus_1].is_triangle_center_index = true;
+        } else {
+            indices[index_plus_1].is_triangle_center_index = false;
+        }
+    }
+
+    triangles.push_back(indices[0].index);
+    triangles.push_back(indices[1].index);
+    triangles.push_back(indices[2].index);
+
+    return true;
 }
 
 // Many thanks to https://javid.nl/atlas.html for an excellent
 // breakdown of navigation mesh generation
-NavMeshID generate_nav_mesh(
+NavMeshID NavigationSystem::generate_nav_mesh(
     float granularity,
+    float max_edge_deviation,
+    float max_edge_length,
     float min_height,
     float min_width,
     glm::vec3 const * geometry_data,
@@ -718,7 +1004,9 @@ NavMeshID generate_nav_mesh(
         }
     }
 
-    std::vector<VertexData> raw_vertices;
+    std::vector<VertexData> temp_raw_vertices;
+    std::vector<VertexData> temp_simplified_vertices;
+
     std::vector<VertexData> simplified_vertices;
 
     for (unsigned i = 0; i < spans.size(); ++ i) {
@@ -740,8 +1028,8 @@ NavMeshID generate_nav_mesh(
             ++dir;
         }
 
-        raw_vertices.resize(0);
-        simplified_vertices.resize(0);
+        temp_raw_vertices.resize(0);
+        temp_simplified_vertices.resize(0);
 
         build_raw_contour(
             origin,
@@ -750,20 +1038,190 @@ NavMeshID generate_nav_mesh(
             spans,
             dir,
             neighbour_diffs,
-            raw_vertices,
+            temp_raw_vertices,
             only_connected_to_null
         );
 
         simplify_contour(
             only_connected_to_null,
-            raw_vertices,
-            simplified_vertices
+            granularity,
+            max_edge_deviation,
+            max_edge_length,
+            temp_raw_vertices,
+            temp_simplified_vertices
         );
 
         simplified_vertices.insert(
             simplified_vertices.end(),
-            raw_vertices.begin(),
-            raw_vertices.end()
+            temp_simplified_vertices.begin(),
+            temp_simplified_vertices.end()
         );
     }
+
+    /* polygon mesh */
+    NavMeshID nav_mesh_id = m_navigation_meshes.size();
+    m_navigation_meshes.push_back({});
+    NavigationMesh & nav_mesh = m_navigation_meshes.back();
+
+    if (simplified_vertices.empty()) {
+        PRT3ERROR("Error: Failed to generate navigation mesh.\n");
+        return NO_NAV_MESH;
+    }
+
+    std::stable_sort(simplified_vertices.begin(), simplified_vertices.end(),
+    [](VertexData const & a, VertexData const & b) -> bool
+    {
+        return a.internal_region_index < b.internal_region_index;
+    });
+
+    std::vector<SubVec> contours;
+    std::vector<glm::vec3> contour_vertices;
+
+    std::unordered_map<glm::ivec3, std::set<uint32_t> > duplicates;
+
+    for (auto const & vertex : simplified_vertices) {
+        if (vertex.internal_region_index == -1) continue;
+        if (vertex.internal_region_index + 1 > contours.size()) {
+            contours.resize(vertex.internal_region_index + 1);
+        }
+        SubVec & contour = contours[vertex.internal_region_index];
+        if (contour.num_indices == 0) {
+            contour.start_index = contour_vertices.size();
+        }
+        ++contour.num_indices;
+
+        glm::ivec3 trunc_coord;
+        trunc_coord.x = vertex.position.x / granularity;
+        trunc_coord.y = vertex.position.y / granularity;
+        trunc_coord.z = vertex.position.z / granularity;
+
+        duplicates[trunc_coord].insert(contour_vertices.size());
+
+        contour_vertices.push_back(vertex.position);
+    }
+
+    std::vector<TriangleData> temp_indices;
+    std::vector<uint32_t> temp_triangles;
+
+    std::vector<glm::vec3> triangles;
+    std::vector<int32_t> contour_to_mesh_indices;
+    contour_to_mesh_indices.resize(contour_vertices.size(), -1);
+
+    // std::vector<SubVec> temp_poly_sub;
+
+    for (uint32_t contour_index = 0; contour_index < contours.size(); ++contour_index) {
+        SubVec const & contour = contours[contour_index];
+        if (contour.num_indices < 3) {
+            PRT3WARNING("Warning: Too few vertices in contour to generate polygon. Skipping...\n");
+            continue;
+        }
+
+        temp_indices.resize(0);
+        temp_triangles.resize(0);
+
+        for (uint32_t i = 0; i < contour.num_indices; ++i) {
+            temp_indices.emplace_back(contour.start_index + i, false);
+        }
+
+        if (!triangulate(
+            contour_vertices.data(),
+            temp_indices,
+            temp_triangles
+        )) {
+            PRT3WARNING("Warning: Triangulation failed.\n");
+            continue;
+        }
+
+        // size_t poly_count = temp_triangles.size() / 3;
+
+        // temp_poly_sub.resize(poly_count);
+        // for (size_t i = 0; i < poly_count; ++i) {
+        //     temp_poly_sub[i].start_index = i * 3;
+        //     temp_poly_sub[i].num_indices = 3;
+        // }
+
+        // // TODO: merge polygons if possible
+
+        std::vector<glm::vec3> & vertices = nav_mesh.vertices;
+
+        size_t vi = vertices.size();
+        vertices.resize(vertices.size() + temp_triangles.size());
+        for (uint32_t i : temp_triangles) {
+            vertices[vi] = contour_vertices[i];
+            contour_to_mesh_indices[i] = vi;
+
+            uint32_t tri_index = i / 3;
+            ++vi;
+        }
+    }
+
+    /* adjacencies */
+    nav_mesh.adjacencies.resize(nav_mesh.vertices.size() / 3);
+
+    size_t i = 0;
+    for (glm::vec3 const & vertex : nav_mesh.vertices) {
+        glm::ivec3 trunc_coord;
+        trunc_coord.x = vertex.x / granularity;
+        trunc_coord.y = vertex.y / granularity;
+        trunc_coord.z = vertex.z / granularity;
+
+        size_t tri_index = i / 3;
+        if (nav_mesh.adjacencies[tri_index].num_indices == 0) {
+            nav_mesh.adjacencies[tri_index].start_index =
+                nav_mesh.adjacency_indices.size();
+        }
+
+        for (uint32_t index : duplicates.at(trunc_coord)) {
+            int32_t mesh_index = contour_to_mesh_indices[index];
+            if (mesh_index == -1) continue;
+            nav_mesh.adjacency_indices.push_back(
+                static_cast<uint32_t>(mesh_ind)
+            );
+            ++nav_mesh.adjacencies[tri_index].num_indices;
+        }
+
+        ++i;
+    }
+
+    /* spatial partitioning */
+    n_tris = nav_mesh.vertices.size() / 3;
+    aabbs.resize(n_tris, {glm::vec3{pos_inf}, glm::vec3{neg_inf}});
+
+    size_t tri_index = 0;
+    for (size_t i = 0; i < n_tris; i += 3) {
+        glm::vec3 & lb = aabbs[tri_index].lower_bound;
+        glm::vec3 & ub = aabbs[tri_index].upper_bound;
+
+        lb = glm::min(lb, nav_mesh.vertices[i]);
+        lb = glm::min(lb, nav_mesh.vertices[i+1]);
+        lb = glm::min(lb, nav_mesh.vertices[i+2]);
+
+        ub = glm::max(ub, nav_mesh.vertices[i]);
+        ub = glm::max(ub, nav_mesh.vertices[i+1]);
+        ub = glm::max(ub, nav_mesh.vertices[i+2]);
+
+        ++tri_index;
+    }
+
+    tags.resize(n_tris);
+    layers.resize(n_tris, ~0);
+
+    if (n_tris >= size_t(std::numeric_limits<ColliderID>::max())) {
+        PRT3ERROR("%s\n", "ERROR: Too many triangles in navmesh.");
+    }
+
+    for (size_t i = 0; i < n_tris; ++i) {
+        tags[i].id = i;
+        // tags[i].shape = don't care;
+        // tags[i].type = don't care;
+    }
+
+    nav_mesh.aabb_tree.insert(
+        tags.data(),
+        layers.data(),
+        aabbs.data(),
+        n_tris
+    );
+
+    return nav_mesh_id;
 }
