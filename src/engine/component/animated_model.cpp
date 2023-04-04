@@ -54,6 +54,8 @@ void AnimatedModel::set_model_handle(
     Scene & scene,
     ModelHandle handle
 ) {
+    if (handle == m_model_handle) return;
+
     m_model_handle = handle;
     if (handle != NO_MODEL) {
         if (m_animation_id == NO_ANIMATION) {
@@ -64,6 +66,7 @@ void AnimatedModel::set_model_handle(
         }
     } else {
         scene.animation_system().remove_animation(m_animation_id);
+        m_animation_id = NO_ANIMATION;
     }
 }
 
