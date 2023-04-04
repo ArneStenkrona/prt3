@@ -112,7 +112,7 @@ public:
     { return m_script_container.scripts().at(id); }
 
     template<typename ComponentType, typename... ArgTypes>
-    ComponentType & add_component(NodeID id, ArgTypes... args) {
+    ComponentType & add_component(NodeID id, ArgTypes & ... args) {
         return m_component_manager.add_component<ComponentType>(*this, id, args...);
     }
 

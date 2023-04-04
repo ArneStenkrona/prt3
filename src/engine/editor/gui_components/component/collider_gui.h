@@ -12,7 +12,6 @@
 #include "imgui.h"
 
 #include <sstream>
-#include <iostream>
 
 namespace prt3 {
 
