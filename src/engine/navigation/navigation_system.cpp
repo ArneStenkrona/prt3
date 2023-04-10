@@ -3,6 +3,8 @@
 #include "src/util/log.h"
 #include "src/util/geometry_util.h"
 
+#include <glm/gtx/hash.hpp>
+
 #include <vector>
 #include <queue>
 #include <set>
@@ -29,7 +31,7 @@ struct Span {
             int16_t south;
             int16_t west;
         };
-        uint16_t neighbours[4];
+        int16_t neighbours[4];
     };
     uint32_t distance_to_region_center;
 };
@@ -189,7 +191,6 @@ void build_raw_contour(
 
     Span const & span = spans[span_index];
     uint32_t x = span.x;
-    uint32_t y = span.low;
     uint32_t z = span.z;
 
     uint32_t curr_i = span_index;
@@ -633,10 +634,9 @@ NavMeshID NavigationSystem::generate_nav_mesh(
 
     DynamicAABBTree aabb_tree;
 
-    glm::vec3 lower_bound{geometry_data[0]};
-    glm::vec3 upper_bound{geometry_data[0]};
-
     AABB aabb;
+    aabb.lower_bound = geometry_data[0];
+    aabb.upper_bound = geometry_data[0];
 
     // generate aabb of all geometry
     for (size_t i = 1; i < n_geometry; ++i) {
@@ -691,17 +691,20 @@ NavMeshID NavigationSystem::generate_nav_mesh(
     );
 
     /* Voxelize */
-    glm::ivec3 dim =
-        glm::ivec3{glm::ceil(aabb.upper_bound / granularity)} -
-        glm::ivec3{glm::floor(aabb.lower_bound / granularity)};
+    glm::uvec3 dim =
+        glm::uvec3{glm::ceil(aabb.upper_bound / granularity)} -
+        glm::uvec3{glm::floor(aabb.lower_bound / granularity)};
 
     std::vector<bool> voxels;
     voxels.resize(dim.x * dim.y * dim.z);
 
     glm::vec3 origin = aabb.lower_bound;
 
-    constexpr ColliderTag tag = { -1, ColliderShape::none, ColliderType::collider };
-    std::vector<ColliderTag> tags;
+    constexpr ColliderTag tag = {
+        static_cast<ColliderID>(-1),
+        ColliderShape::none,
+        ColliderType::collider
+    };
 
     uint32_t iv = 0;
     for (unsigned int ix = 0; ix < dim.x; ++ix) {
@@ -755,16 +758,14 @@ NavMeshID NavigationSystem::generate_nav_mesh(
                 if (prev != curr || (iy + 1 == dim.y && !curr)) {
                     if (curr || (iy + 1 == dim.y)) {
                         spans.emplace_back(Span{
-                            start,
-                            iy,
-                            ix,
-                            iz,
-                            -1,
-                            -1,
-                            -1,
-                            -1,
-                            -1,
-                            0
+                            start, // low
+                            iy, // high
+                            ix, // x
+                            iz, // z
+                            -1, // next_index
+                            -1, // region_index
+                            { {-1, -1, -1, -1} }, // neighbours
+                            0 // distance_to_region_center
                         });
                     } else {
                         start = iy;
@@ -971,8 +972,6 @@ NavMeshID NavigationSystem::generate_nav_mesh(
                 ++it;
             }
         }
-
-        --current_dist;
     }
 
     flooded_spans.clear();
@@ -1012,9 +1011,9 @@ NavMeshID NavigationSystem::generate_nav_mesh(
     for (unsigned i = 0; i < spans.size(); ++ i) {
         Span const & span = spans[i];
 
-        bool diff = neighbour_diffs[i].north |
-                    neighbour_diffs[i].east  |
-                    neighbour_diffs[i].south |
+        bool diff = neighbour_diffs[i].north ||
+                    neighbour_diffs[i].east  ||
+                    neighbour_diffs[i].south ||
                     neighbour_diffs[i].west;
 
         if (span.region_index == -1 || diff) {
@@ -1081,7 +1080,8 @@ NavMeshID NavigationSystem::generate_nav_mesh(
 
     for (auto const & vertex : simplified_vertices) {
         if (vertex.internal_region_index == -1) continue;
-        if (vertex.internal_region_index + 1 > contours.size()) {
+        if (static_cast<size_t>(vertex.internal_region_index + 1) >
+            contours.size()) {
             contours.resize(vertex.internal_region_index + 1);
         }
         SubVec & contour = contours[vertex.internal_region_index];
@@ -1120,7 +1120,9 @@ NavMeshID NavigationSystem::generate_nav_mesh(
         temp_triangles.resize(0);
 
         for (uint32_t i = 0; i < contour.num_indices; ++i) {
-            temp_indices.emplace_back(contour.start_index + i, false);
+            temp_indices.emplace_back(
+                TriangleData{contour.start_index + i, false}
+            );
         }
 
         if (!triangulate(
@@ -1132,14 +1134,6 @@ NavMeshID NavigationSystem::generate_nav_mesh(
             continue;
         }
 
-        // size_t poly_count = temp_triangles.size() / 3;
-
-        // temp_poly_sub.resize(poly_count);
-        // for (size_t i = 0; i < poly_count; ++i) {
-        //     temp_poly_sub[i].start_index = i * 3;
-        //     temp_poly_sub[i].num_indices = 3;
-        // }
-
         // // TODO: merge polygons if possible
 
         std::vector<glm::vec3> & vertices = nav_mesh.vertices;
@@ -1149,8 +1143,6 @@ NavMeshID NavigationSystem::generate_nav_mesh(
         for (uint32_t i : temp_triangles) {
             vertices[vi] = contour_vertices[i];
             contour_to_mesh_indices[i] = vi;
-
-            uint32_t tri_index = i / 3;
             ++vi;
         }
     }
@@ -1175,7 +1167,7 @@ NavMeshID NavigationSystem::generate_nav_mesh(
             int32_t mesh_index = contour_to_mesh_indices[index];
             if (mesh_index == -1) continue;
             nav_mesh.adjacency_indices.push_back(
-                static_cast<uint32_t>(mesh_ind)
+                static_cast<uint32_t>(mesh_index)
             );
             ++nav_mesh.adjacencies[tri_index].num_indices;
         }
@@ -1187,7 +1179,7 @@ NavMeshID NavigationSystem::generate_nav_mesh(
     n_tris = nav_mesh.vertices.size() / 3;
     aabbs.resize(n_tris, {glm::vec3{pos_inf}, glm::vec3{neg_inf}});
 
-    size_t tri_index = 0;
+    tri_index = 0;
     for (size_t i = 0; i < n_tris; i += 3) {
         glm::vec3 & lb = aabbs[tri_index].lower_bound;
         glm::vec3 & ub = aabbs[tri_index].upper_bound;

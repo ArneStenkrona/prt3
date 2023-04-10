@@ -28,6 +28,7 @@ void ComponentManager::serialize_components(
     Scene const & scene,
     NodeID id
 ) const {
+    write_stream(out, std::tuple_size_v<ComponentStoragesType>);
     serialize_components(out, scene, id, m_component_storages);
 }
 
@@ -36,5 +37,7 @@ void ComponentManager::deserialize_components(
     Scene & scene,
     NodeID id
 ) {
-    deserialize_components(in, scene, id, m_component_storages);
+    size_t n_components;
+    read_stream(in, n_components);
+    deserialize_components(in, scene, id, n_components, m_component_storages);
 }
