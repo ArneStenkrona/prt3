@@ -71,6 +71,18 @@ public:
         glm::vec3 const & movement
     );
 
+    std::unordered_map<ColliderID, MeshCollider> const & mesh_colliders() const {
+        return get_container(ColliderType::collider).meshes.map;
+    }
+
+    std::unordered_map<ColliderID, SphereCollider> const & sphere_colliders() const {
+        return get_container(ColliderType::collider).spheres.map;
+    }
+
+    std::unordered_map<ColliderID, BoxCollider> const & box_colliders() const {
+        return get_container(ColliderType::collider).boxes.map;
+    }
+
     MeshCollider const & get_mesh_collider(ColliderID id, ColliderType type) const
     { return get_container(type).meshes.map.at(id); }
 

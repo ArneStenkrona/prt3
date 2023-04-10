@@ -2,6 +2,7 @@
 
 #include "src/util/log.h"
 #include "src/util/geometry_util.h"
+#include "src/engine/scene/scene.h"
 
 #include <glm/gtx/hash.hpp>
 
@@ -618,51 +619,64 @@ bool triangulate(
     return true;
 }
 
-// Many thanks to https://javid.nl/atlas.html for an excellent
-// breakdown of navigation mesh generation
+// Many thanks to https://javid.nl/atlas.html
+// and https://www.stefanolazzaroni.com/navigation-mesh-generation
 NavMeshID NavigationSystem::generate_nav_mesh(
+    Scene const & scene,
+    CollisionLayer layer,
     float granularity,
     float max_edge_deviation,
     float max_edge_length,
-    float min_height,
     float min_width,
-    glm::vec3 const * geometry_data,
-    size_t n_geometry
+    float min_height
 ) {
-    assert(n_geometry % 3 == 0);
-    if (n_geometry == 0) return NO_NAV_MESH;
+    PhysicsSystem const & sys = scene.physics_system();
+
+    std::vector<glm::vec3> geometry;
+
+    for (auto const & pair : sys.mesh_colliders()) {
+        MeshCollider const & col = pair.second;
+        if ((col.get_layer() & layer) == 0) continue;
+        geometry.insert(
+            geometry.end(),
+            col.triangle_cache().begin(),
+            col.triangle_cache().end()
+        );
+    }
+
+    assert(geometry.size() % 3 == 0);
 
     DynamicAABBTree aabb_tree;
 
     AABB aabb;
-    aabb.lower_bound = geometry_data[0];
-    aabb.upper_bound = geometry_data[0];
+    aabb.lower_bound = geometry[0];
+    aabb.upper_bound = geometry[0];
 
     // generate aabb of all geometry
-    for (size_t i = 1; i < n_geometry; ++i) {
-        aabb.lower_bound = glm::min(aabb.lower_bound, geometry_data[i]);
-        aabb.upper_bound = glm::max(aabb.upper_bound, geometry_data[i]);
+    for (size_t i = 1; i < geometry.size(); ++i) {
+        aabb.lower_bound = glm::min(aabb.lower_bound, geometry[i]);
+        aabb.upper_bound = glm::max(aabb.upper_bound, geometry[i]);
     }
 
     // insert each triangle into the aabb_tree
     float neg_inf = -std::numeric_limits<float>::infinity();
     float pos_inf = std::numeric_limits<float>::infinity();
     std::vector<AABB> aabbs;
-    size_t n_tris = n_geometry / 3;
+    size_t n_tris = geometry.size() / 3;
     aabbs.resize(n_tris, {glm::vec3{pos_inf}, glm::vec3{neg_inf}});
 
     size_t tri_index = 0;
-    for (size_t i = 0; i < n_geometry; i += 3) {
+    for (size_t i = 0; i < geometry.size(); i += 3) {
         glm::vec3 & lb = aabbs[tri_index].lower_bound;
         glm::vec3 & ub = aabbs[tri_index].upper_bound;
 
-        lb = glm::min(lb, geometry_data[i]);
-        lb = glm::min(lb, geometry_data[i+1]);
-        lb = glm::min(lb, geometry_data[i+2]);
+        lb = glm::min(lb, geometry[i]);
+        lb = glm::min(lb, geometry[i+1]);
+        lb = glm::min(lb, geometry[i+2]);
 
-        ub = glm::max(ub, geometry_data[i]);
-        ub = glm::max(ub, geometry_data[i+1]);
-        ub = glm::max(ub, geometry_data[i+2]);
+        ub = glm::max(ub, geometry[i]);
+        ub = glm::max(ub, geometry[i+1]);
+        ub = glm::max(ub, geometry[i+2]);
 
         ++tri_index;
     }
@@ -728,9 +742,9 @@ NavMeshID NavigationSystem::generate_nav_mesh(
                     if (triangle_box_overlap(
                         origin + glm::vec3{granularity / 2.0f},
                         glm::vec3{granularity / 2.0f},
-                        geometry_data[3 * tag.id],
-                        geometry_data[3 * tag.id + 1],
-                        geometry_data[3 * tag.id + 2]
+                        geometry[3 * tag.id],
+                        geometry[3 * tag.id + 1],
+                        geometry[3 * tag.id + 2]
                     )) {
                         voxels[iv] = true;
                         break;

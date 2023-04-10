@@ -8,9 +8,13 @@
 namespace prt3 {
 
 class Scene;
+class EditorContext;
 
 template<typename T>
 class ComponentStorage;
+
+template<typename T>
+void inner_show_component(EditorContext &, NodeID);
 
 class NavigationMeshComponent {
 public:
@@ -37,6 +41,7 @@ private:
     void remove(Scene & /*scene*/) {}
 
     friend class ComponentStorage<NavigationMeshComponent>;
+    friend void inner_show_component<NavigationMeshComponent>(EditorContext &, NodeID);
 };
 
 } // namespace prt3

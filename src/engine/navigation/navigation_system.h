@@ -18,6 +18,8 @@
 
 namespace prt3 {
 
+class Scene;
+
 typedef int32_t NavMeshID;
 constexpr NavMeshID NO_NAV_MESH = -1;
 
@@ -29,13 +31,13 @@ struct SubVec {
 class NavigationSystem {
 public:
     NavMeshID generate_nav_mesh(
+        Scene const & scene,
+        CollisionLayer layer,
         float granularity,
         float max_edge_deviation,
         float max_edge_length,
         float min_height,
-        float min_width,
-        glm::vec3 const * geometry_data,
-        size_t n_geometry
+        float min_width
     );
 private:
     struct NavigationMesh {

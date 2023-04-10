@@ -12,6 +12,7 @@
 #include "src/engine/component/script/script.h"
 #include "src/engine/physics/physics_system.h"
 #include "src/engine/animation/animation_system.h"
+#include "src/engine/navigation/navigation_system.h"
 #include "src/engine/rendering/renderer.h"
 #include "src/engine/rendering/camera.h"
 #include "src/engine/core/input.h"
@@ -212,6 +213,9 @@ public:
     AnimationSystem const & animation_system() const { return m_animation_system; }
     AnimationSystem & animation_system() { return m_animation_system; }
 
+    NavigationSystem const & navigation_system() const { return m_navigation_system; }
+    NavigationSystem & navigation_system() { return m_navigation_system; }
+
     ModelManager const & model_manager() const;
     Model const & get_model(ModelHandle handle) const;
 
@@ -258,6 +262,7 @@ private:
     ComponentManager m_component_manager;
     PhysicsSystem m_physics_system;
     AnimationSystem m_animation_system;
+    NavigationSystem m_navigation_system;
 
     DirectionalLight m_directional_light;
     bool m_directional_light_on = false;
