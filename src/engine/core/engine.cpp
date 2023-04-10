@@ -86,7 +86,7 @@ bool Engine::execute_frame() {
                 render_data.camera_data
             );
 
-            m_editor.collect_collider_render_data(render_data.editor_data);
+            m_editor.collect_render_data(render_data.editor_data);
 
             m_context.renderer().render(render_data, true);
             break;

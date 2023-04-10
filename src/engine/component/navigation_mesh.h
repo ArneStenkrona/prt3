@@ -31,6 +31,11 @@ public:
         Scene const & scene
     ) const;
 
+    void deserialize(
+        std::istream & in,
+        Scene & scene
+    );
+
     static char const * name() { return "Navigation Mesh"; }
     static constexpr UUID uuid = 12863741067030180881ull;
 
@@ -41,7 +46,7 @@ private:
     void remove(Scene & /*scene*/) {}
 
     friend class ComponentStorage<NavigationMeshComponent>;
-    friend void inner_show_component<NavigationMeshComponent>(EditorContext &, NodeID);
+    friend class ActionSetNavMesh;
 };
 
 } // namespace prt3

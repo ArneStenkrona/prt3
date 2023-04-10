@@ -569,14 +569,22 @@ void PhysicsSystem::update_mesh_data(
             size_t n = tris.size();
 
             thread_local std::vector<glm::vec3> lines;
-            size_t ln = n == 0 ? 0 : 2 * (n - 1);
-            lines.resize(ln);
+            lines.resize(n * 2);
 
+            size_t n_tri = n / 3;
             size_t li = 0;
-            for (size_t i = 0; i + 1 < n; ++i) {
-                lines[li] = tris[i];
+            for (size_t i = 0; i < n_tri; ++i) {
+                lines[li] = tris[3*i];
                 ++li;
-                lines[li] = tris[i+1];
+                lines[li] = tris[3*i+1];
+                ++li;
+                lines[li] = tris[3*i+1];
+                ++li;
+                lines[li] = tris[3*i+2];
+                ++li;
+                lines[li] = tris[3*i+2];
+                ++li;
+                lines[li] = tris[3*i];
                 ++li;
             }
 
@@ -735,11 +743,11 @@ void PhysicsSystem::update_box_data(
     }
 }
 
-void PhysicsSystem::collect_collider_render_data(
+void PhysicsSystem::collect_render_data(
     Renderer & renderer,
     Transform const * transforms,
     NodeID selected,
-    ColliderRenderData & data
+    EditorRenderData & data
 ) {
     std::array<ColliderType, 2> types =
     {
@@ -754,8 +762,8 @@ void PhysicsSystem::collect_collider_render_data(
     }
 
     if (selected == NO_NODE) {
-        data.line_data.resize(m_tags.size());
-        size_t i = 0;
+        size_t i = data.line_data.size();
+        data.line_data.resize(i + m_tags.size());
         for (auto const & pair : m_tags) {
             data.line_data[i].mesh_id = m_collider_meshes.at(pair.second);
             // NOTE: this is incorrect for spheres, since the collider
@@ -765,12 +773,16 @@ void PhysicsSystem::collect_collider_render_data(
             // TODO: resolve this discrepancy
             data.line_data[i].transform =
                 transforms[pair.first].to_matrix();
+
+            data.line_data[i].color = glm::vec4{0.0f, 1.0f, 0.0f, 1.0f};
             ++i;
         }
-    } else if (m_tags.find(selected) != m_tags.end()){
-        data.line_data.resize(1);
-        data.line_data[0].mesh_id =
+    } else if (m_tags.find(selected) != m_tags.end()) {
+        size_t index = data.line_data.size();
+        data.line_data.resize(index + 1);
+        data.line_data[index].mesh_id =
             m_collider_meshes.at(m_tags.at(selected));
-        data.line_data[0].transform = transforms[selected].to_matrix();
+        data.line_data[index].transform = transforms[selected].to_matrix();
+        data.line_data[index].color = glm::vec4{0.0f, 1.0f, 0.0f, 1.0f};
     }
 }

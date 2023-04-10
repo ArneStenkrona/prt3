@@ -3,6 +3,9 @@
 
 #include "src/engine/physics/aabb.h"
 #include "src/engine/physics/aabb_tree.h"
+#include "src/engine/rendering/resources.h"
+#include "src/engine/rendering/render_data.h"
+#include "src/engine/rendering/renderer.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -14,6 +17,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <unordered_map>
 #include <array>
 
 namespace prt3 {
@@ -28,9 +32,17 @@ struct SubVec {
     uint32_t num_indices;
 };
 
+struct Adjacency {
+    float portal_size;
+    uint32_t tri_index;
+    uint32_t edge0;
+    uint32_t edge1;
+};
+
 class NavigationSystem {
 public:
     NavMeshID generate_nav_mesh(
+        NodeID node_id,
         Scene const & scene,
         CollisionLayer layer,
         float granularity,
@@ -39,15 +51,54 @@ public:
         float min_height,
         float min_width
     );
+
+    void remove_nav_mesh(NavMeshID id);
+
+    void serialize_nav_mesh(
+        NavMeshID id,
+        std::ostream & out
+    ) const;
+
+    NavMeshID deserialize_nav_mesh(
+        NodeID node_id,
+        std::istream & in
+    );
+
+    void collect_render_data(
+        Renderer & renderer,
+        NodeID selected_node,
+        EditorRenderData & data
+    );
+
 private:
     struct NavigationMesh {
         std::vector<glm::vec3> vertices;
         std::vector<SubVec> adjacencies;
-        std::vector<uint32_t> adjacency_indices;
+        std::vector<Adjacency> adjacency_data;
         DynamicAABBTree aabb_tree;
     };
 
-    std::vector<NavigationMesh> m_navigation_meshes;
+    std::unordered_map<NodeID, NavMeshID> m_nav_mesh_ids;
+    std::unordered_map<NavMeshID, NodeID> m_node_ids;
+    std::vector<NavMeshID> m_id_queue;
+
+    std::unordered_map<NavMeshID, NavigationMesh> m_navigation_meshes;
+    std::unordered_map<NavMeshID, ResourceID> m_render_meshes;
+
+    void update_render_data(Renderer & renderer);
+
+    NavMeshID insert_nav_mesh(NodeID node_id) {
+        NavMeshID nav_mesh_id = m_navigation_meshes.size();
+        if (!m_id_queue.empty()) {
+            nav_mesh_id = m_id_queue.back();
+            m_id_queue.pop_back();
+        }
+        m_node_ids[nav_mesh_id] = node_id;
+        m_nav_mesh_ids[node_id] = nav_mesh_id;
+
+        m_navigation_meshes[nav_mesh_id] = {};
+        return nav_mesh_id;
+    }
 };
 
 } // namespace prt3

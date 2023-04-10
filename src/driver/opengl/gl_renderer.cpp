@@ -338,13 +338,17 @@ void GLRenderer::render_framebuffer(
             GLShader const & shader = m_material_manager.wireframe_shader();
             glUseProgram(shader.shader());
 
-            ColliderRenderData const & collider_data = render_data.editor_data.collider_data;
-            for (WireframeRenderData const & data : collider_data.line_data) {
+            EditorRenderData const & editor_data = render_data.editor_data;
+            for (WireframeRenderData const & data : editor_data.line_data) {
                 bind_transform_and_camera_data(
                     shader,
                     data.transform,
                     render_data.camera_data
                 );
+
+                static const GLVarString color_str = "u_Color";
+                glUniform4fv(shader.get_uniform_loc(color_str), 1, &data.color[0]);
+
                 meshes.at(data.mesh_id).draw_array_lines();
             }
 

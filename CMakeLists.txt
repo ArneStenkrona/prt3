@@ -95,6 +95,7 @@ file(GLOB SOURCES
 "src/util/checksum.cpp"
 "src/util/file_util.cpp"
 "src/util/geometry_util.cpp"
+"src/util/mesh_util.cpp"
 # libs
 "lib/imgui/*.cpp"
 "lib/imgui/backends/imgui_impl_sdl.cpp"

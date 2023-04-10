@@ -172,11 +172,11 @@ public:
         ColliderType type
     );
 
-    void collect_collider_render_data(
+    void collect_render_data(
         Renderer & renderer,
         Transform const * transforms,
         NodeID selected,
-        ColliderRenderData & data
+        EditorRenderData & data
     );
 
     std::vector<NodeID> const & get_overlaps(NodeID node_id) const;
