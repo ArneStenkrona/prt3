@@ -56,7 +56,7 @@ public:
                        glm::vec3 const& direction,
                        float max_distance,
                        CollisionLayer mask,
-                       std::vector<ColliderTag> & tags);
+                       std::vector<ColliderTag> & tags) const;
 
     /**
      * Inserts aabbs along with their collider tags into the tree

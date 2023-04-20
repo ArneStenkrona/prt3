@@ -77,7 +77,7 @@ void DynamicAABBTree::query_raycast(glm::vec3 const& origin,
                                     glm::vec3 const& direction,
                                     float max_distance,
                                     CollisionLayer mask,
-                                    std::vector<ColliderTag> & tags) {
+                                    std::vector<ColliderTag> & tags) const {
     if (m_size == 0) {
         return;
     }

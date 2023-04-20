@@ -206,3 +206,48 @@ bool prt3::triangle_box_overlap(
 
    return plane_box_overlap(normal, v0, box_halfsize);
 }
+
+// Implementation of Möller-Trumbore, courtesy of wikipedia
+bool triangle_ray_intersect(
+    glm::vec3 origin,
+    glm::vec3 ray_vector,
+    glm::vec3 tri_a,
+    glm::vec3 tri_b,
+    glm::vec3 tri_c,
+    glm::vec3 & intersection
+) {
+    const float EPSILON = 0.0000001;
+    glm::vec3 edge1, edge2, h, s, q;
+    float a, f, u, v;
+    edge1 = tri_b - tri_a;
+    edge2 = tri_c - tri_a;
+    h = glm::cross(ray_vector, edge2);
+    a = glm::dot(edge1, h);
+
+    if (a > -EPSILON && a < EPSILON)
+        return false;    // This ray is parallel to this triangle.
+
+    f = 1.0 / a;
+    s = origin - tri_a;
+    u = f * glm::dot(s, h);
+
+    if (u < 0.0 || u > 1.0)
+        return false;
+
+    q = glm::cross(s, edge1);
+    v = f * glm::dot(ray_vector, q);
+
+    if (v < 0.0 || u + v > 1.0)
+        return false;
+
+    // At this stage we can compute t to find out where the intersection point is on the line.
+    float t = f * glm::dot(edge2, q);
+
+    if (t > EPSILON) // ray intersection
+    {
+        intersection = origin + ray_vector * t;
+        return true;
+    }
+    else // This means that there is a line intersection but not a ray intersection.
+        return false;
+}

@@ -1199,6 +1199,7 @@ NavMeshID NavigationSystem::generate_nav_mesh(
     }
 
     /* adjacencies */
+    nav_mesh.neighbours.resize(nav_mesh.vertices.size());
     nav_mesh.adjacencies.resize(nav_mesh.vertices.size() / 3);
 
     uint32_t i = 0;
@@ -1210,6 +1211,12 @@ NavMeshID NavigationSystem::generate_nav_mesh(
         int y_coord = vertex.y / granularity;
 
         uint32_t tri_index = i / 3;
+        nav_mesh.neighbours[i].start_index =
+            nav_mesh.neighbours_vertices.size();
+        nav_mesh.neighbours[i].num_indices += 2;
+        nav_mesh.neighbours_vertices.push_back(3 * tri_index + ((i + 1) % 3));
+        nav_mesh.neighbours_vertices.push_back(3 * tri_index + ((i + 2) % 3));
+
         if (nav_mesh.adjacencies[tri_index].num_indices == 0) {
             nav_mesh.adjacencies[tri_index].start_index =
                 nav_mesh.adjacency_data.size();
@@ -1231,6 +1238,9 @@ NavMeshID NavigationSystem::generate_nav_mesh(
 
             uint32_t other_tri_index = index / 3;
             if (other_tri_index == tri_index) continue;
+
+            ++nav_mesh.neighbours[i].num_indices;
+            nav_mesh.neighbours_vertices.push_back(index);
 
             for (uint32_t j = 0; j < 3; ++j) {
                 uint32_t vert_2a = 3 * other_tri_index + ((index + j) % 3);
@@ -1259,8 +1269,8 @@ NavMeshID NavigationSystem::generate_nav_mesh(
                     nav_mesh.adjacency_data.push_back({
                         edge_length, // portal_size
                         other_tri_index, // tri_index
-                        vert_1a, // edge0
-                        vert_1b // edge1
+                        vert_2a, // edge0
+                        vert_2b // edge1
                     });
                     ++nav_mesh.adjacencies[tri_index].num_indices;
                 }
@@ -1469,4 +1479,220 @@ void NavigationSystem::collect_render_data(
         ++i;
     }
 
+}
+
+void NavigationSystem::generate_path(
+    glm::vec3 origin,
+    glm::vec3 destination,
+    std::vector<glm::vec3> & path
+) {
+    /* find nav-mesh */
+    constexpr float ray_length = 10.0f; // certainly not more than this?
+
+    thread_local std::vector<ColliderTag> tags;
+
+    float min_t = std::numeric_limits<float>::max();
+    uint32_t tri_origin;
+    NavMeshID nav_mesh_id = NO_NAV_MESH;
+
+    for (auto const & pair : m_navigation_meshes) {
+        NavigationMesh const & nav_mesh = pair.second;
+
+        tags.resize(0);
+        nav_mesh.aabb_tree.query_raycast(
+            origin,
+            glm::vec3{0.0f, -1.0f, 0.0f},
+            ray_length,
+            ~0,
+            tags
+        );
+
+        for (ColliderTag const & tag : tags) {
+            auto tri_index = tag.id;
+            glm::vec3 intersection;
+
+            if (triangle_ray_intersect(
+                origin,
+                glm::vec3{0.0f, -1.0f, 0.0f},
+                nav_mesh.vertices[3*tri_index + 0],
+                nav_mesh.vertices[3*tri_index + 1],
+                nav_mesh.vertices[3*tri_index + 2],
+                intersection
+            )) {
+                float t = glm::distance(destination, intersection);
+                if (t < min_t) {
+                    min_t = t;
+                    tri_origin = tri_index;
+                    nav_mesh_id = pair.first;
+                }
+            }
+        }
+    }
+
+    if (nav_mesh_id == NO_NAV_MESH) {
+        return;
+    }
+
+    NavigationMesh const & nav_mesh = m_navigation_meshes.at(nav_mesh_id);
+    std::vector<glm::vec3> const & vertices = nav_mesh.vertices;
+
+    /* find destination triangle */
+    min_t = std::numeric_limits<float>::max();
+    uint32_t tri_dest;
+
+    {
+        tags.resize(0);
+        nav_mesh.aabb_tree.query_raycast(
+            destination,
+            glm::vec3{0.0f, -1.0f, 0.0f},
+            ray_length,
+            ~0,
+            tags
+        );
+
+        for (ColliderTag const & tag : tags) {
+            auto tri_index = tag.id;
+            glm::vec3 intersection;
+            if (triangle_ray_intersect(
+                origin,
+                glm::vec3{0.0f, -1.0f, 0.0f},
+                vertices[3*tri_index + 0],
+                vertices[3*tri_index + 1],
+                vertices[3*tri_index + 2],
+                intersection
+            )) {
+                float t = glm::distance(destination, intersection);
+                if (t < min_t) {
+                    min_t = t;
+                    tri_dest = tri_index;
+                }
+            }
+        }
+    }
+
+    if (min_t == std::numeric_limits<float>::max()) {
+        return;
+    }
+
+    /* A* */
+    struct CostIndex {
+        uint32_t index;
+        float cost;
+    };
+
+    struct Compare {
+        bool operator() (CostIndex const & l, CostIndex const & r) const
+        { return l.cost > r.cost; }
+    } compare;
+
+    uint32_t vert_origin = 3 * tri_origin;
+    if (glm::distance(origin, vertices[3 * tri_origin + 1]) <
+        glm::distance(origin, vertices[vert_origin])) {
+        vert_origin = 3 * tri_origin + 1;
+    }
+    if (glm::distance(origin, vertices[3 * tri_origin + 1]) <
+        glm::distance(origin, vertices[vert_origin])) {
+        vert_origin = 3 * tri_origin + 2;
+    }
+    uint32_t vert_dest = 3 * tri_dest;
+    if (glm::distance(origin, vertices[3 * tri_dest + 1]) <
+        glm::distance(origin, vertices[vert_dest])) {
+        vert_dest = 3 * tri_dest + 1;
+    }
+    if (glm::distance(origin, vertices[3 * tri_dest + 1]) <
+        glm::distance(origin, vertices[vert_dest])) {
+        vert_dest = 3 * tri_dest + 2;
+    }
+
+    typedef std::priority_queue<CostIndex, std::vector<CostIndex>, Compare> CostQueue;
+    thread_local CostQueue open_set(compare);
+    while (!open_set.empty()) { open_set.pop(); }
+    open_set.push(CostIndex{vert_origin, std::numeric_limits<float>::max()});
+
+    thread_local std::set<uint32_t> open_set_set;
+    open_set_set.clear();
+    open_set_set.insert(vert_origin);
+
+    thread_local std::unordered_map<uint32_t, uint32_t> came_from;
+    came_from.clear();
+
+    thread_local std::unordered_map<uint32_t, float> g_score;
+    g_score.clear();
+    g_score[vert_origin] = 0;
+
+    auto heuristic = [](glm::vec3 a, glm::vec3 dest)
+    { return glm::distance(a, dest); };
+
+    thread_local std::unordered_map<uint32_t, float> f_score;
+    f_score[vert_origin] = heuristic(origin, destination);
+
+    bool found_path = false;
+    while (!open_set.empty()) {
+        uint32_t curr = open_set.top().index;
+        if (curr == vert_dest) {
+            found_path = true;
+            break;
+        }
+
+        open_set.pop();
+        open_set_set.erase(curr);
+
+        if (g_score.find(curr) == g_score.end()) {
+            g_score[curr] = std::numeric_limits<float>::max();
+        }
+
+        if (f_score.find(curr) == f_score.end()) {
+            f_score[curr] = std::numeric_limits<float>::max();
+        }
+
+        glm::vec3 curr_pos = vertices[curr];
+
+        SubVec const & ns = nav_mesh.neighbours[curr];
+        for (uint32_t i = ns.start_index;
+             i < ns.start_index + ns.num_indices;
+             ++i) {
+            uint32_t neigh = nav_mesh.neighbours_vertices[i];
+
+            if (g_score.find(neigh) == g_score.end()) {
+                g_score[neigh] = std::numeric_limits<float>::max();
+            }
+
+            if (f_score.find(neigh) == f_score.end()) {
+                f_score[neigh] = std::numeric_limits<float>::max();
+            }
+
+            glm::vec3 neigh_pos = vertices[neigh];
+
+            float tentative_g_score =
+                g_score.at(curr) + glm::distance(curr_pos, neigh_pos);
+
+            if (tentative_g_score < g_score.at(neigh)) {
+                came_from[neigh] = curr;
+                g_score[neigh] = tentative_g_score;
+                f_score[neigh] = tentative_g_score +
+                                 heuristic(neigh_pos, destination);
+                if (open_set_set.find(neigh) == open_set_set.end()) {
+                    open_set.push(
+                        CostIndex{
+                            neigh,
+                            f_score.at(neigh)
+                        }
+                    );
+                    open_set_set.insert(neigh);
+                }
+            }
+        }
+    }
+
+    if (!found_path) {
+        return;
+    }
+
+    uint32_t curr = tri_dest;
+    while (curr != tri_origin) {
+        path.push_back(vertices[curr]);
+        curr = came_from.at(curr);
+    }
+
+    // TODO: simplify/straighten path by removing unnecessary nodes
 }

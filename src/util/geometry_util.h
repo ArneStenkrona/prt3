@@ -17,6 +17,15 @@ bool triangle_box_overlap(
     glm::vec3 const & c
 );
 
+bool triangle_ray_intersect(
+    glm::vec3 origin,
+    glm::vec3 ray_vector,
+    glm::vec3 a,
+    glm::vec3 b,
+    glm::vec3 c,
+    glm::vec3 & intersection
+);
+
 }
 
 #endif // PRT3_GEOMETRY_UTIL_H
