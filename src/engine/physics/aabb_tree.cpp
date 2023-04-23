@@ -18,7 +18,7 @@ void DynamicAABBTree::clear() {
 void DynamicAABBTree::query(ColliderTag caller,
                             CollisionLayer mask,
                             AABB const & aabb,
-                            std::vector<ColliderTag> & tags) {
+                            std::vector<ColliderTag> & tags) const {
     if (m_size == 0) {
         return;
     }
@@ -48,7 +48,7 @@ void DynamicAABBTree::query(
     CollisionLayer mask,
     AABB const & aabb,
     std::array<std::vector<ColliderID>,
-        ColliderShape::total_num_collider_shape> & ids) {
+        ColliderShape::total_num_collider_shape> & ids) const {
     if (m_size == 0) {
         return;
     }

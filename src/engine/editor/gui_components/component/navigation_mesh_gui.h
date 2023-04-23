@@ -65,10 +65,6 @@ protected:
                 return false;
             }
 
-            if (comp.m_nav_mesh_id != NO_NAV_MESH) {
-                sys.remove_nav_mesh(comp.m_nav_mesh_id);
-            }
-
             comp.m_nav_mesh_id = nav_mesh_id;
 
             std::stringstream stream;

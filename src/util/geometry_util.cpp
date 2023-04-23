@@ -47,6 +47,8 @@ OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 
 #include <cmath>
 
+using namespace prt3;
+
 #define X 0
 #define Y 1
 #define Z 2
@@ -208,7 +210,7 @@ bool prt3::triangle_box_overlap(
 }
 
 // Implementation of Möller-Trumbore, courtesy of wikipedia
-bool triangle_ray_intersect(
+bool prt3::triangle_ray_intersect(
     glm::vec3 origin,
     glm::vec3 ray_vector,
     glm::vec3 tri_a,

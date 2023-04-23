@@ -36,10 +36,16 @@ public:
     Node(NodeID id);
 
     Transform get_global_transform(Scene const & scene) const;
+    Transform get_inherited_transform(Scene const & scene) const;
     void set_global_transform(Scene const & scene, Transform const & transform);
     void set_global_position(Scene const & scene, glm::vec3 const & position);
     void set_global_rotation(Scene const & scene, glm::quat const & rotation);
     void set_global_scale(Scene const & scene, glm::vec3 scale);
+
+    void transform_node(Scene const & scene, Transform const & transform);
+    void translate_node(Scene const & scene, glm::vec3 const & translation);
+    void rotate_node(Scene const & scene, glm::quat const & rotation);
+    void scale_node(Scene const & scene, glm::vec3 scale);
 
     Transform global_to_local_transform(
         Scene const & scene,

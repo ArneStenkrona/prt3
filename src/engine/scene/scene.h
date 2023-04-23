@@ -189,6 +189,16 @@ public:
         return true;
     }
 
+    bool remove_tag(NodeTag const & tag) {
+        if (m_tags.find(tag) == m_tags.end()) {
+            return false;
+        }
+        NodeID node_id = m_tags.at(tag);
+        m_tags.erase(tag);
+        m_node_to_tag.erase(node_id);
+        return true;
+    }
+
     NodeID find_node_by_tag(NodeTag const & tag) const {
         if (m_tags.find(tag) != m_tags.end()) {
             return m_tags.at(tag);

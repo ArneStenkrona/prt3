@@ -70,17 +70,17 @@ public:
         EditorRenderData & data
     );
 
-    void generate_path(
+    bool generate_path(
         glm::vec3 start,
         glm::vec3 destination,
         std::vector<glm::vec3> & path
-    );
+    ) const;
 
 private:
     struct NavigationMesh {
         std::vector<glm::vec3> vertices;
         std::vector<SubVec> neighbours;
-        std::vector<uint32_t> neighbours_vertices;
+        std::vector<uint32_t> neighbours_indices;
         std::vector<SubVec> adjacencies;
         std::vector<Adjacency> adjacency_data;
         DynamicAABBTree aabb_tree;
