@@ -11,6 +11,7 @@
 #include <vector>
 #include <queue>
 #include <set>
+#include <unordered_set>
 #include <unordered_map>
 #include <tuple>
 #include <algorithm>
@@ -1517,6 +1518,10 @@ void NavigationSystem::collect_render_data(
 
 }
 
+inline float heuristic(glm::vec3 a, glm::vec3 dest) {
+    return glm::distance(a, dest);
+}
+
 bool NavigationSystem::generate_path(
     glm::vec3 origin,
     glm::vec3 destination,
@@ -1656,7 +1661,10 @@ bool NavigationSystem::generate_path(
 
     struct Compare {
         bool operator() (CostIndex const & l, CostIndex const & r) const
-        { return l.cost > r.cost; }
+        {
+            // if (l.cost == r.cost) return l.index > r.index;
+            return l.cost > r.cost;
+        }
     } compare;
 
     typedef std::priority_queue<CostIndex, std::vector<CostIndex>, Compare> CostQueue;
@@ -1664,21 +1672,22 @@ bool NavigationSystem::generate_path(
     while (!open_set.empty()) { open_set.pop(); }
     open_set.push(CostIndex{vert_origin, 0.0f});
 
-    thread_local std::set<uint32_t> open_set_set;
+    thread_local std::vector<bool> open_set_set;
     open_set_set.clear();
-    open_set_set.insert(vert_origin);
+    open_set_set.resize(vertices.size());
+    open_set_set[vert_origin] = true;
 
-    thread_local std::unordered_map<uint32_t, uint32_t> came_from;
-    came_from.clear();
+    thread_local std::vector<uint32_t> came_from;
+    came_from.resize(vertices.size());
 
-    thread_local std::unordered_map<uint32_t, float> g_score;
+    thread_local std::vector<float> g_score;
     g_score.clear();
+    g_score.resize(vertices.size(), std::numeric_limits<float>::max());
     g_score[vert_origin] = 0.0f;
 
-    auto heuristic = [](glm::vec3 a, glm::vec3 dest)
-    { return glm::distance(a, dest); };
-
-    thread_local std::unordered_map<uint32_t, float> f_score;
+    thread_local std::vector<float> f_score;
+    f_score.clear();
+    f_score.resize(vertices.size(), std::numeric_limits<float>::max());
     f_score[vert_origin] = heuristic(origin, destination);
 
     bool found_path = false;
@@ -1691,9 +1700,9 @@ bool NavigationSystem::generate_path(
         }
 
         open_set.pop();
-        open_set_set.erase(curr);
+        open_set_set[curr] = false;
 
-        glm::vec3 curr_pos = vertices[curr];
+        glm::vec3 const curr_pos = vertices[curr];
 
         SubVec const & ns = nav_mesh.neighbours[curr];
         for (uint32_t i = ns.start_index;
@@ -1701,33 +1710,24 @@ bool NavigationSystem::generate_path(
              ++i) {
             uint32_t neigh = nav_mesh.neighbours_indices[i];
 
-            if (g_score.find(neigh) == g_score.end()) {
-                g_score[neigh] = std::numeric_limits<float>::max();
-            }
+            glm::vec3 const neigh_pos = vertices[neigh];
 
-            if (f_score.find(neigh) == f_score.end()) {
-                f_score[neigh] = std::numeric_limits<float>::max();
-            }
-
-            glm::vec3 neigh_pos = vertices[neigh];
-
-            float tentative_g_score =
-                g_score.at(curr) + glm::distance(curr_pos, neigh_pos);
-
+            float const tentative_g_score =
+                g_score[curr] + glm::distance(curr_pos, neigh_pos);
 
             if (tentative_g_score < g_score.at(neigh)) {
                 came_from[neigh] = curr;
                 g_score[neigh] = tentative_g_score;
                 f_score[neigh] = tentative_g_score +
                                  heuristic(neigh_pos, destination);
-                if (open_set_set.find(neigh) == open_set_set.end()) {
+                if (!open_set_set[neigh]) {
                     open_set.push(
                         CostIndex{
                             neigh,
-                            f_score.at(neigh)
+                            f_score[neigh]
                         }
                     );
-                    open_set_set.insert(neigh);
+                    open_set_set[neigh] = true;
                 }
             }
         }
@@ -1743,6 +1743,7 @@ bool NavigationSystem::generate_path(
         curr = came_from.at(curr);
     }
     std::reverse(path.begin(), path.end());
+    path.push_back(destination);
 
     // TODO: simplify/straighten path by removing unnecessary nodes
     return true;
