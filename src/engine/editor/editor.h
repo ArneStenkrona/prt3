@@ -28,7 +28,7 @@ public:
     bool perform_action(ArgTypes... args)
     { return m_action_manager.perform<ActionType>(args...); }
 
-    void collect_collider_render_data(
+    void collect_render_data(
         EditorRenderData & data
     );
 

@@ -12,6 +12,7 @@
 #include "src/engine/component/script/script.h"
 #include "src/engine/physics/physics_system.h"
 #include "src/engine/animation/animation_system.h"
+#include "src/engine/navigation/navigation_system.h"
 #include "src/engine/rendering/renderer.h"
 #include "src/engine/rendering/camera.h"
 #include "src/engine/core/input.h"
@@ -112,7 +113,7 @@ public:
     { return m_script_container.scripts().at(id); }
 
     template<typename ComponentType, typename... ArgTypes>
-    ComponentType & add_component(NodeID id, ArgTypes... args) {
+    ComponentType & add_component(NodeID id, ArgTypes & ... args) {
         return m_component_manager.add_component<ComponentType>(*this, id, args...);
     }
 
@@ -188,6 +189,16 @@ public:
         return true;
     }
 
+    bool remove_tag(NodeTag const & tag) {
+        if (m_tags.find(tag) == m_tags.end()) {
+            return false;
+        }
+        NodeID node_id = m_tags.at(tag);
+        m_tags.erase(tag);
+        m_node_to_tag.erase(node_id);
+        return true;
+    }
+
     NodeID find_node_by_tag(NodeTag const & tag) const {
         if (m_tags.find(tag) != m_tags.end()) {
             return m_tags.at(tag);
@@ -211,6 +222,9 @@ public:
 
     AnimationSystem const & animation_system() const { return m_animation_system; }
     AnimationSystem & animation_system() { return m_animation_system; }
+
+    NavigationSystem const & navigation_system() const { return m_navigation_system; }
+    NavigationSystem & navigation_system() { return m_navigation_system; }
 
     ModelManager const & model_manager() const;
     Model const & get_model(ModelHandle handle) const;
@@ -258,6 +272,7 @@ private:
     ComponentManager m_component_manager;
     PhysicsSystem m_physics_system;
     AnimationSystem m_animation_system;
+    NavigationSystem m_navigation_system;
 
     DirectionalLight m_directional_light;
     bool m_directional_light_on = false;

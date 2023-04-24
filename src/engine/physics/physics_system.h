@@ -71,6 +71,18 @@ public:
         glm::vec3 const & movement
     );
 
+    std::unordered_map<ColliderID, MeshCollider> const & mesh_colliders() const {
+        return get_container(ColliderType::collider).meshes.map;
+    }
+
+    std::unordered_map<ColliderID, SphereCollider> const & sphere_colliders() const {
+        return get_container(ColliderType::collider).spheres.map;
+    }
+
+    std::unordered_map<ColliderID, BoxCollider> const & box_colliders() const {
+        return get_container(ColliderType::collider).boxes.map;
+    }
+
     MeshCollider const & get_mesh_collider(ColliderID id, ColliderType type) const
     { return get_container(type).meshes.map.at(id); }
 
@@ -160,11 +172,11 @@ public:
         ColliderType type
     );
 
-    void collect_collider_render_data(
+    void collect_render_data(
         Renderer & renderer,
         Transform const * transforms,
         NodeID selected,
-        ColliderRenderData & data
+        EditorRenderData & data
     );
 
     std::vector<NodeID> const & get_overlaps(NodeID node_id) const;

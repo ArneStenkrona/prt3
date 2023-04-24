@@ -35,77 +35,102 @@ Transform Node::get_global_transform(Scene const & scene) const {
     return tform;
 }
 
+Transform Node::get_inherited_transform(Scene const & scene) const {
+    NodeID curr_id = m_parent_id;
+
+    Transform tform;
+
+    while (curr_id != NO_NODE) {
+        Node const & curr = scene.get_node(curr_id);
+        Transform const & curr_tform = curr.local_transform();
+        tform.position = curr_tform.position +
+            glm::rotate(
+                curr_tform.rotation,
+                curr_tform.scale * tform.position
+            );
+        tform.scale = tform.scale * curr_tform.scale;
+        tform.rotation = tform.rotation * curr_tform.rotation;
+        curr_id = curr.m_parent_id;
+    }
+
+    return tform;
+}
+
 void Node::set_global_transform(
     Scene const & scene,
     Transform const & transform
 ) {
-    Transform global = get_global_transform(scene);
-    glm::vec3 delta_pos = transform.position - global.position;
-    glm::vec3 delta_scale = transform.scale / global.scale;
-    glm::quat delta_rot = transform.rotation
-        * glm::inverse(global.rotation);
+    Transform inherit = get_inherited_transform(scene);
+    glm::mat4 inv = glm::inverse(inherit.to_matrix());
 
-    m_local_transform.position = m_local_transform.position + delta_pos;
-    m_local_transform.scale = m_local_transform.scale * delta_scale;
-    m_local_transform.rotation = delta_rot * m_local_transform.rotation;
+    m_local_transform.position = inv * glm::vec4(transform.position, 1.0f);
+    m_local_transform.scale = inv * glm::vec4(transform.scale, 0.0f);
+    m_local_transform.rotation = transform.rotation * glm::quat_cast(inv);
 }
 
 void Node::set_global_position(
     Scene const & scene,
     glm::vec3 const & position
 ) {
-    NodeID curr_id = m_parent_id;
-
-    glm::vec3 pos_p{0.0f};
-
-    while (curr_id != NO_NODE) {
-        Node const & curr = scene.get_node(curr_id);
-        Transform const & curr_tform = curr.local_transform();
-        pos_p = curr_tform.position +
-            glm::rotate(
-                curr_tform.rotation,
-                curr_tform.scale * pos_p
-            );
-        curr_id = curr.m_parent_id;
-    }
-
-    m_local_transform.position = position - pos_p;
+    Transform inherit = get_inherited_transform(scene);
+    glm::mat4 inv = glm::inverse(inherit.to_matrix());
+    m_local_transform.position = inv * glm::vec4(position, 1.0f);
 }
 
 void Node::set_global_rotation(
     Scene const & scene,
     glm::quat const & rotation
 ) {
-    NodeID curr_id = m_parent_id;
-
-    glm::quat rot_p{1.0f, 0.0f, 0.0f, 0.0f};
-
-    while (curr_id != NO_NODE) {
-        Node const & curr = scene.get_node(curr_id);
-        rot_p = rot_p * curr.local_transform().rotation;
-
-        curr_id = curr.m_parent_id;
-    }
-
-    m_local_transform.rotation = rotation * glm::inverse(rot_p);
+    Transform inherit = get_inherited_transform(scene);
+    glm::mat4 inv = glm::inverse(inherit.to_matrix());
+    m_local_transform.rotation = rotation * glm::quat_cast(inv);
 }
 
 void Node::set_global_scale(
     Scene const & scene,
     glm::vec3 scale
 ) {
-    NodeID curr_id = m_parent_id;
+    Transform inherit = get_inherited_transform(scene);
+    glm::mat4 inv = glm::inverse(inherit.to_matrix());
+    m_local_transform.scale = inv * glm::vec4(scale, 0.0f);
+}
 
-    glm::vec3 scale_p{1.0f};
+void Node::transform_node(Scene const & scene, Transform const & transform) {
+    Transform new_tform = get_global_transform(scene);
+    Transform inherit = get_inherited_transform(scene);
+    glm::mat4 inv = glm::inverse(inherit.to_matrix());
 
-    while (curr_id != NO_NODE) {
-        Node const & curr = scene.get_node(curr_id);
-        scale_p = scale_p * curr.local_transform().scale;
+    new_tform.position = new_tform.position + transform.position;
+    new_tform.scale = new_tform.scale * transform.scale;
+    new_tform.rotation = new_tform.rotation * transform.rotation;
 
-        curr_id = curr.m_parent_id;
-    }
+    m_local_transform.position = inv * glm::vec4(new_tform.position, 1.0f);
+    m_local_transform.scale = inv * glm::vec4(new_tform.scale, 0.0f);
+    m_local_transform.rotation = new_tform.rotation * glm::quat_cast(inv);
+}
 
-    m_local_transform.scale = scale / scale_p;
+void Node::translate_node(Scene const & scene, glm::vec3 const & translation) {
+    Transform global = get_global_transform(scene);
+    Transform inherit = get_inherited_transform(scene);
+    glm::mat4 inv = glm::inverse(inherit.to_matrix());
+    glm::vec3 position = global.position + translation;
+    m_local_transform.position = inv * glm::vec4(position, 1.0f);
+}
+
+void Node::rotate_node(Scene const & scene, glm::quat const & rotation) {
+    Transform global = get_global_transform(scene);
+    Transform inherit = get_inherited_transform(scene);
+    glm::mat4 inv = glm::inverse(inherit.to_matrix());
+    glm::quat new_rotation = global.rotation * rotation;
+    m_local_transform.rotation = new_rotation * glm::quat_cast(inv);
+}
+
+void Node::scale_node(Scene const & scene, glm::vec3 scale) {
+    Transform global = get_global_transform(scene);
+    Transform inherit = get_inherited_transform(scene);
+    glm::mat4 inv = glm::inverse(inherit.to_matrix());
+    glm::vec3 new_scale = global.scale * scale;
+    m_local_transform.scale = inv * glm::vec4(new_scale, 0.0f);
 }
 
 Transform Node::global_to_local_transform(
@@ -114,15 +139,12 @@ Transform Node::global_to_local_transform(
 ) const {
     Transform local;
 
-    Transform global = get_global_transform(scene);
-    glm::vec3 delta_pos = transform.position - global.position;
-    glm::vec3 delta_scale = transform.scale / global.scale;
-    glm::quat delta_rot = transform.rotation
-        * glm::inverse(global.rotation);
+    Transform inherit = get_inherited_transform(scene);
+    glm::mat4 inv = glm::inverse(inherit.to_matrix());
 
-    local.position = m_local_transform.position + delta_pos;
-    local.scale = m_local_transform.scale * delta_scale;
-    local.rotation = delta_rot * m_local_transform.rotation;
+    local.position = inv * glm::vec4(transform.position, 1.0f);
+    local.scale = inv * glm::vec4(transform.scale, 0.0f);
+    local.rotation = transform.rotation * glm::quat_cast(inv);
 
     return local;
 }

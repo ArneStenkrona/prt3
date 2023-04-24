@@ -15,6 +15,7 @@
 #include "src/engine/editor/gui_components/component/material_gui.h"
 #include "src/engine/editor/gui_components/component/mesh_gui.h"
 #include "src/engine/editor/gui_components/component/model_gui.h"
+#include "src/engine/editor/gui_components/component/navigation_mesh_gui.h"
 #include "src/engine/editor/gui_components/component/point_light_gui.h"
 #include "src/engine/editor/gui_components/component/script_set_gui.h"
 #include "src/engine/editor/action/action_transform_node.h"

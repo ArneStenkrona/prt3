@@ -44,6 +44,7 @@ struct BoneData {
 
 struct WireframeRenderData {
     ResourceID mesh_id;
+    glm::vec4 color;
     glm::mat4 transform;
 };
 
@@ -70,12 +71,8 @@ struct WorldRenderData {
     LightRenderData light_data;
 };
 
-struct ColliderRenderData {
-    std::vector<WireframeRenderData> line_data;
-};
-
 struct EditorRenderData {
-    ColliderRenderData collider_data;
+    std::vector<WireframeRenderData> line_data;
 };
 
 struct RenderData {
@@ -91,7 +88,7 @@ struct RenderData {
         world.bone_data.resize(0);
         world.selected_mesh_data.resize(0);
         world.selected_animated_mesh_data.resize(0);
-        editor_data.collider_data.line_data.resize(0);
+        editor_data.line_data.resize(0);
     }
 };
 

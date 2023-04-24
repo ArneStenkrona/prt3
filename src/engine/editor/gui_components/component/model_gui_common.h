@@ -6,8 +6,11 @@
 #include "src/engine/scene/scene.h"
 #include "src/engine/component/model.h"
 #include "src/engine/rendering/model_manager.h"
+#include "src/util/mem.h"
 
 #include "imgui.h"
+
+#include <sstream>
 
 namespace prt3 {
 
@@ -65,6 +68,15 @@ public:
 
         m_model_handle =
             scene.get_component<ModelComponentType>(m_node_id).model_handle();
+
+        std::stringstream stream;
+        ModelComponentType const & comp =
+            scene.get_component<ModelComponentType>(m_node_id);
+        comp.serialize(stream, scene);
+
+        std::string const & s = stream.str();
+        m_model_component_data.reserve(s.size());
+        m_model_component_data.assign(s.begin(), s.end());
     }
 
 protected:
@@ -75,7 +87,13 @@ protected:
         scene.remove_component<ModelComponentType>(m_node_id);
 
         man.add_model_to_scene(
-            scene, m_model_handle, m_node_id, true, m_animated, m_unpacked_nodes);
+            scene,
+            m_model_handle,
+            m_node_id,
+            true,
+            m_animated,
+            m_unpacked_nodes
+        );
 
         return true;
     }
@@ -92,7 +110,12 @@ protected:
             scene.remove_component<Armature>(m_node_id);
         }
 
-        scene.add_component<ModelComponentType>(m_node_id, m_model_handle);
+        imemstream in(
+            m_model_component_data.data(),
+            m_model_component_data.size()
+        );
+
+        scene.add_component<ModelComponentType>(m_node_id, in);
 
         return true;
     }
@@ -101,6 +124,8 @@ private:
     EditorContext * m_editor_context;
     NodeID m_node_id;
     bool m_animated;
+
+    std::vector<char> m_model_component_data;
 
     ModelHandle m_model_handle;
 

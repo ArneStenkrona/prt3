@@ -17,7 +17,7 @@ public:
     ComponentType & add_component(
         Scene & scene,
         NodeID id,
-        ArgTypes... args
+        ArgTypes & ... args
     ) {
         return get_component_storage<ComponentType>().add(scene, id, args...);
     }
@@ -204,8 +204,13 @@ private:
         std::istream & in,
         Scene & scene,
         NodeID id,
+        size_t n_components,
         std::tuple<ComponentStorage<Tp>...> & t
     ) {
+        if (n_components <= I) {
+            return;
+        }
+
         uint64_t magic_num_i = magic_num + I;
         uint64_t r_magic_num_i;
         read_stream(in, r_magic_num_i);
@@ -223,7 +228,7 @@ private:
         }
 
         if constexpr(I+1 != sizeof...(Tp))
-            deserialize_components<I+1>(in, scene, id, t);
+            deserialize_components<I+1>(in, scene, id, n_components, t);
     }
 
     template<size_t I = 0, typename... Tp>
