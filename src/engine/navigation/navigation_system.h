@@ -107,6 +107,10 @@ private:
         m_navigation_meshes[nav_mesh_id] = {};
         return nav_mesh_id;
     }
+
+    void clear();
+
+    friend class Scene;
 };
 
 } // namespace prt3

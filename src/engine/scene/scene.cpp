@@ -619,6 +619,7 @@ void Scene::internal_clear(bool place_root) {
     m_component_manager.clear();
     m_physics_system.clear();
     m_animation_system.clear();
+    m_navigation_system.clear();
 
     m_directional_light = {};
     m_directional_light_on = false;

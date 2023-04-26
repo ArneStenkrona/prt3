@@ -1861,3 +1861,12 @@ void NavigationSystem::generate_path(
 
     return;
 }
+
+void NavigationSystem::clear() {
+    m_nav_mesh_ids.clear();
+    m_node_ids.clear();
+    m_id_queue.clear();
+
+    m_navigation_meshes.clear();
+    m_render_meshes.clear();
+}
