@@ -26,6 +26,16 @@ bool triangle_ray_intersect(
     glm::vec3 & intersection
 );
 
+void triangle_segment_clip_2d(
+    glm::vec2 p0,
+    glm::vec2 p1,
+    glm::vec2 a,
+    glm::vec2 b,
+    glm::vec2 c,
+    glm::vec2 & t0,
+    glm::vec2 & t1
+);
+
 }
 
 #endif // PRT3_GEOMETRY_UTIL_H

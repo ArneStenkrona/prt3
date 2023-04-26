@@ -1,5 +1,7 @@
 #include "geometry_util.h"
 
+#include "src/util/log.h"
+
 using namespace prt3;
 
 /********************************************************/
@@ -252,4 +254,103 @@ bool prt3::triangle_ray_intersect(
     }
     else // This means that there is a line intersection but not a ray intersection.
         return false;
+}
+
+inline glm::vec2 segment_intersect_2d(
+    glm::vec2 p0,
+    glm::vec2 p1,
+    glm::vec2 q0,
+    glm::vec2 q1
+) {
+    float x1x2 = p0.x - p1.x;
+    float y1y2 = p0.y - p1.y;
+    float x1x3 = p0.x - q0.x;
+    float y1y3 = p0.y - q0.y;
+    float x3x4 = q0.x - q1.x;
+    float y3y4 = q0.y - q1.y;
+
+    float d = x1x2 * y3y4 - y1y2 * x3x4;
+
+    // parallel or coincident
+    if (d == 0.0f) return glm::vec2{std::numeric_limits<float>::max()};
+
+    float t = (x1x3 * y3y4 - y1y3 * x3x4) / d;
+    float u = -(x1x2 * y1y3 - y1y2 * x1x3) / d;
+
+    bool ist = t >= 0.0f && t <= 1.0f;
+    bool isu = u >= 0.0f && u <= 1.0f;
+
+    if (ist && isu) {
+        return glm::vec2{p0.x + t * (p1.x - p0.x),
+                         p0.y + t * (p1.y - p0.y)};
+    }
+
+    return glm::vec2{std::numeric_limits<float>::max()};
+}
+
+float sign(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3)
+{
+    return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+}
+
+bool point_in_triangle(glm::vec2 p, glm::vec2 v1, glm::vec2 v2, glm::vec2 v3) {
+    float d1, d2, d3;
+    bool has_neg, has_pos;
+
+    d1 = sign(p, v1, v2);
+    d2 = sign(p, v2, v3);
+    d3 = sign(p, v3, v1);
+
+    has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+    has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+    return !(has_neg && has_pos);
+}
+
+void prt3::triangle_segment_clip_2d(
+    glm::vec2 p0,
+    glm::vec2 p1,
+    glm::vec2 a,
+    glm::vec2 b,
+    glm::vec2 c,
+    glm::vec2 & t0,
+    glm::vec2 & t1
+) {
+    constexpr float inf = std::numeric_limits<float>::infinity();
+
+    t0 = glm::vec2{inf};
+    t1 = glm::vec2{inf};
+
+    if (point_in_triangle(p0, a, b, c)) {
+        t0 = p0;
+    }
+
+    if (p0 == p1) {
+        t1 = t0;
+        return;
+    }
+
+    if (point_in_triangle(p1, a, b, c)) {
+        t1 = p1;
+    }
+
+    if (t0.x != inf && t1.x != inf) {
+        return;
+    }
+
+    glm::vec2 ab = segment_intersect_2d(p0, p1, a, b);
+    glm::vec2 bc = segment_intersect_2d(p0, p1, b, c);
+    glm::vec2 ca = segment_intersect_2d(p0, p1, c, a);
+
+    if (t0.x == inf) {
+        if (glm::distance(p0, ab) < glm::distance(p0, t0)) t0 = ab;
+        if (glm::distance(p0, bc) < glm::distance(p0, t0)) t0 = bc;
+        if (glm::distance(p0, ca) < glm::distance(p0, t0)) t0 = ca;
+    }
+
+    if (t1.x == inf) {
+        if (glm::distance(p1, ab) < glm::distance(p1, t1)) t1 = ab;
+        if (glm::distance(p1, bc) < glm::distance(p1, t1)) t1 = bc;
+        if (glm::distance(p1, ca) < glm::distance(p1, t1)) t1 = ca;
+    }
 }

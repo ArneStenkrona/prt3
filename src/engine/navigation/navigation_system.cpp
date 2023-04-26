@@ -1314,6 +1314,9 @@ NavMeshID NavigationSystem::generate_nav_mesh(
         ub = glm::max(ub, nav_mesh.vertices[i+1]);
         ub = glm::max(ub, nav_mesh.vertices[i+2]);
 
+        lb.y -= 1.0f;
+        ub.y += 1.0f;
+
         ++tri_index;
     }
 
@@ -1428,6 +1431,9 @@ NavMeshID NavigationSystem::deserialize_nav_mesh(
         ub = glm::max(ub, nav_mesh.vertices[i+1]);
         ub = glm::max(ub, nav_mesh.vertices[i+2]);
 
+        lb.y -= 1.0f;
+        ub.y += 1.0f;
+
         ++tri_index;
     }
 
@@ -1522,7 +1528,7 @@ inline float heuristic(glm::vec3 a, glm::vec3 dest) {
     return glm::distance(a, dest);
 }
 
-bool NavigationSystem::generate_path(
+void NavigationSystem::generate_path(
     glm::vec3 origin,
     glm::vec3 destination,
     std::vector<glm::vec3> & path
@@ -1584,7 +1590,7 @@ bool NavigationSystem::generate_path(
     }
 
     if (nav_mesh_id == NO_NAV_MESH) {
-        return false;
+        return;
     }
 
     NavigationMesh const & nav_mesh = m_navigation_meshes.at(nav_mesh_id);
@@ -1631,7 +1637,7 @@ bool NavigationSystem::generate_path(
     }
 
     if (min_t == std::numeric_limits<float>::max()) {
-        return false;
+        return;
     }
 
     /* A* */
@@ -1734,17 +1740,124 @@ bool NavigationSystem::generate_path(
     }
 
     if (!found_path) {
-        return false;
+        return;
     }
 
     uint32_t curr = vert_dest;
+
+    thread_local std::vector<int32_t> index_path;
+    index_path.clear();
+
+    glm::vec3 path_end = destination;
+    path_end.y = vertices[vert_dest].y;
+    // path.push_back(path_end);
+    index_path.push_back(-2);
+
     while (curr != vert_origin) {
-        path.push_back(vertices[curr]);
+        // path.push_back(vertices[curr]);
+        index_path.push_back(curr);
         curr = came_from.at(curr);
     }
-    std::reverse(path.begin(), path.end());
-    path.push_back(destination);
 
-    // TODO: simplify/straighten path by removing unnecessary nodes
-    return true;
+    glm::vec3 path_start = origin;
+    path_start.y = vertices[vert_origin].y;
+    // path.push_back(path_start);
+    index_path.push_back(-1);
+
+    /* simplify path */
+    bool change = true;
+    while (change) {
+        change = false;
+
+        thread_local std::vector<int32_t> temp_path;
+        temp_path = index_path;
+        index_path.clear();
+
+        for (size_t i = 0; i + 2 < temp_path.size(); ++i) {
+            int32_t index_0 = temp_path[i];
+            int32_t index_2 = temp_path[i + 2];
+
+            if (index_0 / 3 == index_2 / 3) {
+                ++i;
+                temp_path[i] = -3;
+                change = true;
+                continue;
+            }
+
+            glm::vec3 p0 = index_0 >= 0 ? vertices[index_0] :
+                           (index_0 == -1 ? path_start : path_end);
+            glm::vec3 p2 = index_2 >= 0 ? vertices[index_2] :
+                           (index_2 == -1 ? path_start : path_end);
+
+            tags.resize(0);
+            nav_mesh.aabb_tree.query_raycast(
+                p0,
+                glm::normalize(p2 - p0),
+                glm::distance(p0, p2),
+                ~0,
+                tags
+            );
+
+            glm::vec2 p0_2d{p0.x, p0.z};
+            glm::vec2 p2_2d{p2.x, p2.z};
+
+            float segments = 0.0f;
+
+            for (auto const & tag : tags) {
+                uint32_t tri_index = tag.id;
+                glm::vec3 a = vertices[3 * tri_index];
+                glm::vec3 b = vertices[3 * tri_index + 1];
+                glm::vec3 c = vertices[3 * tri_index + 2];
+
+                glm::vec2 a_2d{a.x, a.z};
+                glm::vec2 b_2d{b.x, b.z};
+                glm::vec2 c_2d{c.x, c.z};
+
+                glm::vec2 t0;
+                glm::vec2 t1;
+
+                glm::vec2 dir = glm::normalize(p2_2d - p0_2d);
+                triangle_segment_clip_2d(
+                    p0_2d - 0.05f * dir,
+                    p2_2d + 0.05f * dir,
+                    a_2d,
+                    b_2d,
+                    c_2d,
+                    t0,
+                    t1
+                );
+
+                constexpr float inf = std::numeric_limits<float>::infinity();
+                if (t0.x != inf && t1.x != inf) {
+                    segments += glm::distance(t0, t1);
+                }
+            }
+
+            float eps = 0.05f;
+
+            if (glm::distance(p0_2d, p2_2d) <= segments + eps) {
+                ++i;
+                temp_path[i] = -3;
+                change = true;
+            }
+        }
+
+        for (int32_t index : temp_path) {
+            if (index != -3) {
+                index_path.push_back(index);
+            }
+        }
+    }
+
+    index_path.pop_back();
+
+    for (int32_t index : index_path) {
+        glm::vec3 pos = index >= 0 ? vertices[index] :
+                        (index == -1 ? path_start : path_end);
+        path.push_back(pos);
+    }
+
+    std::reverse(path.begin(), path.end());
+
+    return;
 }

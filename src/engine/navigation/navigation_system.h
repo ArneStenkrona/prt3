@@ -70,7 +70,7 @@ public:
         EditorRenderData & data
     );
 
-    bool generate_path(
+    void generate_path(
         glm::vec3 start,
         glm::vec3 destination,
         std::vector<glm::vec3> & path
