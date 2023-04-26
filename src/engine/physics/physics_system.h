@@ -63,6 +63,12 @@ namespace std {
 
 namespace prt3 {
 
+struct RayHit {
+    glm::vec3 position;
+    ColliderTag tag;
+    NodeID node_id;
+};
+
 class PhysicsSystem {
 public:
     CollisionResult move_and_collide(
@@ -70,6 +76,15 @@ public:
         NodeID node_id,
         glm::vec3 const & movement
     );
+
+    bool raycast(
+        glm::vec3 origin,
+        glm::vec3 direction,
+        float max_distance,
+        CollisionLayer mask,
+        ColliderTag ignore,
+        RayHit & hit
+    ) const;
 
     std::unordered_map<ColliderID, MeshCollider> const & mesh_colliders() const {
         return get_container(ColliderType::collider).meshes.map;

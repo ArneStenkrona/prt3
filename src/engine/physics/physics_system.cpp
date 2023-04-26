@@ -1,6 +1,7 @@
 #include "physics_system.h"
 
 #include "src/engine/scene/scene.h"
+#include "src/util/geometry_util.h"
 
 using namespace prt3;
 
@@ -185,6 +186,74 @@ CollisionResult PhysicsSystem::move_and_collide(
         m_colliders.aabb_tree.update({tag, layer, aabb});
     }
     return res;
+}
+
+bool PhysicsSystem::raycast(
+    glm::vec3 origin,
+    glm::vec3 direction,
+    float max_distance,
+    CollisionLayer mask,
+    ColliderTag ignore,
+    RayHit & hit
+) const {
+    thread_local std::array<std::vector<ColliderID>,
+            ColliderShape::total_num_collider_shape> candidates;
+
+    m_colliders.aabb_tree.query_raycast(
+        origin,
+        direction,
+        max_distance,
+        mask,
+        candidates
+    );
+
+    glm::vec3 dest = origin + direction * max_distance;
+
+    AABB aabb;
+    aabb.lower_bound = glm::min(origin, dest);
+    aabb.upper_bound = glm::max(origin, dest);
+
+    thread_local std::vector<Triangle> triangles;
+    float min_t = std::numeric_limits<float>::infinity();
+
+    for (ColliderID id : candidates[ColliderShape::mesh]) {
+        MeshCollider const & col =
+            get_mesh_collider(id, ColliderType::collider);
+
+        ColliderTag tag;
+        tag.id = id;
+        tag.shape = ColliderShape::mesh;
+        tag.type = ColliderType::collider;
+
+        if (tag == ignore) continue;
+
+        triangles.clear();
+        col.collect_triangles(aabb, triangles);
+
+        for (Triangle const & tri : triangles) {
+            glm::vec3 intersection;
+            if (triangle_ray_intersect(
+                origin,
+                direction * max_distance,
+                tri.a,
+                tri.b,
+                tri.c,
+                intersection
+            )) {
+                float t = glm::distance(origin, intersection);
+                if (t < min_t) {
+                    hit.position = intersection;
+                    hit.tag = tag;
+                    hit.node_id = m_node_ids.at(tag);
+                    min_t = t;
+                }
+            }
+        }
+    }
+
+    // TODO: implement other collider shapes
+
+    return min_t != std::numeric_limits<float>::infinity();
 }
 
 ColliderTag PhysicsSystem::create_collider_from_triangles(

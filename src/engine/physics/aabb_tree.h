@@ -35,14 +35,13 @@ public:
      * @param caller tag of querying collider
      * @param mask of querying collider
      * @param aabb aabb of query object
-     * @param meshIndices vector to store mesh indices
-     * @param capsuleIndices vector to store capsule indices
+     * @param ids query result
      */
     void query(ColliderTag caller,
                CollisionLayer mask,
                AABB const & aabb,
                std::array<std::vector<ColliderID>,
-               ColliderShape::total_num_collider_shape> & ids) const;
+                   ColliderShape::total_num_collider_shape> & ids) const;
 
     /**
      * Finds all intersecting nodes for raycast
@@ -57,6 +56,21 @@ public:
                        float max_distance,
                        CollisionLayer mask,
                        std::vector<ColliderTag> & tags) const;
+
+    /**
+     * Finds all intersecting nodes for raycast
+     * @param origin origin of the ray
+     * @param direction direction of the ray
+     * @param max_distance maximum length of the ray
+     * @param mask mask
+     * @param ids query result
+     */
+    void query_raycast(glm::vec3 const& origin,
+                       glm::vec3 const& direction,
+                       float max_distance,
+                       CollisionLayer mask,
+                       std::array<std::vector<ColliderID>,
+                           ColliderShape::total_num_collider_shape> & ids) const;
 
     /**
      * Inserts aabbs along with their collider tags into the tree

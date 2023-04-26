@@ -60,6 +60,7 @@ public:
     virtual void on_init(Scene & scene) {
         add_tag(scene, "player");
         m_direction = get_node(scene).local_transform().get_front();
+        m_ground_normal = glm::vec3{0.0f, 1.0f, 0.0f};
 
         Armature & armature =
             scene.get_component<Armature>(node_id());
@@ -189,26 +190,24 @@ public:
 
         float a_frac = anim.clip_a.frac(model);
 
-        float coyote_time = 0.1f;
-
         StateType transition_mask = NONE;
         StateType queueable_mask = NONE;
         switch (m_state) {
             case IDLE: {
                 transition_mask = WALK | ATTACK_1 | JUMP;
-                if (m_grounded_timer > coyote_time) transition_mask |= FALL;
+                if (m_grounded_timer > m_coyote_time) transition_mask |= FALL;
                 queueable_mask = transition_mask;
                 break;
             }
             case WALK: {
                 transition_mask = IDLE | RUN | ATTACK_1 | JUMP;
-                if (m_grounded_timer > coyote_time) transition_mask |= FALL;
+                if (m_grounded_timer > m_coyote_time) transition_mask |= FALL;
                 queueable_mask = transition_mask;
                 break;
             }
             case RUN: {
                 transition_mask = IDLE | WALK | ATTACK_1 | JUMP;
-                if (m_grounded_timer > coyote_time) transition_mask |= FALL;
+                if (m_grounded_timer > m_coyote_time) transition_mask |= FALL;
                 queueable_mask = transition_mask;
                 break;
             }
@@ -224,7 +223,7 @@ public:
                     transition_mask = ATTACK_2;
                 }
 
-                if (m_grounded_timer > coyote_time) {
+                if (m_grounded_timer > m_coyote_time) {
                     transition_mask |= FALL;
                     queueable_mask |= FALL;
                 }
@@ -243,7 +242,7 @@ public:
                     transition_mask = ATTACK_1;
                 }
 
-                if (m_grounded_timer > coyote_time) {
+                if (m_grounded_timer > m_coyote_time) {
                     transition_mask |= FALL;
                     queueable_mask |= FALL;
                 }
@@ -555,6 +554,13 @@ public:
             m_input.last_grounded_direction = m_input.direction;
             m_input.last_grounded_run = m_input.run;
             m_jump_count = 0;
+            // project movement onto ground
+            m_input.direction = m_input.direction -
+                                glm::dot(m_input.direction, m_ground_normal) *
+                                m_ground_normal;
+            if (m_input.direction != glm::vec3{0.0f}) {
+                m_input.direction = glm::normalize(m_input.direction);
+            }
         }
     }
 
@@ -656,12 +662,38 @@ public:
         m_grounded = res.grounded;
         if (res.grounded) {
             m_gravity_velocity = 0.0f;
+            m_ground_normal = res.ground_normal;
             m_gravity_direction = -res.ground_normal;
             m_friction = 10.0f;
         } else {
             m_gravity_direction = glm::vec3{0.0f, -1.0f, 0.0f};
             m_friction = 5.0f;
         }
+
+        if (m_grounded_timer <= m_coyote_time && m_gravity_velocity > 0.0f) {
+            PhysicsSystem const & sys = scene.physics_system();
+
+            glm::vec3 pos = get_node(scene).get_global_transform(scene).position;
+            float snap_dist = 0.05f;
+
+            RayHit hit;
+
+            ColliderTag tag =
+                scene.get_component<ColliderComponent>(node_id()).tag();
+            CollisionLayer mask = sys.get_collision_mask(tag);
+
+            if (sys.raycast(
+                    pos,
+                    -m_ground_normal,
+                    snap_dist,
+                    mask,
+                    tag,
+                    hit
+            )) {
+                get_node(scene).set_global_position(scene, hit.position);
+            }
+        }
+
         m_gravity_velocity = glm::min(
             m_gravity_velocity + gravity_constant,
             terminal_velocity
@@ -702,6 +734,7 @@ private:
     glm::vec3 m_velocity = glm::vec3{0.0f};
     glm::vec3 m_force = glm::vec3{0.0f};
     float m_friction = 10.0f;
+    float m_coyote_time = 0.1f;
 
     State m_state = IDLE;
     State m_queued_state = NONE;
@@ -710,6 +743,7 @@ private:
     bool m_transition_complete = false;
 
     bool m_grounded = true;
+    glm::vec3 m_ground_normal;
     float m_grounded_timer = 0.0f;
     bool m_jumped = false;
     unsigned int m_jump_count = 0;
