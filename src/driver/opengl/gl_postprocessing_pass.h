@@ -21,10 +21,12 @@ public:
         GLuint target_framebuffer
     );
 
-    void render(CameraRenderData const & camera_data, uint32_t frame);
+    void render(
+        CameraRenderData const & camera_data,
+        uint32_t frame,
+        GLuint screen_quad_vao
+    );
 private:
-    GLuint m_screen_quad_vao;
-    GLuint m_screen_quad_vbo;
 
     GLShader m_shader;
 

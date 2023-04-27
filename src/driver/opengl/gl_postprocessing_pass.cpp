@@ -22,34 +22,6 @@ GLPostProcessingPass::GLPostProcessingPass(
    m_source_buffer{&source_buffer},
    m_previous_color_buffer{previous_color_buffer},
    m_target_framebuffer{target_framebuffer} {
-    static const GLfloat g_quad_vertex_buffer_data[] = {
-        -1.0f, -1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        -1.0f,  1.0f, 0.0f,
-        -1.0f,  1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        1.0f,  1.0f, 0.0f,
-    };
-
-    glGenVertexArrays(1, &m_screen_quad_vao);
-    glCheckError();
-    glBindVertexArray(m_screen_quad_vao);
-    glCheckError();
-
-    glGenBuffers(1, &m_screen_quad_vbo);
-    glCheckError();
-
-    glBindBuffer(GL_ARRAY_BUFFER, m_screen_quad_vbo);
-    glCheckError();
-
-    glBufferData(
-        GL_ARRAY_BUFFER,
-        sizeof(g_quad_vertex_buffer_data),
-        g_quad_vertex_buffer_data,
-        GL_STATIC_DRAW
-    );
-    glCheckError();
-
     GLint pos_attr = glGetAttribLocation(m_shader.shader(), "a_Position");
     glCheckError();
     glEnableVertexAttribArray(pos_attr);
@@ -62,7 +34,8 @@ GLPostProcessingPass::GLPostProcessingPass(
 
 void GLPostProcessingPass::render(
     CameraRenderData const & camera_data,
-    uint32_t frame
+    uint32_t frame,
+    GLuint screen_quad_vao
 ) {
     GLint w = static_cast<GLint>(m_width);
     GLint h = static_cast<GLint>(m_height);
@@ -145,7 +118,7 @@ void GLPostProcessingPass::render(
     glshaderutility::set_uint(m_shader.shader(), "u_Frame", frame);
     glCheckError();
 
-    glBindVertexArray(m_screen_quad_vao);
+    glBindVertexArray(screen_quad_vao);
     glCheckError();
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glCheckError();

@@ -15,6 +15,34 @@ void GLPostProcessingChain::set_chain(
         return;
     }
 
+    static const GLfloat g_quad_vertex_buffer_data[] = {
+        -1.0f, -1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f,
+        -1.0f,  1.0f, 0.0f,
+        -1.0f,  1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f,
+        1.0f,  1.0f, 0.0f,
+    };
+
+    glGenVertexArrays(1, &m_screen_quad_vao);
+    glCheckError();
+    glBindVertexArray(m_screen_quad_vao);
+    glCheckError();
+
+    glGenBuffers(1, &m_screen_quad_vbo);
+    glCheckError();
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_screen_quad_vbo);
+    glCheckError();
+
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        sizeof(g_quad_vertex_buffer_data),
+        g_quad_vertex_buffer_data,
+        GL_STATIC_DRAW
+    );
+    glCheckError();
+
     m_framebuffers.resize(chain.passes.size());
     m_color_textures.resize(chain.passes.size());
     m_color_textures[0] = source_buffers.color_texture();
@@ -90,7 +118,7 @@ void GLPostProcessingChain::render(
     uint32_t frame
 ) {
     for (GLPostProcessingPass pass : m_passes) {
-        pass.render(camera_data, frame);
+        pass.render(camera_data, frame, m_screen_quad_vao);
     }
 }
 
@@ -109,4 +137,13 @@ void GLPostProcessingChain::clear_chain() {
                      &m_color_textures[1]);
     m_framebuffers.resize(0);
     m_color_textures.resize(0);
+
+    if (m_screen_quad_vbo == 0) {
+        glDeleteBuffers(1, &m_screen_quad_vbo);
+        glCheckError();
+        glDeleteBuffers(1, &m_screen_quad_vao);
+        glCheckError();
+        m_screen_quad_vbo = 0;
+        m_screen_quad_vao = 0;
+    }
 }

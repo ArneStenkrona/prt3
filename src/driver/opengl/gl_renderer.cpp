@@ -49,8 +49,6 @@ GLRenderer::GLRenderer(
     glCheckError();
     glDepthFunc(GL_LESS);
     glCheckError();
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glCheckError();
     glEnable(GL_CULL_FACE);
     glCheckError();
     glCullFace(GL_BACK);
@@ -60,11 +58,14 @@ GLRenderer::GLRenderer(
     m_material_manager.init();
 
     ImGui_ImplSDL2_InitForOpenGL(window, SDL_GL_GetCurrentContext());
+    glCheckError();
     ImGui_ImplOpenGL3_Init();
+    glCheckError();
 
     int w;
     int h;
     SDL_GetWindowSize(m_window, &w, &h);
+    glCheckError();
     GLint buffer_width = static_cast<GLint>(w / m_downscale_factor);
     GLint buffer_height = static_cast<GLint>(h / m_downscale_factor);
     m_source_buffers.init(buffer_width, buffer_height);
@@ -98,11 +99,17 @@ GLRenderer::GLRenderer(
         "assets/shaders/opengl/standard_animated.vs",
         "assets/shaders/opengl/write_selected.fs"
     );
+
+    m_transparency_blend_shader = new GLShader(
+        "assets/shaders/opengl/passthrough.vs",
+        "assets/shaders/opengl/transparency_blend_shader.fs"
+    );
 }
 
 GLRenderer::~GLRenderer() {
     delete m_selection_shader;
     delete m_animated_selection_shader;
+    delete m_transparency_blend_shader;
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL2_Shutdown();
 }
@@ -170,16 +177,14 @@ void GLRenderer::render(RenderData const & render_data, bool editor) {
         m_editor_postprocessing_chain :
         m_scene_postprocessing_chain;
 
-    GLuint framebuffer = chain.empty() ?
-        0 : m_source_buffers.framebuffer();
-
-    render_framebuffer(render_data, framebuffer, false);
+    render_framebuffer(render_data, editor, PassType::opaque);
+    render_framebuffer(render_data, editor, PassType::transparent);
 
     if (!chain.empty()) {
         render_framebuffer(
             render_data,
-            m_source_buffers.selection_framebuffer(),
-            true
+            editor,
+            PassType::selection
         );
     }
 
@@ -196,9 +201,31 @@ void GLRenderer::render(RenderData const & render_data, bool editor) {
 
 void GLRenderer::render_framebuffer(
     RenderData const & render_data,
-    GLuint framebuffer,
-    bool selection_pass
+    bool editor,
+    PassType type
 ) {
+    GLPostProcessingChain const & chain = editor ?
+        m_editor_postprocessing_chain :
+        m_scene_postprocessing_chain;
+
+    GLuint opaque_framebuffer = chain.empty() ?
+        0 : m_source_buffers.framebuffer();
+
+    GLuint framebuffer;
+    bool transparent = false;
+    switch (type) {
+        case PassType::opaque:
+            framebuffer = opaque_framebuffer;
+            break;
+        case PassType::transparent:
+            transparent = true;
+            framebuffer = m_source_buffers.accum_framebuffer();
+            break;
+        case PassType::selection:
+            framebuffer = m_source_buffers.selection_framebuffer();
+            break;
+    }
+
     // Bind the framebuffer
     int w;
     int h;
@@ -215,18 +242,44 @@ void GLRenderer::render_framebuffer(
         GL_COLOR_ATTACHMENT1,
         GL_COLOR_ATTACHMENT2,
     };
-    glDrawBuffers(3, attachments);
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glCheckError();
+    if (transparent) {
+        glDepthMask(GL_FALSE);
+        glCheckError();
+        glEnable(GL_BLEND);
+        glCheckError();
+        glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
+        glCheckError();
+        glBlendEquation(GL_FUNC_ADD);
+        glCheckError();
+
+        glDrawBuffers(2, attachments);
+        glCheckError();
+
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glCheckError();
+        glClear(GL_COLOR_BUFFER_BIT);
+        glCheckError();
+    } else {
+        glDepthMask(GL_TRUE);
+        glCheckError();
+        glDisable(GL_BLEND);
+        glCheckError();
+
+        glDrawBuffers(3, attachments);
+        glCheckError();
+
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glCheckError();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glCheckError();
+    }
 
     auto const & meshes = m_model_manager.meshes();
 
-    if (!selection_pass) {
+    if (type != PassType::selection) {
         auto const & materials = m_material_manager.materials();
 
-        // Render meshes
-        // TODO: use a queue based on shaders instead, to reduce state changes
         thread_local std::unordered_map<GLShader const *, std::vector<MeshRenderData> >
             shader_queues;
 
@@ -242,14 +295,28 @@ void GLRenderer::render_framebuffer(
         }
 
         for (MeshRenderData const & mesh_data : render_data.world.mesh_data) {
+            GLMaterial const & mat = materials.at(mesh_data.material_id);
+            if (mat.material().transparent != transparent) {
+                continue;
+            }
             GLShader const * shader =
-                &materials.at(mesh_data.material_id).get_shader(false);
+                &materials.at(mesh_data.material_id).get_shader(
+                    false,
+                    transparent
+                );
             shader_queues[shader].push_back(mesh_data);
         }
 
         for (AnimatedMeshRenderData const & data : render_data.world.animated_mesh_data) {
+            GLMaterial const & mat = materials.at(data.mesh_data.material_id);
+            if (mat.material().transparent != transparent) {
+                continue;
+            }
             GLShader const * shader =
-                &materials.at(data.mesh_data.material_id).get_shader(true);
+                &materials.at(data.mesh_data.material_id).get_shader(
+                    true,
+                    transparent
+                );
             animated_shader_queues[shader].push_back(data);
         }
 
@@ -282,7 +349,6 @@ void GLRenderer::render_framebuffer(
                     shader,
                     mesh_data.node
                 );
-
                 meshes.at(mesh_data.mesh_id).draw_elements_triangles();
             }
             glCheckError();
@@ -329,14 +395,18 @@ void GLRenderer::render_framebuffer(
         }
 
         /* Wireframes */
-        {
+        if (!transparent) {
             glDrawBuffers(1, attachments);
+            glCheckError();
 
             glEnable(GL_POLYGON_OFFSET_FILL);
+            glCheckError();
             glPolygonOffset(1.0, 1.0);
+            glCheckError();
 
             GLShader const & shader = m_material_manager.wireframe_shader();
             glUseProgram(shader.shader());
+            glCheckError();
 
             EditorRenderData const & editor_data = render_data.editor_data;
             for (WireframeRenderData const & data : editor_data.line_data) {
@@ -348,6 +418,7 @@ void GLRenderer::render_framebuffer(
 
                 static const GLVarString color_str = "u_Color";
                 glUniform4fv(shader.get_uniform_loc(color_str), 1, &data.color[0]);
+                glCheckError();
 
                 meshes.at(data.mesh_id).draw_array_lines();
             }
@@ -355,8 +426,43 @@ void GLRenderer::render_framebuffer(
             glDisable(GL_POLYGON_OFFSET_FILL);
         }
 
+        if (transparent) {
+            GLShader & shader = *m_transparency_blend_shader;
+            glBindFramebuffer(GL_FRAMEBUFFER, opaque_framebuffer);
+            glCheckError();
+            glDrawBuffers(1, attachments);
+            glCheckError();
+            glUseProgram(shader.shader());
+            glCheckError();
+            glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+            glCheckError();
+
+            static const GLVarString accum_str = "uAccumulate";
+            glUniform1i(shader.get_uniform_loc(accum_str), 0);
+            glCheckError();
+            glActiveTexture(GL_TEXTURE0);
+            glCheckError();
+            glBindTexture(GL_TEXTURE_2D, m_source_buffers.accum_texture());
+            glCheckError();
+
+            static const GLVarString accum_alpha_str = "uAccumulateAlpha";
+            glUniform1i(shader.get_uniform_loc(accum_alpha_str), 1);
+            glCheckError();
+            glActiveTexture(GL_TEXTURE1);
+            glCheckError();
+            glBindTexture(GL_TEXTURE_2D, m_source_buffers.accum_alpha_texture());
+            glCheckError();
+
+            glBindVertexArray(chain.screen_quad_vao());
+            glCheckError();
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+            glCheckError();
+            glBindVertexArray(0);
+            glCheckError();
+        }
     } else {
         glUseProgram(m_selection_shader->shader());
+        glCheckError();
         auto const & selected_meshes = render_data.world.selected_mesh_data;
         for (MeshRenderData const & selected_mesh_data : selected_meshes) {
             bind_transform_and_camera_data(
@@ -373,6 +479,7 @@ void GLRenderer::render_framebuffer(
         }
 
         glUseProgram(m_animated_selection_shader->shader());
+        glCheckError();
         for (AnimatedMeshRenderData const & data :
             render_data.world.selected_animated_mesh_data) {
             MeshRenderData const & mesh_data = data.mesh_data;
@@ -496,6 +603,7 @@ void GLRenderer::bind_node_data(
     static const GLVarString node_str = "u_ID";
     GLuint u_node_id = static_cast<GLuint>(node_id);
     glUniform1ui(shader.get_uniform_loc(node_str), GLuint(u_node_id));
+    glCheckError();
 }
 
 void GLRenderer::bind_material_data(
@@ -505,29 +613,43 @@ void GLRenderer::bind_material_data(
     static const GLVarString albedo_map_str = "u_AlbedoMap";
     glUniform1i(s.get_uniform_loc(albedo_map_str), 0);
     glActiveTexture(GL_TEXTURE0);
+    glCheckError();
     glBindTexture(GL_TEXTURE_2D, material.albedo_map());
+    glCheckError();
 
     static const GLVarString normal_map_str = "u_NormalMap";
     glUniform1i(s.get_uniform_loc(normal_map_str), 1);
+    glCheckError();
     glActiveTexture(GL_TEXTURE1);
+    glCheckError();
     glBindTexture(GL_TEXTURE_2D, material.normal_map());
+    glCheckError();
 
     static const GLVarString metallic_map_str = "u_MetallicMap";
     glUniform1i(s.get_uniform_loc(metallic_map_str), 2);
+    glCheckError();
     glActiveTexture(GL_TEXTURE2);
+    glCheckError();
     glBindTexture(GL_TEXTURE_2D, material.metallic_map());
+    glCheckError();
 
     static const GLVarString roughness_map_str = "u_RoughnessMap";
     glUniform1i(s.get_uniform_loc(roughness_map_str), 3);
+    glCheckError();
     glActiveTexture(GL_TEXTURE3);
+    glCheckError();
     glBindTexture(GL_TEXTURE_2D, material.roughness_map());
+    glCheckError();
 
     static const GLVarString albedo_str = "u_Albedo";
     glUniform4fv(s.get_uniform_loc(albedo_str), 1, &material.material().albedo[0]);
+    glCheckError();
     static const GLVarString metallic_str = "u_Metallic";
     glUniform1f(s.get_uniform_loc(metallic_str), material.material().metallic);
+    glCheckError();
     static const GLVarString roughness_str = "u_Roughness";
     glUniform1f(s.get_uniform_loc(roughness_str), material.material().roughness);
+    glCheckError();
 }
 
 void GLRenderer::bind_bone_data(
@@ -536,4 +658,5 @@ void GLRenderer::bind_bone_data(
 ) {
     static const GLVarString bones_str = "u_Bones";
     glUniformMatrix4fv(s.get_uniform_loc(bones_str), bone_data.bones.size(), GL_FALSE, &bone_data.bones[0][0][0]);
+    glCheckError();
 }

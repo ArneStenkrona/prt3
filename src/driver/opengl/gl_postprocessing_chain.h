@@ -25,10 +25,16 @@ public:
     void render(CameraRenderData const & camera_data, uint32_t frame);
 
     bool empty() const { return m_passes.empty(); }
+
+    GLuint screen_quad_vao() const { return m_screen_quad_vao; };
+
 private:
     std::vector<GLPostProcessingPass> m_passes;
     std::vector<GLuint> m_framebuffers;
     std::vector<GLuint> m_color_textures;
+
+    GLuint m_screen_quad_vbo = 0;
+    GLuint m_screen_quad_vao = 0;
 
     void clear_chain();
 };

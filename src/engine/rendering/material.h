@@ -22,6 +22,7 @@ struct Material {
     float ao = 1.0f;
     float emissive = 0.0f;
     bool twosided = false;
+    bool transparent = false;
     std::string albedo_map;
     std::string normal_map;
     std::string metallic_map;

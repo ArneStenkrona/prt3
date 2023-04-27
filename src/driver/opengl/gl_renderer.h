@@ -104,13 +104,20 @@ private:
 
     GLShader * m_selection_shader;
     GLShader * m_animated_selection_shader;
+    GLShader * m_transparency_blend_shader;
 
     uint32_t m_frame = 0; // will overflow after a few years
 
+    enum PassType : unsigned {
+        opaque,
+        transparent,
+        selection
+    };
+
     void render_framebuffer(
         RenderData const & render_data,
-        GLuint framebuffer,
-        bool selection_pass
+        bool editor,
+        PassType type
     );
 
     void render_imgui();

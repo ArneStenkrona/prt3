@@ -9,30 +9,44 @@ void generate_texture(
     GLint    width,
     GLint    height,
     GLint    internal_format,
-    GLenum   format,
-    GLenum   type,
+    GLenum   /*format*/,
+    GLenum   /*type*/,
     GLenum   attachment
 ) {
     glGenTextures(1, &texture);
-
+    glCheckError();
     glBindTexture(GL_TEXTURE_2D, texture);
-
-    glTexImage2D(
+    glCheckError();
+    glTexStorage2D(
         GL_TEXTURE_2D,
-        0,
+        1,
         internal_format,
         width,
-        height,
-        0,
-        format,
-        type,
-        0
+        height
     );
+    glCheckError();
+
+    // glTexImage2D slower?
+    // glTexImage2D(
+    //     GL_TEXTURE_2D,
+    //     0,
+    //     internal_format,
+    //     width,
+    //     height,
+    //     0,
+    //     format,
+    //     type,
+    //     0
+    // );
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glCheckError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glCheckError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glCheckError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glCheckError();
 
     glFramebufferTexture2D(
         GL_FRAMEBUFFER,
@@ -41,13 +55,16 @@ void generate_texture(
         texture,
         0
     );
+    glCheckError();
 }
 
 void GLSourceBuffers::init(GLint width, GLint height) {
     clean_up();
 
     glGenFramebuffers(1, &m_framebuffer);
+    glCheckError();
     glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+    glCheckError();
 
     generate_texture(
         m_color_texture,
@@ -100,11 +117,13 @@ void GLSourceBuffers::init(GLint width, GLint height) {
     };
 
     glDrawBuffers(3, attachments);
+    glCheckError();
 
     // selection framebuffer
-
     glGenFramebuffers(1, &m_selection_framebuffer);
+    glCheckError();
     glBindFramebuffer(GL_FRAMEBUFFER, m_selection_framebuffer);
+    glCheckError();
 
     generate_texture(
         m_selected_texture,
@@ -125,6 +144,7 @@ void GLSourceBuffers::init(GLint width, GLint height) {
     };
 
     glDrawBuffers(1, selection_attachments);
+    glCheckError();
 
     // uniforms
     m_uniform_names.emplace_back("u_ColorBuffer", m_color_texture);
@@ -132,16 +152,50 @@ void GLSourceBuffers::init(GLint width, GLint height) {
     m_uniform_names.emplace_back("u_IDBuffer", m_id_texture);
     m_uniform_names.emplace_back("u_SelectedBuffer", m_selected_texture);
     m_uniform_names.emplace_back("u_DepthBuffer", m_depth_texture);
+
+
+    // transparency
+    glGenFramebuffers(1, &m_accum_framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_accum_framebuffer);
+
+    generate_texture(
+        m_accum_texture,
+        width,
+        height,
+        GL_RGBA16F,
+        GL_RGBA,
+        GL_UNSIGNED_BYTE,
+        GL_COLOR_ATTACHMENT0
+    );
+
+    generate_texture(
+        m_accum_alpha_texture,
+        width,
+        height,
+        GL_R16F,
+        GL_RGBA,
+        GL_UNSIGNED_BYTE,
+        GL_COLOR_ATTACHMENT1
+    );
+
+    m_transparency_uniform_names.emplace_back("u_AccumBuffer", m_accum_texture);
+    m_transparency_uniform_names.emplace_back("u_AccumAlphaBuffer", m_accum_alpha_texture);
 }
 
 void GLSourceBuffers::clean_up() {
     if (m_framebuffer != 0) {
         glDeleteFramebuffers(1, &m_framebuffer);
+        glCheckError();
         glDeleteTextures(1, &m_color_texture);
+        glCheckError();
         glDeleteTextures(1, &m_normal_texture);
+        glCheckError();
         glDeleteTextures(1, &m_id_texture);
+        glCheckError();
         glDeleteTextures(1, &m_selected_texture);
+        glCheckError();
         glDeleteTextures(1, &m_depth_texture);
+        glCheckError();
 
         m_color_texture = 0;
         m_normal_texture = 0;
@@ -150,5 +204,24 @@ void GLSourceBuffers::clean_up() {
         m_depth_texture = 0;
 
         m_uniform_names.resize(0);
+    }
+
+    if (m_selection_framebuffer != 0) {
+        glDeleteFramebuffers(1, &m_selection_framebuffer);
+        glCheckError();
+    }
+
+    if (m_accum_framebuffer != 0) {
+        glDeleteFramebuffers(1, &m_accum_framebuffer);
+        glCheckError();
+        glDeleteTextures(1, &m_accum_texture);
+        glCheckError();
+        glDeleteTextures(1, &m_accum_alpha_texture);
+        glCheckError();
+
+        m_accum_texture = 0;
+        m_accum_alpha_texture = 0;
+
+        m_transparency_uniform_names.resize(0);
     }
 }

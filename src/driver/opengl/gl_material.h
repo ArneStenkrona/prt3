@@ -30,7 +30,7 @@ public:
 
     // TODO: something less hacky than storing
     //       two shaders
-    GLShader const & get_shader(bool animated)
+    GLShader const & get_shader(bool animated, bool /*transparent*/)
     const { return animated ? m_animated_shader : m_shader; }
     GLuint albedo_map()             const { return m_albedo_map; }
     GLuint normal_map()             const { return m_normal_map; }

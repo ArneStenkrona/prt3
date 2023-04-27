@@ -1,5 +1,6 @@
 #include "gl_texture_manager.h"
 
+#include "src/driver/opengl/gl_utility.h"
 #include "src/util/log.h"
 
 #include <SDL_image.h>
@@ -65,14 +66,20 @@ void GLTextureManager::load_texture(char const * path) {
             }
 
             glGenTextures(1, &texture_handle);
+            glCheckError();
             glBindTexture(GL_TEXTURE_2D, texture_handle);
+            glCheckError();
 
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glCheckError();
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glCheckError();
 
             glTexImage2D(GL_TEXTURE_2D, 0, format, image->w, image->h, 0,
                          format, GL_UNSIGNED_BYTE, image->pixels);
+            glCheckError();
             glGenerateMipmap(GL_TEXTURE_2D);
+            glCheckError();
 
             SDL_FreeSurface(image);
 
@@ -98,11 +105,15 @@ GLuint GLTextureManager::load_texture(unsigned char * data,
                                       bool mipmap) {
     GLuint texture;
     glGenTextures(1, &texture);
+    glCheckError();
     glBindTexture(GL_TEXTURE_2D, texture);
+    glCheckError();
     glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0,
                     format, GL_UNSIGNED_BYTE, data);
+    glCheckError();
     if (mipmap) {
         glGenerateMipmap(GL_TEXTURE_2D);
+        glCheckError();
     }
     return texture;
 }
@@ -112,6 +123,7 @@ bool GLTextureManager::attempt_free_texture(GLuint handle) {
         m_texture_handle_to_path.end()) {
         std::string const & path = m_texture_handle_to_path.at(handle);
         glDeleteTextures(1, &handle);
+        glCheckError();
         m_textures.erase(path);
         m_texture_handle_to_path.erase(handle);
         return true;
