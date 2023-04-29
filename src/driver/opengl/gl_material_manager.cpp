@@ -5,15 +5,12 @@
 using namespace prt3;
 
 GLMaterialManager::GLMaterialManager(GLTextureManager & texture_manager)
- : m_texture_manager{texture_manager},
-   m_standard_shader{nullptr},
-   m_wireframe_shader{nullptr} {
+ : m_texture_manager{texture_manager} {
 }
 
 GLMaterialManager::~GLMaterialManager() {
     delete m_standard_shader;
 }
-
 
 void GLMaterialManager::init() {
     m_standard_shader = new GLShader(
@@ -24,6 +21,16 @@ void GLMaterialManager::init() {
     m_standard_animated_shader = new GLShader(
         "assets/shaders/opengl/standard_animated.vs",
         "assets/shaders/opengl/standard.fs"
+    );
+
+    m_transparent_shader = new GLShader(
+        "assets/shaders/opengl/standard.vs",
+        "assets/shaders/opengl/transparent.fs"
+    );
+
+    m_transparent_animated_shader = new GLShader(
+        "assets/shaders/opengl/standard_animated.vs",
+        "assets/shaders/opengl/transparent.fs"
     );
 
     m_wireframe_shader = new GLShader(
@@ -66,6 +73,8 @@ ResourceID GLMaterialManager::upload_material(
             GLMaterial{
                 *m_standard_shader,
                 *m_standard_animated_shader,
+                *m_transparent_shader,
+                *m_transparent_animated_shader,
                 albedo_map,
                 normal_map,
                 roughness_map,
@@ -105,6 +114,8 @@ void GLMaterialManager::upload_default_material() {
             GLMaterial{
                 *m_standard_shader,
                 *m_standard_animated_shader,
+                *m_transparent_shader,
+                *m_transparent_animated_shader,
                 albedo_map,
                 normal_map,
                 roughness_map,

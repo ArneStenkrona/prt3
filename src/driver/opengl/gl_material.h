@@ -21,6 +21,8 @@ public:
     GLMaterial(
         GLShader & shader,
         GLShader & animated_shader,
+        GLShader & transparent_shader,
+        GLShader & transparent_animated_shader,
         GLuint albedo_map,
         GLuint normal_map,
         GLuint metallic_map,
@@ -28,10 +30,8 @@ public:
         Material material
     );
 
-    // TODO: something less hacky than storing
-    //       two shaders
-    GLShader const & get_shader(bool animated, bool /*transparent*/)
-    const { return animated ? m_animated_shader : m_shader; }
+    GLShader const & get_shader(bool animated, bool transparent) const;
+
     GLuint albedo_map()             const { return m_albedo_map; }
     GLuint normal_map()             const { return m_normal_map; }
     GLuint metallic_map()           const { return m_metallic_map; }
@@ -42,8 +42,11 @@ public:
     Material & material() { return m_material; }
 
 private:
-    GLShader m_shader;
-    GLShader m_animated_shader;
+    GLShader * m_shader;
+    GLShader * m_animated_shader;
+    GLShader * m_transparent_shader;
+    GLShader * m_transparent_animated_shader;
+
     GLuint m_albedo_map;
     GLuint m_normal_map;
     GLuint m_metallic_map;

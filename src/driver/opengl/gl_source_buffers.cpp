@@ -178,6 +178,14 @@ void GLSourceBuffers::init(GLint width, GLint height) {
         GL_COLOR_ATTACHMENT1
     );
 
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_DEPTH_ATTACHMENT,
+        GL_TEXTURE_2D,
+        m_depth_texture,
+        0
+    );
+
     m_transparency_uniform_names.emplace_back("u_AccumBuffer", m_accum_texture);
     m_transparency_uniform_names.emplace_back("u_AccumAlphaBuffer", m_accum_alpha_texture);
 }

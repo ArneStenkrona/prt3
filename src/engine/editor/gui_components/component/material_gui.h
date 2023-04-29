@@ -56,6 +56,9 @@ void inner_show_component<MaterialComponent>(
     EditorContext & context,
     NodeID id
 ) {
+    // TODO: Handle materials that are linked to models and materials that are
+    //       not.
+
     Scene & scene = context.scene();
     MaterialManager & man = context.get_material_manager();
 
@@ -133,6 +136,10 @@ void inner_show_component<MaterialComponent>(
             roughness_map.buf_size(),
             ImGuiInputTextFlags_ReadOnly
         );
+
+        changed |= ImGui::Checkbox("transparent", &material.transparent);
+        // Two sided rendering is not implemented yet
+        // changed |= ImGui::Checkbox("two sided", &material.twosided);
 
         if (changed) {
             context.editor().perform_action<ActionSetMaterial>(

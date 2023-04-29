@@ -43,9 +43,11 @@ private:
     std::unordered_map<ResourceID, GLMaterial> m_materials;
     ResourceID m_next_material_id = 0;
 
-    GLShader * m_standard_shader;
-    GLShader * m_standard_animated_shader;
-    GLShader * m_wireframe_shader;
+    GLShader * m_standard_shader = nullptr;
+    GLShader * m_standard_animated_shader = nullptr;
+    GLShader * m_transparent_shader = nullptr;
+    GLShader * m_transparent_animated_shader = nullptr;
+    GLShader * m_wireframe_shader = nullptr;
 
     void upload_default_material();
 };
