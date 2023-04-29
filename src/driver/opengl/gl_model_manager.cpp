@@ -192,6 +192,9 @@ void GLModelManager::update_line_mesh(
         GL_STATIC_DRAW
     );
     glCheckError();
+
+    GLMesh & gl_mesh = m_meshes[id];
+    gl_mesh.init(buffers.vao, 0, static_cast<uint32_t>(n));
 }
 
 void GLModelManager::free_line_mesh(ResourceID id) {
