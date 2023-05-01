@@ -831,8 +831,8 @@ NavMeshID NavigationSystem::generate_nav_mesh(
     }
 
     /* Generate distance field */
-    uint32_t req_height =  static_cast<uint32_t>(ceil(min_height / granularity));
-    uint32_t req_width =  static_cast<uint32_t>(ceil(min_width / granularity));
+    uint32_t req_height = static_cast<uint32_t>(ceil(min_height / granularity));
+    uint32_t req_width = static_cast<uint32_t>(ceil(min_width / granularity));
 
     for (unsigned int ix = 0; ix < dim.x; ++ix) {
         for (unsigned int iz = 0; iz < dim.z; ++iz) {
@@ -933,7 +933,7 @@ NavMeshID NavigationSystem::generate_nav_mesh(
 
     int32_t region_index = 0;
     for (auto current_dist = max_dist;
-        current_dist > min_dist;) {
+        current_dist > req_width;) {
         for (size_t i = 0; i < spans.size(); ++i) {
             Span & span = spans[i];
             if (distances[i] >= current_dist && span.region_index == -1) {
@@ -1534,7 +1534,8 @@ void NavigationSystem::generate_path(
     std::vector<glm::vec3> & path
 ) const {
     /* find nav-mesh */
-    constexpr glm::vec3 aabb_halfsize{1.0f, 2.0f, 1.0f};
+    // TODO: get aabb_halfsize in a less ad-hoc manner
+    constexpr glm::vec3 aabb_halfsize{2.0f, 4.0f, 2.0f};
 
     constexpr ColliderTag tag = {
         static_cast<ColliderID>(-1),
@@ -1627,7 +1628,7 @@ void NavigationSystem::generate_path(
                      vertices[3*tri_index + 1] +
                      vertices[3*tri_index + 2]) / 3.0f;
 
-                float t = glm::distance(origin, tri_center);
+                float t = glm::distance(destination, tri_center);
                 if (t < min_t) {
                     min_t = t;
                     tri_dest = tri_index;
@@ -1652,11 +1653,11 @@ void NavigationSystem::generate_path(
     }
     uint32_t vert_dest = 3 * tri_dest;
     if (glm::distance(origin, vertices[3 * tri_dest + 1]) <
-        glm::distance(origin, vertices[vert_dest])) {
+        glm::distance(destination, vertices[vert_dest])) {
         vert_dest = 3 * tri_dest + 1;
     }
     if (glm::distance(origin, vertices[3 * tri_dest + 2]) <
-        glm::distance(origin, vertices[vert_dest])) {
+        glm::distance(destination, vertices[vert_dest])) {
         vert_dest = 3 * tri_dest + 2;
     }
 
@@ -1750,18 +1751,15 @@ void NavigationSystem::generate_path(
 
     glm::vec3 path_end = destination;
     path_end.y = vertices[vert_dest].y;
-    // path.push_back(path_end);
     index_path.push_back(-2);
 
     while (curr != vert_origin) {
-        // path.push_back(vertices[curr]);
         index_path.push_back(curr);
         curr = came_from.at(curr);
     }
 
     glm::vec3 path_start = origin;
     path_start.y = vertices[vert_origin].y;
-    // path.push_back(path_start);
     index_path.push_back(-1);
 
     /* simplify path */

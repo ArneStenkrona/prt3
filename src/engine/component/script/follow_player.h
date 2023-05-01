@@ -43,10 +43,25 @@ public:
             glm::vec3 dest = m_path[m_path_index];
 
             float dist = glm::distance(pos, dest);
-            if (dist >= m_speed * delta_time && dist != 0.0f) {
+            float critera = glm::max( m_speed * delta_time, 0.5f);
+            if (dist >= critera && dist != 0.0f) {
                 glm::vec3 dir = glm::normalize(dest - pos);
 
-                node.translate_node(scene, dir * m_speed * delta_time);
+                glm::vec3 look_dir{dir.x, 0.0f, dir.z};
+
+                glm::quat rot =
+                    glm::rotation(glm::vec3{0.0f, 0.0f, 1.0f}, look_dir);
+                node.set_global_rotation(scene, rot);
+
+                if (scene.has_component<ColliderComponent>(node_id())) {
+                    scene.physics_system().move_and_collide(
+                        scene,
+                        node_id(),
+                        dir * m_speed * delta_time
+                    );
+                } else {
+                    node.translate_node(scene, dir * m_speed * delta_time);
+                }
             } else {
                 ++m_path_index;
             }
