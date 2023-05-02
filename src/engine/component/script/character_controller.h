@@ -179,8 +179,6 @@ public:
     }
 
     bool transition_state(Scene & scene, float /*delta_time*/) {
-        Input & input = scene.get_input();
-
         Armature & armature =
             scene.get_component<Armature>(node_id());
         Animation & anim =
@@ -343,14 +341,14 @@ public:
             attempt_queue_state(RUN);
         }
 
-        if (input.get_key_down(KeyCode::KEY_CODE_RETURN)) {
+        if (m_input.attack) {
             attempt_queue_state(ATTACK_1);
             attempt_queue_state(ATTACK_2);
             attempt_queue_state(ATTACK_AIR_1);
             attempt_queue_state(ATTACK_AIR_2);
         }
 
-        if (input.get_key_down(KeyCode::KEY_CODE_SPACE)) {
+        if (m_input.jump) {
             attempt_queue_state(JUMP);
         }
 
@@ -510,7 +508,7 @@ public:
             get_blend_factor();
     }
 
-    void update_input(Scene & scene, float /*delta_time*/) {
+    virtual void update_input(Scene & scene, float /*delta_time*/) {
         Input & input = scene.get_input();
 
         m_input.run = input.get_key(KeyCode::KEY_CODE_LSHIFT);
