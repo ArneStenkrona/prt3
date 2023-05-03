@@ -933,7 +933,7 @@ NavMeshID NavigationSystem::generate_nav_mesh(
 
     int32_t region_index = 0;
     for (auto current_dist = max_dist;
-        current_dist > req_width;) {
+        current_dist > min_dist;) {
         for (size_t i = 0; i < spans.size(); ++i) {
             Span & span = spans[i];
             if (distances[i] >= current_dist && span.region_index == -1) {
@@ -956,7 +956,7 @@ NavMeshID NavigationSystem::generate_nav_mesh(
             }
 
             auto fill_to = glm::max(
-                uint32_t(current_dist - 1),
+                current_dist == 0 ? 0 : current_dist - 1,
                 req_width
             );
 
@@ -1215,11 +1215,6 @@ NavMeshID NavigationSystem::generate_nav_mesh(
         int y_coord = glm::round(vertex.y / granularity);
 
         uint32_t tri_index = i / 3;
-        // nav_mesh.neighbours[i].start_index =
-        //     nav_mesh.neighbours_indices.size();
-        // nav_mesh.neighbours[i].num_indices += 2;
-        // nav_mesh.neighbours_indices.push_back(3 * tri_index + ((i + 1) % 3));
-        // nav_mesh.neighbours_indices.push_back(3 * tri_index + ((i + 2) % 3));
         neighbours[i].insert(3 * tri_index + ((i + 1) % 3));
         neighbours[i].insert(3 * tri_index + ((i + 2) % 3));
 
@@ -1243,9 +1238,6 @@ NavMeshID NavigationSystem::generate_nav_mesh(
 
             if (glm::abs(y_coord - y) > 1) continue;
 
-
-            // ++nav_mesh.neighbours[i].num_indices;
-            // nav_mesh.neighbours_indices.push_back(index);
             neighbours[i].insert(3 * other_tri_index);
             neighbours[i].insert(3 * other_tri_index + 1);
             neighbours[i].insert(3 * other_tri_index + 2);
@@ -1290,15 +1282,16 @@ NavMeshID NavigationSystem::generate_nav_mesh(
 
     for (size_t i = 0; i < neighbours.size(); ++i) {
         nav_mesh.neighbours[i].start_index =
-            nav_mesh.neighbours_indices.size();
+            nav_mesh.neighbour_indices.size();
         nav_mesh.neighbours[i].num_indices = neighbours[i].size();
         for (uint32_t neigh : neighbours[i]) {
-            nav_mesh.neighbours_indices.push_back(neigh);
+            nav_mesh.neighbour_indices.push_back(neigh);
         }
     }
 
     /* spatial partitioning */
     n_tris = nav_mesh.vertices.size() / 3;
+    aabbs.clear();
     aabbs.resize(n_tris, {glm::vec3{pos_inf}, glm::vec3{neg_inf}});
 
     tri_index = 0;
@@ -1340,6 +1333,41 @@ NavMeshID NavigationSystem::generate_nav_mesh(
         n_tris
     );
 
+    nav_mesh.island_indices.resize(nav_mesh.vertices.size() / 3);
+    thread_local std::vector<uint32_t> island_queue;
+    thread_local std::vector<bool> visited;
+    visited.clear();
+    visited.resize(nav_mesh.vertices.size());
+
+    uint32_t next_i = 0;
+    size_t n_visited = 0;
+    uint8_t island_id = 0;
+    while (n_visited < nav_mesh.vertices.size()) {
+        if (!visited[next_i]) {
+            island_queue.push_back(next_i);
+            ++island_id;
+        }
+        while (!island_queue.empty()) {
+            uint32_t index = island_queue.back();
+            island_queue.pop_back();
+
+            if (visited[index]) continue;
+            visited[index] = true;
+            ++n_visited;
+
+            nav_mesh.island_indices[index / 3] = island_id - 1;
+
+            auto const & neighbours = nav_mesh.neighbours[index];
+
+            for (uint32_t i = neighbours.start_index;
+                i < neighbours.start_index + neighbours.num_indices;
+                ++i) {
+                island_queue.push_back(nav_mesh.neighbour_indices[i]);
+            }
+        }
+        ++next_i;
+    }
+
     return nav_mesh_id;
 }
 
@@ -1365,14 +1393,17 @@ void NavigationSystem::serialize_nav_mesh(
     write_stream(out, nav_mesh.neighbours.size());
     write_stream_n(out, nav_mesh.neighbours.data(), nav_mesh.neighbours.size());
 
-    write_stream(out, nav_mesh.neighbours_indices.size());
-    write_stream_n(out, nav_mesh.neighbours_indices.data(), nav_mesh.neighbours_indices.size());
+    write_stream(out, nav_mesh.neighbour_indices.size());
+    write_stream_n(out, nav_mesh.neighbour_indices.data(), nav_mesh.neighbour_indices.size());
 
     write_stream(out, nav_mesh.adjacencies.size());
     write_stream_n(out, nav_mesh.adjacencies.data(), nav_mesh.adjacencies.size());
 
     write_stream(out, nav_mesh.adjacency_data.size());
     write_stream_n(out, nav_mesh.adjacency_data.data(), nav_mesh.adjacency_data.size());
+
+    write_stream(out, nav_mesh.island_indices.size());
+    write_stream_n(out, nav_mesh.island_indices.data(), nav_mesh.island_indices.size());
 }
 
 NavMeshID NavigationSystem::deserialize_nav_mesh(
@@ -1398,8 +1429,8 @@ NavMeshID NavigationSystem::deserialize_nav_mesh(
 
     size_t n_neigh_vert;
     read_stream(in, n_neigh_vert);
-    nav_mesh.neighbours_indices.resize(n_neigh_vert);
-    read_stream_n(in, nav_mesh.neighbours_indices.data(), n_neigh_vert);
+    nav_mesh.neighbour_indices.resize(n_neigh_vert);
+    read_stream_n(in, nav_mesh.neighbour_indices.data(), n_neigh_vert);
 
     size_t n_adj;
     read_stream(in, n_adj);
@@ -1410,6 +1441,11 @@ NavMeshID NavigationSystem::deserialize_nav_mesh(
     read_stream(in, n_adj_data);
     nav_mesh.adjacency_data.resize(n_adj_data);
     read_stream_n(in, nav_mesh.adjacency_data.data(), n_adj_data);
+
+    // size_t n_island_indices;
+    // read_stream(in, n_island_indices);
+    // nav_mesh.island_indices.resize(n_island_indices);
+    // read_stream_n(in, nav_mesh.island_indices.data(), n_island_indices);
 
     /* spatial partitioning */
     size_t n_tris = nav_mesh.vertices.size() / 3;
@@ -1535,7 +1571,7 @@ void NavigationSystem::generate_path(
 ) const {
     /* find nav-mesh */
     // TODO: get aabb_halfsize in a less ad-hoc manner
-    constexpr glm::vec3 aabb_halfsize{2.0f, 4.0f, 2.0f};
+    constexpr glm::vec3 aabb_halfsize{2.0f, 2.0f, 2.0f};
 
     constexpr ColliderTag tag = {
         static_cast<ColliderID>(-1),
@@ -1544,20 +1580,28 @@ void NavigationSystem::generate_path(
     };
 
     thread_local std::vector<ColliderTag> tags;
+    thread_local std::vector<ColliderTag> dest_tags;
 
-    float min_t = std::numeric_limits<float>::max();
     uint32_t tri_origin;
+    uint32_t tri_dest;
     NavMeshID nav_mesh_id = NO_NAV_MESH;
 
     AABB orig_aabb;
     orig_aabb.lower_bound = origin - glm::vec3(aabb_halfsize);
     orig_aabb.upper_bound = origin + glm::vec3(aabb_halfsize);
 
+    AABB dest_aabb;
+    dest_aabb.lower_bound = destination - glm::vec3(aabb_halfsize);
+    dest_aabb.upper_bound = destination + glm::vec3(aabb_halfsize);
+
+    float min_t = std::numeric_limits<float>::max();
     for (auto const & pair : m_navigation_meshes) {
+        min_t = std::numeric_limits<float>::max();
+
         NavigationMesh const & nav_mesh = pair.second;
 
+        /* origin */
         tags.resize(0);
-
         nav_mesh.aabb_tree.query(
             tag,
             ~0,
@@ -1565,75 +1609,119 @@ void NavigationSystem::generate_path(
             tags
         );
 
-        for (ColliderTag const & tag : tags) {
-            auto tri_index = tag.id;
-
-            if (triangle_box_overlap(
-                origin,
-                aabb_halfsize,
-                nav_mesh.vertices[3*tri_index + 0],
-                nav_mesh.vertices[3*tri_index + 1],
-                nav_mesh.vertices[3*tri_index + 2]
-            )) {
-                glm::vec3 tri_center =
-                    (nav_mesh.vertices[3*tri_index + 0] +
-                    nav_mesh.vertices[3*tri_index + 1] +
-                    nav_mesh.vertices[3*tri_index + 2]) / 3.0f;
-
-                float t = glm::distance(destination, tri_center);
-                if (t < min_t) {
-                    min_t = t;
-                    tri_origin = tri_index;
-                    nav_mesh_id = pair.first;
-                }
-            }
-        }
-    }
-
-    if (nav_mesh_id == NO_NAV_MESH) {
-        return;
-    }
-
-    NavigationMesh const & nav_mesh = m_navigation_meshes.at(nav_mesh_id);
-    std::vector<glm::vec3> const & vertices = nav_mesh.vertices;
-
-    /* find destination triangle */
-    min_t = std::numeric_limits<float>::max();
-    uint32_t tri_dest;
-
-    AABB dest_aabb;
-    dest_aabb.lower_bound = destination - glm::vec3(aabb_halfsize);
-    dest_aabb.upper_bound = destination + glm::vec3(aabb_halfsize);
-
-    {
-        tags.resize(0);
+        dest_tags.resize(0);
         nav_mesh.aabb_tree.query(
             tag,
             ~0,
             dest_aabb,
-            tags
+            dest_tags
         );
+
+        thread_local std::unordered_set<uint8_t> islands;
+        islands.clear();
+        for (ColliderTag const & tag : tags) {
+            auto tri_index = tag.id;
+            uint8_t island = nav_mesh.island_indices[tri_index];
+            if (islands.find(island) == islands.end()) {
+                glm::vec3 a = nav_mesh.vertices[3 * tri_index + 0];
+                glm::vec3 b = nav_mesh.vertices[3 * tri_index + 1];
+                glm::vec3 c = nav_mesh.vertices[3 * tri_index + 2];
+
+                if (triangle_box_overlap(
+                    origin,
+                    aabb_halfsize,
+                    a,
+                    b,
+                    c
+                )) {
+                    islands.insert(island);
+                }
+            }
+        }
+
+        uint8_t island_index = 255;
+        for (ColliderTag const & tag : dest_tags) {
+            auto tri_index = tag.id;
+            uint8_t island = nav_mesh.island_indices[tri_index];
+            if (islands.find(island) != islands.end()) {
+                glm::vec3 a = nav_mesh.vertices[3 * tri_index + 0];
+                glm::vec3 b = nav_mesh.vertices[3 * tri_index + 1];
+                glm::vec3 c = nav_mesh.vertices[3 * tri_index + 2];
+                if (triangle_box_overlap(
+                    destination,
+                    aabb_halfsize,
+                    a,
+                    b,
+                    c
+                )) {
+                    island_index = island;
+                    break;
+                }
+            }
+        }
+
+        if (island_index == 255) {
+            continue;
+        }
 
         for (ColliderTag const & tag : tags) {
             auto tri_index = tag.id;
-            if (triangle_box_overlap(
-                destination,
-                aabb_halfsize,
-                vertices[3*tri_index + 0],
-                vertices[3*tri_index + 1],
-                vertices[3*tri_index + 2]
-            )) {
-                glm::vec3 tri_center =
-                    (vertices[3*tri_index + 0] +
-                     vertices[3*tri_index + 1] +
-                     vertices[3*tri_index + 2]) / 3.0f;
-
-                float t = glm::distance(destination, tri_center);
-                if (t < min_t) {
-                    min_t = t;
-                    tri_dest = tri_index;
-                }
+            if (nav_mesh.island_indices[tri_index] != island_index) {
+                continue;
             }
+
+            glm::vec3 a = nav_mesh.vertices[3 * tri_index + 0];
+            glm::vec3 b = nav_mesh.vertices[3 * tri_index + 1];
+            glm::vec3 c = nav_mesh.vertices[3 * tri_index + 2];
+
+            glm::vec3 tri_p = closest_point_on_triangle(
+                origin,
+                a,
+                b,
+                c
+            );
+
+            float t = glm::distance(origin, tri_p);
+            if (t < min_t) {
+                min_t = t;
+                tri_origin = tri_index;
+                nav_mesh_id = pair.first;
+            }
+        }
+
+        if (min_t == std::numeric_limits<float>::max()) {
+            continue;
+        }
+
+        /* destination */
+        min_t = std::numeric_limits<float>::max();
+
+        for (ColliderTag const & tag : dest_tags) {
+            auto tri_index = tag.id;
+            if (nav_mesh.island_indices[tri_index] != island_index) {
+                continue;
+            }
+
+            glm::vec3 a = nav_mesh.vertices[3 * tri_index + 0];
+            glm::vec3 b = nav_mesh.vertices[3 * tri_index + 1];
+            glm::vec3 c = nav_mesh.vertices[3 * tri_index + 2];
+
+            glm::vec3 tri_p = closest_point_on_triangle(
+                destination,
+                a,
+                b,
+                c
+            );
+
+            float t = glm::distance(destination, tri_p);
+            if (t < min_t) {
+                min_t = t;
+                tri_dest = tri_index;
+            }
+        }
+
+        if (min_t != std::numeric_limits<float>::max()) {
+            break;
         }
     }
 
@@ -1641,7 +1729,9 @@ void NavigationSystem::generate_path(
         return;
     }
 
-    /* A* */
+    NavigationMesh const & nav_mesh = m_navigation_meshes.at(nav_mesh_id);
+    std::vector<glm::vec3> const & vertices = nav_mesh.vertices;
+
     uint32_t vert_origin = 3 * tri_origin;
     if (glm::distance(origin, vertices[3 * tri_origin + 1]) <
         glm::distance(origin, vertices[vert_origin])) {
@@ -1652,15 +1742,16 @@ void NavigationSystem::generate_path(
         vert_origin = 3 * tri_origin + 2;
     }
     uint32_t vert_dest = 3 * tri_dest;
-    if (glm::distance(origin, vertices[3 * tri_dest + 1]) <
+    if (glm::distance(destination, vertices[3 * tri_dest + 1]) <
         glm::distance(destination, vertices[vert_dest])) {
         vert_dest = 3 * tri_dest + 1;
     }
-    if (glm::distance(origin, vertices[3 * tri_dest + 2]) <
+    if (glm::distance(destination, vertices[3 * tri_dest + 2]) <
         glm::distance(destination, vertices[vert_dest])) {
         vert_dest = 3 * tri_dest + 2;
     }
 
+    /* A* */
     struct CostIndex {
         uint32_t index;
         float cost;
@@ -1669,7 +1760,6 @@ void NavigationSystem::generate_path(
     struct Compare {
         bool operator() (CostIndex const & l, CostIndex const & r) const
         {
-            // if (l.cost == r.cost) return l.index > r.index;
             return l.cost > r.cost;
         }
     } compare;
@@ -1715,7 +1805,7 @@ void NavigationSystem::generate_path(
         for (uint32_t i = ns.start_index;
              i < ns.start_index + ns.num_indices;
              ++i) {
-            uint32_t neigh = nav_mesh.neighbours_indices[i];
+            uint32_t neigh = nav_mesh.neighbour_indices[i];
 
             glm::vec3 const neigh_pos = vertices[neigh];
 
@@ -1774,13 +1864,6 @@ void NavigationSystem::generate_path(
         for (size_t i = 0; i + 2 < temp_path.size(); ++i) {
             int32_t index_0 = temp_path[i];
             int32_t index_2 = temp_path[i + 2];
-
-            if (index_0 / 3 == index_2 / 3) {
-                ++i;
-                temp_path[i] = -3;
-                change = true;
-                continue;
-            }
 
             glm::vec3 p0 = index_0 >= 0 ? vertices[index_0] :
                            (index_0 == -1 ? path_start : path_end);

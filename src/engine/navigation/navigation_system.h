@@ -80,9 +80,11 @@ private:
     struct NavigationMesh {
         std::vector<glm::vec3> vertices;
         std::vector<SubVec> neighbours;
-        std::vector<uint32_t> neighbours_indices;
+        std::vector<uint32_t> neighbour_indices;
+        /* per triangle */
         std::vector<SubVec> adjacencies;
         std::vector<Adjacency> adjacency_data;
+        std::vector<uint8_t> island_indices;
         DynamicAABBTree aabb_tree;
     };
 

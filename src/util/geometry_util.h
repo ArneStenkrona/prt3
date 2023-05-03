@@ -36,6 +36,13 @@ void triangle_segment_clip_2d(
     glm::vec2 & t1
 );
 
+glm::vec3 closest_point_on_triangle(
+    glm::vec3 const & p,
+    glm::vec3 const & a,
+    glm::vec3 const & b,
+    glm::vec3 const & c
+);
+
 }
 
 #endif // PRT3_GEOMETRY_UTIL_H

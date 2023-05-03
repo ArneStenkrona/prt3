@@ -43,7 +43,8 @@ public:
             glm::vec3 dest = m_path[m_path_index];
 
             float dist = glm::distance(pos, dest);
-            float critera = glm::max( m_speed * delta_time, 0.5f);
+            // TODO: get criteria from collider dimensions
+            float critera = glm::max(m_speed * delta_time, 1.0f);
             if (dist >= critera && dist != 0.0f) {
                 glm::vec3 dir = glm::normalize(dest - pos);
 

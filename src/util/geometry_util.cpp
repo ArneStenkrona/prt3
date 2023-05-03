@@ -354,3 +354,55 @@ void prt3::triangle_segment_clip_2d(
         if (glm::distance(p1, ca) < glm::distance(p1, t1)) t1 = ca;
     }
 }
+
+// thanks https://github.com/embree/embree/blob/master/tutorials/common/math/closest_point.h
+glm::vec3 prt3::closest_point_on_triangle(
+    glm::vec3 const & p,
+    glm::vec3 const & a,
+    glm::vec3 const & b,
+    glm::vec3 const & c
+) {
+    glm::vec3 const ab = b - a;
+    glm::vec3 const ac = c - a;
+    glm::vec3 const ap = p - a;
+
+    float const d1 = glm::dot(ab, ap);
+    float const d2 = glm::dot(ac, ap);
+    if (d1 <= 0.f && d2 <= 0.f) return a; //#1
+
+    glm::vec3 const bp = p - b;
+    float const d3 = dot(ab, bp);
+    float const d4 = dot(ac, bp);
+    if (d3 >= 0.f && d4 <= d3) return b; //#2
+
+    glm::vec3 const cp = p - c;
+    float const d5 = dot(ab, cp);
+    float const d6 = dot(ac, cp);
+    if (d6 >= 0.f && d5 <= d6) return c; //#3
+
+    float const vc = d1 * d4 - d3 * d2;
+    if (vc <= 0.f && d1 >= 0.f && d3 <= 0.f)
+    {
+        float const v = d1 / (d1 - d3);
+        return a + v * ab; //#4
+    }
+
+    float const vb = d5 * d2 - d1 * d6;
+    if (vb <= 0.f && d2 >= 0.f && d6 <= 0.f)
+    {
+        float const v = d2 / (d2 - d6);
+        return a + v * ac; //#5
+    }
+
+    float const va = d3 * d6 - d5 * d4;
+    if (va <= 0.f && (d4 - d3) >= 0.f && (d5 - d6) >= 0.f)
+    {
+        float const v = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        return b + v * (c - b); //#6
+    }
+
+    float const denom = 1.f / (va + vb + vc);
+    float const v = vb * denom;
+    float const w = vc * denom;
+    return a + v * ab + w * ac; //#0
+}
