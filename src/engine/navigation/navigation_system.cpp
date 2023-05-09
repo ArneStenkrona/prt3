@@ -1442,10 +1442,10 @@ NavMeshID NavigationSystem::deserialize_nav_mesh(
     nav_mesh.adjacency_data.resize(n_adj_data);
     read_stream_n(in, nav_mesh.adjacency_data.data(), n_adj_data);
 
-    // size_t n_island_indices;
-    // read_stream(in, n_island_indices);
-    // nav_mesh.island_indices.resize(n_island_indices);
-    // read_stream_n(in, nav_mesh.island_indices.data(), n_island_indices);
+    size_t n_island_indices;
+    read_stream(in, n_island_indices);
+    nav_mesh.island_indices.resize(n_island_indices);
+    read_stream_n(in, nav_mesh.island_indices.data(), n_island_indices);
 
     /* spatial partitioning */
     size_t n_tris = nav_mesh.vertices.size() / 3;
