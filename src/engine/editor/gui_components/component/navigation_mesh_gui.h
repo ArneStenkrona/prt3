@@ -57,8 +57,8 @@ protected:
                 m_params.granularity,
                 m_params.max_edge_deviation,
                 m_params.max_edge_length,
-                m_params.min_height,
-                m_params.min_width
+                m_params.min_width,
+                m_params.min_height
             );
 
             if (nav_mesh_id == NO_NAV_MESH) {

@@ -932,8 +932,8 @@ NavMeshID NavigationSystem::generate_nav_mesh(
     int expand_iter = 4 + req_width * 2;
 
     int32_t region_index = 0;
-    for (auto current_dist = max_dist;
-        current_dist > min_dist;) {
+    uint32_t current_dist = max_dist;
+    while (current_dist >= req_width) {
         for (size_t i = 0; i < spans.size(); ++i) {
             Span & span = spans[i];
             if (distances[i] >= current_dist && span.region_index == -1) {
@@ -1023,7 +1023,7 @@ NavMeshID NavigationSystem::generate_nav_mesh(
             }
         }
 
-        current_dist = glm::max(
+        --current_dist = glm::max(
             current_dist >= 1u ?
                 static_cast<uint32_t>(current_dist - 1u) : uint32_t{0},
             min_dist
