@@ -76,6 +76,114 @@ private:
     Modification m_modification;
 };
 
+union FieldValue {
+    uint8_t  u8;
+    uint16_t u16;
+    uint32_t u32;
+    uint64_t u64;
+    int8_t   i8;
+    int16_t  i16;
+    int32_t  i32;
+    int64_t  i64;
+    float    f32;
+    double   f64;
+    bool     boolean;
+};
+
+class ActionSetScriptField : public Action {
+public:
+    ActionSetScriptField(
+        EditorContext & editor_context,
+        ScriptID script_id,
+        FieldValue value,
+        size_t field_index
+    ) : m_editor_context{&editor_context},
+        m_script_id{script_id},
+        m_value{value},
+        m_field_index{field_index}
+    {
+        Scene & scene = m_editor_context->scene();
+        Script * script = scene.get_script(m_script_id);
+        void * sptr = reinterpret_cast<void*>(script);
+
+        auto const & fields = Script::get_serialized_fields(script->uuid());
+        Script::SerializedField const & field = fields[m_field_index];
+
+        switch(field.type) {
+            case Script::FieldType::uint8: m_original_value.u8 = field.get<uint8_t>(sptr);
+            case Script::FieldType::uint16: m_original_value.u16 = field.get<uint16_t>(sptr);
+            case Script::FieldType::uint32: m_original_value.u32 = field.get<uint32_t>(sptr);
+            case Script::FieldType::uint64: m_original_value.u64 = field.get<uint64_t>(sptr);
+            case Script::FieldType::int8: m_original_value.i8 = field.get<int8_t>(sptr);
+            case Script::FieldType::int16: m_original_value.i16 = field.get<int16_t>(sptr);
+            case Script::FieldType::int32: m_original_value.i32 = field.get<int32_t>(sptr);
+            case Script::FieldType::int64: m_original_value.i64 = field.get<int64_t>(sptr);
+            case Script::FieldType::f32: m_original_value.f32 = field.get<float>(sptr);
+            case Script::FieldType::f64: m_original_value.f64 = field.get<double>(sptr);
+            case Script::FieldType::boolean: m_original_value.boolean = field.get<bool>(sptr);
+        }
+    }
+
+protected:
+    virtual bool apply() {
+        Scene & scene = m_editor_context->scene();
+        Script * script = scene.get_script(m_script_id);
+        void * sptr = reinterpret_cast<void*>(script);
+
+        auto const & fields = Script::get_serialized_fields(script->uuid());
+        Script::SerializedField const & field = fields[m_field_index];
+
+        switch(field.type) {
+            case Script::FieldType::uint8: field.get<uint8_t>(sptr) = m_value.u8;
+            case Script::FieldType::uint16: field.get<uint16_t>(sptr) = m_value.u16;
+            case Script::FieldType::uint32: field.get<uint32_t>(sptr) = m_value.u32;
+            case Script::FieldType::uint64: field.get<uint64_t>(sptr) = m_value.u64;
+            case Script::FieldType::int8: field.get<int8_t>(sptr) = m_value.i8;
+            case Script::FieldType::int16: field.get<int16_t>(sptr) = m_value.i16;
+            case Script::FieldType::int32: field.get<int32_t>(sptr) = m_value.i32;
+            case Script::FieldType::int64: field.get<int64_t>(sptr) = m_value.i64;
+            case Script::FieldType::f32: field.get<float>(sptr)   = m_value.f32;
+            case Script::FieldType::f64: field.get<double>(sptr)  = m_value.f64;
+            case Script::FieldType::boolean: field.get<bool>(sptr) = m_value.boolean;
+        }
+
+        return true;
+    }
+
+    virtual bool unapply() {
+        Scene & scene = m_editor_context->scene();
+        Script * script = scene.get_script(m_script_id);
+        void * sptr = reinterpret_cast<void*>(script);
+
+        auto const & fields = Script::get_serialized_fields(script->uuid());
+        Script::SerializedField const & field = fields[m_field_index];
+
+        switch(field.type) {
+            case Script::FieldType::uint8: field.get<uint8_t>(sptr) = m_original_value.u8;
+            case Script::FieldType::uint16: field.get<uint16_t>(sptr) = m_original_value.u16;
+            case Script::FieldType::uint32: field.get<uint32_t>(sptr) = m_original_value.u32;
+            case Script::FieldType::uint64: field.get<uint64_t>(sptr) = m_original_value.u64;
+            case Script::FieldType::int8: field.get<int8_t>(sptr) = m_original_value.i8;
+            case Script::FieldType::int16: field.get<int16_t>(sptr) = m_original_value.i16;
+            case Script::FieldType::int32: field.get<int32_t>(sptr) = m_original_value.i32;
+            case Script::FieldType::int64: field.get<int64_t>(sptr) = m_original_value.i64;
+            case Script::FieldType::f32: field.get<float>(sptr)   = m_original_value.f32;
+            case Script::FieldType::f64: field.get<double>(sptr)  = m_original_value.f64;
+            case Script::FieldType::boolean: field.get<bool>(sptr) = m_original_value.boolean;
+        }
+
+        return true;
+    }
+
+private:
+    EditorContext * m_editor_context;
+
+    ScriptID m_script_id;
+    FieldValue m_value;
+    FieldValue m_original_value;
+    size_t m_field_index;
+};
+
 template<>
 void inner_show_component<ScriptSet>(
     EditorContext & context,
@@ -111,18 +219,101 @@ void inner_show_component<ScriptSet>(
             uuids.insert(script->uuid());
         }
 
-        auto & fields = Script::get_serialized_fields(script->uuid());
+        auto const & fields = Script::get_serialized_fields(script->uuid());
+        void * script_data = reinterpret_cast<void*>(script);
+
+        ImGui::PushItemWidth(160);
+
+        FieldValue val;
+        bool changed = false;
+        size_t changed_index = 0;
+        size_t field_index = 0;
         for (auto & field : fields) {
             switch (field.type) {
+                case Script::FieldType::uint8:
+                {
+                    val.u8 = field.get<uint8_t>(script_data);
+                    changed |= ImGui::InputScalar(field.name, ImGuiDataType_U8, &val.u8);
+                    break;
+                }
+                case Script::FieldType::uint16:
+                {
+                    val.u16 = field.get<uint16_t>(script_data);
+                    changed |= ImGui::InputScalar(field.name, ImGuiDataType_U16, &val.u16);
+                    break;
+                }
+                case Script::FieldType::uint32:
+                {
+                    val.u32 = field.get<uint32_t>(script_data);
+                    changed |= ImGui::InputScalar(field.name, ImGuiDataType_U32, &val.u32);
+                    break;
+                }
+                case Script::FieldType::uint64:
+                {
+                    val.u64 = field.get<uint64_t>(script_data);
+                    changed |= ImGui::InputScalar(field.name, ImGuiDataType_U64, &val.u64);
+                    break;
+                }
+                case Script::FieldType::int8:
+                {
+                    val.i8 = field.get<int8_t>(script_data);
+                    changed |= ImGui::InputScalar(field.name, ImGuiDataType_S8, &val.i8);
+                    break;
+                }
+                case Script::FieldType::int16:
+                {
+                    val.i16 = field.get<int16_t>(script_data);
+                    changed |= ImGui::InputScalar(field.name, ImGuiDataType_S16, &val.i16);
+                    break;
+                }
+                case Script::FieldType::int32:
+                {
+                    val.i32 = field.get<int32_t>(script_data);
+                    changed |= ImGui::InputScalar(field.name, ImGuiDataType_S32, &val.i32);
+                    break;
+                }
+                case Script::FieldType::int64:
+                {
+                    val.i64 = field.get<int64_t>(script_data);
+                    changed |= ImGui::InputScalar(field.name, ImGuiDataType_S64, &val.i64);
+                    break;
+                }
                 case Script::FieldType::f32:
                 {
-                    void * script_data = reinterpret_cast<void*>(script);
-                    float * data = &field.get<float>(script_data);
-                    ImGui::InputFloat(field.name, data);
+                    val.f32 = field.get<float>(script_data);
+                    changed |= ImGui::InputFloat(field.name, &val.f32, 0.0f, 0.0f, "%.2f");
+                    break;
+                }
+                case Script::FieldType::f64:
+                {
+                    val.f64 = field.get<double>(script_data);
+                    changed |= ImGui::InputDouble(field.name, &val.f64, 0.0f, 0.0f, "%.2f");
+                    break;
+                }
+                case Script::FieldType::boolean:
+                {
+                    val.boolean = field.get<bool>(script_data);
+                    changed |= ImGui::Checkbox(field.name, &val.boolean);
                     break;
                 }
                 default: {}
             }
+
+            if (changed) {
+                changed_index = field_index;
+            }
+
+            ++field_index;
+        }
+
+        ImGui::PopItemWidth();
+
+        if (changed) {
+            context.editor().perform_action<ActionSetScriptField>(
+                script_id,
+                val,
+                changed_index
+            );
         }
 
         end_group_panel();
