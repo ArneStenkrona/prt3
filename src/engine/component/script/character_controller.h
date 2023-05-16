@@ -585,7 +585,7 @@ public:
 
                 float force_mag = 0.0f;
                 if (m_input.direction != glm::vec3{0.0f}) {
-                    force_mag = m_input.run ? 80.0f : 19.0f;
+                    force_mag = m_input.run ? m_run_force : m_walk_force;
                 }
                 m_force = m_input.direction * force_mag;
                 break;
@@ -734,6 +734,9 @@ private:
     float m_friction = 10.0f;
     float m_coyote_time = 0.1f;
 
+    float m_walk_force = 80.0f;
+    float m_run_force = 19.0f;
+
     State m_state = IDLE;
     State m_queued_state = NONE;
 
@@ -772,7 +775,9 @@ private:
         }
     }
 
-REGISTER_SCRIPT(CharacterController, character_controller, 7387722065150816170)
+REGISTER_SCRIPT_BEGIN(CharacterController, character_controller, 7387722065150816170)
+REGISTER_SERIALIZED_FIELD(m_walk_force)
+REGISTER_SCRIPT_END()
 };
 
 } // namespace prt3

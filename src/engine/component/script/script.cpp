@@ -21,6 +21,9 @@ std::unordered_map<UUID, Script::TScriptDeserializer> *
 std::unordered_map<UUID, Script::TScriptInstantiator> *
     Script::s_instantiators = nullptr;
 
+std::unordered_map<UUID, std::vector<Script::SerializedField> const *> *
+    Script::s_serialized_fields = nullptr;
+
 std::unordered_map<UUID, char const *> *
     Script::s_script_names = nullptr;
 
@@ -53,7 +56,8 @@ bool Script::Register(
     UUID uuid,
     char const * name,
     Script::TScriptDeserializer deserializer,
-    Script::TScriptInstantiator instantiator
+    Script::TScriptInstantiator instantiator,
+    std::vector<SerializedField> const * serialized_fields
 ) {
     if (s_deserializers == nullptr) {
         static std::unique_ptr<
@@ -66,6 +70,11 @@ bool Script::Register(
         > instantiators{
             new std::unordered_map<UUID, Script::TScriptInstantiator>()
         };
+        static std::unique_ptr<
+            std::unordered_map<UUID, std::vector<Script::SerializedField> const *>
+        > serialized_fields_map{
+            new std::unordered_map<UUID, std::vector<Script::SerializedField> const *>()
+        };
         static std::unique_ptr<std::unordered_map<UUID, char const *>
         > names{
             new std::unordered_map<UUID, char const *>()
@@ -73,6 +82,7 @@ bool Script::Register(
 
         s_deserializers = deserializers.get();
         s_instantiators = instantiators.get();
+        s_serialized_fields = serialized_fields_map.get();
         s_script_names = names.get();
     }
 
@@ -81,6 +91,7 @@ bool Script::Register(
     }
     (*s_script_names)[uuid] = name;
     (*s_deserializers)[uuid] = deserializer;
+    (*s_serialized_fields)[uuid] = serialized_fields;
     (*s_instantiators)[uuid] = instantiator;
 
     return true;

@@ -111,6 +111,20 @@ void inner_show_component<ScriptSet>(
             uuids.insert(script->uuid());
         }
 
+        auto & fields = Script::get_serialized_fields(script->uuid());
+        for (auto & field : fields) {
+            switch (field.type) {
+                case Script::FieldType::f32:
+                {
+                    void * script_data = reinterpret_cast<void*>(script);
+                    float * data = &field.get<float>(script_data);
+                    ImGui::InputFloat(field.name, data);
+                    break;
+                }
+                default: {}
+            }
+        }
+
         end_group_panel();
 
         ImGui::PopID();
