@@ -29,7 +29,9 @@ void save_scene(EditorContext & context, std::string const & path) {
 
     out.close();
 
+#ifdef __EMSCRIPTEN__
     emscripten_save_file_via_put(path);
+#endif // __EMSCRIPTEN__
 }
 
 void load_scene(EditorContext & context, std::string const & path) {
@@ -51,7 +53,9 @@ void save_project(Project & project, std::string const & path) {
 
     out.close();
 
+#ifdef __EMSCRIPTEN__
     emscripten_save_file_via_put(path);
+#endif // __EMSCRIPTEN__
 }
 
 void load_project(EditorContext & context, std::string const & path) {

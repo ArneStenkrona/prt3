@@ -4,6 +4,7 @@
 
 using namespace prt3;
 
+#ifdef __EMSCRIPTEN__
 void prt3::emscripten_download_file(
     std::string const & path,
     std::string const & dl_name
@@ -35,3 +36,4 @@ void prt3::emscripten_save_file_via_put(
     emscripten_run_script(arg.c_str());
 
 }
+#endif // __EMSCRIPTEN__

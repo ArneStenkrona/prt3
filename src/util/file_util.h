@@ -5,6 +5,7 @@
 
 namespace prt3 {
 
+#ifdef __EMSCRIPTEN__
 void emscripten_download_file(
     std::string const & path,
     std::string const & dl_name
@@ -13,6 +14,7 @@ void emscripten_download_file(
 void emscripten_save_file_via_put(
     std::string const & path
 );
+#endif // __EMSCRIPTEN__
 
 } // namespace prt3
 

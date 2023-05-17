@@ -180,7 +180,9 @@ void show_save_as_prefab(EditorContext & context, NodeID id) {
             std::ofstream out(path, std::ios::binary);
             Prefab::serialize_node(context.scene(), id, out);
             out.close();
+#ifdef __EMSCRIPTEN__
             emscripten_save_file_via_put(path);
+#endif // __EMSCRIPTEN__
         }
         open = ImGui::IsPopupOpen(ImGui::GetID("save prefab"), 0);
     }

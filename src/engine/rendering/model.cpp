@@ -905,7 +905,9 @@ void Model::serialize_model() {
 
     out.close();
 
+#ifdef __EMSCRIPTEN__
     emscripten_save_file_via_put(serialized_path);
+#endif // __EMSCRIPTEN__
 }
 
 bool Model::deserialize_model() {
