@@ -20,11 +20,7 @@ ScriptSet::ScriptSet(
     read_stream(in, n_scripts);
 
     for (size_t i = 0; i < n_scripts; ++i) {
-        UUID uuid;
-        read_stream(in, uuid);
-
         Script * script = Script::deserialize(
-            uuid,
             in,
             scene,
             node_id

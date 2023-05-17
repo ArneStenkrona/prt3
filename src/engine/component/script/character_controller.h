@@ -734,8 +734,8 @@ private:
     float m_friction = 10.0f;
     float m_coyote_time = 0.1f;
 
-    float m_walk_force = 80.0f;
-    float m_run_force = 19.0f;
+    float m_walk_force = 19.0f;
+    float m_run_force = 80.0f;
 
     State m_state = IDLE;
     State m_queued_state = NONE;
@@ -777,6 +777,7 @@ private:
 
 REGISTER_SCRIPT_BEGIN(CharacterController, character_controller, 7387722065150816170)
 REGISTER_SERIALIZED_FIELD(m_walk_force)
+REGISTER_SERIALIZED_FIELD(m_run_force)
 REGISTER_SCRIPT_END()
 };
 

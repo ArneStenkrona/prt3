@@ -57,6 +57,20 @@ public:
         boolean
     };
 
+    union FieldValue {
+        uint8_t  u8;
+        uint16_t u16;
+        uint32_t u32;
+        uint64_t u64;
+        int8_t   i8;
+        int16_t  i16;
+        int32_t  i32;
+        int64_t  i64;
+        float    f32;
+        double   f64;
+        bool     boolean;
+    };
+
     template<typename T>
     static FieldType type_to_field_type();
 
@@ -133,14 +147,11 @@ public:
         template<> bool     * (**u_getter<bool>())(void*)     { return &getter.boolean; }
     };
 
-    virtual void serialize(std::ostream & out) const {
-        write_stream(out, uuid());
-    }
+    virtual void serialize(std::ostream & out) const;
 
     virtual Script * copy() const = 0;
 
     static Script * deserialize(
-        UUID uuid,
         std::istream & in,
         Scene & scene,
         NodeID node_id
