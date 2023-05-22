@@ -126,8 +126,16 @@ add_dependencies(prt3 copy_resources)
 # Wasm specific
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
     set(CMAKE_CXX_FLAGS "-s USE_SDL=2 -s USE_SDL_IMAGE=2")
-    set_target_properties(prt3 PROPERTIES LINK_FLAGS "${CMAKE_LINK_FLAGS} -std=c++17 -MMD -MP -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1 -sLLD_REPORT_UNDEFINED -sASSERTIONS --pre-js settings.js --embed-file assets -sALLOW_MEMORY_GROWTH -s DISABLE_EXCEPTION_CATCHING=1 -s SDL2_IMAGE_FORMATS='[\"bmp\",\"png\"]' -sMAX_WEBGL_VERSION=2 -sGL_PREINITIALIZED_CONTEXT -s TOTAL_MEMORY=323813376 -sWASM_BIGINT -sERROR_ON_WASM_CHANGES_AFTER_LINK -O1")
+    set_target_properties(prt3 PROPERTIES LINK_FLAGS "${CMAKE_LINK_FLAGS} -std=c++17 -MMD -MP -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1 -sLLD_REPORT_UNDEFINED -sASSERTIONS --pre-js settings.js -sALLOW_MEMORY_GROWTH -s DISABLE_EXCEPTION_CATCHING=1 -s SDL2_IMAGE_FORMATS='[\"bmp\",\"png\"]' -sMAX_WEBGL_VERSION=2 -sGL_PREINITIALIZED_CONTEXT -s TOTAL_MEMORY=323813376 -sWASM_BIGINT -sERROR_ON_WASM_CHANGES_AFTER_LINK -O1 -sFORCE-FILESYSTEM")
 endif ()
+
+IF (WIN32)
+  # TODO
+ELSE()
+  execute_process (
+    COMMAND bash -c "$EMSDK/upstream/emscripten/tools/file_packager prt3.data --preload assets/ --use-preload-plugins --js-output=data.js"
+    )
+ENDIF()
 
 # Set compiler flags
 target_compile_options(prt3 PUBLIC -Wall -Wextra -o2 -g -fsanitize=address -fno-omit-frame-pointer)

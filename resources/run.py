@@ -36,5 +36,9 @@ class HTTPRequestHandler(server.SimpleHTTPRequestHandler):
         reply_body = 'Saved "%s"\n' % filename
         self.wfile.write(reply_body.encode('utf-8'))
 
+        ## Update data.js
+        os.system("$EMSDK/upstream/emscripten/tools/file_packager prt3.data --preload assets/ --use-preload-plugins --js-output=data.js")
+
+
 if __name__ == '__main__':
     server.test(HandlerClass=HTTPRequestHandler)
