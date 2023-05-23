@@ -65,6 +65,10 @@ void AnimationSystem::update(Scene const & scene, float delta_time) {
             continue;
         }
 
+        if (animation.clip_a.animation_index == NO_ANIMATION) {
+            continue;
+        }
+
         Model const & model = models[animation.model_handle];
         if (animation.clip_b.animation_index == NO_ANIMATION ||
             animation.blend_factor == 0.0f) {

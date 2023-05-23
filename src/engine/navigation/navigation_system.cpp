@@ -1564,7 +1564,7 @@ inline float heuristic(glm::vec3 a, glm::vec3 dest) {
     return glm::distance(a, dest);
 }
 
-void NavigationSystem::generate_path(
+bool NavigationSystem::generate_path(
     glm::vec3 origin,
     glm::vec3 destination,
     std::vector<glm::vec3> & path
@@ -1726,7 +1726,7 @@ void NavigationSystem::generate_path(
     }
 
     if (min_t == std::numeric_limits<float>::max()) {
-        return;
+        return false;
     }
 
     NavigationMesh const & nav_mesh = m_navigation_meshes.at(nav_mesh_id);
@@ -1831,7 +1831,7 @@ void NavigationSystem::generate_path(
     }
 
     if (!found_path) {
-        return;
+        return false;
     }
 
     uint32_t curr = vert_dest;
@@ -1940,7 +1940,7 @@ void NavigationSystem::generate_path(
 
     std::reverse(path.begin(), path.end());
 
-    return;
+    return true;
 }
 
 void NavigationSystem::clear() {

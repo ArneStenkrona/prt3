@@ -30,6 +30,7 @@ struct Animation {
         bool looping = false;
 
         float frac(Model const & model) const {
+            if (animation_index == -1) return 0.0f;
             Model::Animation const & animation = model.animations()[animation_index];
             float duration = animation.duration / animation.ticks_per_second;
             return t / duration;
