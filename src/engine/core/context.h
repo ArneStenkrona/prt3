@@ -1,12 +1,13 @@
 #ifndef PRT3_CONTEXT_H
 #define PRT3_CONTEXT_H
 
+#include "src/engine/audio/audio_manager.h"
 #include "src/engine/scene/scene.h"
 #include "src/engine/scene/scene_manager.h"
 #include "src/engine/rendering/renderer.h"
 #include "src/engine/rendering/material_manager.h"
 #include "src/engine/rendering/model_manager.h"
-#include "src/engine/physics/physics_system.h"
+#include "src/engine/rendering/model_manager.h"
 #include "src/engine/core/input.h"
 #include "src/engine/project/project.h"
 
@@ -29,6 +30,7 @@ public:
     Scene & edit_scene() { return m_edit_scene; }
     Scene & game_scene() { return m_game_scene; }
     SceneManager & scene_manager() { return m_scene_manager; }
+    AudioManager & audio_manager() { return m_audio_manager; }
     Project & project() { return m_project; }
 
     void set_project_from_path(std::string const & path);
@@ -46,6 +48,7 @@ private:
     Scene m_edit_scene;
     Scene m_game_scene;
     SceneManager m_scene_manager;
+    AudioManager m_audio_manager;
     Project m_project;
 };
 

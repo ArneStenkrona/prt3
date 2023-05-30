@@ -93,6 +93,8 @@ bool Engine::execute_frame() {
         }
     }
 
+    m_context.audio_manager().update();
+
     // loop end
     measure_duration();
 
