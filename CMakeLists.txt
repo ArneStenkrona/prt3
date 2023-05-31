@@ -24,7 +24,6 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/lib/imgui-filebrowser"
   "${PROJECT_SOURCE_DIR}/lib/ImGuizmo"
   "${PROJECT_SOURCE_DIR}/lib/hash-library"
-  "${PROJECT_SOURCE_DIR}/lib/tsf"
 )
 
 file(GLOB SOURCES
@@ -119,6 +118,8 @@ add_subdirectory(lib/assimp EXCLUDE_FROM_ALL)
 
 # Add the executable
 add_executable(prt3 ${SOURCES})
+
+target_include_directories(prt3 SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/lib/tsf")
 
 add_custom_target(copy_resources
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/resources ${CMAKE_CURRENT_BINARY_DIR}/

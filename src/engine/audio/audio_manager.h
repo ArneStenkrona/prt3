@@ -30,22 +30,19 @@ typedef int32_t SoundFontID;
 constexpr MidiID NO_SOUND_FONT = -1;
 
 struct MidiClipState {
-    unsigned int sample_frequency;
-
     double midi_ms;
-    tml_message * midi_msg;
+    unsigned int msg_index;
     tsf * sound_font;
 };
 
 struct MidiClip {
-    tml_message * origin;
+    std::vector<tml_message> messages;
 
     MidiClipState state;
 
-    static constexpr size_t buffer_size = 65536; // needs to last a frame
+    static constexpr size_t buffer_size = 8912; // needs to last a frame
     std::array<char, buffer_size> buffer;
-    size_t n_queued;
-    size_t buffer_consumed;
+    size_t data_size = 0;
 };
 
 class AudioManager {
@@ -69,8 +66,8 @@ private:
     std::vector<MidiID> m_free_midi_ids;
 
     MidiClip m_current_track;
-    static constexpr size_t n_track_buffers = 4;
-    ALuint m_track_buffers[4];
+    static constexpr size_t n_track_buffers = 8;
+    ALuint m_track_buffers[n_track_buffers];
     ALuint m_track_source;
 
     std::vector<tsf*> m_sound_fonts;
