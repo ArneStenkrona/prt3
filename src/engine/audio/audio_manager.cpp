@@ -7,10 +7,6 @@
 #define TML_IMPLEMENTATION
 #include "tml.h"
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif //__EMSCRIPTEN__
-
 using namespace prt3;
 
 // #define CHECK_AL_ERRORS() check_al_errors(__FILE__, __LINE__)
@@ -50,12 +46,13 @@ bool check_al_errors(char const * filename, int line)
 AudioManager::AudioManager() {
 #ifdef __EMSCRIPTEN__
     m_sample_rate = EM_ASM_INT({
-        var AudioContext = window.AudioContext || window.webkitAudioContext;
+        var audio_context = window.audio_context || window.webkitaudio_context;
         var ctx = new AudioContext();
         var sr = ctx.sampleRate;
         ctx.close();
         return sr;
     });
+
 #else //__EMSCRIPTEN__
     m_sample_rate = 44100;
 #endif //__EMSCRIPTEN__
@@ -113,9 +110,9 @@ void AudioManager::fill_midi_buffer(
     }
 
     MidiClipState & state = clip.state;
-	//Number of samples to process
-	unsigned int sample_count =
-        (clip.buffer_size / (2 * sizeof(float))); //2 output channels
+    //Number of samples to process
+    unsigned int sample_count =
+        (clip.buffer_size / (2 * sizeof(float))); // 2 output channels
 
     char * stream = clip.buffer.data();
 
@@ -126,69 +123,68 @@ void AudioManager::fill_midi_buffer(
          sample_count;
          sample_count -= sample_block,
             stream += (sample_block * (2 * sizeof(float)))) {
-		if (sample_block > sample_count) sample_block = sample_count;
+        if (sample_block > sample_count) sample_block = sample_count;
 
         double ms_per_block =
             1000.0 / static_cast<double>(m_sample_rate);
 
         state.midi_ms += sample_block * ms_per_block;
-		while (state.msg_index < clip.messages.size() &&
+        while (state.msg_index < clip.messages.size() &&
                state.midi_ms >= msg->time) {
-			switch (msg->type) {
-				case TML_PROGRAM_CHANGE:
+            switch (msg->type) {
+                case TML_PROGRAM_CHANGE:
                     // channel program (preset) change
                     // (special handling for 10th MIDI channel with drums)
-					tsf_channel_set_presetnumber(
+                    tsf_channel_set_presetnumber(
                         state.sound_font,
                         msg->channel,
                         msg->program,
                         (msg->channel == 9)
                     );
-					break;
-				case TML_NOTE_ON:
+                    break;
+                case TML_NOTE_ON:
                     // play a note
-					tsf_channel_note_on(
+                    tsf_channel_note_on(
                         state.sound_font,
                         msg->channel,
                         msg->key,
                         msg->velocity / 127.0f
                     );
-					break;
-				case TML_NOTE_OFF:
+                    break;
+                case TML_NOTE_OFF:
                     // stop a note
-					tsf_channel_note_off(
+                    tsf_channel_note_off(
                         state.sound_font,
                         msg->channel,
                         msg->key
                     );
-					break;
-				case TML_PITCH_BEND:
+                    break;
+                case TML_PITCH_BEND:
                     // pitch wheel modification
-					tsf_channel_set_pitchwheel(
+                    tsf_channel_set_pitchwheel(
                         state.sound_font,
                         msg->channel,
                         msg->pitch_bend
                     );
-					break;
-				case TML_CONTROL_CHANGE:
+                    break;
+                case TML_CONTROL_CHANGE:
                     // MIDI controller messages
-					tsf_channel_midi_control(
+                    tsf_channel_midi_control(
                         state.sound_font,
                         msg->channel,
                         msg->control,
                         msg->control_value
                     );
-					break;
-			}
+                    break;
+            }
             state.msg_index = state.msg_index + 1;
             msg = &clip.messages[state.msg_index];
-		}
+        }
 
-		// Render the block of audio samples in float format
-		tsf_render_float(state.sound_font, (float*)stream, sample_block, 0);
+        // Render the block of audio samples in float format
+        tsf_render_float(state.sound_font, (float*)stream, sample_block, 0);
         clip.data_size += sample_block * (2 * sizeof(float));
-
-	}
+    }
 }
 
 void AudioManager::queue_midi_stream(
@@ -240,11 +236,11 @@ MidiID AudioManager::load_midi(char const * path) {
     }
 
     m_midis[id] = tml_load_filename(path);
-	if (!m_midis[id])
-	{
-		PRT3ERROR("Could not load MIDI file: %s\n", path);
-		id = NO_MIDI;
-	}
+    if (!m_midis[id])
+    {
+        PRT3ERROR("Could not load MIDI file: %s\n", path);
+        id = NO_MIDI;
+    }
 
     return id;
 }
@@ -266,16 +262,16 @@ SoundFontID AudioManager::load_sound_font(char const * path) {
     }
 
     m_sound_fonts[id] = tsf_load_filename(path);
-	if (!m_sound_fonts[id])
-	{
-		PRT3ERROR("Could not load sound font: %s\n", path);
-		id = NO_SOUND_FONT;
-	}
+    if (!m_sound_fonts[id])
+    {
+        PRT3ERROR("Could not load sound font: %s\n", path);
+        id = NO_SOUND_FONT;
+    }
 
     tsf_channel_set_bank_preset(m_sound_fonts[id], 9, 128, 0);
 
-	// Set the SoundFont rendering output mode
-	tsf_set_output(
+    // Set the SoundFont rendering output mode
+    tsf_set_output(
         m_sound_fonts[id],
         TSF_STEREO_INTERLEAVED,
         m_sample_rate,
@@ -326,7 +322,7 @@ void AudioManager::stop_midi() {
 void AudioManager::init() {
 #ifdef __EMSCRIPTEN__
     int running = EM_ASM_INT({
-        var AudioContext = window.AudioContext || window.webkitAudioContext;
+        var audio_context = window.audio_context || window.webkitaudio_context;
         var ctx = new AudioContext();
         ctx.resume();
         return ctx.state === "suspended" ? 0 : 1;

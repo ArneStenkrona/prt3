@@ -1,8 +1,6 @@
 #ifndef PRT3_GL_TEXTURE_MANAGER_H
 #define PRT3_GL_TEXTURE_MANAGER_H
 
-#include <SDL.h>
-
 #define GL_GLEXT_PROTOTYPES 1
 #include <GLES3/gl3.h>
 

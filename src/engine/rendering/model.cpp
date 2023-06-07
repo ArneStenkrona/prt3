@@ -349,13 +349,13 @@ void Model::blend_animation(
 
 std::string Model::get_texture(aiMaterial & ai_mat, aiTextureType type, char const * model_path) {
     // TODO: optimize, too many temporary strings
-    thread_local aiString ai_path;
-    thread_local std::string tex_path;
+    static aiString ai_path;
+    static std::string tex_path;
     tex_path.clear();
     if (ai_mat.GetTexture(type, 0, &ai_path) == AI_SUCCESS) {
-        thread_local std::string rel_path;
+        static std::string rel_path;
         rel_path = std::string(ai_path.C_Str());
-        thread_local std::string model_path_str;
+        static std::string model_path_str;
         model_path_str = std::string(model_path);
 
         tex_path = model_path_str.substr(0, model_path_str.rfind('/') + 1) + rel_path;
@@ -471,10 +471,10 @@ void Model::load_with_assimp() {
         aiMatrix4x4 tform;
         int32_t parent_index;
     };
-    thread_local std::vector<std::string> bone_to_name;
+    static std::vector<std::string> bone_to_name;
     bone_to_name.clear();
 
-    thread_local std::vector<TFormNode> tform_nodes;
+    static std::vector<TFormNode> tform_nodes;
 
     tform_nodes.push_back({scene->mRootNode, scene->mRootNode->mTransformation, -1});
     while (!tform_nodes.empty()) {
@@ -584,7 +584,7 @@ void Model::load_with_assimp() {
             for (size_t j = 0; j < aiMesh->mNumBones; ++j) {
                 aiBone const * bone = aiMesh->mBones[j];
 
-                thread_local std::string bone_name;
+                static std::string bone_name;
                 bone_name = bone->mName.C_Str();
 
                 bone_to_name[bi] = bone_name;
@@ -844,7 +844,7 @@ void Model::serialize_model() {
     write_stream(out, m_scale_locations.size());
     write_stream_n(out, m_scale_locations.data(), m_scale_locations.size());
 
-    thread_local std::vector<std::string const *> animation_names;
+    static std::vector<std::string const *> animation_names;
     assert(m_animations.size() == m_name_to_animation.size() && "sizes differ");
     animation_names.resize(m_animations.size());
 
@@ -911,7 +911,7 @@ void Model::serialize_model() {
 }
 
 bool Model::deserialize_model() {
-    thread_local std::string serialized_path;
+    static std::string serialized_path;
     serialized_path = m_path + serialized_postfix;
 
     std::FILE * in;
@@ -1022,7 +1022,7 @@ bool Model::deserialize_model() {
 
     m_name_to_animation.reserve(m_animations.size());
     for (int i = 0; i < static_cast<int>(m_animations.size()); ++i) {
-        thread_local std::string name;
+        static std::string name;
         read_string(in, name);
         m_name_to_animation[name] = i;
     }

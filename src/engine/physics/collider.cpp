@@ -6,7 +6,7 @@ using namespace prt3;
 
 void MeshCollider::set_triangles(
     std::vector<glm::vec3> && triangles) {
-    assert(triangles.size % 3 == 0);
+    assert(triangles.size() % 3 == 0);
     m_triangles = triangles;
     update_triangle_cache();
     m_changed = true;
@@ -14,7 +14,7 @@ void MeshCollider::set_triangles(
 
 void MeshCollider::set_triangles(
     std::vector<glm::vec3> const & triangles) {
-    assert(triangles.size % 3 == 0);
+    assert(triangles.size() % 3 == 0);
     m_triangles = triangles;
     update_triangle_cache();
     m_changed = true;

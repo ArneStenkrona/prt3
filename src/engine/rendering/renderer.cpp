@@ -18,33 +18,41 @@ Renderer::Renderer(
    m_window_width{static_cast<int>(width)},
    m_window_height{static_cast<int>(height)},
    m_downscale_factor{downscale_factor} {
-    /* Set SDL attributes */
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-    m_window = SDL_CreateWindow(
+    /* glfw */
+    if (!glfwInit()) {
+        PRT3ERROR("Failed to initialize glfw.\n");
+    }
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    m_window = glfwCreateWindow(
+        m_window_width,
+        m_window_height,
         "prt3",
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
-        width,
-        height,
-        SDL_WINDOW_OPENGL    |
-        SDL_WINDOW_RESIZABLE |
-        SDL_WINDOW_SHOWN/*   |
-        SDL_WINDOW_ALLOW_HIGHDPI*/
+        NULL,
+        NULL
     );
 
-    ImGui::CreateContext();
+    if (!m_window) {
+        glfwTerminate();
+        PRT3ERROR("Failed to create glfw window.\n");
+    }
 
+    glfwMakeContextCurrent(m_window);
+
+    /* Input */
+    m_input.init(m_window);
+
+    /* ImGui */
+    ImGui::CreateContext();
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+    /* Render backend */
     m_render_backend = new GLRenderer(
         m_window,
         downscale_factor
     );
-    m_input.init(m_window);
 }
 
 Renderer::~Renderer() {
@@ -54,14 +62,14 @@ Renderer::~Renderer() {
 
 void Renderer::upload_model(
     ModelHandle handle,
-    Model   const & model,
+    Model const & model,
     ModelResource & resource
 ) {
     m_render_backend->upload_model(handle, model, resource);
 }
 
 void Renderer::set_window_size(int w, int h) {
-    SDL_SetWindowSize(m_window, w, h);
+    glfwSetWindowSize(m_window, w, h);
     m_context.edit_scene().update_window_size(w, h);
     m_window_width = w;
     m_window_height = h;

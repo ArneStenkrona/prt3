@@ -8,7 +8,7 @@ GLenum prt3::glCheckError_(const char * file, int line) {
     GLenum errorCode;
     while ((errorCode = glGetError()) != GL_NO_ERROR)
     {
-        thread_local std::string error;
+        static std::string error;
         switch (errorCode)
         {
             case 1280:                  error = "INVALID_ENUM"; break;

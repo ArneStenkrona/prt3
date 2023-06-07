@@ -17,6 +17,11 @@ class HTTPRequestHandler(server.SimpleHTTPRequestHandler):
     - log headers in GET request
     """
 
+    def end_headers(self):
+        self.send_header('Cross-Origin-Opener-Policy', 'same-origin')
+        self.send_header('Cross-Origin-Embedder-Policy', 'require-corp')
+        server.SimpleHTTPRequestHandler.end_headers(self)
+
     def do_GET(self):
         server.SimpleHTTPRequestHandler.do_GET(self)
         logging.warning(self.headers)

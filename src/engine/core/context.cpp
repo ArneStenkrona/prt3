@@ -44,8 +44,8 @@ void Context::load_scene_if_queued() {
     if (m_scene_manager.scene_queued()) {
         // auto start_time = std::chrono::high_resolution_clock::now();
 
-        thread_local std::unordered_set<ModelHandle> models_to_keep;
-        thread_local std::unordered_set<ModelHandle> models_to_delete;
+        static std::unordered_set<ModelHandle> models_to_keep;
+        static std::unordered_set<ModelHandle> models_to_delete;
 
         models_to_keep.insert(
             m_edit_scene.referenced_models().begin(),
@@ -60,7 +60,7 @@ void Context::load_scene_if_queued() {
 
         /* save autoload state */
         std::stringstream out_autoload;
-        thread_local std::vector<char> data;
+        static std::vector<char> data;
 
         for (UUID uuid : m_project.autoload_scripts()) {
             Script const * script = m_game_scene.get_autoload_script(uuid);

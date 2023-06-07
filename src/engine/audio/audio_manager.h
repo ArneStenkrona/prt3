@@ -40,7 +40,7 @@ struct MidiClip {
 
     MidiClipState state;
 
-    static constexpr size_t buffer_size = 8912; // needs to last a frame
+    static constexpr size_t buffer_size = 6400; // needs to last a frame
     std::array<char, buffer_size> buffer;
     size_t data_size = 0;
 };
@@ -87,6 +87,12 @@ private:
 
     void init();
 };
+
+void audio_thread_initialized(
+    EMSCRIPTEN_WEBAUDIO_T audio_context,
+    EM_BOOL success,
+    void * /*user_data*/
+);
 
 } // namespace prt3
 

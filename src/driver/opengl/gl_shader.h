@@ -4,8 +4,6 @@
 #include "src/driver/opengl/gl_utility.h"
 #include "src/util/hash_util.h"
 
-#include <SDL.h>
-
 #define GL_GLEXT_PROTOTYPES 1
 #include <GLES3/gl3.h>
 

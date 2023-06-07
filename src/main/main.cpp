@@ -1,9 +1,13 @@
 #include "src/engine/core/engine.h"
 #include "src/main/args.h"
+#include "src/engine/audio/audio_manager.h"
 
 #include "src/util/file_util.h"
+#include "src/util/log.h"
 
+#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#endif //  __EMSCRIPTEN__
 
 #include <functional>
 #include <iostream>

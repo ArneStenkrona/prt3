@@ -3,8 +3,6 @@
 #include "src/driver/opengl/gl_shader_utility.h"
 #include "src/driver/opengl/gl_utility.h"
 
-#include <SDL.h>
-
 using namespace prt3;
 
 GLPostProcessingPass::GLPostProcessingPass(

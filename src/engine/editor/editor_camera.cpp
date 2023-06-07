@@ -39,7 +39,7 @@ void EditorCamera::update(float delta_time,
 
     glm::vec3 front = m_camera.get_front();
     glm::vec3 right = m_camera.get_right();
-    if (!input.get_key(KeyCode::KEY_CODE_LSHIFT)) {
+    if (!input.get_key(KeyCode::KEY_CODE_LEFT_SHIFT)) {
         if (input.get_key(KeyCode::KEY_CODE_W))
             cam_tform.position += front * camera_speed;
         if (input.get_key(KeyCode::KEY_CODE_S))

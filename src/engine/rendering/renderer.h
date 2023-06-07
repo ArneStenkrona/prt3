@@ -12,7 +12,7 @@
 
 #include "imgui.h"
 
-#include <SDL.h>
+#include <GLFW/glfw3.h>
 
 #include <vector>
 
@@ -76,10 +76,6 @@ public:
         return m_render_backend->get_selected(x, y);
     }
 
-    void process_input_events(std::vector<SDL_Event> const & events) {
-        m_render_backend->process_input_events(events);
-    }
-
     Input & input() { return m_input; }
 
     int window_width() const { return m_window_width; }
@@ -88,7 +84,7 @@ public:
 
 private:
     RenderBackend * m_render_backend;
-    SDL_Window * m_window;
+    GLFWwindow * m_window;
     Input m_input;
 
     Context & m_context;

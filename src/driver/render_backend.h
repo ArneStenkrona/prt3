@@ -9,7 +9,7 @@
 #include "src/engine/rendering/postprocessing_pass.h"
 #include "src/engine/scene/node.h"
 
-#include <SDL.h>
+#include <GLFW/glfw3.h>
 
 #include <vector>
 
@@ -54,8 +54,6 @@ public:
         PostProcessingChain const & scene_chain,
         PostProcessingChain const & editor_chain
     ) = 0;
-
-    virtual void process_input_events(std::vector<SDL_Event> const & events) = 0;
 
     virtual NodeID get_selected(int x, int y) = 0;
 
