@@ -524,6 +524,11 @@ SceneManager & Scene::scene_manager() {
     return m_context->scene_manager();
 }
 
+AudioManager & Scene::audio_manager() {
+    return m_context->audio_manager();
+}
+
+
 void Scene::serialize(std::ostream & out) const {
     static std::unordered_map<NodeID, NodeID> compacted_ids;
     compacted_ids.clear();

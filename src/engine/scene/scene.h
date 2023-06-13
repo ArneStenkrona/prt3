@@ -27,6 +27,7 @@ namespace prt3 {
 class Context;
 class Editor;
 class SceneManager;
+class AudioManager;
 
 class Scene {
 public:
@@ -233,6 +234,7 @@ public:
     { return m_referenced_models; }
 
     SceneManager & scene_manager();
+    AudioManager & audio_manager();
 
     inline std::vector<NodeID> const & get_overlaps(NodeID node_id) const
     { return m_physics_system.get_overlaps(node_id); }

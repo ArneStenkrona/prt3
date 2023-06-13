@@ -139,5 +139,6 @@ void Engine::set_mode_game() {
 void Engine::set_mode_editor() {
     m_mode = EngineMode::editor;
     m_context.scene_manager().reset_queue();
+    m_context.audio_manager().stop_midi();
 }
 

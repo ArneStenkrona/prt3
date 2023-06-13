@@ -200,7 +200,9 @@ void AudioManager::queue_midi_stream(
     alGetSourcei(source, AL_BUFFERS_PROCESSED, &n_processed);
     CHECK_AL_ERRORS();
 
-    while (n_processed--) {
+    while (n_processed > 0) {
+        --n_processed;
+
         fill_midi_buffer(clip);
 
         ALuint buffer;
@@ -231,6 +233,11 @@ void AudioManager::queue_midi_stream(
 }
 
 MidiID AudioManager::load_midi(char const * path) {
+    auto it = m_path_to_midi.find(std::string(path));
+    if (it != m_path_to_midi.end()) {
+        return it->second;
+    }
+
     MidiID id;
     if (!m_free_midi_ids.empty()) {
         id = m_free_midi_ids.back();
@@ -247,6 +254,8 @@ MidiID AudioManager::load_midi(char const * path) {
         id = NO_MIDI;
     }
 
+    m_path_to_midi[path] = id;
+
     return id;
 }
 
@@ -254,9 +263,16 @@ void AudioManager::free_midi(MidiID id) {
     tml_free(m_midis[id]);
     m_midis[id] = nullptr;
     m_free_midi_ids.push_back(id);
+    m_path_to_midi.erase(m_midi_to_path.at(id));
+    m_midi_to_path.erase(id);
 }
 
 SoundFontID AudioManager::load_sound_font(char const * path) {
+    auto it = m_path_to_sound_font.find(std::string(path));
+    if (it != m_path_to_sound_font.end()) {
+        return it->second;
+    }
+
     SoundFontID id;
     if (!m_free_sound_font_ids.empty()) {
         id = m_free_sound_font_ids.back();
@@ -283,6 +299,8 @@ SoundFontID AudioManager::load_sound_font(char const * path) {
         0.0f
     );
 
+    m_path_to_sound_font[path] = id;
+
     return id;
 }
 
@@ -290,10 +308,14 @@ void AudioManager::free_sound_font(SoundFontID id) {
     tsf_close(m_sound_fonts[id]);
     m_sound_fonts[id] = nullptr;
     m_free_sound_font_ids.push_back(id);
+    m_path_to_sound_font.erase(m_sound_font_to_path.at(id));
+    m_sound_font_to_path.erase(id);
 }
 
 void AudioManager::play_midi(MidiID midi_id, SoundFontID sound_font_id) {
-    stop_midi();
+    if (m_current_track.midi_id != NO_MIDI) {
+        stop_midi();
+    }
 
     tml_message *curr = m_midis[midi_id];
 
@@ -302,25 +324,16 @@ void AudioManager::play_midi(MidiID midi_id, SoundFontID sound_font_id) {
         curr = curr->next;
     }
 
+    m_current_track.midi_id = midi_id;
     m_current_track.state.sound_font = m_sound_fonts[sound_font_id];
     m_current_track.state.msg_index = 0;
     m_current_track.state.midi_ms = 0.0;
 
-    for (size_t i = 0; i < n_track_buffers; ++i) {
-        alBufferData(
-            m_track_buffers[i],
-            AL_FORMAT_STEREO_FLOAT32,
-            m_current_track.buffer.data(),
-            1,
-            m_sample_rate
-        );
-    }
-
-    alSourceQueueBuffers(m_track_source, n_track_buffers, &m_track_buffers[0]);
-    alSourcePlay(m_track_source);
+    m_current_track.buffer = {};
 }
 
 void AudioManager::stop_midi() {
+    tsf_reset(m_current_track.state.sound_font);
     m_current_track = {};
 }
 
@@ -367,12 +380,17 @@ void AudioManager::init() {
     alSourcei(m_track_source, AL_LOOPING, AL_FALSE);
     CHECK_AL_ERRORS();
 
-    // TODO: remove >>>
-    MidiID midi = load_midi("assets/audio/tracks/maze.mid");
-    SoundFontID sf = load_sound_font("assets/audio/soundfonts/CT2MGM.sf2");
+    for (size_t i = 0; i < n_track_buffers; ++i) {
+        alBufferData(
+            m_track_buffers[i],
+            AL_FORMAT_STEREO_FLOAT32,
+            m_current_track.buffer.data(),
+            1,
+            m_sample_rate
+        );
+    }
 
-    play_midi(midi, sf);
-    // TODO: <<< remove
+    alSourceQueueBuffers(m_track_source, n_track_buffers, &m_track_buffers[0]);
 
     m_initialized = true;
 }

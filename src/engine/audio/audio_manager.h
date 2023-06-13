@@ -16,6 +16,7 @@
 
 #include <vector>
 #include <array>
+#include <string>
 
 struct tml_message;
 struct tsf;
@@ -30,12 +31,15 @@ typedef int32_t SoundFontID;
 constexpr MidiID NO_SOUND_FONT = -1;
 
 struct MidiClipState {
-    double midi_ms;
-    unsigned int msg_index;
+    double midi_ms = 0.0;
+    unsigned int msg_index = 0;
     tsf * sound_font;
 };
 
 struct MidiClip {
+    MidiID midi_id = NO_MIDI;
+    SoundFontID sound_font_id = NO_SOUND_FONT;
+
     std::vector<tml_message> messages;
 
     MidiClipState state;
@@ -52,7 +56,6 @@ public:
     AudioManager();
     ~AudioManager();
 
-    void update();
 
     MidiID load_midi(char const * path);
     void free_midi(MidiID id);
@@ -63,9 +66,15 @@ public:
     void play_midi(MidiID midi_id, SoundFontID sound_font_id);
     void stop_midi();
 
+    MidiID get_playing_midi() const { return m_current_track.midi_id; }
+    SoundFontID get_playing_sound_font() const
+    { return m_current_track.sound_font_id; }
+
 private:
     std::vector<tml_message*> m_midis;
     std::vector<MidiID> m_free_midi_ids;
+    std::unordered_map<std::string, MidiID> m_path_to_midi;
+    std::unordered_map<MidiID, std::string> m_midi_to_path;
 
     MidiClip m_current_track;
     static constexpr size_t n_track_buffers = 4;
@@ -74,12 +83,16 @@ private:
 
     std::vector<tsf*> m_sound_fonts;
     std::vector<SoundFontID> m_free_sound_font_ids;
+    std::unordered_map<std::string, SoundFontID> m_path_to_sound_font;
+    std::unordered_map<SoundFontID, std::string> m_sound_font_to_path;
 
     ALCcontext * m_al_context;
 
     unsigned int m_sample_rate;
 
     bool m_initialized = false;
+
+    void update();
 
     void update_current_track();
 
@@ -88,6 +101,8 @@ private:
     void queue_midi_stream(ALuint const source, MidiClip & clip);
 
     void init();
+
+    friend class Engine;
 };
 
 } // namespace prt3
