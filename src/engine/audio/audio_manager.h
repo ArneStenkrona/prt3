@@ -43,6 +43,8 @@ struct MidiClip {
     static constexpr size_t buffer_size = 6400; // needs to last a frame
     std::array<char, buffer_size> buffer;
     size_t data_size = 0;
+
+    bool looping = true;
 };
 
 class AudioManager {
@@ -66,7 +68,7 @@ private:
     std::vector<MidiID> m_free_midi_ids;
 
     MidiClip m_current_track;
-    static constexpr size_t n_track_buffers = 8;
+    static constexpr size_t n_track_buffers = 4;
     ALuint m_track_buffers[n_track_buffers];
     ALuint m_track_source;
 
@@ -87,12 +89,6 @@ private:
 
     void init();
 };
-
-void audio_thread_initialized(
-    EMSCRIPTEN_WEBAUDIO_T audio_context,
-    EM_BOOL success,
-    void * /*user_data*/
-);
 
 } // namespace prt3
 

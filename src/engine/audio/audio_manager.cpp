@@ -181,6 +181,11 @@ void AudioManager::fill_midi_buffer(
             msg = &clip.messages[state.msg_index];
         }
 
+        if (state.msg_index >= clip.messages.size() && clip.looping) {
+            state.msg_index = 0;
+            state.midi_ms = 0.0;
+        }
+
         // Render the block of audio samples in float format
         tsf_render_float(state.sound_font, (float*)stream, sample_block, 0);
         clip.data_size += sample_block * (2 * sizeof(float));
