@@ -78,7 +78,7 @@ bool GizmoManager::update() {
 void GizmoManager::update_input() {
     Input const & input = m_editor_context.context().input();
 
-    if (input.get_key(KEY_CODE_LSHIFT)) {
+    if (input.get_key(KEY_CODE_LEFT_SHIFT)) {
         // operation
         if (input.get_key_down(KEY_CODE_G)) {
             m_operation = ImGuizmo::TRANSLATE;

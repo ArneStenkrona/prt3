@@ -7,6 +7,7 @@
 #include "src/engine/component/door.h"
 #include "src/util/serialization_util.h"
 #include "src/engine/scene/scene_manager.h"
+#include "src/engine/audio/audio_manager.h"
 #include "src/engine/scene/prefab.h"
 
 #define GLM_FORCE_RADIANS
@@ -23,10 +24,14 @@ namespace prt3 {
 class GameState : public Script {
 public:
     explicit GameState(Scene & scene, NodeID node_id)
-        : Script(scene, node_id) {}
+        : Script(scene, node_id) {
+            init_resources(scene);
+        }
 
     explicit GameState(std::istream &, Scene & scene, NodeID m_node_id)
-        : Script(scene, m_node_id) {}
+        : Script(scene, m_node_id) {
+            init_resources(scene);
+        }
 
     virtual void on_start(Scene & scene) {
         glm::vec3 spawn_position;
@@ -67,6 +72,11 @@ public:
 
         cam.yaw() = m_cam_yaw;
         cam.pitch() = m_cam_pitch;
+
+        // play soundtrack
+        if (scene.audio_manager().get_playing_midi() != m_midi) {
+            scene.audio_manager().play_midi(m_midi, m_sound_font);
+        }
     }
 
     virtual void on_init(Scene &) {
@@ -94,6 +104,14 @@ public:
 
     void set_entry_door_id(DoorID id) { m_entry_door_id = id; }
 private:
+    void init_resources(Scene & scene) {
+        // sound
+        m_midi =
+            scene.audio_manager().load_midi("assets/audio/tracks/maze.mid");
+        m_sound_font =
+            scene.audio_manager().load_sound_font("assets/audio/soundfonts/CT2MGM.sf2");
+    }
+
     DoorID m_entry_door_id = 0;
 
     Prefab m_player_prefab{"assets/prefabs/player.prefab"};
@@ -103,6 +121,9 @@ private:
 
     float m_cam_yaw;
     float m_cam_pitch;
+
+    MidiID m_midi;
+    SoundFontID m_sound_font;
 
 REGISTER_SCRIPT(GameState, game_state, 11630114958491958378)
 };

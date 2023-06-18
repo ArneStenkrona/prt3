@@ -875,10 +875,11 @@ namespace imgui_addons
         return true;
     }
 
-    void ImGuiFileBrowser::filterFiles(int filter_mode)
+    void ImGuiFileBrowser::filterFiles(int /*filter_mode*/)
     {
         filter_dirty = false;
-        if(filter_mode | FilterMode_Dirs)
+        // if(filter_mode | FilterMode_Files)
+        if(true)
         {
             filtered_dirs.clear();
             for (std::vector<Info>::size_type i = 0; i < subdirs.size(); ++i)
@@ -887,7 +888,8 @@ namespace imgui_addons
                     filtered_dirs.push_back(&subdirs[i]);
             }
         }
-        if(filter_mode | FilterMode_Files)
+        // if(filter_mode | FilterMode_Files)
+        if(true)
         {
             filtered_files.clear();
             for (std::vector<Info>::size_type i = 0; i < subfiles.size(); ++i)

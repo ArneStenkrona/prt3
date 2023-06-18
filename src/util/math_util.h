@@ -26,6 +26,14 @@ namespace prt3 {
         ptr[n / 8] = ptr[n / 8] & ~(1 << n % 8);
     }
 
+    inline float wrap_max(float x, float max) {
+        return fmod(max + fmod(x, max), max);
+    }
+
+    inline float wrap_min_max(float x, float min, float max) {
+        return min + wrap_max(x - min, max - min);
+    }
+
 } // namespace prt3
 
 #endif // PRT3_MATH_UTIL_H

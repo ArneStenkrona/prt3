@@ -26,10 +26,8 @@ bool Engine::execute_frame() {
     Input & input = m_context.input();
     m_context.input().update();
 
-    EngineMode prev_mode = m_mode;
-
     if (input.get_key_down(KEY_CODE_TAB) &&
-        input.get_key(KEY_CODE_LALT)) {
+        input.get_key(KEY_CODE_LEFT_ALT)) {
         switch (m_mode) {
             case EngineMode::game: {
                 set_mode_editor();
@@ -42,14 +40,7 @@ bool Engine::execute_frame() {
         }
     }
 
-    if (m_mode == EngineMode::editor &&
-        prev_mode == EngineMode::editor) {
-        m_context
-            .renderer()
-            .process_input_events(m_context.input().event_queue());
-    }
-
-    thread_local RenderData render_data;
+    static RenderData render_data;
     render_data.clear();
     switch (m_mode) {
         case EngineMode::game: {
@@ -93,6 +84,8 @@ bool Engine::execute_frame() {
         }
     }
 
+    m_context.audio_manager().update();
+
     // loop end
     measure_duration();
 
@@ -124,7 +117,7 @@ void Engine::measure_duration() {
 
     Input & input = m_context.input();
     if (input.get_key_down(KEY_CODE_PERIOD) &&
-        input.get_key(KEY_CODE_LCTRL)) {
+        input.get_key(KEY_CODE_LEFT_CONTROL)) {
         m_print_framerate = !m_print_framerate;
     }
 
@@ -146,5 +139,6 @@ void Engine::set_mode_game() {
 void Engine::set_mode_editor() {
     m_mode = EngineMode::editor;
     m_context.scene_manager().reset_queue();
+    m_context.audio_manager().stop_midi();
 }
 

@@ -17,7 +17,7 @@ public:
     explicit FollowPlayer(std::istream &, Scene & scene, NodeID node_id)
         : Script(scene, node_id) {}
 
-    virtual void on_init(Scene & scene) {
+    virtual void on_late_init(Scene & scene) {
         m_target_id = scene.find_node_by_tag("player");
         m_path_dest =
             scene.get_node(node_id()).get_global_transform(scene).position;

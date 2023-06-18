@@ -24,6 +24,7 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/lib/imgui-filebrowser"
   "${PROJECT_SOURCE_DIR}/lib/ImGuizmo"
   "${PROJECT_SOURCE_DIR}/lib/hash-library"
+  "${PROJECT_SOURCE_DIR}/lib/stb_image"
 )
 
 file(GLOB SOURCES
@@ -41,6 +42,7 @@ file(GLOB SOURCES
 "src/driver/opengl/gl_source_buffers.cpp"
 "src/driver/opengl/gl_utility.cpp"
 "src/engine/animation/animation_system.cpp"
+"src/engine/audio/audio_manager.cpp"
 "src/engine/component/script/script.cpp"
 "src/engine/component/animated_mesh.cpp"
 "src/engine/component/animated_model.cpp"
@@ -98,7 +100,7 @@ file(GLOB SOURCES
 "src/util/mesh_util.cpp"
 # libs
 "lib/imgui/*.cpp"
-"lib/imgui/backends/imgui_impl_sdl.cpp"
+"lib/imgui/backends/imgui_impl_glfw.cpp"
 "lib/imgui/backends/imgui_impl_opengl3.cpp"
 "lib/imgui-filebrowser/*.cpp"
 "lib/imgui-filebrowser/dirent/*.cpp"
@@ -109,14 +111,12 @@ file(GLOB SOURCES
 
 add_subdirectory(lib/glm EXCLUDE_FROM_ALL)
 
-set(ASSIMP_NO_EXPORT ON)
-set(ASSIMP_BUILD_TESTS OFF)
-set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
-set(ASSIMP_BUILD_FBX_IMPORTER ON)
-add_subdirectory(lib/assimp EXCLUDE_FROM_ALL)
-
 # Add the executable
 add_executable(prt3 ${SOURCES})
+
+target_include_directories(prt3 SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/lib/tsf")
+
+include_directories("${OPENAL_INCLUDE_DIR}/AL")
 
 add_custom_target(copy_resources
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/resources ${CMAKE_CURRENT_BINARY_DIR}/
@@ -125,9 +125,15 @@ add_dependencies(prt3 copy_resources)
 
 # Wasm specific
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
-    set(CMAKE_CXX_FLAGS "-s USE_SDL=2 -s USE_SDL_IMAGE=2")
-    set_target_properties(prt3 PROPERTIES LINK_FLAGS "${CMAKE_LINK_FLAGS} -std=c++17 -MMD -MP -s USE_SDL=2 --use-preload-plugins -s USE_SDL_IMAGE=2 -s WASM=1 -sLLD_REPORT_UNDEFINED -sASSERTIONS --pre-js settings.js -sALLOW_MEMORY_GROWTH -s DISABLE_EXCEPTION_CATCHING=1 -s SDL2_IMAGE_FORMATS='[\"bmp\",\"png\"]' -sMAX_WEBGL_VERSION=2 -sGL_PREINITIALIZED_CONTEXT -s TOTAL_MEMORY=323813376 -sWASM_BIGINT -sERROR_ON_WASM_CHANGES_AFTER_LINK -O1 -sFORCE-FILESYSTEM")
+    set(CMAKE_CXX_FLAGS "-s USE_ZLIB=1")
+    set_target_properties(prt3 PROPERTIES LINK_FLAGS "${CMAKE_LINK_FLAGS} -std=c++17 --use-preload-plugins -s WASM=1 -sASSERTIONS=1 --pre-js settings.js -s DISABLE_EXCEPTION_CATCHING=1 -s MIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sGL_PREINITIALIZED_CONTEXT=1 -s TOTAL_MEMORY=323813376 -sALLOW_MEMORY_GROWTH -sWASM_BIGINT -sERROR_ON_WASM_CHANGES_AFTER_LINK -O1 -sFORCE-FILESYSTEM -lopenal -s USE_ZLIB=1 -sUSE_GLFW=3 -sSTACK_SIZE=5MB")
 endif ()
+
+set(ASSIMP_NO_EXPORT ON)
+set(ASSIMP_BUILD_TESTS OFF)
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
+set(ASSIMP_BUILD_FBX_IMPORTER ON)
+add_subdirectory(lib/assimp EXCLUDE_FROM_ALL)
 
 IF (WIN32)
   # TODO
@@ -138,9 +144,9 @@ ELSE()
 ENDIF()
 
 # Set compiler flags
-target_compile_options(prt3 PUBLIC -Wall -Wextra -o2 -g -fsanitize=address -fno-omit-frame-pointer)
-target_link_options(prt3 PUBLIC -Wall -Wextra -o2 -g -fsanitize=address -fno-omit-frame-pointer)
+target_compile_options(prt3 PUBLIC -Wall -Wextra -o2 -g -fno-omit-frame-pointer)
+target_link_options(prt3 PUBLIC -Wall -Wextra -o2 -g -fno-omit-frame-pointer)
 # Link libraries
-target_link_libraries(prt3 assimp::assimp)
-target_link_libraries(prt3 glm)
-target_link_libraries(prt3 SDL2)
+target_link_libraries(prt3 PRIVATE assimp::assimp)
+target_link_libraries(prt3 PRIVATE glm)
+# target_link_libraries(prt3 PRIVATE ${OPENAL_LIBRARY})

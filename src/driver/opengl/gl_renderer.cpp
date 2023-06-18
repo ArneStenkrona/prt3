@@ -20,7 +20,7 @@
 using namespace prt3;
 
 GLRenderer::GLRenderer(
-    SDL_Window * window,
+    GLFWwindow * window,
     float downscale_factor
 )
  : m_window{window},
@@ -57,14 +57,14 @@ GLRenderer::GLRenderer(
     m_texture_manager.init();
     m_material_manager.init();
 
-    ImGui_ImplSDL2_InitForOpenGL(window, SDL_GL_GetCurrentContext());
+    ImGui_ImplGlfw_InitForOpenGL(m_window, true);
     glCheckError();
-    ImGui_ImplOpenGL3_Init();
+    ImGui_ImplOpenGL3_Init("#version 300 es");
     glCheckError();
 
     int w;
     int h;
-    SDL_GetWindowSize(m_window, &w, &h);
+    glfwGetWindowSize(m_window, &w, &h);
     glCheckError();
     GLint buffer_width = static_cast<GLint>(w / m_downscale_factor);
     GLint buffer_height = static_cast<GLint>(h / m_downscale_factor);
@@ -111,7 +111,7 @@ GLRenderer::~GLRenderer() {
     delete m_animated_selection_shader;
     delete m_transparency_blend_shader;
     ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
 }
 
 void GLRenderer::set_postprocessing_chains(
@@ -120,7 +120,7 @@ void GLRenderer::set_postprocessing_chains(
 ) {
     int w;
     int h;
-    SDL_GetWindowSize(m_window, &w, &h);
+    glfwGetWindowSize(m_window, &w, &h);
 
     m_scene_postprocessing_chain.set_chain(
         scene_chain,
@@ -138,7 +138,7 @@ void GLRenderer::set_postprocessing_chains(
 NodeID GLRenderer::get_selected(int x, int y) {
     int w;
     int h;
-    SDL_GetWindowSize(m_window, &w, &h);
+    glfwGetWindowSize(m_window, &w, &h);
 
     glFlush();
     glFinish();
@@ -169,7 +169,7 @@ NodeID GLRenderer::get_selected(int x, int y) {
 
 void GLRenderer::prepare_imgui_rendering() {
     ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL2_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
 }
 
 void GLRenderer::render(RenderData const & render_data, bool editor) {
@@ -193,7 +193,7 @@ void GLRenderer::render(RenderData const & render_data, bool editor) {
         render_imgui();
     }
 
-    SDL_GL_SwapWindow(m_window);
+    glfwSwapBuffers(m_window);
     glCheckError();
 
     ++m_frame;
@@ -229,7 +229,7 @@ void GLRenderer::render_framebuffer(
     // Bind the framebuffer
     int w;
     int h;
-    SDL_GetWindowSize(m_window, &w, &h);
+    glfwGetWindowSize(m_window, &w, &h);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
     glCheckError();
     glViewport(0, 0,
@@ -280,10 +280,10 @@ void GLRenderer::render_framebuffer(
     if (type != PassType::selection) {
         auto const & materials = m_material_manager.materials();
 
-        thread_local std::unordered_map<GLShader const *, std::vector<MeshRenderData> >
+        static std::unordered_map<GLShader const *, std::vector<MeshRenderData> >
             shader_queues;
 
-        thread_local std::unordered_map<GLShader const *, std::vector<AnimatedMeshRenderData> >
+        static std::unordered_map<GLShader const *, std::vector<AnimatedMeshRenderData> >
             animated_shader_queues;
 
         for (auto & pair : shader_queues) {

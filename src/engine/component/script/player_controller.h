@@ -21,8 +21,8 @@ public:
     virtual void update_input(Scene & scene, float /*delta_time*/) {
         Input & input = scene.get_input();
 
-        m_input.run = input.get_key(KeyCode::KEY_CODE_LSHIFT);
-        m_input.attack = input.get_key_down(KeyCode::KEY_CODE_RETURN);
+        m_input.run = input.get_key(KeyCode::KEY_CODE_LEFT_SHIFT);
+        m_input.attack = input.get_key_down(KeyCode::KEY_CODE_ENTER);
         m_input.jump = input.get_key_down(KeyCode::KEY_CODE_SPACE);
 
         glm::vec2 raw_input_dir{0.0f};

@@ -3,7 +3,8 @@
 #include "src/driver/opengl/gl_utility.h"
 #include "src/util/log.h"
 
-#include <SDL_image.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 #include <cassert>
 
@@ -37,13 +38,14 @@ GLuint GLTextureManager::retrieve_texture(char const * path, GLuint default_text
 
 void GLTextureManager::load_texture(char const * path) {
     if (path[0] != '\0') {
-        SDL_Surface * image = IMG_Load(path);
+        int width, height, channels;
+        unsigned char * image = stbi_load(path, &width, &height, &channels, 0);
 
         if (image) {
             GLuint texture_handle;
             // TODO: proper format detection
             GLenum format = 0;
-            switch (image->format->BytesPerPixel) {
+            switch (channels) {
                 case 1: {
                     format = GL_LUMINANCE;
                     break;
@@ -75,13 +77,13 @@ void GLTextureManager::load_texture(char const * path) {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glCheckError();
 
-            glTexImage2D(GL_TEXTURE_2D, 0, format, image->w, image->h, 0,
-                         format, GL_UNSIGNED_BYTE, image->pixels);
+            glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0,
+                         format, GL_UNSIGNED_BYTE, image);
             glCheckError();
             glGenerateMipmap(GL_TEXTURE_2D);
             glCheckError();
 
-            SDL_FreeSurface(image);
+            stbi_image_free(image);
 
             m_textures.emplace(
                 std::make_pair(path, texture_handle)
@@ -92,7 +94,6 @@ void GLTextureManager::load_texture(char const * path) {
         } else {
             // TODO: proper error handling
             PRT3ERROR("failed to load tecture at path \"%s\".\n", path);
-            PRT3ERROR("IMG_Load: %s.\n", IMG_GetError());
         }
     } else {
         // No texture path

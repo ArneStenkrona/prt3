@@ -89,9 +89,9 @@ bool Scene::remove_node(NodeID id) {
         }
     }
 
-    thread_local std::vector<NodeID> queue;
+    static std::vector<NodeID> queue;
     queue.push_back(id);
-    thread_local std::vector<NodeID> to_free_list;
+    static std::vector<NodeID> to_free_list;
     to_free_list.clear();
 
     while (!queue.empty()) {
@@ -124,7 +124,7 @@ bool Scene::remove_node(NodeID id) {
 
 std::string Scene::get_node_path(NodeID id) const {
     NodeID curr_id = id;
-    thread_local std::string path;
+    static std::string path;
     path = "";
     while (curr_id != NO_NODE) {
         path = "/" + (get_node_name(curr_id).data() + path);
@@ -176,7 +176,7 @@ void Scene::find_relative_path(
     }
     lca = a_curr_id;
 
-    thread_local std::vector<int32_t> reverse;
+    static std::vector<int32_t> reverse;
     reverse.resize(0);
 
     NodeID curr_id = b_id;
@@ -281,7 +281,7 @@ void Scene::collect_world_render_data(
     for (Animation const & animation : animations) {
         BoneData & bone_data = world_data.bone_data[bone_data_i];
 
-        assert(animation.transforms.size() < bone_data.size());
+        assert(animation.transforms.size() < bone_data.bones.size());
 
         for (size_t i = 0; i < animation.transforms.size(); ++i) {
             bone_data.bones[i] = animation.transforms[i];
@@ -293,9 +293,9 @@ void Scene::collect_world_render_data(
     std::vector<Transform> const & global_transforms =
         m_transform_cache.global_transforms();
 
-    thread_local std::unordered_set<NodeID> selected_incl_children;
+    static std::unordered_set<NodeID> selected_incl_children;
     selected_incl_children.clear();
-    thread_local std::vector<NodeID> queue;
+    static std::vector<NodeID> queue;
     if (selected != NO_NODE) {
         queue.push_back(selected);
     }
@@ -524,8 +524,13 @@ SceneManager & Scene::scene_manager() {
     return m_context->scene_manager();
 }
 
+AudioManager & Scene::audio_manager() {
+    return m_context->audio_manager();
+}
+
+
 void Scene::serialize(std::ostream & out) const {
-    thread_local std::unordered_map<NodeID, NodeID> compacted_ids;
+    static std::unordered_map<NodeID, NodeID> compacted_ids;
     compacted_ids.clear();
     compacted_ids[NO_NODE] = NO_NODE;
 

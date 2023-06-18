@@ -40,9 +40,9 @@ void Editor::update(float delta_time) {
         }
     }
 
-    if (input.get_key(KEY_CODE_LCTRL)){
+    if (input.get_key(KEY_CODE_LEFT_CONTROL)){
         if (input.get_key_down(KEY_CODE_Z)) {
-            if (input.get_key(KEY_CODE_LSHIFT)) {
+            if (input.get_key(KEY_CODE_LEFT_SHIFT)) {
                 m_action_manager.redo();
             } else {
                 m_action_manager.undo();
