@@ -59,6 +59,11 @@ bool Engine::execute_frame() {
             );
 
             m_context.renderer().render(render_data, false);
+
+            m_context.audio_manager().update(
+                scene.get_camera().transform(),
+                scene.m_transform_cache.global_transforms().data()
+            );
             break;
         }
         case EngineMode::editor: {
@@ -83,8 +88,6 @@ bool Engine::execute_frame() {
             break;
         }
     }
-
-    m_context.audio_manager().update();
 
     // loop end
     measure_duration();

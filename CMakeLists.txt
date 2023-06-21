@@ -1,8 +1,8 @@
 cmake_minimum_required (VERSION 3.14.4)
-project (prt3)
+project(prt3)
 
 # Set C++ language version to C++17
-set (CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 17)
 
 # Set relase/debug
 set(CMAKE_BUILD_TYPE release)
@@ -25,6 +25,7 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/lib/ImGuizmo"
   "${PROJECT_SOURCE_DIR}/lib/hash-library"
   "${PROJECT_SOURCE_DIR}/lib/stb_image"
+  "${PROJECT_SOURCE_DIR}/lib/minivorbis"
 )
 
 file(GLOB SOURCES
@@ -43,6 +44,7 @@ file(GLOB SOURCES
 "src/driver/opengl/gl_utility.cpp"
 "src/engine/animation/animation_system.cpp"
 "src/engine/audio/audio_manager.cpp"
+"src/engine/audio/include_vorbis.c"
 "src/engine/component/script/script.cpp"
 "src/engine/component/animated_mesh.cpp"
 "src/engine/component/animated_model.cpp"

@@ -2,6 +2,8 @@
 
 #include "src/util/log.h"
 
+#include "minivorbis.h"
+
 #define TSF_IMPLEMENTATION
 #include "tsf.h"
 #define TML_IMPLEMENTATION
@@ -68,11 +70,26 @@ AudioManager::~AudioManager() {
     alDeleteBuffers(n_track_buffers, &m_track_buffers[0]);
     CHECK_AL_ERRORS();
 
+    for (SoundSource & source : m_sound_sources) {
+        if (!source.active) continue;
+
+        alDeleteSources(1, &source.source);
+        CHECK_AL_ERRORS();
+        alDeleteBuffers(SoundSource::n_buffers, &source.buffers[0]);
+        CHECK_AL_ERRORS();
+    }
+
     ALCdevice * device = alcGetContextsDevice(m_al_context);
     alcDestroyContext(m_al_context);
     CHECK_AL_ERRORS();
     alcCloseDevice(device);
     CHECK_AL_ERRORS();
+
+
+    for (auto const & pair : m_audio_to_path) {
+        AudioID id = pair.first;
+        ov_clear(&m_audio_clips[id]);
+    }
 
     for (tml_message * msg : m_midis) {
         if (msg != nullptr) {
@@ -87,17 +104,217 @@ AudioManager::~AudioManager() {
     }
 }
 
-void AudioManager::update() {
-    if (!m_initialized) {
-        init();
+SoundSourceID AudioManager::create_sound_source(NodeID node_id) {
+    MidiID id;
+    if (!m_free_sound_source_ids.empty()) {
+        id = m_free_sound_source_ids.back();
+        m_free_sound_source_ids.pop_back();
     } else {
-        update_current_track();
+        id = m_sound_sources.size();
+        m_sound_sources.push_back({});
+    }
+
+    SoundSource & source = m_sound_sources[id];
+    source.active = true;
+    source.section = 0;
+    source.node_id = node_id;
+    source.audio_id = NO_AUDIO;
+    source.playing = false;
+    source.looping = false;
+    source.pitch = 1.0f;
+    source.gain = 1.0f;
+
+    if (m_initialized) {
+        init_sound_source(id);
+    }
+
+    return id;
+}
+
+void AudioManager::free_sound_source(SoundSourceID id) {
+    SoundSource & source = m_sound_sources[id];
+    source.active = false;
+    alDeleteSources(1, &source.source);
+    CHECK_AL_ERRORS();
+    alDeleteBuffers(SoundSource::n_buffers, &source.buffers[0]);
+    CHECK_AL_ERRORS();
+}
+
+void AudioManager::play_sound_source(
+    SoundSourceID id,
+    AudioID audio_id,
+    bool looping
+) {
+    m_sound_sources[id].audio_id = audio_id;
+    m_sound_sources[id].playing = true;
+    m_sound_sources[id].looping = looping;
+}
+
+void AudioManager::stop_sound_source(SoundSourceID id) {
+    m_sound_sources[id].playing = false;
+}
+
+void AudioManager::set_sound_source_pitch(SoundSourceID id, float pitch) {
+    m_sound_sources[id].pitch = pitch;
+    if (m_initialized) {
+        alSourcef(m_sound_sources[id].source, AL_PITCH, pitch);
     }
 }
 
+void AudioManager::set_sound_source_gain(SoundSourceID id, float gain) {
+    m_sound_sources[id].pitch = gain;
+    if (m_initialized) {
+        alSourcef(m_sound_sources[id].source, AL_GAIN, gain);
+    }
+}
+
+AudioID AudioManager::load_audio(char const * path) {
+    auto it = m_path_to_audio.find(std::string(path));
+    if (it != m_path_to_audio.end()) {
+        return it->second;
+    }
+
+    FILE * fp = fopen(path, "rb");
+    if(!fp) {
+        PRT3ERROR("Failed to open Ogg file '%s'.", path);
+        return NO_AUDIO;
+    }
+
+    MidiID id;
+    if (!m_free_audio_ids.empty()) {
+        id = m_free_audio_ids.back();
+        m_free_audio_ids.pop_back();
+    } else {
+        id = m_audio_clips.size();
+        m_audio_clips.push_back({});
+    }
+
+    OggVorbis_File & vorbis = m_audio_clips[id];
+
+    if(ov_open_callbacks(fp, &vorbis, NULL, 0, OV_CALLBACKS_DEFAULT) != 0) {
+        PRT3ERROR("Invalid Ogg file '%s'.", path);
+        fclose(fp);
+        return NO_AUDIO;
+    }
+
+    fclose(fp);
+
+    m_audio_to_path[id] = path;
+    m_path_to_audio[path] = id;
+    return id;
+}
+
+void AudioManager::free_audio(AudioID id) {
+    ov_clear(&m_audio_clips[id]);
+    m_free_audio_ids.push_back(id);
+    m_path_to_audio.erase(m_audio_to_path.at(id));
+    m_audio_to_path.erase(id);
+}
+
+void AudioManager::update(
+    Transform const & camera_transform,
+    Transform const * transforms
+) {
+    if (!m_initialized) {
+        init();
+        return;
+    }
+
+    glm::vec3 const & cam_pos = camera_transform.position;
+    glm::vec3 const & cam_front = camera_transform.get_front();
+    alListener3f(AL_POSITION, cam_pos.x, cam_pos.y, cam_pos.z);
+    float orientation[6] =
+        {cam_front.x, cam_front.y, cam_front.z, 0.0f, 1.0f, 0.0f};
+    alListenerfv(AL_ORIENTATION, orientation);
+
+    update_sound_sources(transforms);
+    update_current_track();
+}
+
+void AudioManager::update_sound_sources(Transform const * transforms) {
+    for (SoundSource & source : m_sound_sources) {
+        if (!source.active) continue;
+        if (!source.playing) continue;
+        if (source.audio_id == NO_AUDIO) continue;
+
+        glm::vec3 const & pos = transforms[source.node_id].position;
+        alSource3f(source.source, AL_POSITION, pos.x, pos.y, pos.z);
+
+        OggVorbis_File & audio = m_audio_clips[source.audio_id];
+        vorbis_info* info = ov_info(&audio, -1);
+
+        ALint n_processed = 0;
+        alGetSourcei(source.source, AL_BUFFERS_PROCESSED, &n_processed);
+        CHECK_AL_ERRORS();
+
+         char buf[6400];
+        while (n_processed > 0) {
+            --n_processed;
+
+            long n_bytes =
+                ov_read(&audio, &buf[0], sizeof(buf), 0, 2, 1, &source.section);
+
+            if (n_bytes <= 0) {
+                if (source.looping) {
+                    /* TODO: looping could be improved by immediately decoding
+                     *       the beginning of the audio on the same frame as
+                     *       the audio ends.
+                     */
+                    source.section = 0;
+
+                    n_bytes = ov_read(
+                        &audio,
+                        &buf[0],
+                        sizeof(buf),
+                        0,
+                        2,
+                        1,
+                        &source.section
+                    );
+
+                    if (n_bytes <= 0) break;
+                } else {
+                    source.playing = false;
+                    break;
+                }
+            }
+
+            ALuint buffer;
+            alSourceUnqueueBuffers(source.source, 1, &buffer);
+            CHECK_AL_ERRORS();
+
+
+            ALint format = info->channels == 1 ?
+                AL_FORMAT_STEREO_FLOAT32 :
+                AL_FORMAT_MONO_FLOAT32;
+
+            alBufferData(
+                buffer,
+                format,
+                buf,
+                n_bytes,
+                info->rate
+            );
+            CHECK_AL_ERRORS();
+
+            alSourceQueueBuffers(source.source, 1, &buffer);
+            CHECK_AL_ERRORS();
+        }
+
+        ALint state;
+        alGetSourcei(source.source, AL_SOURCE_STATE, &state);
+        CHECK_AL_ERRORS();
+
+        if (state != AL_PLAYING) {
+            alSourcePlay(source.source);
+            CHECK_AL_ERRORS();
+        }
+    }
+}
+
+
 void AudioManager::update_current_track() {
     if (m_current_track.messages.empty()) return;
-
     queue_midi_stream(m_track_source, m_current_track);
 }
 
@@ -254,8 +471,8 @@ MidiID AudioManager::load_midi(char const * path) {
         id = NO_MIDI;
     }
 
+    m_midi_to_path[id] = path;
     m_path_to_midi[path] = id;
-
     return id;
 }
 
@@ -299,8 +516,8 @@ SoundFontID AudioManager::load_sound_font(char const * path) {
         0.0f
     );
 
+    m_sound_font_to_path[id] = path;
     m_path_to_sound_font[path] = id;
-
     return id;
 }
 
@@ -369,15 +586,17 @@ void AudioManager::init() {
 
     alGenSources(1, &m_track_source);
     CHECK_AL_ERRORS();
-    alSourcef(m_track_source, AL_PITCH, 1);
+    alSourcef(m_track_source, AL_PITCH, 1.0f);
     CHECK_AL_ERRORS();
     alSourcef(m_track_source, AL_GAIN, 1.0f);
     CHECK_AL_ERRORS();
-    alSource3f(m_track_source, AL_POSITION, 0, 0, 0);
+    alSource3f(m_track_source, AL_POSITION, 0.0f, 0.0f, 0.0f);
     CHECK_AL_ERRORS();
-    alSource3f(m_track_source, AL_VELOCITY, 0, 0, 0);
+    alSource3f(m_track_source, AL_VELOCITY, 0.0f, 0.0f, 0.0f);
     CHECK_AL_ERRORS();
     alSourcei(m_track_source, AL_LOOPING, AL_FALSE);
+    CHECK_AL_ERRORS();
+    alSourcei(m_track_source, AL_ROLLOFF_FACTOR, 0.0f);
     CHECK_AL_ERRORS();
 
     for (size_t i = 0; i < n_track_buffers; ++i) {
@@ -392,5 +611,44 @@ void AudioManager::init() {
 
     alSourceQueueBuffers(m_track_source, n_track_buffers, &m_track_buffers[0]);
 
+    for (SoundSourceID id = 0;
+         id < static_cast<SoundSourceID>(m_sound_sources.size());
+         ++id
+    ) {
+        if (m_sound_sources[id].active) {
+            init_sound_source(id);
+        }
+    }
+
     m_initialized = true;
+}
+
+void AudioManager::init_sound_source(SoundSourceID id) {
+    SoundSource & source = m_sound_sources[id];
+
+    alGenSources(1, &source.source);
+    alSourcef(source.source, AL_PITCH, source.pitch);
+    alSourcef(source.source, AL_GAIN, source.gain);
+    alSource3f(source.source, AL_POSITION, 0.0f, 0.0f, 0.0f);
+    alSource3f(source.source, AL_VELOCITY, 0.0f, 0.0f, 0.0f);
+    alSourcei(source.source, AL_LOOPING, AL_FALSE);
+
+    alGenBuffers(SoundSource::n_buffers, &source.buffers[0]);
+
+    uint32_t zero = 0x0;
+    for (size_t i = 0; i < SoundSource::n_buffers; ++i) {
+        alBufferData(
+            source.buffers[i],
+            AL_FORMAT_STEREO_FLOAT32,
+            &zero,
+            1,
+            m_sample_rate
+        );
+    }
+
+    alSourceQueueBuffers(
+        source.source,
+        SoundSource::n_buffers,
+        &source.buffers[0]
+    );
 }

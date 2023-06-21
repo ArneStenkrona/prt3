@@ -1,6 +1,9 @@
 #ifndef PRT3_AUDIO_MANAGER_H
 #define PRT3_AUDIO_MANAGER_H
 
+#include "src/engine/component/transform.h"
+#include "src/engine/scene/node.h"
+
 #include <AL/al.h>
 #ifdef __EMSCRIPTEN__
 // workaround: emscripten implements this ext but does not define the macros
@@ -18,11 +21,16 @@
 #include <array>
 #include <string>
 
+struct OggVorbis_File;
 struct tml_message;
 struct tsf;
 
 namespace prt3 {
 
+class Scene;
+
+typedef int32_t SoundSourceID;
+constexpr SoundSourceID NO_SOUND_SOURCE = -1;
 typedef int32_t AudioID;
 constexpr AudioID NO_AUDIO = -1;
 typedef int32_t MidiID;
@@ -56,6 +64,18 @@ public:
     AudioManager();
     ~AudioManager();
 
+    SoundSourceID create_sound_source(NodeID node_id);
+    void free_sound_source(SoundSourceID id);
+    void play_sound_source(SoundSourceID id, AudioID audio_id, bool looping);
+    void stop_sound_source(SoundSourceID id);
+    void set_sound_source_pitch(SoundSourceID id, float pitch);
+    void set_sound_source_gain(SoundSourceID id, float gain);
+
+    /**
+     * Only supports loading ogg vorbis
+     */
+    AudioID load_audio(char const * path);
+    void free_audio(AudioID id);
 
     MidiID load_midi(char const * path);
     void free_midi(MidiID id);
@@ -71,6 +91,33 @@ public:
     { return m_current_track.sound_font_id; }
 
 private:
+    struct SoundSource {
+        bool active; // allocated or freed?
+
+        static constexpr size_t n_buffers = 2;
+        ALuint buffers[n_buffers];
+        ALuint source;
+
+        NodeID node_id;
+        AudioID audio_id;
+
+        int section;
+
+        bool playing;
+        bool looping;
+
+        float pitch;
+        float gain;
+    };
+
+    std::vector<SoundSource> m_sound_sources;
+    std::vector<SoundSourceID> m_free_sound_source_ids;
+
+    std::vector<OggVorbis_File> m_audio_clips;
+    std::vector<AudioID> m_free_audio_ids;
+    std::unordered_map<std::string, AudioID> m_path_to_audio;
+    std::unordered_map<AudioID, std::string> m_audio_to_path;
+
     std::vector<tml_message*> m_midis;
     std::vector<MidiID> m_free_midi_ids;
     std::unordered_map<std::string, MidiID> m_path_to_midi;
@@ -92,7 +139,14 @@ private:
 
     bool m_initialized = false;
 
-    void update();
+    void update(
+        Transform const & camera_transform,
+        Transform const * transforms
+    );
+
+    void update_sound_sources(
+        Transform const * transforms
+    );
 
     void update_current_track();
 
@@ -101,6 +155,8 @@ private:
     void queue_midi_stream(ALuint const source, MidiClip & clip);
 
     void init();
+
+    void init_sound_source(SoundSourceID id);
 
     friend class Engine;
 };
