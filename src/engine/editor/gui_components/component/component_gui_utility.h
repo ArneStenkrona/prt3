@@ -80,6 +80,15 @@ bool display_value<int32_t>(char const * label, int32_t & val) {
 }
 
 template<>
+bool display_value<float>(char const * label, float & val) {
+    return ImGui::InputScalar(
+        label,
+        ImGuiDataType_Float,
+        &val
+    );
+}
+
+template<>
 bool display_value<glm::vec3>(char const * label, glm::vec3 & val) {
     float* vecp = reinterpret_cast<float*>(&val);
     return ImGui::InputFloat3(

@@ -13,6 +13,7 @@
 #include "src/engine/component/navigation_mesh.h"
 #include "src/engine/component/point_light.h"
 #include "src/engine/component/script_set.h"
+#include "src/engine/component/sound_source.h"
 #include "src/util/template_util.h"
 
 #include <vector>
@@ -138,7 +139,8 @@ using ComponentTypes = type_pack<
     AnimatedMesh,
     Armature,
     Door,
-    NavigationMeshComponent
+    NavigationMeshComponent,
+    SoundSourceComponent
 >;
 
 using ComponentStoragesType = wrap_arg_pack_in_storage<std::tuple, ComponentTypes>::type;
