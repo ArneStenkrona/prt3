@@ -2,8 +2,6 @@
 
 #include "src/util/log.h"
 
-#include "minivorbis.h"
-
 #define TSF_IMPLEMENTATION
 #include "tsf.h"
 #define TML_IMPLEMENTATION
@@ -45,6 +43,8 @@ bool check_al_errors(char const * filename, int line)
     return true;
 }
 
+static AudioManager * s_am_ptr = nullptr;
+
 AudioManager::AudioManager() {
 #ifdef __EMSCRIPTEN__
     m_sample_rate = EM_ASM_INT({
@@ -58,6 +58,16 @@ AudioManager::AudioManager() {
 #else //__EMSCRIPTEN__
     m_sample_rate = 44100;
 #endif //__EMSCRIPTEN__
+
+    if (s_am_ptr != nullptr) {
+        PRT3ERROR("Expected only one instance of AudioManager.\n");
+    }
+    s_am_ptr = this;
+
+    m_ov_callbacks.read_func = audio_read_func;
+    m_ov_callbacks.seek_func = audio_seek_func;
+    m_ov_callbacks.close_func = audio_close_func;
+    m_ov_callbacks.tell_func = audio_tell_func;
 }
 
 AudioManager::~AudioManager() {
@@ -77,6 +87,9 @@ AudioManager::~AudioManager() {
         CHECK_AL_ERRORS();
         alDeleteBuffers(SoundSource::n_buffers, &source.buffers[0]);
         CHECK_AL_ERRORS();
+        if (source.audio_id != NO_AUDIO) {
+            ov_clear(&source.file);
+        }
     }
 
     ALCdevice * device = alcGetContextsDevice(m_al_context);
@@ -84,12 +97,6 @@ AudioManager::~AudioManager() {
     CHECK_AL_ERRORS();
     alcCloseDevice(device);
     CHECK_AL_ERRORS();
-
-
-    for (auto const & pair : m_audio_to_path) {
-        AudioID id = pair.first;
-        ov_clear(&m_audio_clips[id]);
-    }
 
     for (tml_message * msg : m_midis) {
         if (msg != nullptr) {
@@ -138,6 +145,9 @@ void AudioManager::free_sound_source(SoundSourceID id) {
     CHECK_AL_ERRORS();
     alDeleteBuffers(SoundSource::n_buffers, &source.buffers[0]);
     CHECK_AL_ERRORS();
+    if (source.audio_id != NO_AUDIO) {
+        ov_clear(&source.file);
+    }
 }
 
 void AudioManager::play_sound_source(
@@ -145,9 +155,23 @@ void AudioManager::play_sound_source(
     AudioID audio_id,
     bool looping
 ) {
-    m_sound_sources[id].audio_id = audio_id;
-    m_sound_sources[id].playing = true;
-    m_sound_sources[id].looping = looping;
+    SoundSource & source = m_sound_sources[id];
+
+    if (source.audio_id != NO_AUDIO) {
+        ov_clear(&source.file);
+    }
+
+    source.audio_id = audio_id;
+    source.playing = true;
+    source.looping = looping;
+
+    source.section = 0;
+    source.pos = 0;
+
+    void * void_id = reinterpret_cast<void*>(static_cast<intptr_t>(id+1));
+    if(ov_open_callbacks(void_id, &source.file, NULL, 0, m_ov_callbacks) != 0) {
+        PRT3ERROR("Invalid Ogg file '%s'.", m_audio_to_path.at(audio_id).c_str());
+    }
 }
 
 void AudioManager::stop_sound_source(SoundSourceID id) {
@@ -162,10 +186,63 @@ void AudioManager::set_sound_source_pitch(SoundSourceID id, float pitch) {
 }
 
 void AudioManager::set_sound_source_gain(SoundSourceID id, float gain) {
-    m_sound_sources[id].pitch = gain;
+    m_sound_sources[id].gain = gain;
     if (m_initialized) {
         alSourcef(m_sound_sources[id].source, AL_GAIN, gain);
     }
+}
+
+size_t AudioManager::audio_read_func(
+    void * ptr,
+    size_t size,
+    size_t nmemb,
+    void * void_id
+) {
+    SoundSourceID id =
+        static_cast<SoundSourceID>(reinterpret_cast<intptr_t>(void_id)) - 1;
+    SoundSource & source = s_am_ptr->m_sound_sources[id];
+    AudioClip & clip = s_am_ptr->m_audio_clips[source.audio_id];
+    size_t n_bytes = std::min(clip.data.size() - source.pos, size * nmemb);
+    memcpy(ptr, &clip.data[source.pos], n_bytes);
+    source.pos += n_bytes;
+    return n_bytes;
+}
+
+int AudioManager::audio_seek_func(void * void_id, int64_t offset, int whence) {
+    SoundSourceID id =
+        static_cast<SoundSourceID>(reinterpret_cast<intptr_t>(void_id)) - 1;
+    SoundSource & source = s_am_ptr->m_sound_sources[id];
+    AudioClip & clip = s_am_ptr->m_audio_clips[source.audio_id];
+    int64_t new_pos;
+
+    switch (whence) {
+        case SEEK_CUR: {
+            new_pos = source.pos + offset;
+            break;
+        }
+        case SEEK_END: {
+            new_pos = static_cast<int64_t>(clip.data.size()) + offset;
+            break;
+        }
+        case SEEK_SET:
+        default: {
+            new_pos = offset;
+        }
+    }
+
+    if (new_pos < 0 || new_pos > static_cast<int64_t>(clip.data.size())) {
+        return -1;
+    }
+
+    source.pos = static_cast<size_t>(new_pos);
+    return 0;
+}
+
+long AudioManager::audio_tell_func(void * void_id) {
+    SoundSourceID id =
+        static_cast<SoundSourceID>(reinterpret_cast<intptr_t>(void_id)) - 1;
+    SoundSource & source = s_am_ptr->m_sound_sources[id];
+    return static_cast<long>(source.pos);
 }
 
 AudioID AudioManager::load_audio(char const * path) {
@@ -189,13 +266,14 @@ AudioID AudioManager::load_audio(char const * path) {
         m_audio_clips.push_back({});
     }
 
-    OggVorbis_File & vorbis = m_audio_clips[id];
+    fseek(fp, 0l, SEEK_END);
+    size_t n_bytes = ftell(fp);
+    fseek(fp, 0l, SEEK_SET);
 
-    if(ov_open_callbacks(fp, &vorbis, NULL, 0, OV_CALLBACKS_DEFAULT) != 0) {
-        PRT3ERROR("Invalid Ogg file '%s'.", path);
-        fclose(fp);
-        return NO_AUDIO;
-    }
+    AudioClip & clip = m_audio_clips[id];
+    clip.data.resize(n_bytes);
+
+    fread(clip.data.data(), 1, n_bytes, fp);
 
     fclose(fp);
 
@@ -205,7 +283,8 @@ AudioID AudioManager::load_audio(char const * path) {
 }
 
 void AudioManager::free_audio(AudioID id) {
-    ov_clear(&m_audio_clips[id]);
+    m_audio_clips[id].data.clear();
+    m_audio_clips[id].data.shrink_to_fit();
     m_free_audio_ids.push_back(id);
     m_path_to_audio.erase(m_audio_to_path.at(id));
     m_audio_to_path.erase(id);
@@ -240,59 +319,90 @@ void AudioManager::update_sound_sources(Transform const * transforms) {
         glm::vec3 const & pos = transforms[source.node_id].position;
         alSource3f(source.source, AL_POSITION, pos.x, pos.y, pos.z);
 
-        OggVorbis_File & audio = m_audio_clips[source.audio_id];
-        vorbis_info* info = ov_info(&audio, -1);
+        OggVorbis_File & audio = source.file;
 
         ALint n_processed = 0;
         alGetSourcei(source.source, AL_BUFFERS_PROCESSED, &n_processed);
         CHECK_AL_ERRORS();
 
-         char buf[6400];
+        static constexpr int buf_length = 4096;
+        float buf[buf_length * 2]; // * 2 due to possibly stereo
+
+        vorbis_info* info = ov_info(&audio, -1);
+
         while (n_processed > 0) {
             --n_processed;
 
-            long n_bytes =
-                ov_read(&audio, &buf[0], sizeof(buf), 0, 2, 1, &source.section);
+            size_t read_bytes = 0;
+            size_t read_samples = 0;
+            bool reading = true;
+            while (reading) {
+                float ** buf_ptr = nullptr;
 
-            if (n_bytes <= 0) {
-                if (source.looping) {
-                    /* TODO: looping could be improved by immediately decoding
-                     *       the beginning of the audio on the same frame as
-                     *       the audio ends.
-                     */
-                    source.section = 0;
+                int64_t total = ov_pcm_total(&audio, -1);
+                int64_t pos = ov_pcm_tell(&audio);
 
-                    n_bytes = ov_read(
+                if (pos >= total) {
+                    if (source.looping) {
+                        source.section = 0;
+                        ov_time_seek(&audio, 0.0f);
+                    } else {
+                        source.playing = false;
+                    }
+                }
+
+                pos = ov_pcm_tell(&audio);
+                int len = std::min(512, static_cast<int>(total - pos));
+
+                if (len <= 0) {
+                    break;
+                }
+
+                long n_samples =
+                    ov_read_float(
                         &audio,
-                        &buf[0],
-                        sizeof(buf),
-                        0,
-                        2,
-                        1,
+                        &buf_ptr,
+                        len,
                         &source.section
                     );
 
-                    if (n_bytes <= 0) break;
-                } else {
-                    source.playing = false;
+                if (n_samples < 0) {
                     break;
                 }
+
+                auto n_bytes = n_samples * 4 * info->channels;
+                if (info->channels == 1) {
+                    memcpy(&buf[0] + read_samples, &buf_ptr[0][0], n_bytes);
+                } else {
+                    unsigned n_samples_ui = static_cast<unsigned>(n_samples);
+                    for (unsigned i = 0; i < n_samples_ui; ++i) {
+                        buf[2*(i + read_samples)] = buf_ptr[0][i];
+                        buf[2*(i + read_samples)+1] = buf_ptr[1][i];
+                    }
+                }
+                read_bytes += n_bytes;
+                read_samples += n_samples;
+                reading = read_samples < buf_length && source.playing;
+            }
+
+            if (read_samples <= 0) {
+                PRT3ERROR("Failed to read ogg audio.\n");
+                break;
             }
 
             ALuint buffer;
             alSourceUnqueueBuffers(source.source, 1, &buffer);
             CHECK_AL_ERRORS();
 
-
             ALint format = info->channels == 1 ?
-                AL_FORMAT_STEREO_FLOAT32 :
-                AL_FORMAT_MONO_FLOAT32;
+                AL_FORMAT_MONO_FLOAT32 :
+                AL_FORMAT_STEREO_FLOAT32;
 
             alBufferData(
                 buffer,
                 format,
-                buf,
-                n_bytes,
+                &buf[0],
+                read_bytes,
                 info->rate
             );
             CHECK_AL_ERRORS();

@@ -37,8 +37,8 @@ private:
     NodeID m_node_id;
     SoundSourceID m_sound_source_id;
 
-    float m_pitch;
-    float m_gain;
+    float m_pitch = 1.0f;
+    float m_gain = 1.0f;
 
     void remove(Scene & scene);
 

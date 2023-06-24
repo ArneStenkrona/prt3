@@ -35,6 +35,11 @@ public:
         m_hit_timer = m_hit_cooldown;
 
         m_child_id = scene.get_node(node_id()).children_ids().front();
+
+        m_bell_audio_id =
+            scene
+            .audio_manager()
+            .load_audio("assets/audio/sfx/environment/bell.ogg");
     }
 
     virtual void on_update(Scene & scene, float delta_time) {
@@ -91,6 +96,17 @@ public:
             m_d_phi = phi_dir * magnitude;
 
             m_hit_timer = 0.0f;
+
+            /* sound */
+            SoundSourceComponent & source =
+                scene.get_component<SoundSourceComponent>(node_id());
+
+            scene.audio_manager()
+                 .play_sound_source(
+                    source.audio_source_id(),
+                    m_bell_audio_id,
+                    false
+                );
         }
 
         m_theta = wrap_min_max(m_theta, -glm::pi<float>(), glm::pi<float>());
@@ -119,6 +135,8 @@ private:
     static constexpr float g = -9.8f;
 
     NodeID m_child_id;
+
+    AudioID m_bell_audio_id;
 
 REGISTER_SCRIPT(Bell, bell, 14192787994163871465)
 };

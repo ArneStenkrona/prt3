@@ -81,8 +81,11 @@ void inner_show_component<SoundSourceComponent>(
     float gain = comp.gain();
 
     bool changed = false;
+
+    ImGui::PushItemWidth(160);
     changed |= display_value("pitch", pitch);
     changed |= display_value("gain", gain);
+    ImGui::PopItemWidth();
 
     if (changed) {
         context.editor()

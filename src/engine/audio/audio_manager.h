@@ -4,6 +4,8 @@
 #include "src/engine/component/transform.h"
 #include "src/engine/scene/node.h"
 
+#include "minivorbis.h"
+
 #include <AL/al.h>
 #ifdef __EMSCRIPTEN__
 // workaround: emscripten implements this ext but does not define the macros
@@ -108,15 +110,24 @@ private:
 
         float pitch;
         float gain;
+
+        OggVorbis_File file;
+        size_t pos;
+    };
+
+    struct AudioClip {
+        std::vector<char> data;
     };
 
     std::vector<SoundSource> m_sound_sources;
     std::vector<SoundSourceID> m_free_sound_source_ids;
 
-    std::vector<OggVorbis_File> m_audio_clips;
+    std::vector<AudioClip> m_audio_clips;
     std::vector<AudioID> m_free_audio_ids;
     std::unordered_map<std::string, AudioID> m_path_to_audio;
     std::unordered_map<AudioID, std::string> m_audio_to_path;
+
+    ov_callbacks m_ov_callbacks;
 
     std::vector<tml_message*> m_midis;
     std::vector<MidiID> m_free_midi_ids;
@@ -157,6 +168,17 @@ private:
     void init();
 
     void init_sound_source(SoundSourceID id);
+
+    static size_t audio_read_func(
+        void * ptr,
+        size_t size,
+        size_t nmemb,
+        void * void_id
+    );
+
+    static int audio_seek_func(void * void_id, int64_t offset, int whence);
+    static int audio_close_func(void * /*void_id*/) { return 0; /* ignored */ }
+    static long audio_tell_func(void * void_id);
 
     friend class Engine;
 };
