@@ -23,7 +23,7 @@ public:
     void set_gain(Scene & scene, float gain);
 
     NodeID node_id() const { return m_node_id; }
-    SoundSourceID audio_source_id() const { return m_sound_source_id; }
+    SoundSourceID sound_source_id() const { return m_sound_source_id; }
 
     void serialize(
         std::ostream & out,

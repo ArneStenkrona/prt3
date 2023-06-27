@@ -160,8 +160,14 @@ private:
     int m_cursor_dx;
     int m_cursor_dy;
 
+    GLFWwindow * m_window = nullptr;
+
     void init(GLFWwindow * window);
     void update();
+
+    void set_mouse_capture(bool on)
+    { glfwSetInputMode(m_window, GLFW_CURSOR, on ? GLFW_CURSOR_DISABLED :
+                                                   GLFW_CURSOR_NORMAL); }
 
     friend class Renderer;
     friend class Engine;

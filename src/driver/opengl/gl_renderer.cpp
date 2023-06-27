@@ -57,7 +57,7 @@ GLRenderer::GLRenderer(
     m_texture_manager.init();
     m_material_manager.init();
 
-    ImGui_ImplGlfw_InitForOpenGL(m_window, true);
+    ImGui_ImplGlfw_InitForOpenGL(m_window, false);
     glCheckError();
     ImGui_ImplOpenGL3_Init("#version 300 es");
     glCheckError();

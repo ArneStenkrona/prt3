@@ -66,6 +66,7 @@ static void mouse_button_callback(
 }
 
 void Input::init(GLFWwindow * window) {
+    m_window = window;
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);

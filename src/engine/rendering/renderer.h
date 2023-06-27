@@ -10,7 +10,7 @@
 #include "src/driver/render_backend.h"
 #include "src/engine/core/input.h"
 
-#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
 
 #include <GLFW/glfw3.h>
 
@@ -94,6 +94,14 @@ private:
     float m_downscale_factor;
 
     void set_window_size(int w, int h);
+
+    void on_mode_game()
+    { ImGui_ImplGlfw_RestoreCallbacks(m_window); }
+
+    void on_mode_editor()
+    { ImGui_ImplGlfw_InstallCallbacks(m_window); }
+
+    friend class Engine;
 };
 
 } // namespace prt3

@@ -90,7 +90,7 @@ public:
                 theta_dir = -theta_dir;
             }
 
-            float magnitude = 1.0f;
+            float magnitude = glm::lerp(0.25f, 0.5f, m_pitch_factor - 1.0f);
 
             m_d_theta = theta_dir * magnitude;
             m_d_phi = phi_dir * magnitude;
@@ -101,12 +101,16 @@ public:
             SoundSourceComponent & source =
                 scene.get_component<SoundSourceComponent>(node_id());
 
-            scene.audio_manager()
-                 .play_sound_source(
-                    source.audio_source_id(),
-                    m_bell_audio_id,
-                    false
-                );
+            scene.audio_manager().set_sound_source_pitch(
+                source.sound_source_id(),
+                m_pitch_factor
+            );
+
+            scene.audio_manager().play_sound_source(
+                source.sound_source_id(),
+                m_bell_audio_id,
+                false
+            );
         }
 
         m_theta = wrap_min_max(m_theta, -glm::pi<float>(), glm::pi<float>());
@@ -122,12 +126,14 @@ private:
     float m_theta;
     float m_phi;
 
-    float m_clamp_theta = 0.75f * glm::pi<float>();
+    float m_clamp_theta = 0.25f * glm::pi<float>();
 
     float m_d_theta;
     float m_d_phi;
 
     float m_dampening = 0.9f;
+
+    float m_pitch_factor = 1.0f;
 
     float m_hit_timer;
     float m_hit_cooldown = 0.5f;
@@ -138,7 +144,9 @@ private:
 
     AudioID m_bell_audio_id;
 
-REGISTER_SCRIPT(Bell, bell, 14192787994163871465)
+REGISTER_SCRIPT_BEGIN(Bell, bell, 14192787994163871465)
+REGISTER_SERIALIZED_FIELD(m_pitch_factor)
+REGISTER_SCRIPT_END()
 };
 
 } // namespace prt3

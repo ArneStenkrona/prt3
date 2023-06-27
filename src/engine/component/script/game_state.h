@@ -74,9 +74,9 @@ public:
         cam.pitch() = m_cam_pitch;
 
         // play soundtrack
-        if (scene.audio_manager().get_playing_midi() != m_midi) {
-            scene.audio_manager().play_midi(m_midi, m_sound_font);
-        }
+        // if (scene.audio_manager().get_playing_midi() != m_midi) {
+        //     scene.audio_manager().play_midi(m_midi, m_sound_font);
+        // }
     }
 
     virtual void on_init(Scene &) {

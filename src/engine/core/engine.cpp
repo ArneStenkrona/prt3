@@ -137,11 +137,15 @@ void Engine::set_mode_game() {
     m_context.game_scene()
         .add_autoload_scripts(m_context.project().autoload_scripts());
     m_context.game_scene().start();
+    m_context.renderer().on_mode_game();
+    m_context.input().set_mouse_capture(true);
 }
 
 void Engine::set_mode_editor() {
     m_mode = EngineMode::editor;
     m_context.scene_manager().reset_queue();
     m_context.audio_manager().stop_midi();
+    m_context.renderer().on_mode_editor();
+    m_context.input().set_mouse_capture(false);
 }
 

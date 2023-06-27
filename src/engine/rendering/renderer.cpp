@@ -4,8 +4,6 @@
 
 #include "src/engine/core/context.h"
 
-#include "imgui_internal.h"
-
 using namespace prt3;
 
 Renderer::Renderer(
