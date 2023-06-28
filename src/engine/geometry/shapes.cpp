@@ -80,7 +80,7 @@ glm::vec3 calculate_furthest_point(SweptCapsule const & swept,
     if (max_dist == dist_b) return swept.b + swept.radius * dir;
     if (max_dist == dist_c) return swept.c + swept.radius * dir;
 
-    return swept.d * swept.radius * dir;
+    return swept.d + swept.radius * dir;
 }
 
 } // namespace prt3
