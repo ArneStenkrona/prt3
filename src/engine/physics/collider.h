@@ -19,6 +19,7 @@ enum ShapeEnum : uint8_t {
     mesh,
     sphere,
     box,
+    capsule,
     total_num_collider_shape
 };
 
@@ -197,6 +198,43 @@ public:
 private:
     glm::vec3 m_dimensions;
     glm::vec3 m_center;
+
+    CollisionLayer m_layer;
+    CollisionLayer m_mask;
+    bool m_layer_changed = false;
+    mutable bool m_changed = true;
+
+    friend class PhysicsSystem;
+};
+
+class CapsuleCollider {
+public:
+    static constexpr ColliderShape shape = ColliderShape::capsule;
+
+    CapsuleCollider() {}
+    CapsuleCollider(Capsule const & capsule)
+     : m_base_shape{capsule} {}
+
+    Capsule get_shape(Transform const & transform) const {
+        glm::mat4 mat = transform.to_matrix();
+        float radius = m_base_shape.radius * glm::compMax(transform.scale);
+        return { glm::vec3{mat * glm::vec4{m_base_shape.start, 1.0f}},
+                 glm::vec3{mat * glm::vec4{m_base_shape.end, 1.0f}},
+                 radius };
+    }
+    Capsule const & base_shape() const { return m_base_shape; }
+    void set_base_shape(Capsule const & shape)
+    { m_base_shape = shape; m_changed = true; }
+
+    CollisionLayer get_layer() const { return m_layer; }
+    void set_layer(CollisionLayer layer)
+    { m_layer = layer; m_layer_changed = true; }
+    CollisionLayer get_mask() const { return m_mask; }
+    void set_mask(CollisionLayer mask)
+    { m_mask = mask; }
+
+private:
+    Capsule m_base_shape;
 
     CollisionLayer m_layer;
     CollisionLayer m_mask;

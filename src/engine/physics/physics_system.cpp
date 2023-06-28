@@ -76,6 +76,23 @@ ColliderTag PhysicsSystem::add_sphere_collider(
     return tag;
 }
 
+ColliderTag PhysicsSystem::add_capsule_collider(
+    NodeID node_id,
+    ColliderType type,
+    Capsule const & capsule,
+    Transform const & transform
+) {
+    ColliderTag tag = create_capsule_collider(
+        capsule,
+        transform,
+        type
+    );
+    m_tags[node_id] = tag;
+    m_node_ids[tag] = node_id;
+
+    return tag;
+}
+
 ColliderTag PhysicsSystem::add_box_collider(
     NodeID node_id,
     ColliderType type,
@@ -108,6 +125,10 @@ void PhysicsSystem::remove_collider(ColliderTag tag) {
         }
         case ColliderShape::box: {
             container.boxes.map.erase(tag.id);
+            break;
+        }
+        case ColliderShape::capsule: {
+            container.capsules.map.erase(tag.id);
             break;
         }
         default: {
@@ -157,6 +178,13 @@ CollisionResult PhysicsSystem::move_and_collide(
             );
             break;
         }
+        case ColliderShape::capsule: {
+            CapsuleCollider const & col = m_colliders.capsules.map[tag.id];
+            res = move_and_collide<CapsuleCollider, Capsule>(
+                scene, tag, col, movement, transform
+            );
+            break;
+        }
         default: {}
     }
     node.set_global_transform(scene, transform);
@@ -179,6 +207,11 @@ CollisionResult PhysicsSystem::move_and_collide(
             case ColliderShape::box: {
                 aabb = m_colliders.boxes.map[tag.id].get_shape(transform).aabb();
                 layer = m_colliders.boxes.map[tag.id].get_layer();
+                break;
+            }
+            case ColliderShape::capsule: {
+                aabb = m_colliders.capsules.map[tag.id].get_shape(transform).aabb();
+                layer = m_colliders.capsules.map[tag.id].get_layer();
                 break;
             }
             default: { assert(false && "Invalid collision shape"); return res; }
@@ -403,6 +436,34 @@ ColliderTag PhysicsSystem::create_box_collider(
     return tag;
 }
 
+ColliderTag PhysicsSystem::create_capsule_collider(
+    Capsule const & capsule,
+    Transform const & transform,
+    ColliderType type
+) {
+    ColliderContainer & container = get_container(type);
+
+    ColliderTag tag;
+    tag.shape = ColliderShape::capsule;
+    tag.id = container.capsules.next_id;
+    tag.type = type;
+    ++container.capsules.next_id;
+
+    container.capsules.map[tag.id] = CapsuleCollider{capsule};
+    CapsuleCollider & col = container.capsules.map.at(tag.id);
+    col.set_layer(1 << 0);
+    col.set_mask(1 << 0);
+
+    container.aabb_tree.insert(
+        tag,
+        col.get_layer(),
+        col.get_shape(transform).aabb()
+    );
+
+    return tag;
+}
+
+
 Node & PhysicsSystem::get_node(Scene & scene, NodeID node_id) {
     return scene.get_node(node_id);
 }
@@ -421,6 +482,8 @@ void PhysicsSystem::clear() {
     m_colliders.spheres.next_id = 0;
     m_colliders.boxes.map.clear();
     m_colliders.boxes.next_id = 0;
+    m_colliders.capsules.map.clear();
+    m_colliders.capsules.next_id = 0;
 
     m_colliders.aabb_tree.clear();
 
@@ -430,6 +493,8 @@ void PhysicsSystem::clear() {
     m_areas.spheres.next_id = 0;
     m_areas.boxes.map.clear();
     m_areas.boxes.next_id = 0;
+    m_areas.capsules.map.clear();
+    m_areas.capsules.next_id = 0;
 
     m_areas.aabb_tree.clear();
 }
@@ -527,6 +592,29 @@ void PhysicsSystem::update(
             }
         }
 
+        for (auto & pair : container.capsules.map) {
+            ColliderTag tag;
+            tag.id = pair.first;
+            tag.shape = ColliderShape::capsule;
+            tag.type = type;
+            NodeID id = m_node_ids.at(tag);
+
+            CapsuleCollider & col = pair.second;
+
+            Transform const & t_curr = transforms[id];
+            Transform const & t_hist = transforms_history[id];
+
+            bool stale = col.m_layer_changed || t_curr != t_hist;
+
+            if (stale) {
+                packages.push_back({
+                    tag,
+                    col.get_layer(),
+                    col.get_shape(t_curr).aabb()
+                });
+            }
+        }
+
         container.aabb_tree.update(
             packages.data(),
             packages.size()
@@ -575,6 +663,20 @@ void PhysicsSystem::update_areas(
         ColliderTag tag;
         tag.id = pair.first;
         tag.shape = ColliderShape::box;
+        tag.type = ColliderType::area;
+        get_overlaps(
+            tag,
+            pair.second,
+            transforms,
+            transforms_history,
+            overlaps
+        );
+    }
+
+    for (auto & pair : m_areas.capsules.map) {
+        ColliderTag tag;
+        tag.id = pair.first;
+        tag.shape = ColliderShape::capsule;
         tag.type = ColliderType::area;
         get_overlaps(
             tag,
@@ -812,6 +914,176 @@ void PhysicsSystem::update_box_data(
     }
 }
 
+void PhysicsSystem::update_capsule_data(
+    Renderer & renderer,
+    ColliderType type
+) {
+    ColliderContainer const & container = get_container(type);
+
+    for (auto const & pair : container.capsules.map) {
+        auto const & collider = pair.second;
+        if (collider.m_changed) {
+            ColliderTag tag;
+            tag.id = pair.first;
+            tag.shape = ColliderShape::capsule;
+            tag.type = type;
+
+            // It might be easer to just have one shape for all spheres
+            // and modify the model matrix, but when capsule colliders
+            // are implemented it makes sense to create unique meshes
+            // for all
+            thread_local std::vector<glm::vec3> lines;
+            unsigned int n = 64;
+            lines.resize(n);
+            float d_theta = (2.0f * glm::pi<float>()) / n;
+            float pi = glm::pi<float>();
+            float half_pi = glm::half_pi<float>();
+
+            glm::vec3 const & start = collider.base_shape().start;
+            glm::vec3 const & end = collider.base_shape().end;
+            float r = collider.base_shape().radius;
+
+            float l = glm::length(end - start);
+
+            glm::vec3 up = glm::vec3{0.0f, 1.0f, 0.0f};
+            glm::vec3 e0 = l == 0.0f ? up : glm::normalize(end - start);
+            glm::vec3 temp = glm::length(glm::cross(e0, up)) > 0.01f ?
+                up : glm::vec3{1.0f, 0.0f, 0.0f};
+            glm::vec3 e1 = glm::cross(e0, temp);
+            glm::vec3 e2 = glm::cross(e0, e1);
+
+            glm::mat4 tform = glm::lookAt(
+                glm::vec3{0.0f},
+                e2,
+                e0
+            );
+
+            for (unsigned int i = 0; i < n; ++i) {
+                float theta_a = d_theta * i;
+                float theta_b = theta_a + d_theta;
+                glm::vec3 a = tform * glm::vec4{r * cos(theta_a), 0.0f, r * sin(theta_a), 1.0f};
+                glm::vec3 b = tform * glm::vec4{r * cos(theta_b), 0.0f, r * sin(theta_b), 1.0f};
+                a += start;
+                b += start;
+
+                lines.push_back(a);
+                lines.push_back(b);
+            }
+
+            for (unsigned int i = 0; i < n; ++i) {
+                float theta_a = d_theta * i;
+                float theta_b = theta_a + d_theta;
+                glm::vec3 a = tform * glm::vec4{r * cos(theta_a), l, r * sin(theta_a), 1.0f};
+                glm::vec3 b = tform * glm::vec4{r * cos(theta_b), l, r * sin(theta_b), 1.0f};
+                a += start;
+                b += start;
+
+                lines.push_back(a);
+                lines.push_back(b);
+            }
+
+            for (unsigned int i = 0; i < n / 2; ++i) {
+                float theta_a = pi + d_theta * i;
+                float theta_b = theta_a + d_theta;
+                glm::vec3 a = tform * glm::vec4{r * cos(theta_a), r * sin(theta_a), 0.0f, 1.0f};
+                glm::vec3 b = tform * glm::vec4{r * cos(theta_b), r * sin(theta_b), 0.0f, 1.0f};
+                a += start;
+                b += start;
+
+                lines.push_back(a);
+                lines.push_back(b);
+            }
+
+            for (unsigned int i = 0; i < n / 2; ++i) {
+                float theta_a = d_theta * i;
+                float theta_b = theta_a + d_theta;
+                glm::vec3 a = tform * glm::vec4{r * cos(theta_a), r * sin(theta_a) + l, 0.0f, 1.0f};
+                glm::vec3 b = tform * glm::vec4{r * cos(theta_b), r * sin(theta_b) + l, 0.0f, 1.0f};
+                a += start;
+                b += start;
+
+                lines.push_back(a);
+                lines.push_back(b);
+            }
+
+            for (unsigned int i = 0; i < n / 2; ++i) {
+                float theta_a = half_pi + d_theta * i;
+                float theta_b = theta_a + d_theta;
+                glm::vec3 a = tform * glm::vec4{0.0f, r * cos(theta_a), r * sin(theta_a), 1.0f};
+                glm::vec3 b = tform * glm::vec4{0.0f, r * cos(theta_b), r * sin(theta_b), 1.0f};
+                a += start;
+                b += start;
+
+                lines.push_back(a);
+                lines.push_back(b);
+            }
+
+            for (unsigned int i = 0; i < n / 2; ++i) {
+                float theta_a = -half_pi + d_theta * i;
+                float theta_b = theta_a + d_theta;
+                glm::vec3 a = tform * glm::vec4{0.0f, r * cos(theta_a) + l, r * sin(theta_a), 1.0f};
+                glm::vec3 b = tform * glm::vec4{0.0f, r * cos(theta_b) + l, r * sin(theta_b), 1.0f};
+                a += start;
+                b += start;
+
+                lines.push_back(a);
+                lines.push_back(b);
+            }
+
+            {
+                glm::vec3 a = tform * glm::vec4{r, 0.0f, 0.0f, 1.0f};
+                glm::vec3 b = tform * glm::vec4{r, l, 0.0f, 1.0f};
+                a += start;
+                b += start;
+
+                lines.push_back(a);
+                lines.push_back(b);
+            }
+
+            {
+                glm::vec3 a = tform * glm::vec4{-r, 0.0f, 0.0f, 1.0f};
+                glm::vec3 b = tform * glm::vec4{-r, l, 0.0f, 1.0f};
+                a += start;
+                b += start;
+
+                lines.push_back(a);
+                lines.push_back(b);
+            }
+
+            {
+                glm::vec3 a = tform * glm::vec4{0.0f, 0.0f, r, 1.0f};
+                glm::vec3 b = tform * glm::vec4{0.0f, l, r, 1.0f};
+                a += start;
+                b += start;
+
+                lines.push_back(a);
+                lines.push_back(b);
+            }
+
+            {
+                glm::vec3 a = tform * glm::vec4{0.0f, 0.0f, -r, 1.0f};
+                glm::vec3 b = tform * glm::vec4{0.0f, l, -r, 1.0f};
+                a += start;
+                b += start;
+
+                lines.push_back(a);
+                lines.push_back(b);
+            }
+
+            if (m_collider_meshes.find(tag) == m_collider_meshes.end()) {
+                m_collider_meshes[tag] =
+                    renderer.upload_line_mesh(lines.data(), lines.size());
+            } else {
+                renderer.update_line_mesh(
+                    m_collider_meshes.at(tag), lines.data(), lines.size()
+                );
+            }
+
+            collider.m_changed = false;
+        }
+    }
+}
+
 void PhysicsSystem::collect_render_data(
     Renderer & renderer,
     Transform const * transforms,
@@ -828,6 +1100,7 @@ void PhysicsSystem::collect_render_data(
         update_mesh_data(renderer, type);
         update_sphere_data(renderer, type);
         update_box_data(renderer, type);
+        update_capsule_data(renderer, type);
     }
 
     if (selected == NO_NODE) {
@@ -835,8 +1108,8 @@ void PhysicsSystem::collect_render_data(
         data.line_data.resize(i + m_tags.size());
         for (auto const & pair : m_tags) {
             data.line_data[i].mesh_id = m_collider_meshes.at(pair.second);
-            // NOTE: this is incorrect for spheres, since the collider
-            //       transforms the sphere radius according to
+            // NOTE: this is incorrect for spheres/capsules, since the collider
+            //       transforms the radius according to
             //       compMax(transform.scale) * radius. Sphere radii
             //       are one dimensional, hence this limitation.
             // TODO: resolve this discrepancy

@@ -220,6 +220,21 @@ void ColliderComponent::set_collider(
     );
 }
 
+void ColliderComponent::set_collider(
+    Scene & scene,
+    ColliderType type,
+    Capsule const & capsule
+) {
+    PhysicsSystem & sys = scene.physics_system();
+    sys.remove_collider(m_tag);
+    m_tag = sys.add_capsule_collider(
+        m_node_id,
+        type,
+        capsule,
+        scene.get_node(m_node_id).get_global_transform(scene)
+    );
+}
+
 void ColliderComponent::serialize(
     std::ostream & out,
     Scene const & scene
@@ -250,6 +265,11 @@ void ColliderComponent::serialize(
             BoxCollider const & col = sys.get_box_collider(m_tag.id, m_tag.type);
             write_stream(out, col.dimensions());
             write_stream(out, col.center());
+            break;
+        }
+        case ColliderShape::capsule: {
+            CapsuleCollider const & col = sys.get_capsule_collider(m_tag.id, m_tag.type);
+            out << col.base_shape();
             break;
         }
         default: {}
@@ -315,6 +335,17 @@ void ColliderComponent::deserialize(
                 type,
                 dimensions,
                 center,
+                scene.get_node(m_node_id).get_global_transform(scene)
+            );
+            break;
+        }
+        case ColliderShape::capsule: {
+            Capsule capsule;
+            in >> capsule;
+            m_tag = sys.add_capsule_collider(
+                m_node_id,
+                type,
+                capsule,
                 scene.get_node(m_node_id).get_global_transform(scene)
             );
             break;

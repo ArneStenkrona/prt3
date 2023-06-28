@@ -72,7 +72,26 @@ struct Triangle {
     }
 };
 
-struct SweptSphere {
+struct SweptCapsule {
+    glm::vec3 a;
+    glm::vec3 b;
+    glm::vec3 c;
+    glm::vec3 d;
+    float radius;
+
+    AABB aabb() const {
+        glm::vec3 min = glm::min(a, b);
+        min = glm::min(min, c);
+        min = glm::min(min, d);
+        glm::vec3 max = glm::max(a, b);
+        max = glm::max(max, c);
+        max = glm::max(max, d);
+        return { min - glm::vec3{radius},
+                 max + glm::vec3{radius} };
+    }
+};
+
+struct Capsule {
     glm::vec3 start;
     glm::vec3 end;
     float radius;
@@ -83,14 +102,24 @@ struct SweptSphere {
         return { min - glm::vec3{radius},
                  max + glm::vec3{radius} };
     }
+
+    SweptCapsule sweep(glm::vec3 const & translation) const {
+        return SweptCapsule{
+            start,
+            end,
+            start + translation,
+            end + translation,
+            radius
+        };
+    }
 };
 
 struct Sphere {
     glm::vec3 position;
     float radius;
 
-    SweptSphere sweep(glm::vec3 const & translation) const {
-        return SweptSphere{ position, position + translation, radius };
+    Capsule sweep(glm::vec3 const & translation) const {
+        return Capsule{ position, position + translation, radius };
     }
 
     AABB aabb() const {
@@ -114,6 +143,26 @@ inline std::istream & operator >> (
 ) {
     read_stream(in, sphere.position);
     read_stream(in, sphere.radius);
+    return in;
+}
+
+inline std::ostream & operator << (
+    std::ostream & out,
+    Capsule const & capsule
+) {
+    write_stream(out, capsule.start);
+    write_stream(out, capsule.end);
+    write_stream(out, capsule.radius);
+    return out;
+}
+
+inline std::istream & operator >> (
+    std::istream & in,
+    Capsule & capsule
+) {
+    read_stream(in, capsule.start);
+    read_stream(in, capsule.end);
+    read_stream(in, capsule.radius);
     return in;
 }
 
@@ -152,6 +201,8 @@ struct DiscreteConvexHull {
 };
 
 
+
+
 glm::vec3 calculate_furthest_point(Triangle const & triangle,
                                    glm::vec3 const & direction);
 
@@ -161,7 +212,10 @@ glm::vec3 calculate_furthest_point(SweptTriangle const & swept_triangle,
 glm::vec3 calculate_furthest_point(Sphere const & sphere,
                                    glm::vec3 const & direction);
 
-glm::vec3 calculate_furthest_point(SweptSphere const & swept_sphere,
+glm::vec3 calculate_furthest_point(Capsule const & capsule,
+                                   glm::vec3 const & direction);
+
+glm::vec3 calculate_furthest_point(SweptCapsule const & swept_capsule,
                                    glm::vec3 const & direction);
 
 template<size_t N>

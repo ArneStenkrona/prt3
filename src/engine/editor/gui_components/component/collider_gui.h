@@ -162,18 +162,20 @@ void inner_show_component<ColliderComponent>(
     ImGui::PushItemWidth(160);
 
     /* shape */
-    static char const * shapes[] = { "mesh", "sphere", "box" };
+    static char const * shapes[] = { "mesh", "sphere", "box", "capsule" };
     static ColliderShape shapes_enum[] = {
         ColliderShape::mesh,
         ColliderShape::sphere,
         ColliderShape::box,
+        ColliderShape::capsule,
     };
 
     static int enum_to_index[] = {
-        -1, // ColliderShape::none,
-         0, // ColliderShape::mesh,
-         1, // ColliderShape::sphere,
-         2  // ColliderShape::box
+        -1, // ColliderShape::none
+         0, // ColliderShape::mesh
+         1, // ColliderShape::sphere
+         2,  // ColliderShape::box
+         3  // ColliderShape::capsule
     };
 
     static int current_shape = 0;
@@ -239,6 +241,23 @@ void inner_show_component<ColliderComponent>(
                     new_type,
                     shape_changed ? box :
                                     sys.get_box_collider(tag.id, tag.type)
+                                    .base_shape()
+                );
+                tag = component.tag();
+                break;
+            }
+            case ColliderShape::capsule: {
+                Capsule capsule{};
+                capsule.start = glm::vec3{0.0f, 0.0f, 0.0f};
+                capsule.end = glm::vec3{0.0f, 1.0f, 0.0f};
+                capsule.radius = 1.0f;
+                context.editor().perform_action<ActionSetCollider<
+                    Capsule
+                > >(
+                    id,
+                    new_type,
+                    shape_changed ? capsule :
+                                    sys.get_capsule_collider(tag.id, tag.type)
                                     .base_shape()
                 );
                 tag = component.tag();
@@ -341,6 +360,47 @@ void inner_show_component<ColliderComponent>(
                     id,
                     tag.type,
                     Box{dimensions, center}
+                );
+                tag = component.tag();
+            }
+
+            break;
+        }
+        case ColliderShape::capsule: {
+            auto & col = sys.get_capsule_collider(tag.id, tag.type);
+
+            bool edited = false;
+
+            Capsule base = col.base_shape();
+
+            edited |= ImGui::InputFloat3(
+                "start",
+                &base.start[0],
+                "%.2f"
+            );
+
+            edited |= ImGui::InputFloat3(
+                "end",
+                &base.end[0],
+                "%.2f"
+            );
+
+            edited |= ImGui::DragFloat(
+                "radius",
+                &base.radius,
+                0.01f,
+                0.0f,
+                std::numeric_limits<float>::max(),
+                "%.2f"
+            );
+
+            if (edited) {
+                context.editor().perform_action<ActionSetCollider<
+                    Capsule
+                > >(
+                    id,
+                    tag.type,
+                    base
                 );
                 tag = component.tag();
             }

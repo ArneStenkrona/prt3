@@ -74,9 +74,9 @@ public:
         cam.pitch() = m_cam_pitch;
 
         // play soundtrack
-        // if (scene.audio_manager().get_playing_midi() != m_midi) {
-        //     scene.audio_manager().play_midi(m_midi, m_sound_font);
-        // }
+        if (scene.audio_manager().get_playing_midi() != m_midi) {
+            scene.audio_manager().play_midi(m_midi, m_sound_font);
+        }
     }
 
     virtual void on_init(Scene &) {
@@ -107,7 +107,7 @@ private:
     void init_resources(Scene & scene) {
         // sound
         m_midi =
-            scene.audio_manager().load_midi("assets/audio/tracks/maze.mid");
+            scene.audio_manager().load_midi("assets/audio/tracks/timeless.mid");
         m_sound_font =
             scene.audio_manager().load_sound_font("assets/audio/soundfonts/CT2MGM.sf2");
     }

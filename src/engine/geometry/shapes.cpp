@@ -48,17 +48,39 @@ glm::vec3 calculate_furthest_point(Sphere const & sphere,
     return sphere.position + sphere.radius * dir;
 }
 
-glm::vec3 calculate_furthest_point(SweptSphere const & swept_sphere,
+glm::vec3 calculate_furthest_point(Capsule const & capsule,
                                    glm::vec3 const & direction) {
     glm::vec3 dir = direction != glm::zero<glm::vec3>() ?
         glm::normalize(direction) : glm::vec3(1.0f, 0.0f, 0.0f);
 
-    float dist_start = glm::dot(swept_sphere.start, direction);
-    float dist_end = glm::dot(swept_sphere.end, direction);
+    float dist_start = glm::dot(capsule.start, direction);
+    float dist_end = glm::dot(capsule.end, direction);
     if (dist_start > dist_end) {
-        return swept_sphere.start + swept_sphere.radius * dir;
+        return capsule.start + capsule.radius * dir;
     }
-    return swept_sphere.end + swept_sphere.radius * dir;
+    return capsule.end + capsule.radius * dir;
 }
 
+glm::vec3 calculate_furthest_point(SweptCapsule const & swept,
+                                   glm::vec3 const & direction) {
+    glm::vec3 dir = direction != glm::zero<glm::vec3>() ?
+        glm::normalize(direction) : glm::vec3(1.0f, 0.0f, 0.0f);
+
+    float dist_a = glm::dot(swept.a, direction);
+    float dist_b = glm::dot(swept.b, direction);
+    float dist_c = glm::dot(swept.c, direction);
+    float dist_d = glm::dot(swept.d, direction);
+
+    float max_dist = dist_a;
+    max_dist = glm::max(max_dist, dist_b);
+    max_dist = glm::max(max_dist, dist_c);
+    max_dist = glm::max(max_dist, dist_d);
+
+    if (max_dist == dist_a) return swept.a + swept.radius * dir;
+    if (max_dist == dist_b) return swept.b + swept.radius * dir;
+    if (max_dist == dist_c) return swept.c + swept.radius * dir;
+
+    return swept.d * swept.radius * dir;
 }
+
+} // namespace prt3

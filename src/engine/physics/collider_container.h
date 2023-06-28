@@ -20,6 +20,7 @@ struct ColliderContainer {
     ColliderMap<MeshCollider> meshes;
     ColliderMap<SphereCollider> spheres;
     ColliderMap<BoxCollider> boxes;
+    ColliderMap<CapsuleCollider> capsules;
 
     DynamicAABBTree aabb_tree;
 };

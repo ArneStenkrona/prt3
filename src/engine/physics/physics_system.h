@@ -113,6 +113,12 @@ public:
     BoxCollider const & get_box_collider(ColliderID id,  ColliderType type)
     { return get_container(type).boxes.map.at(id); }
 
+    CapsuleCollider const & get_capsule_collider(ColliderID id, ColliderType type) const
+    { return get_container(type).capsules.map.at(id); }
+
+    CapsuleCollider & get_capsule_collider(ColliderID id,  ColliderType type)
+    { return get_container(type).capsules.map.at(id); }
+
     void set_collision_layer(ColliderTag tag, CollisionLayer layer) {
         switch (tag.shape) {
             case ColliderShape::mesh:
@@ -123,6 +129,9 @@ public:
                 break;
             case ColliderShape::box:
                 get_container(tag.type).boxes.map.at(tag.id).set_layer(layer);
+                break;
+            case ColliderShape::capsule:
+                get_container(tag.type).capsules.map.at(tag.id).set_layer(layer);
                 break;
             default: assert(false);
         }
@@ -139,6 +148,8 @@ public:
                 return get_container(tag.type).spheres.map.at(tag.id).get_layer();
             case ColliderShape::box:
                 return get_container(tag.type).boxes.map.at(tag.id).get_layer();
+            case ColliderShape::capsule:
+                return get_container(tag.type).capsules.map.at(tag.id).get_layer();
             default: assert(false); return {};
         }
     }
@@ -154,6 +165,9 @@ public:
             case ColliderShape::box:
                 get_container(tag.type).boxes.map.at(tag.id).set_mask(mask);
                 break;
+            case ColliderShape::capsule:
+                get_container(tag.type).capsules.map.at(tag.id).set_mask(mask);
+                break;
             default: assert(false);
         }
     }
@@ -168,6 +182,8 @@ public:
                 return get_container(tag.type).spheres.map.at(tag.id).get_mask();
             case ColliderShape::box:
                 return get_container(tag.type).boxes.map.at(tag.id).get_mask();
+            case ColliderShape::capsule:
+                return get_container(tag.type).capsules.map.at(tag.id).get_mask();
             default: assert(false); return {};
         }
     }
@@ -183,6 +199,11 @@ public:
     );
 
     void update_box_data(
+        Renderer & renderer,
+        ColliderType type
+    );
+
+    void update_capsule_data(
         Renderer & renderer,
         ColliderType type
     );
@@ -268,6 +289,13 @@ private:
         Transform const & transform
     );
 
+    ColliderTag add_capsule_collider(
+        NodeID node_id,
+        ColliderType type,
+        Capsule const & capsule,
+        Transform const & transform
+    );
+
     ColliderTag create_collider_from_triangles(
         std::vector<glm::vec3> && triangles,
         Transform const & transform,
@@ -295,6 +323,12 @@ private:
     ColliderTag create_box_collider(
         glm::vec3 dimensions,
         glm::vec3 center,
+        Transform const & transform,
+        ColliderType type
+    );
+
+    ColliderTag create_capsule_collider(
+        Capsule const & capsule,
         Transform const & transform,
         ColliderType type
     );
@@ -380,6 +414,18 @@ private:
                 type,
                 overlaps
             );
+
+            inner_get_overlaps<Collider, CapsuleCollider>(
+                tag,
+                collider,
+                transforms,
+                transforms_history,
+                candidates[ColliderShape::capsule],
+                m_node_ids,
+                container.capsules.map,
+                type,
+                overlaps
+            );
         }
     }
 
@@ -423,6 +469,7 @@ private:
             Sphere sphere_other;
             Triangle tri_other;
             DiscreteConvexHull<8> box_other;
+            Capsule capsule_other;
 
             inner_collide<Collider, MeshCollider>(
                 scene,
@@ -467,6 +514,21 @@ private:
                 gjk_res,
                 tri_this,
                 &box_other
+            );
+
+            inner_collide<Collider, CapsuleCollider>(
+                scene,
+                collider,
+                start_transform,
+                curr_movement,
+                candidates[ColliderShape::capsule],
+                m_node_ids,
+                m_colliders.capsules.map,
+                closest_candidate,
+                t,
+                gjk_res,
+                tri_this,
+                &capsule_other
             );
 
             collision.collided =
@@ -526,6 +588,26 @@ private:
                         gjk_res.n_simplex,
                         swept,
                         box_other
+                    );
+
+                    collision.normal = epa_res.normal;
+                    collision.impulse = epa_res.normal * epa_res.penetration_depth;
+
+                    break;
+                }
+                case ColliderShape::capsule: {
+                    auto swept = get_swept_shape<Collider, Shape>(
+                        start_transform,
+                        curr_movement * gjk_res.t,
+                        collider,
+                        tri_this
+                    );
+
+                    EPARes epa_res = epa(
+                        gjk_res.simplex,
+                        gjk_res.n_simplex,
+                        swept,
+                        capsule_other
                     );
 
                     collision.normal = epa_res.normal;

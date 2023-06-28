@@ -74,6 +74,7 @@ public:
     );
     void set_collider(Scene & scene, ColliderType type, Sphere const & sphere);
     void set_collider(Scene & scene, ColliderType type, Box const & box);
+    void set_collider(Scene & scene, ColliderType type, Capsule const & capsule);
 
     void serialize(
         std::ostream & out,
