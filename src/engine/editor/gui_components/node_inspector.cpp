@@ -63,6 +63,57 @@ private:
     NodeName m_original_name;
 };
 
+class ActionSetNodeTag : public Action {
+public:
+    ActionSetNodeTag(
+        EditorContext & editor_context,
+        NodeID node_id,
+        NodeTag const & tag,
+        bool remove
+    ) : m_editor_context{&editor_context},
+        m_node_id{node_id},
+        m_tag{tag},
+        m_remove{remove}
+    {
+        Scene const & scene = editor_context.scene();
+        m_has_tag = scene.node_has_tag(m_node_id);
+        if (m_has_tag) {
+            m_original_tag = scene.get_node_tag(m_node_id);
+        }
+    }
+
+protected:
+    virtual bool apply() {
+        Scene & scene = m_editor_context->scene();
+        if (m_remove) {
+            scene.remove_tag_from_node(m_node_id);
+        } else {
+            scene.set_node_tag(m_tag, m_node_id);
+        }
+        return true;
+    }
+
+    virtual bool unapply() {
+        Scene & scene = m_editor_context->scene();
+        if (m_has_tag) {
+            scene.set_node_tag(m_original_tag, m_node_id);
+        } else {
+            scene.remove_tag_from_node(m_node_id);
+        }
+        return true;
+    }
+
+private:
+    EditorContext * m_editor_context;
+    NodeID m_node_id;
+
+    NodeTag m_tag;
+    NodeTag m_original_tag;
+
+    bool m_remove;
+    bool m_has_tag;
+};
+
 template<typename T>
 void show_component(EditorContext & context, NodeID id) {
     Scene & scene = context.context().edit_scene();
@@ -135,6 +186,44 @@ bool show_name(NodeName & name) {
     );
 }
 
+void show_tag(EditorContext & context, NodeID id) {
+
+    bool has_tag = context.context().edit_scene().node_has_tag(id);
+    if (has_tag) {
+        thread_local NodeTag tag;
+        tag = context.context().edit_scene().get_node_tag(id);
+
+        if (ImGui::InputText(
+            "tag",
+            tag.data(),
+            tag.buf_size(),
+            ImGuiInputTextFlags_NoUndoRedo
+        )) {
+            context.editor().perform_action<ActionSetNodeTag>(
+                id,
+                tag,
+                false
+            );
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("remove")) {
+            context.editor().perform_action<ActionSetNodeTag>(
+                id,
+                tag,
+                true
+            );
+        }
+    } else {
+        if (ImGui::Button("add tag")) {
+            context.editor().perform_action<ActionSetNodeTag>(
+                id,
+                NodeTag{},
+                false
+            );
+        }
+    }
+}
+
 bool show_transform(Transform & transform) {
     bool ret = false;
 
@@ -203,6 +292,8 @@ void prt3::node_inspector(EditorContext & context) {
             name
         );
     }
+
+    show_tag(context, id);
 
     ImGui::PopItemWidth();
 

@@ -570,6 +570,16 @@ void Scene::serialize(std::ostream & out) const {
     out << m_ambient_light;
 
     m_component_manager.serialize(out, *this, compacted_ids);
+
+    write_stream(out, m_tags.size());
+    for (auto const & pair : m_tags) {
+        write_stream(out, pair.first.len());
+        out.write(pair.first.data(), pair.first.len());
+        write_stream(out, pair.second.size());
+        for (NodeID const & id : pair.second) {
+            write_stream(out, compacted_ids[id]);
+        }
+    }
 }
 
 void Scene::deserialize(std::istream & in) {
@@ -609,6 +619,26 @@ void Scene::deserialize(std::istream & in) {
     in >> m_ambient_light;
 
     m_component_manager.deserialize(in, *this);
+
+    size_t n_tags;
+    read_stream(in, n_tags);
+    for (size_t i = 0; i < n_tags; ++i) {
+        size_t len;
+        read_stream(in, len);
+        NodeTag tag;
+        in.read(tag.data(), len);
+        size_t n_node_ids;
+        read_stream(in, n_node_ids);
+
+        std::unordered_set<NodeID> & node_ids = m_tags[tag];
+
+        for (size_t j = 0; j < n_node_ids; ++j) {
+            NodeID id;
+            read_stream(in, id);
+            node_ids.insert(id);
+            m_node_to_tag[id] = tag;
+        }
+    }
 }
 
 void Scene::internal_clear(bool place_root) {

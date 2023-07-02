@@ -14,7 +14,7 @@ public:
         : CharacterController(scene, m_node_id) {}
 
     virtual void on_init(Scene & scene) {
-        add_tag(scene, "player");
+        set_tag(scene, "player");
         CharacterController::on_init(scene);
     }
 

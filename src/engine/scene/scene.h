@@ -181,30 +181,41 @@ public:
 
     void emit_signal(SignalString const & signal, void * data);
 
-    bool add_tag_to_node(NodeTag const & tag, NodeID id) {
-        if (m_tags.find(tag) != m_tags.end()) {
-            return false;
-        }
-        m_tags.emplace(std::make_pair(tag, id));
+    bool node_has_tag(NodeID id) const {
+        return m_node_to_tag.find(id) != m_node_to_tag.end();
+    }
+
+    bool node_has_tag(NodeID id, NodeTag const & tag) {
+        return m_node_to_tag.find(id) != m_node_to_tag.end() &&
+               m_node_to_tag.at(id) == tag;
+    }
+
+    bool set_node_tag(NodeTag const & tag, NodeID id) {
+        m_tags[tag].insert(id);
         m_node_to_tag.emplace(std::make_pair(id, tag));
+        m_node_to_tag[id] = tag;
         return true;
     }
 
-    bool remove_tag(NodeTag const & tag) {
-        if (m_tags.find(tag) == m_tags.end()) {
+    NodeTag get_node_tag(NodeID id) const
+    { return m_node_to_tag.at(id); }
+
+    bool remove_tag_from_node(NodeID id) {
+        if (m_node_to_tag.find(id) == m_node_to_tag.end()) {
             return false;
         }
-        NodeID node_id = m_tags.at(tag);
-        m_tags.erase(tag);
-        m_node_to_tag.erase(node_id);
+        NodeTag tag = m_node_to_tag.at(id);
+        m_tags.at(tag).erase(id);
+        m_node_to_tag.erase(id);
         return true;
     }
 
-    NodeID find_node_by_tag(NodeTag const & tag) const {
+    std::unordered_set<NodeID> const & find_nodes_by_tag(NodeTag const & tag) const {
         if (m_tags.find(tag) != m_tags.end()) {
             return m_tags.at(tag);
         }
-        return NO_NODE;
+        thread_local std::unordered_set<NodeID> empty;
+        return empty;
     }
 
     NodeName const & get_node_name(NodeID id) const { return m_node_names[id]; }
@@ -268,7 +279,7 @@ private:
     std::unordered_map<SignalString, std::unordered_set<Script *> >
         m_signal_connections;
 
-    std::unordered_map<NodeTag, NodeID> m_tags;
+    std::unordered_map<NodeTag, std::unordered_set<NodeID> > m_tags;
     std::unordered_map<NodeID, NodeTag> m_node_to_tag;
 
     ComponentManager m_component_manager;

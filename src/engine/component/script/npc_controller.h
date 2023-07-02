@@ -23,7 +23,7 @@ public:
         m_input = {};
         m_input.run = false;
 
-        m_target_id = scene.find_node_by_tag("player");
+        m_target_id = *(scene.find_nodes_by_tag("player").begin());
 
         Node & node = scene.get_node(node_id());
         Node const & target = scene.get_node(m_target_id);

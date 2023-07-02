@@ -18,7 +18,7 @@ public:
         : Script(scene, node_id) {}
 
     virtual void on_late_init(Scene & scene) {
-        m_target_id = scene.find_node_by_tag("player");
+        m_target_id = *(scene.find_nodes_by_tag("player").begin());
         m_path_dest =
             scene.get_node(node_id()).get_global_transform(scene).position;
     }

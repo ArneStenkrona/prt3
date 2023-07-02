@@ -11,8 +11,8 @@ Script::Script(Scene &, NodeID node_id)
 
 Node & Script::get_node(Scene & scene) { return scene.get_node(m_node_id); }
 
-bool Script::add_tag(Scene & scene, NodeTag const & tag) {
-    return scene.add_tag_to_node(tag, m_node_id);
+bool Script::set_tag(Scene & scene, NodeTag const & tag) {
+    return scene.set_node_tag(tag, m_node_id);
 }
 
 std::unordered_map<UUID, Script::TScriptDeserializer> *

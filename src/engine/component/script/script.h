@@ -178,7 +178,7 @@ protected:
     NodeID node_id() const { return m_node_id; }
     Node & get_node(Scene & scene);
 
-    bool add_tag(Scene & scene, NodeTag const & tag);
+    bool set_tag(Scene & scene, NodeTag const & tag);
 
     static std::unordered_map<UUID, TScriptDeserializer> * s_deserializers;
     static std::unordered_map<UUID, TScriptInstantiator> * s_instantiators;

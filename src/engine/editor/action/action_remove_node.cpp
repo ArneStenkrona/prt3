@@ -74,8 +74,17 @@ void ActionRemoveNode::serialize_node(std::ostream & out) const {
 
         auto const & name = scene.get_node_name(node.id());
         out.write(name.data(), name.writeable_size());
+
         write_stream(out, node.parent_id());
         out << node.local_transform();
+
+        if (scene.node_has_tag(id)) {
+            auto const & tag = scene.get_node_tag(id);
+            write_stream(out, true);
+            out.write(tag.data(), tag.writeable_size());
+        } else {
+            write_stream(out, false);
+        }
 
         scene.serialize_components(out, id);
 
@@ -106,6 +115,14 @@ void ActionRemoveNode::deserialize_node(std::istream & in) {
         read_stream(in, parent_id);
 
         NodeID id = scene.add_node(parent_id, name);
+
+        bool has_tag;
+        read_stream(in, has_tag);
+        if (has_tag) {
+            NodeTag tag;
+            in.read(tag.data(), tag.writeable_size());
+            scene.set_node_tag(tag, id);
+        }
 
         Node & node = scene.get_node(id);
         in >> node.local_transform();

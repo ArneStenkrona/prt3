@@ -28,10 +28,28 @@ public:
     }
 
     FixedString(FixedString const & other) {
-       std::copy(other.m_data, other.m_data + (Size - 1), m_data);
+        memcpy(m_data, other.m_data, Size - 1);
+    }
+
+    FixedString(FixedString && other) {
+        memcpy(m_data, other.m_data, Size - 1);
     }
 
     FixedString & operator=(FixedString const & other) {
+        char const * curr_o = other.m_data;
+        char * curr_data = m_data;
+        char * data_end = m_data + (Size - 1);
+        while (curr_data < data_end &&
+               *curr_o != '\0') {
+            *curr_data = *curr_o;
+            ++curr_o;
+            ++curr_data;
+        }
+        *curr_data = '\0';
+        return *this;
+    }
+
+    FixedString& operator=(FixedString && other) {
         char const * curr_o = other.m_data;
         char * curr_data = m_data;
         char * data_end = m_data + (Size - 1);
@@ -103,7 +121,7 @@ public:
     size_t writeable_size() const { return Size - 1; }
 
     size_t len() const {
-        char * curr = data();
+        char const * curr = data();
         while (*curr != '\0') {
             ++curr;
         }

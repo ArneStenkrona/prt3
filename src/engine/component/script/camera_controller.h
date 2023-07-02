@@ -38,7 +38,7 @@ public:
     inline float & pitch() { return m_pitch; }
 
     virtual void on_late_init(Scene & scene) {
-        NodeID player_id = scene.find_node_by_tag("player");
+        NodeID player_id = *(scene.find_nodes_by_tag("player").begin());
         set_target(player_id);
     }
 
