@@ -19,6 +19,7 @@
 #include "src/engine/editor/gui_components/component/point_light_gui.h"
 #include "src/engine/editor/gui_components/component/script_set_gui.h"
 #include "src/engine/editor/gui_components/component/sound_source_gui.h"
+#include "src/engine/editor/gui_components/component/weapon_gui.h"
 #include "src/engine/editor/action/action_transform_node.h"
 #include "src/engine/editor/action/action_add_component.h"
 #include "src/engine/editor/action/action_remove_component.h"

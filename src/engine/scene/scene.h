@@ -105,6 +105,8 @@ public:
     { return m_nodes.size() > static_cast<size_t>(id) && m_nodes[id].id() != NO_NODE; }
     std::string get_node_path(NodeID id) const;
 
+    NodeID get_child_with_tag(NodeID id, NodeTag tag) const;
+
     Camera & get_camera() { return m_camera; }
     Input & get_input();
 
@@ -185,7 +187,7 @@ public:
         return m_node_to_tag.find(id) != m_node_to_tag.end();
     }
 
-    bool node_has_tag(NodeID id, NodeTag const & tag) {
+    bool node_has_tag(NodeID id, NodeTag const & tag) const {
         return m_node_to_tag.find(id) != m_node_to_tag.end() &&
                m_node_to_tag.at(id) == tag;
     }

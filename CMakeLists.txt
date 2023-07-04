@@ -59,6 +59,7 @@ file(GLOB SOURCES
 "src/engine/component/point_light.cpp"
 "src/engine/component/script_set.cpp"
 "src/engine/component/sound_source.cpp"
+"src/engine/component/weapon.cpp"
 "src/engine/physics/aabb_tree.cpp"
 "src/engine/physics/aabb.cpp"
 "src/engine/physics/collider.cpp"

@@ -83,6 +83,7 @@ public:
         char const * data_end = m_data + Size;
         while (curr_this < data_end) {
             if (*curr_this != *curr_other) { return false; }
+            if (*curr_this == '\0') return true;
             ++curr_this;
             ++curr_other;
         }
@@ -100,11 +101,8 @@ public:
         while (curr_data < data_end &&
                *curr_c != '\0') {
             if (*curr_data != *curr_c) { return false; }
+            if (*curr_data == '\0') return true;
             ++curr_c;
-            ++curr_data;
-        }
-        while (curr_data < data_end) {
-            if (*curr_data != '\0') { return false; }
             ++curr_data;
         }
         return true;

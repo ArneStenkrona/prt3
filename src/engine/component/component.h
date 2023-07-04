@@ -14,6 +14,7 @@
 #include "src/engine/component/point_light.h"
 #include "src/engine/component/script_set.h"
 #include "src/engine/component/sound_source.h"
+#include "src/engine/component/weapon.h"
 #include "src/util/template_util.h"
 
 #include <vector>
@@ -109,6 +110,7 @@ public:
 
         return true;
     }
+
 private:
     typedef size_t InternalID;
     static constexpr InternalID NO_COMPONENT = -1;
@@ -140,7 +142,8 @@ using ComponentTypes = type_pack<
     Armature,
     Door,
     NavigationMeshComponent,
-    SoundSourceComponent
+    SoundSourceComponent,
+    Weapon
 >;
 
 using ComponentStoragesType = wrap_arg_pack_in_storage<std::tuple, ComponentTypes>::type;

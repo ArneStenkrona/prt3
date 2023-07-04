@@ -104,14 +104,6 @@ public:
 
     void set_entry_door_id(DoorID id) { m_entry_door_id = id; }
 private:
-    void init_resources(Scene & scene) {
-        // sound
-        m_midi =
-            scene.audio_manager().load_midi("assets/audio/tracks/timeless.mid");
-        m_sound_font =
-            scene.audio_manager().load_sound_font("assets/audio/soundfonts/CT2MGM.sf2");
-    }
-
     DoorID m_entry_door_id = 0;
 
     Prefab m_player_prefab{"assets/prefabs/player.prefab"};
@@ -124,6 +116,14 @@ private:
 
     MidiID m_midi;
     SoundFontID m_sound_font;
+
+    void init_resources(Scene & scene) {
+        // sound
+        m_midi =
+            scene.audio_manager().load_midi("assets/audio/tracks/timeless.mid");
+        m_sound_font =
+            scene.audio_manager().load_sound_font("assets/audio/soundfonts/CT2MGM.sf2");
+    }
 
 REGISTER_SCRIPT(GameState, game_state, 11630114958491958378)
 };

@@ -65,6 +65,8 @@ public:
         m_direction = get_node(scene).local_transform().get_front();
         m_ground_normal = glm::vec3{0.0f, 1.0f, 0.0f};
 
+        m_weapon_id = scene.get_child_with_tag(node_id(), "weapon");
+
         Armature & armature =
             scene.get_component<Armature>(node_id());
         Model const & model =
@@ -523,6 +525,8 @@ public:
 
         float dt_fac = 10.0f * delta_time;
 
+        bool active_weapon = false;
+
         switch (m_state) {
             case IDLE:
             case WALK:
@@ -549,6 +553,9 @@ public:
                 if (0.1f < a_frac && a_frac < 0.15f) {
                     force_mag = m_state == ATTACK_1 ? 128.0f : 144.0f;
                 }
+
+                active_weapon = 0.1f < a_frac && a_frac < 0.25f;
+
                 m_force = m_direction * force_mag;
                 break;
             }
@@ -556,6 +563,9 @@ public:
             case ATTACK_AIR_2: {
                 float force_mag = m_grounded ? 0.0f : 45.0f;
                 m_force = m_input.direction * force_mag;
+
+                float a_frac = anim.clip_a.frac(model);
+                active_weapon = 0.1f < a_frac && a_frac < 0.25f;
                 break;
             }
             case JUMP: {
@@ -579,6 +589,11 @@ public:
                 break;
             }
             default: { assert(false); }
+        }
+
+        if (m_weapon_id != NO_NODE) {
+            scene.get_component<Weapon>(m_weapon_id)
+                 .set_active(scene, active_weapon);
         }
     }
 
@@ -703,6 +718,9 @@ protected:
     glm::vec3 m_jump_dir;
 
     CharacterInput m_input;
+
+    NodeID m_weapon_id = NO_NODE;
+    bool active_weapon;
 
     std::array<StateData, TOTAL_NUM_STATES> m_state_data;
 

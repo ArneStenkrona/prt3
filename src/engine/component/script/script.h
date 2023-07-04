@@ -174,9 +174,9 @@ public:
     static char const * get_script_name(UUID uuid)
     { return s_script_names->at(uuid); }
 
-protected:
     NodeID node_id() const { return m_node_id; }
     Node & get_node(Scene & scene);
+protected:
 
     bool set_tag(Scene & scene, NodeTag const & tag);
 
