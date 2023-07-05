@@ -107,7 +107,7 @@ void prt3::scene_hierarchy(EditorContext & context) {
 
     begin_group_panel("nodes");
 
-    ImGui::SetNextItemWidth(ImGui::GetWindowWidth() - 40);
+    ImGui::SetNextItemWidth(ImGui::GetWindowWidth() - 10);
 
 
     thread_local std::vector<char*> name_data;
