@@ -2,6 +2,7 @@
 #define PRT3_BELL_H
 
 #include "src/engine/component/script/script.h"
+#include "src/engine/component/script/game_state.h"
 #include "src/engine/scene/scene.h"
 #include "src/util/math_util.h"
 #include "src/engine/component/weapon.h"
@@ -106,6 +107,8 @@ private:
 
     AudioID m_bell_audio_id;
 
+    int32_t m_index = 0;
+
     void on_hit(Scene & scene, HitPacket const & packet) {
         NodeID other_id = packet.node_id;
 
@@ -154,10 +157,14 @@ private:
             m_bell_audio_id,
             false
         );
+
+        GameState & game_state = *scene.get_autoload_script<GameState>();
+        game_state.push_back_bell_index(scene, m_index);
     }
 
 REGISTER_SCRIPT_BEGIN(Bell, bell, 14192787994163871465)
 REGISTER_SERIALIZED_FIELD(m_pitch_factor)
+REGISTER_SERIALIZED_FIELD(m_index)
 REGISTER_SCRIPT_END()
 };
 

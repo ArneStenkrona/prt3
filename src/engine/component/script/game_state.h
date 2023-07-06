@@ -18,6 +18,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <array>
 
 namespace prt3 {
 
@@ -77,6 +78,11 @@ public:
         if (scene.audio_manager().get_playing_midi() != m_midi) {
             scene.audio_manager().play_midi(m_midi, m_sound_font);
         }
+
+        for (int32_t & ind : m_bell_indices) {
+            ind = -1;
+        }
+        m_bell_index_position = 0;
     }
 
     virtual void on_init(Scene &) {
@@ -88,7 +94,8 @@ public:
     virtual void save_state(Scene const & scene, std::ostream & out) const {
         write_stream(out, m_entry_door_id);
 
-        CameraController const & cam = *scene.get_component<ScriptSet>(m_camera_id)
+        CameraController const & cam =
+            *scene.get_component<ScriptSet>(m_camera_id)
             .get_script<CameraController>(scene);
 
         write_stream(out, cam.yaw());
@@ -103,6 +110,29 @@ public:
     }
 
     void set_entry_door_id(DoorID id) { m_entry_door_id = id; }
+
+    void push_back_bell_index(Scene & scene, int32_t index) {
+        m_bell_indices[m_bell_index_position] = index;
+        m_bell_index_position =
+            (m_bell_index_position + 1) % m_bell_indices.size();
+
+        bool correct_sequence = true;
+        for (size_t i = 0; i < m_bell_indices.size(); ++i) {
+            size_t ind = (m_bell_index_position + i) % m_bell_indices.size();
+            if (m_bell_indices[ind] != m_bell_sequence[i]) {
+                correct_sequence = false;
+                break;
+            }
+        }
+
+        if (correct_sequence) {
+            CameraController & cam =
+                *scene.get_component<ScriptSet>(m_camera_id)
+                .get_script<CameraController>(scene);
+            cam.screen_shake(0.25f, 5.0f, 0.5f, 1.0f);
+        }
+    }
+
 private:
     DoorID m_entry_door_id = 0;
 
@@ -116,6 +146,11 @@ private:
 
     MidiID m_midi;
     SoundFontID m_sound_font;
+
+    static constexpr size_t seq_len = 6;
+    std::array<int32_t, seq_len> m_bell_indices;
+    std::array<int32_t, seq_len> m_bell_sequence = { 0, 1, 2, 3, 4, 5 };
+    size_t m_bell_index_position;
 
     void init_resources(Scene & scene) {
         // sound

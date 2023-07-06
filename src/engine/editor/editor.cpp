@@ -16,8 +16,7 @@ Editor::Editor(Context & context)
             context.renderer().window_height()},
    m_editor_context{*this, m_context},
    m_gizmo_manager{m_editor_context, m_camera.get_camera()},
-   m_action_manager{m_editor_context} {
-}
+   m_action_manager{m_editor_context} {}
 
 void Editor::update(float delta_time) {
     Input const & input = m_context.input();

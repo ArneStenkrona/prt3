@@ -200,11 +200,11 @@ private:
 #define REGISTER_SERIALIZED_FIELD(field)\
     static char const * str_##field = #field;\
     typedef std::remove_reference<decltype(*dummy)>::type ClassT;\
-    typedef decltype(field) T;\
-    static T * (*get_##field)(void*) = [](void*p) { return &reinterpret_cast<ClassT*>(p)->field; };\
+    typedef decltype(field) T##field;\
+    static T##field * (*get_##field)(void*) = [](void*p) { return &reinterpret_cast<ClassT*>(p)->field; };\
     fields.push_back({});\
-    fields.back().type = type_to_field_type<T>();\
-    *fields.back().u_getter<T>() = get_##field;\
+    fields.back().type = type_to_field_type<T##field>();\
+    *fields.back().u_getter<T##field>() = get_##field;\
     fields.back().name = str_##field;\
 
 // The var args are serialized fields

@@ -46,7 +46,7 @@ public:
         scene.get_camera().set_orthographic_projection(true);
     }
 
-    virtual void on_late_update(Scene & scene, float /*delta_time*/) {
+    virtual void on_late_update(Scene & scene, float delta_time) {
         Camera & camera = scene.get_camera();
         Transform & cam_tform = camera.transform();
         Input & input = scene.get_input();
@@ -76,13 +76,49 @@ public:
             Node & t_node = scene.get_node(m_target);
             target_pos = t_node.get_global_transform(scene).position;
         }
+
+        // camera shake;
+        glm::vec3 cam_shake{0.0f};
+        if (m_screen_shake_elapsed < m_screen_shake_time) {
+            float t = 10.0f * m_screen_shake_elapsed;
+
+            float e = m_screen_shake_elapsed;
+            float u = m_screen_shake_rampup;
+            float d = m_screen_shake_rampdown;
+            float mt = m_screen_shake_time;
+
+            float tu = glm::min(e / u, 1.0f);
+            float td = glm::min((mt - e) / d, 1.0f);
+
+
+            float mag = m_screen_shake_magnitude *
+                        glm::sin(7.07 * t) * glm::min(tu, td);
+            cam_shake = mag * camera.get_right() * glm::sin(t) +
+                        mag * camera.get_up() * glm::cos(t);
+
+            m_screen_shake_elapsed += delta_time;
+        }
+
         camera.transform().position =
-            target_pos - (m_target_distance * camera.get_front());
+            target_pos - (m_target_distance * camera.get_front())
+            + cam_shake;
 
         glm::vec3 pos = camera.get_position();
         Transform tform;
         tform.position = pos;
         get_node(scene).set_global_transform(scene, tform);
+    }
+
+    void screen_shake(float magnitude,
+                      float time,
+                      float rampup,
+                      float rampdown) {
+        m_screen_shake_magnitude = magnitude;
+        m_screen_shake_time = time;
+        m_screen_shake_rampup = rampup;
+        m_screen_shake_rampdown = rampdown;
+
+        m_screen_shake_elapsed = 0.0f;
     }
 
 private:
@@ -92,6 +128,12 @@ private:
 
     NodeID m_target = NO_NODE;
     float m_target_distance = 25.0f;
+
+    float m_screen_shake_magnitude = 0.0f;
+    float m_screen_shake_time = 0.0f;
+    float m_screen_shake_elapsed = 0.0f;
+    float m_screen_shake_rampup = 0.0f;
+    float m_screen_shake_rampdown = 0.0f;
 
 REGISTER_SCRIPT(CameraController, camera_controller, 17005293234220491566)
 };
