@@ -78,12 +78,11 @@ void ActionRemoveNode::serialize_node(std::ostream & out) const {
         write_stream(out, node.parent_id());
         out << node.local_transform();
 
-        if (scene.node_has_tag(id)) {
+        bool has_tag = scene.node_has_tag(id);
+        write_stream(out, has_tag);
+        if (has_tag) {
             auto const & tag = scene.get_node_tag(id);
-            write_stream(out, true);
             out.write(tag.data(), tag.writeable_size());
-        } else {
-            write_stream(out, false);
         }
 
         scene.serialize_components(out, id);
@@ -116,6 +115,9 @@ void ActionRemoveNode::deserialize_node(std::istream & in) {
 
         NodeID id = scene.add_node(parent_id, name);
 
+        Node & node = scene.get_node(id);
+        in >> node.local_transform();
+
         bool has_tag;
         read_stream(in, has_tag);
         if (has_tag) {
@@ -124,20 +126,13 @@ void ActionRemoveNode::deserialize_node(std::istream & in) {
             scene.set_node_tag(tag, id);
         }
 
-        Node & node = scene.get_node(id);
-        in >> node.local_transform();
-
         scene.deserialize_components(in, id);
 
         NodeID s_id;
         read_stream(in, s_id);
         if (s_id != id) {
-            std::cerr << "Node incorrectly serialized/deserialized: "
-                      << "expected id = "
-                      << id
-                      << " but got id = "
-                      << s_id
-                      << std::endl;
+            PRT3ERROR("Node incorrectly serialized/deserialized: expected id = %d but got id = %d\n",
+                       id, s_id);
         }
     }
 }
