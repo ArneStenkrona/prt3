@@ -689,7 +689,7 @@ void Scene::internal_clear(bool place_root) {
 
     m_directional_light = {};
     m_directional_light_on = false;
-    m_ambient_light = {{0.5f, 0.5f, 0.05f}};
+    m_ambient_light = {{1.0f, 1.0f, 1.0f}};
 
     m_transform_cache.clear();
 
