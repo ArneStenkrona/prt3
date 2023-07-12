@@ -28,7 +28,9 @@ public:
     MaterialManager & material_manager() { return m_material_manager; }
     ModelManager & model_manager() { return m_model_manager; }
     Scene & edit_scene() { return m_edit_scene; }
+    Scene const & edit_scene() const { return m_edit_scene; }
     Scene & game_scene() { return m_game_scene; }
+    Scene const & game_scene() const { return m_game_scene; }
     SceneManager & scene_manager() { return m_scene_manager; }
     AudioManager & audio_manager() { return m_audio_manager; }
     Project & project() { return m_project; }

@@ -262,6 +262,9 @@ public:
     ScriptType * get_autoload_script()
     { return dynamic_cast<ScriptType*>(get_autoload_script(ScriptType::s_uuid)); }
 
+    NodeID & selected_node() { return m_selected_node; }
+    NodeID const & selected_node() const { return m_selected_node; }
+
 private:
     Context * m_context;
 
@@ -298,6 +301,8 @@ private:
 
     std::unordered_set<ModelHandle> m_referenced_models;
 
+    NodeID m_selected_node = NO_NODE;
+
     NodeID add_node(NodeID parent_id, const char * name, UUID uuid);
 
     ModelHandle register_model(ModelHandle handle)
@@ -309,8 +314,7 @@ private:
     void clear_node_mod_flags();
 
     void collect_world_render_data(
-        WorldRenderData & world_data,
-        NodeID selected
+        WorldRenderData & world_data
     );
 
     void update_window_size(int w, int h);

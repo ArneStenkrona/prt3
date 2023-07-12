@@ -188,6 +188,30 @@ public:
         }
     }
 
+    AABB calculate_aabb(Scene const & scene, ColliderTag const & tag) const {
+        Transform tform = get_global_transform(scene, m_node_ids.at(tag));
+
+        auto const & container = get_container(tag.type);
+
+        auto id = tag.id;
+        switch (tag.shape) {
+            case ColliderShape::mesh:
+                return container.meshes.map.at(id).aabb();
+                break;
+            case ColliderShape::sphere:
+                return container.spheres.map.at(id).get_shape(tform).aabb();
+                break;
+            case ColliderShape::box:
+                return container.boxes.map.at(id).get_shape(tform).aabb();
+                break;
+            case ColliderShape::capsule:
+                return container.capsules.map.at(id).get_shape(tform).aabb();
+                break;
+            default: assert(false);
+                return {};
+        }
+    }
+
     void update_mesh_data(
         Renderer & renderer,
         ColliderType type
@@ -336,7 +360,7 @@ private:
     void remove_collider(ColliderTag tag);
 
     Node & get_node(Scene & scene, NodeID node_id);
-    static Transform get_global_transform(Scene & scene, NodeID node_id);
+    static Transform get_global_transform(Scene const & scene, NodeID node_id);
 
     template<typename Collider>
     void get_overlaps(

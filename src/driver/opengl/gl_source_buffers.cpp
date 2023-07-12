@@ -87,13 +87,13 @@ void GLSourceBuffers::init(GLint width, GLint height) {
     );
 
     generate_texture(
-        m_id_texture,
+        m_node_data_texture,
         width,
         height,
         GL_RGBA8, // GL_R32I?
         GL_RGBA, // GL_RED?
         GL_UNSIGNED_BYTE, // GL_INT?
-        id_attachment()
+        node_data_attachment()
     );
 
     generate_texture(
@@ -149,7 +149,7 @@ void GLSourceBuffers::init(GLint width, GLint height) {
     // uniforms
     m_uniform_names.emplace_back("u_ColorBuffer", m_color_texture);
     m_uniform_names.emplace_back("u_NormalBuffer", m_normal_texture);
-    m_uniform_names.emplace_back("u_IDBuffer", m_id_texture);
+    m_uniform_names.emplace_back("u_NodeDataBuffer", m_node_data_texture);
     m_uniform_names.emplace_back("u_SelectedBuffer", m_selected_texture);
     m_uniform_names.emplace_back("u_DepthBuffer", m_depth_texture);
 
@@ -198,7 +198,7 @@ void GLSourceBuffers::clean_up() {
         glCheckError();
         glDeleteTextures(1, &m_normal_texture);
         glCheckError();
-        glDeleteTextures(1, &m_id_texture);
+        glDeleteTextures(1, &m_node_data_texture);
         glCheckError();
         glDeleteTextures(1, &m_selected_texture);
         glCheckError();
@@ -207,7 +207,7 @@ void GLSourceBuffers::clean_up() {
 
         m_color_texture = 0;
         m_normal_texture = 0;
-        m_id_texture = 0;
+        m_node_data_texture = 0;
         m_selected_texture = 0;
         m_depth_texture = 0;
 

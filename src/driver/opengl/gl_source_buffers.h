@@ -29,7 +29,7 @@ public:
     GLuint selection_framebuffer() const { return m_selection_framebuffer; }
     GLuint color_texture()         const { return m_color_texture;         }
     GLuint normal_texture()        const { return m_normal_texture;        }
-    GLuint id_texture()            const { return m_id_texture;            }
+    GLuint node_data_texture()     const { return m_node_data_texture;     }
     GLuint selected_texture()      const { return m_selected_texture;      }
     GLuint depth_texture()         const { return m_depth_texture;         }
 
@@ -37,23 +37,23 @@ public:
     GLuint accum_texture()       const { return m_accum_texture;       }
     GLuint accum_alpha_texture() const { return m_accum_alpha_texture; }
 
-    GLenum color_attachment()    const { return GL_COLOR_ATTACHMENT0; }
-    GLenum normal_attachment()   const { return GL_COLOR_ATTACHMENT1; }
-    GLenum id_attachment()       const { return GL_COLOR_ATTACHMENT2; }
-    GLenum selected_attachment() const { return GL_COLOR_ATTACHMENT0; }
+    GLenum color_attachment()     const { return GL_COLOR_ATTACHMENT0; }
+    GLenum normal_attachment()    const { return GL_COLOR_ATTACHMENT1; }
+    GLenum node_data_attachment() const { return GL_COLOR_ATTACHMENT2; }
+    GLenum selected_attachment()  const { return GL_COLOR_ATTACHMENT0; }
 
     std::vector<UniformName> const & uniform_names() const
     { return m_uniform_names; }
 
     std::vector<UniformName> const & transparency_uniform_names() const
     { return m_transparency_uniform_names; }
-private:
 
+private:
     GLuint m_framebuffer = 0;
     GLuint m_selection_framebuffer = 0;
     GLuint m_color_texture = 0;
     GLuint m_normal_texture = 0;
-    GLuint m_id_texture = 0;
+    GLuint m_node_data_texture = 0;
     GLuint m_selected_texture = 0;
     GLuint m_depth_texture = 0;
 

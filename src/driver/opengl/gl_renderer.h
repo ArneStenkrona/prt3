@@ -127,7 +127,7 @@ private:
 
     void bind_node_data(
         GLShader const & shader,
-        NodeID node_id
+        NodeData node_id
     );
 
     void bind_material_data(

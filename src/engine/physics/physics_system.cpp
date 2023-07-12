@@ -468,7 +468,9 @@ Node & PhysicsSystem::get_node(Scene & scene, NodeID node_id) {
     return scene.get_node(node_id);
 }
 
-Transform PhysicsSystem::get_global_transform(Scene & scene, NodeID node_id) {
+Transform PhysicsSystem::get_global_transform(
+    Scene const & scene,
+    NodeID node_id) {
     return scene.get_node(node_id).get_global_transform(scene);
 }
 

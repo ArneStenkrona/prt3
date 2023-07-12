@@ -16,6 +16,7 @@
 #include <vector>
 #include <unordered_map>
 #include <cassert>
+#include <cstring>
 
 using namespace prt3;
 
@@ -75,10 +76,10 @@ GLRenderer::GLRenderer(
         "assets/shaders/opengl/pixel_postprocess.fs";
     pixel_pass_info.downscale_factor = downscale_factor;
 
-    PostProcessingPass upscale_pass_info;
-    upscale_pass_info.fragment_shader_path =
-        "assets/shaders/opengl/passthrough.fs";
-    upscale_pass_info.downscale_factor = 1.0f;
+    PostProcessingPass game_pass_info;
+    game_pass_info.fragment_shader_path =
+        "assets/shaders/opengl/game_postprocess.fs";
+    game_pass_info.downscale_factor = 1.0f;
 
     PostProcessingPass editor_pass_info;
     editor_pass_info.fragment_shader_path =
@@ -86,7 +87,7 @@ GLRenderer::GLRenderer(
     editor_pass_info.downscale_factor = 1.0f;
 
     set_postprocessing_chains(
-        PostProcessingChain{{ pixel_pass_info, upscale_pass_info }},
+        PostProcessingChain{{ pixel_pass_info, game_pass_info }},
         PostProcessingChain{{ pixel_pass_info, editor_pass_info }}
     );
 
@@ -148,9 +149,7 @@ NodeID GLRenderer::get_selected(int x, int y) {
         m_source_buffers.framebuffer()
     );
 
-    glReadBuffer(m_source_buffers.id_attachment());
-
-    NodeID id = NO_NODE;
+    glReadBuffer(m_source_buffers.node_data_attachment());
 
     GLubyte data[4];
     glReadPixels(
@@ -163,7 +162,17 @@ NodeID GLRenderer::get_selected(int x, int y) {
         &data
     );
 
-    id = *reinterpret_cast<int32_t*>(data);
+    uint32_t raw_id = 0;
+    memcpy(&raw_id, data, 3);
+    raw_id = raw_id & 0x00ffffffu;
+
+    NodeID id;
+    if (raw_id == 0x00ffffffu) {
+        id = NO_NODE;
+    } else {
+        memcpy(&id, &raw_id, sizeof(NodeID));
+    }
+
     return id;
 }
 
@@ -347,7 +356,7 @@ void GLRenderer::render_framebuffer(
                 );
                 bind_node_data(
                     shader,
-                    mesh_data.node
+                    mesh_data.node_data
                 );
                 meshes.at(mesh_data.mesh_id).draw_elements_triangles();
             }
@@ -382,7 +391,7 @@ void GLRenderer::render_framebuffer(
                 );
                 bind_node_data(
                     shader,
-                    mesh_data.node
+                    mesh_data.node_data
                 );
                 bind_bone_data(
                     shader,
@@ -472,7 +481,7 @@ void GLRenderer::render_framebuffer(
             );
             bind_node_data(
                 *m_selection_shader,
-                selected_mesh_data.node
+                selected_mesh_data.node_data
             );
 
             meshes.at(selected_mesh_data.mesh_id).draw_elements_triangles();
@@ -491,7 +500,7 @@ void GLRenderer::render_framebuffer(
             );
             bind_node_data(
                 *m_animated_selection_shader,
-                mesh_data.node
+                mesh_data.node_data
             );
             bind_bone_data(
                 *m_animated_selection_shader,
@@ -576,19 +585,22 @@ void GLRenderer::bind_light_data(
 void GLRenderer::bind_transform_and_camera_data(
     GLShader const & s,
     glm::mat4 const & transform,
-    CameraRenderData const & camera_data
+    CameraRenderData const & data
 ) {
     glm::mat4 m_matrix = transform;
-    glm::mat4 mv_matrix = camera_data.view_matrix * transform;
-    glm::mat4 mvp_matrix = camera_data.projection_matrix * mv_matrix;
+    glm::mat4 mv_matrix = data.view_matrix * transform;
+    glm::mat4 vp_matrix = data.projection_matrix * data.view_matrix;
+    glm::mat4 mvp_matrix = data.projection_matrix * mv_matrix;
     glm::mat3 inv_tpos_matrix = glm::inverse(glm::transpose(m_matrix));
 
     static const GLVarString view_pos_str = "u_ViewPosition";
-    glUniform3fv(s.get_uniform_loc(view_pos_str), 1, &camera_data.view_position[0]);
+    glUniform3fv(s.get_uniform_loc(view_pos_str), 1, &data.view_position[0]);
 
     static const GLVarString mmatrix_str = "u_MMatrix";
     glUniformMatrix4fv(s.get_uniform_loc(mmatrix_str), 1, GL_FALSE, &m_matrix[0][0]);
     static const GLVarString mvmatrix_str = "u_MVMatrix";
+    static const GLVarString vpmatrix_str = "u_VPMatrix";
+    glUniformMatrix4fv(s.get_uniform_loc(vpmatrix_str), 1, GL_FALSE, &vp_matrix[0][0]);
     glUniformMatrix4fv(s.get_uniform_loc(mvmatrix_str), 1, GL_FALSE, &mv_matrix[0][0]);
     static const GLVarString mvpmatrix_str = "u_MVPMatrix";
     glUniformMatrix4fv(s.get_uniform_loc(mvpmatrix_str), 1, GL_FALSE, &mvp_matrix[0][0]);
@@ -598,11 +610,18 @@ void GLRenderer::bind_transform_and_camera_data(
 
 void GLRenderer::bind_node_data(
     GLShader const & shader,
-    NodeID node_id
+    NodeData node_data
 ) {
-    static const GLVarString node_str = "u_ID";
-    GLuint u_node_id = static_cast<GLuint>(node_id);
-    glUniform1ui(shader.get_uniform_loc(node_str), GLuint(u_node_id));
+    assert(node_data.id <= 0x00ffffffu || node_data.id == NO_NODE);
+
+    uint32_t idu32;
+    memcpy(&idu32, &node_data.id, sizeof(uint32_t));
+    uint32_t packed_data = (idu32 & 0x00ffffffu) |
+                           (node_data.selected ? 0xff000000u : 0x0u);
+
+    static const GLVarString node_data_str = "u_NodeData";
+    GLuint u_node_data = static_cast<GLuint>(packed_data);
+    glUniform1ui(shader.get_uniform_loc(node_data_str), GLuint(u_node_data));
     glCheckError();
 }
 

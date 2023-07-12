@@ -31,8 +31,10 @@ uniform vec3 u_AmbientLight;
 
 uniform vec3 u_ViewPosition;
 
-uniform uint u_ID;
+uniform uint u_NodeData;
 uniform bool u_Selected;
+
+uniform mat4 u_VPMatrix;
 
 in vec3 v_Position;
 in vec3 v_Normal;
@@ -55,7 +57,7 @@ vec3 CalculateDirectionalLight(DirectionalLight light,
 
 layout(location = 0) out vec3 outColor;
 layout(location = 1) out vec3 outNormal;
-layout(location = 2) out vec4 outID;
+layout(location = 2) out vec4 outMetadata;
 
 void main() {
     vec4 albedo = u_Albedo * texture(u_AlbedoMap, v_TexCoordinate);
@@ -93,10 +95,10 @@ void main() {
     outColor = lightContribution * albedo.rgb;
     outNormal = normal;
 
-    outID.r = float(u_ID % uint(255)) / 255.0;
-    outID.g = float((u_ID / uint(255)) % uint(255)) / 255.0;
-    outID.b = float((u_ID / uint(65025)) % uint(255)) / 255.0;
-    outID.a = float((u_ID / uint(16581375))) / 255.0;
+    outMetadata.r = float(u_NodeData % uint(256)) / 255.0;
+    outMetadata.g = float((u_NodeData / uint(256)) % uint(256)) / 255.0;
+    outMetadata.b = float((u_NodeData / uint(65536)) % uint(256)) / 255.0;
+    outMetadata.a = float((u_NodeData / uint(16777216))) / 255.0;
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {

@@ -17,7 +17,7 @@ uniform uint u_Frame;
 
 uniform sampler2D u_PreviousColorBuffer;
 uniform sampler2D u_NormalBuffer;
-uniform sampler2D u_IDBuffer;
+uniform sampler2D u_NodeDataBuffer;
 uniform sampler2D u_SelectedBuffer;
 uniform sampler2D u_DepthBuffer;
 

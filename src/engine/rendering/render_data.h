@@ -26,10 +26,15 @@ struct CameraRenderData {
     float far_plane;
 };
 
+struct NodeData {
+    NodeID id;
+    bool selected;
+};
+
 struct MeshRenderData {
     ResourceID mesh_id;
     ResourceID material_id;
-    NodeID node;
+    NodeData node_data;
     glm::mat4 transform;
 };
 

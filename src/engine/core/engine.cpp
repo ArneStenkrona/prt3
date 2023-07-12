@@ -49,10 +49,7 @@ bool Engine::execute_frame() {
 
             scene.update(fixed_delta_time);
 
-            scene.collect_world_render_data(
-                render_data.world,
-                NO_NODE
-            );
+            scene.collect_world_render_data(render_data.world);
 
             scene.get_camera().collect_camera_render_data(
                 render_data.camera_data
@@ -73,10 +70,7 @@ bool Engine::execute_frame() {
 
             m_editor.update(fixed_delta_time);
 
-            scene.collect_world_render_data(
-                render_data.world,
-                m_editor.selected_node()
-            );
+            scene.collect_world_render_data(render_data.world);
 
             m_editor.get_camera().collect_camera_render_data(
                 render_data.camera_data

@@ -16,6 +16,7 @@ public:
     virtual void on_init(Scene & scene) {
         set_tag(scene, "player");
         CharacterController::on_init(scene);
+        scene.selected_node() = node_id();
     }
 
     virtual void update_input(Scene & scene, float /*delta_time*/) {

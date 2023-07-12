@@ -19,9 +19,6 @@ public:
 
     Camera & get_camera() { return m_camera.get_camera(); }
 
-    NodeID selected_node() const
-    { return m_editor_context.get_selected_node(); }
-
     ActionManager & action_manager() { return m_action_manager; }
 
     template<typename ActionType, typename... ArgTypes>

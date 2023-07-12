@@ -251,8 +251,7 @@ Input & Scene::get_input() {
 }
 
 void Scene::collect_world_render_data(
-    WorldRenderData & world_data,
-    NodeID selected
+    WorldRenderData & world_data
 ) {
     m_transform_cache.collect_global_transforms(
         m_nodes.data(),
@@ -319,8 +318,8 @@ void Scene::collect_world_render_data(
     static std::unordered_set<NodeID> selected_incl_children;
     selected_incl_children.clear();
     static std::vector<NodeID> queue;
-    if (selected != NO_NODE) {
-        queue.push_back(selected);
+    if (m_selected_node != NO_NODE) {
+        queue.push_back(m_selected_node);
     }
 
     while (!queue.empty()) {
@@ -343,7 +342,9 @@ void Scene::collect_world_render_data(
         NodeID id = mesh_comp.node_id();
         MeshRenderData mesh_data;
         mesh_data.mesh_id = mesh_comp.resource_id();
-        mesh_data.node = id;
+        mesh_data.node_data.id = id;
+        mesh_data.node_data.selected = selected_incl_children.find(id) !=
+                                       selected_incl_children.end();
 
         mesh_data.transform = global_transforms[id].to_matrix();
         mesh_data.material_id = has_component<MaterialComponent>(id) ?
@@ -385,7 +386,9 @@ void Scene::collect_world_render_data(
             MeshRenderData mesh_data;
             mesh_data.mesh_id = resources.mesh_resource_ids[i];
             mesh_data.material_id = resources.material_resource_ids[i];
-            mesh_data.node = id;
+            mesh_data.node_data.id = id;
+            mesh_data.node_data.selected = selected_incl_children.find(id) !=
+                                        selected_incl_children.end();
             mesh_data.transform =
                 global_transforms[id].to_matrix()
                 * model_node.inherited_transform.to_matrix();
@@ -428,7 +431,10 @@ void Scene::collect_world_render_data(
             MeshRenderData & mesh_data = data.mesh_data;
             mesh_data.mesh_id = resources.mesh_resource_ids[i];
             mesh_data.material_id = resources.material_resource_ids[i];
-            mesh_data.node = id;
+            mesh_data.node_data.id = id;
+            mesh_data.node_data.selected = selected_incl_children.find(id) !=
+                                        selected_incl_children.end();
+
             mesh_data.transform =
                 global_transforms[id].to_matrix()
                 * model_node.inherited_transform.to_matrix();
@@ -454,7 +460,9 @@ void Scene::collect_world_render_data(
         NodeID id = mesh_comp.node_id();
         MeshRenderData mesh_data;
         mesh_data.mesh_id = mesh_comp.resource_id();
-        mesh_data.node = id;
+        mesh_data.node_data.id = id;
+        mesh_data.node_data.selected = selected_incl_children.find(id) !=
+                                       selected_incl_children.end();
 
         mesh_data.transform = global_transforms[id].to_matrix();
         mesh_data.material_id = has_component<MaterialComponent>(id) ?

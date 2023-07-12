@@ -17,11 +17,14 @@ public:
     EditorContext(Editor & editor, Context & context);
 
     Editor & editor() { return m_editor; }
+    Editor const & editor() const { return m_editor; }
     Context & context() { return m_context; }
+    Context const & context() const { return m_context; }
 
     imgui_addons::ImGuiFileBrowser & file_dialog() { return m_file_dialog; }
 
     Scene & scene() { return context().edit_scene(); }
+    Scene const & scene() const { return context().edit_scene(); }
     Project & project() { return context().project(); }
 
     std::vector<Node> & get_scene_nodes()
@@ -33,8 +36,8 @@ public:
     ModelManager & get_model_manager()
     { return m_context.model_manager(); }
 
-    NodeID get_selected_node() const { return m_selected_node; }
-    void set_selected_node(NodeID id) { m_selected_node = id; }
+    NodeID get_selected_node() const { return scene().selected_node(); }
+    void set_selected_node(NodeID id) { scene().selected_node() = id; }
 
     void set_save_point();
 
@@ -45,8 +48,6 @@ private:
     Context & m_context;
 
     imgui_addons::ImGuiFileBrowser m_file_dialog;
-
-    NodeID m_selected_node = NO_NODE;
 
     size_t m_save_point;
 };
