@@ -674,6 +674,7 @@ void Scene::deserialize(std::istream & in) {
 
 void Scene::internal_clear(bool place_root) {
     m_nodes.clear();
+    m_free_list.clear();
     m_node_names.clear();
     m_node_mod_flags.clear();
     if (place_root) {
