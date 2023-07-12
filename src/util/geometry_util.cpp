@@ -247,7 +247,7 @@ bool prt3::triangle_ray_intersect(
     // At this stage we can compute t to find out where the intersection point is on the line.
     float t = f * glm::dot(edge2, q);
 
-    if (t > EPSILON) // ray intersection
+    if (t > EPSILON && t <= 1.0f) // ray intersection
     {
         intersection = origin + ray_vector * t;
         return true;
