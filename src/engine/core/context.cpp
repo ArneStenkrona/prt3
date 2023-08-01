@@ -6,7 +6,6 @@
 #include "src/util/log.h"
 
 #include <fstream>
-#include <sstream>
 #include <unordered_set>
 
 using namespace prt3;
@@ -40,72 +39,10 @@ void Context::set_project_from_path(std::string const & path) {
     }
 }
 
-void Context::load_scene_if_queued() {
-    if (m_scene_manager.scene_queued()) {
-        // auto start_time = std::chrono::high_resolution_clock::now();
-
-        static std::unordered_set<ModelHandle> models_to_keep;
-        static std::unordered_set<ModelHandle> models_to_delete;
-
-        models_to_keep.insert(
-            m_edit_scene.referenced_models().begin(),
-            m_edit_scene.referenced_models().end()
-        );
-
-        for (ModelHandle handle : m_game_scene.referenced_models()) {
-            if (models_to_keep.find(handle) == models_to_keep.end()) {
-                m_model_manager.free_model(handle);
-            }
-        }
-
-        /* save autoload state */
-        std::stringstream out_autoload;
-        static std::vector<char> data;
-
-        for (UUID uuid : m_project.autoload_scripts()) {
-            Script const * script = m_game_scene.get_autoload_script(uuid);
-            if (script != nullptr) {
-                write_stream(out_autoload, true);
-                script->save_state(m_game_scene, out_autoload);
-            } else {
-                write_stream(out_autoload, false);
-            }
-        }
-
-        std::string const & s = out_autoload.str();
-        data.reserve(s.size());
-        data.assign(s.begin(), s.end());
-
-        /* load scene */
-        std::ifstream in(m_scene_manager.queued_scene_path(), std::ios::binary);
-        m_game_scene.deserialize(in);
-        in.close();
-
-        m_scene_manager.reset_queue();
-        m_game_scene.add_autoload_scripts(m_project.autoload_scripts());
-
-        /* restore autoload state */
-        imemstream in_autoload(data.data(), data.size());
-
-        for (UUID uuid : m_project.autoload_scripts()) {
-            bool serialized;
-            read_stream(in_autoload, serialized);
-
-            if (serialized) {
-                Script * script = m_game_scene.get_autoload_script(uuid);
-                script->restore_state(m_game_scene, in_autoload);
-            }
-        }
-
-        /* start scene */
-        m_game_scene.start();
-
-        // auto end_time = std::chrono::high_resolution_clock::now();
-
-        // auto duration =
-        //     std::chrono::duration_cast<std::chrono::milliseconds>
-        //     (end_time-start_time);
-
-        // PRT3LOG("load time: %llu ms\n", duration.count());
-    }
+TransitionState Context::load_scene_if_queued(TransitionState state) {
+    return m_scene_manager.load_scene_if_queued(
+        state,
+        m_game_scene,
+        m_edit_scene
+    );
 }

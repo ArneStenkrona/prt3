@@ -130,6 +130,7 @@ private:
     void free_model(ModelHandle handle);
 
     friend class Scene;
+    friend class SceneManager;
     friend class Context;
 };
 

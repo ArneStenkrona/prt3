@@ -2,6 +2,7 @@
 #define PRT3_GAME_STATE_H
 
 #include "src/engine/component/script/script.h"
+#include "src/engine/component/script/player_controller.h"
 #include "src/engine/component/script/camera_controller.h"
 #include "src/engine/scene/scene.h"
 #include "src/engine/component/door.h"
@@ -16,9 +17,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <iostream>
 #include <cmath>
 #include <array>
+#include <unordered_set>
 
 namespace prt3 {
 
@@ -34,7 +35,32 @@ public:
             init_resources(scene);
         }
 
+    virtual void on_signal(
+        Scene & scene,
+        SignalString const & signal,
+        void * data
+    ) {
+        if (signal == "scene_transition_out") {
+            float t = reinterpret_cast<float*>(data)[0];
+            float dt = reinterpret_cast<float*>(data)[1];
+
+            for (Door const & door : scene.get_all_components<Door>()) {
+                if (door.id() == m_entry_door_id) {
+
+                    Camera & cam = scene.get_camera();
+                    Node & player = scene.get_node(m_player_id);
+
+                    glm::vec3 translation = -t * dt * door.entry_offset();
+                    cam.transform().position += translation;
+                    player.translate_node(scene, translation);
+                }
+            }
+        }
+    }
+
     virtual void on_start(Scene & scene) {
+        scene.connect_signal("scene_transition_out", this);
+
         glm::vec3 spawn_position;
         glm::vec3 dir = glm::vec3{0.0f, 0.0f, 1.0f};
         for (Door const & door : scene.get_all_components<Door>()) {
@@ -42,7 +68,10 @@ public:
                 Node const & door_node = scene.get_node(door.node_id());
                 glm::vec3 door_position =
                     door_node.get_global_transform(scene).position;
-                spawn_position = door_position + door.entry_offset();
+                spawn_position =
+                    door_position +
+                    door.entry_offset() +
+                    m_player_door_offset;
 
                 if (door.entry_offset().x != 0.0f ||
                     door.entry_offset().z != 0.0f) {
@@ -66,6 +95,10 @@ public:
         );
 
         node.set_global_rotation(scene, rot);
+
+        PlayerController * controller =
+            scene.get_script_from_node<PlayerController>(m_player_id);
+        controller->deserialize_state(scene, m_player_state);
 
         m_camera_id = m_camera_prefab.instantiate(scene, scene.get_root_id());
         CameraController & cam = *scene.get_component<ScriptSet>(m_camera_id)
@@ -92,6 +125,7 @@ public:
     }
 
     virtual void save_state(Scene const & scene, std::ostream & out) const {
+        write_stream(out, m_exit_door_id);
         write_stream(out, m_entry_door_id);
 
         CameraController const & cam =
@@ -100,15 +134,47 @@ public:
 
         write_stream(out, cam.yaw());
         write_stream(out, cam.pitch());
+
+        glm::vec3 player_door_offset;
+
+        Node const & player = scene.get_node(m_player_id);
+
+        for (Door const & door : scene.get_all_components<Door>()) {
+            if (door.id() == m_exit_door_id) {
+                Node const & door_node = scene.get_node(door.node_id());
+                Transform door_tform =
+                    door_node.get_global_transform(scene);
+                glm::vec3 door_position = door_tform.position;
+
+                glm::vec3 v = player.get_global_transform(scene).position -
+                                door_position;
+
+                glm::vec3 n = door.entry_offset();
+                if (n != glm::vec3{0.0f}) n = glm::normalize(n);
+                player_door_offset = v - glm::dot(v, n) * n;
+                break;
+            }
+        }
+        write_stream(out, player_door_offset);
+
+        PlayerController const * controller =
+            scene.get_script_from_node<PlayerController>(m_player_id);
+
+        write_stream(out, controller->serialize_state(scene));
     }
 
     virtual void restore_state(Scene & /*scene*/, std::istream & in) {
+        read_stream(in, m_exit_door_id);
         read_stream(in, m_entry_door_id);
 
         read_stream(in, m_cam_yaw);
         read_stream(in, m_cam_pitch);
+        read_stream(in, m_player_door_offset);
+
+        read_stream(in, m_player_state);
     }
 
+    void set_exit_door_id(DoorID id) { m_exit_door_id = id; }
     void set_entry_door_id(DoorID id) { m_entry_door_id = id; }
 
     void push_back_bell_index(Scene & scene, int32_t index) {
@@ -134,11 +200,15 @@ public:
     }
 
 private:
+    DoorID m_exit_door_id = 0;
     DoorID m_entry_door_id = 0;
 
     Prefab m_player_prefab{"assets/prefabs/player.prefab"};
-    Prefab m_camera_prefab{"assets/prefabs/camera.prefab"};
     NodeID m_player_id;
+    CharacterController::SerializedState m_player_state = {};
+    glm::vec3 m_player_door_offset;
+
+    Prefab m_camera_prefab{"assets/prefabs/camera.prefab"};
     NodeID m_camera_id;
 
     float m_cam_yaw;

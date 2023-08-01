@@ -39,6 +39,7 @@ private:
     std::array<int64_t, 10> m_frame_duration_buffer;
     time_point m_last_frame_time_point;
 
+    TransitionState m_transition_state = NO_TRANSITION;
 };
 
 }

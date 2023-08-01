@@ -3,6 +3,7 @@
 
 #include "src/engine/rendering/model.h"
 #include "src/engine/rendering/model_manager.h"
+#include "src/engine/rendering/render_data.h"
 #include "src/engine/scene/node.h"
 #include "src/util/uuid.h"
 
@@ -28,6 +29,10 @@ public:
         ModelHandle handle
     ) { m_model_handle = handle; }
 
+    MaterialOverride & material_override() { return m_material_override; }
+    MaterialOverride const & material_override() const
+    { return m_material_override; }
+
     void serialize(
         std::ostream & out,
         Scene const & scene
@@ -39,6 +44,8 @@ public:
 private:
     NodeID m_node_id;
     ModelHandle m_model_handle = NO_MODEL;
+    // material override is not serialized
+    MaterialOverride m_material_override = {};
 
     void remove(Scene & /*scene*/) {}
 

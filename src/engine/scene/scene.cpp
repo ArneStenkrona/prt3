@@ -347,8 +347,16 @@ void Scene::collect_world_render_data(
                                        selected_incl_children.end();
 
         mesh_data.transform = global_transforms[id].to_matrix();
-        mesh_data.material_id = has_component<MaterialComponent>(id) ?
-            get_component<MaterialComponent>(id).resource_id() : NO_RESOURCE;
+        if (has_component<MaterialComponent>(id)) {
+            MaterialComponent const & comp =
+                get_component<MaterialComponent>(id);
+            mesh_data.material_id = comp.resource_id();
+            mesh_data.material_override = comp.material_override();
+        } else {
+            mesh_data.material_id = NO_RESOURCE;
+            mesh_data.material_override = {};
+        }
+
 
         Model const & model =
             model_manager().get_model_from_mesh_id(mesh_comp.resource_id());
@@ -386,6 +394,7 @@ void Scene::collect_world_render_data(
             MeshRenderData mesh_data;
             mesh_data.mesh_id = resources.mesh_resource_ids[i];
             mesh_data.material_id = resources.material_resource_ids[i];
+            mesh_data.material_override = model_comp.material_override();
             mesh_data.node_data.id = id;
             mesh_data.node_data.selected = selected_incl_children.find(id) !=
                                         selected_incl_children.end();
@@ -431,6 +440,7 @@ void Scene::collect_world_render_data(
             MeshRenderData & mesh_data = data.mesh_data;
             mesh_data.mesh_id = resources.mesh_resource_ids[i];
             mesh_data.material_id = resources.material_resource_ids[i];
+            mesh_data.material_override = model_comp.material_override();
             mesh_data.node_data.id = id;
             mesh_data.node_data.selected = selected_incl_children.find(id) !=
                                         selected_incl_children.end();
@@ -465,8 +475,15 @@ void Scene::collect_world_render_data(
                                        selected_incl_children.end();
 
         mesh_data.transform = global_transforms[id].to_matrix();
-        mesh_data.material_id = has_component<MaterialComponent>(id) ?
-            get_component<MaterialComponent>(id).resource_id() : NO_RESOURCE;
+        if (has_component<MaterialComponent>(id)) {
+            MaterialComponent const & comp =
+                get_component<MaterialComponent>(id);
+            mesh_data.material_id = comp.resource_id();
+            mesh_data.material_override = comp.material_override();
+        } else {
+            mesh_data.material_id = NO_RESOURCE;
+            mesh_data.material_override = {};
+        }
 
         ModelHandle model_handle =
             model_manager().get_model_handle_from_mesh_id(
@@ -559,6 +576,11 @@ AudioManager & Scene::audio_manager() {
     return m_context->audio_manager();
 }
 
+#ifdef __EMSCRIPTEN__
+EM_BOOL one_iter(double, void*) {
+  return EM_TRUE;
+}
+#endif
 
 void Scene::serialize(std::ostream & out) const {
     static std::unordered_map<NodeID, NodeID> compacted_ids;

@@ -181,6 +181,7 @@ private:
     static long audio_tell_func(void * void_id);
 
     friend class Engine;
+    friend class Scene;
 };
 
 } // namespace prt3

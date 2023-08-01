@@ -132,7 +132,8 @@ private:
 
     void bind_material_data(
         GLShader const & shader,
-        GLMaterial const & material
+        GLMaterial const & material,
+        MaterialOverride const & mat_override
     );
 
     void bind_bone_data(

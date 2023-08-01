@@ -115,6 +115,16 @@ public:
     Script * get_script(ScriptID id)
     { return m_script_container.scripts().at(id); }
 
+    template<typename T>
+    T * get_script_from_node(NodeID id) {
+        return get_component<ScriptSet>(id).get_script<T>(*this);
+    }
+
+    template<typename T>
+    T const * get_script_from_node(NodeID id) const {
+        return get_component<ScriptSet>(id).get_script<T>(*this);
+    }
+
     template<typename ComponentType, typename... ArgTypes>
     ComponentType & add_component(NodeID id, ArgTypes & ... args) {
         return m_component_manager.add_component<ComponentType>(*this, id, args...);
@@ -358,6 +368,7 @@ private:
     friend class Editor;
     friend class EditorContext;
     friend class Armature;
+    friend class SceneManager;
     friend AnimatedModel::AnimatedModel(Scene &, NodeID, std::istream &);
     friend ModelComponent::ModelComponent(Scene &, NodeID, std::istream &);
     friend MaterialComponent::MaterialComponent(Scene &, NodeID, std::istream &);

@@ -3,6 +3,7 @@
 
 #include "src/engine/scene/node.h"
 #include "src/engine/rendering/resources.h"
+#include "src/engine/rendering/render_data.h"
 #include "src/util/uuid.h"
 
 namespace prt3 {
@@ -25,6 +26,10 @@ public:
     ResourceID resource_id() const { return m_resource_id; }
     void set_resource_id(ResourceID id) { m_resource_id = id; }
 
+    MaterialOverride & material_override() { return m_material_override; }
+    MaterialOverride const & material_override() const
+    { return m_material_override; }
+
     void serialize(
         std::ostream & out,
         Scene const & scene
@@ -36,6 +41,8 @@ public:
 private:
     NodeID m_node_id;
     ResourceID m_resource_id;
+    // material override is not serialized
+    MaterialOverride m_material_override = {};
 
     void remove(Scene & /*scene*/) {}
 

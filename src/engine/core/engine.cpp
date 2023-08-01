@@ -20,66 +20,85 @@ void Engine::set_project_from_path(std::string const & path) {
 }
 
 bool Engine::execute_frame() {
-    // loop begin
-    float fixed_delta_time = 1.0f / 60.0f;
+    static RenderData render_data;
+    render_data.clear();
 
-    Input & input = m_context.input();
-    m_context.input().update();
+    m_transition_state = m_context.load_scene_if_queued(m_transition_state);
+    if (m_transition_state != NO_TRANSITION) {
 
-    if (input.get_key_down(KEY_CODE_TAB) &&
-        input.get_key(KEY_CODE_LEFT_ALT)) {
+        Scene & scene = m_context.game_scene();
+
+        scene.collect_world_render_data(render_data.world);
+
+        scene.get_camera().collect_camera_render_data(
+            render_data.camera_data
+        );
+
+        m_context.renderer().render(render_data, false);
+
+        m_context.audio_manager().update(
+            scene.get_camera().transform(),
+            scene.m_transform_cache.global_transforms().data()
+        );
+    } else {
+        // loop begin
+        float fixed_delta_time = 1.0f / 60.0f;
+
+        Input & input = m_context.input();
+        m_context.input().update();
+
+        if (input.get_key_down(KEY_CODE_TAB) &&
+            input.get_key(KEY_CODE_LEFT_ALT)) {
+            switch (m_mode) {
+                case EngineMode::game: {
+                    set_mode_editor();
+                    break;
+                }
+                case EngineMode::editor: {
+                    set_mode_game();
+                    break;
+                }
+            }
+        }
+
         switch (m_mode) {
             case EngineMode::game: {
-                set_mode_editor();
+                Scene & scene = m_context.game_scene();
+
+                scene.update(fixed_delta_time);
+
+                scene.collect_world_render_data(render_data.world);
+
+                scene.get_camera().collect_camera_render_data(
+                    render_data.camera_data
+                );
+
+                m_context.renderer().render(render_data, false);
+
+                m_context.audio_manager().update(
+                    scene.get_camera().transform(),
+                    scene.m_transform_cache.global_transforms().data()
+                );
                 break;
             }
             case EngineMode::editor: {
-                set_mode_game();
+                Scene & scene = m_context.edit_scene();
+
+                m_context.renderer().prepare_imgui_rendering();
+
+                m_editor.update(fixed_delta_time);
+
+                scene.collect_world_render_data(render_data.world);
+
+                m_editor.get_camera().collect_camera_render_data(
+                    render_data.camera_data
+                );
+
+                m_editor.collect_render_data(render_data.editor_data);
+
+                m_context.renderer().render(render_data, true);
                 break;
             }
-        }
-    }
-
-    static RenderData render_data;
-    render_data.clear();
-    switch (m_mode) {
-        case EngineMode::game: {
-            m_context.load_scene_if_queued();
-            Scene & scene = m_context.game_scene();
-
-            scene.update(fixed_delta_time);
-
-            scene.collect_world_render_data(render_data.world);
-
-            scene.get_camera().collect_camera_render_data(
-                render_data.camera_data
-            );
-
-            m_context.renderer().render(render_data, false);
-
-            m_context.audio_manager().update(
-                scene.get_camera().transform(),
-                scene.m_transform_cache.global_transforms().data()
-            );
-            break;
-        }
-        case EngineMode::editor: {
-            Scene & scene = m_context.edit_scene();
-
-            m_context.renderer().prepare_imgui_rendering();
-
-            m_editor.update(fixed_delta_time);
-
-            scene.collect_world_render_data(render_data.world);
-
-            m_editor.get_camera().collect_camera_render_data(
-                render_data.camera_data
-            );
-
-            m_editor.collect_render_data(render_data.editor_data);
-
-            m_context.renderer().render(render_data, true);
-            break;
         }
     }
 

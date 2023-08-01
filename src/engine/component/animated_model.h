@@ -4,6 +4,7 @@
 #include "src/engine/animation/animation.h"
 #include "src/engine/rendering/model.h"
 #include "src/engine/rendering/model_manager.h"
+#include "src/engine/rendering/render_data.h"
 #include "src/engine/scene/node.h"
 #include "src/util/uuid.h"
 
@@ -31,6 +32,10 @@ public:
 
     AnimationID animation_id() const { return m_animation_id; }
 
+    MaterialOverride & material_override() { return m_material_override; }
+    MaterialOverride const & material_override() const
+    { return m_material_override; }
+
     void serialize(
         std::ostream & out,
         Scene const & scene
@@ -43,6 +48,8 @@ private:
     NodeID m_node_id;
     ModelHandle m_model_handle = NO_MODEL;
     AnimationID m_animation_id = NO_ANIMATION;
+    // material override is not serialized
+    MaterialOverride m_material_override = {};
 
     void remove(Scene & scene);
 

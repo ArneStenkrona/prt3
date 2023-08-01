@@ -20,8 +20,8 @@ public:
     }
 
     virtual void update_input(Scene & scene, float delta_time) {
-        m_input = {};
-        m_input.run = false;
+        m_state.input = {};
+        m_state.input.run = false;
 
         m_target_id = *(scene.find_nodes_by_tag("player").begin());
 
@@ -46,17 +46,17 @@ public:
 
             float dist = glm::distance(pos, dest);
             // TODO: get criteria from collider dimensions
-            float critera = glm::max(glm::length(m_velocity) * delta_time, 1.0f);
+            float critera = glm::max(glm::length(m_state.velocity) * delta_time, 1.0f);
             if (dist >= critera && dist != 0.0f) {
                 glm::vec3 dir = glm::normalize(dest - pos);
                 dir.y = 0.0f;
 
-                m_input.direction = dir;
+                m_state.input.direction = dir;
             } else {
                 ++m_path_index;
             }
         }
-        m_state = WALK;
+        m_state.state = WALK;
     }
 
 protected:

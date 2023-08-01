@@ -346,7 +346,8 @@ void GLRenderer::render_framebuffer(
 
                 bind_material_data(
                     shader,
-                    material
+                    material,
+                    mesh_data.material_override
                 );
 
                 bind_transform_and_camera_data(
@@ -381,7 +382,8 @@ void GLRenderer::render_framebuffer(
 
                 bind_material_data(
                     shader,
-                    material
+                    material,
+                    mesh_data.material_override
                 );
 
                 bind_transform_and_camera_data(
@@ -627,7 +629,8 @@ void GLRenderer::bind_node_data(
 
 void GLRenderer::bind_material_data(
     GLShader const & s,
-    GLMaterial const & material
+    GLMaterial const & material,
+    MaterialOverride const & mat_override
 ) {
     static const GLVarString albedo_map_str = "u_AlbedoMap";
     glUniform1i(s.get_uniform_loc(albedo_map_str), 0);
@@ -660,8 +663,13 @@ void GLRenderer::bind_material_data(
     glBindTexture(GL_TEXTURE_2D, material.roughness_map());
     glCheckError();
 
+    glm::vec4 albedo = material.material().albedo;
+    if (mat_override.tint_active) {
+        albedo = albedo * glm::vec4{mat_override.tint, 1.0f};
+    }
+
     static const GLVarString albedo_str = "u_Albedo";
-    glUniform4fv(s.get_uniform_loc(albedo_str), 1, &material.material().albedo[0]);
+    glUniform4fv(s.get_uniform_loc(albedo_str), 1, &albedo[0]);
     glCheckError();
     static const GLVarString metallic_str = "u_Metallic";
     glUniform1f(s.get_uniform_loc(metallic_str), material.material().metallic);

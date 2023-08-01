@@ -37,7 +37,8 @@ void Door::update(Scene & scene, std::vector<Door> & components) {
             scene.scene_manager()
                 .queue_scene(door.m_destination_scene_path.data());
             GameState * game_state = scene.get_autoload_script<GameState>();
-            game_state->set_entry_door_id(door.id());
+            game_state->set_exit_door_id(door.id());
+            game_state->set_entry_door_id(door.destination_id());
             return;
         }
     }

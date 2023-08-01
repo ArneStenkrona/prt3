@@ -31,9 +31,15 @@ struct NodeData {
     bool selected;
 };
 
+struct MaterialOverride {
+    bool tint_active;
+    glm::vec3 tint;
+};
+
 struct MeshRenderData {
     ResourceID mesh_id;
     ResourceID material_id;
+    MaterialOverride material_override;
     NodeData node_data;
     glm::mat4 transform;
 };

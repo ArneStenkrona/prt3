@@ -75,7 +75,7 @@ public:
         Camera & camera = scene.get_camera();
         Input & input = scene.get_input();
 
-        m_pitch = -glm::pi<float>() / 4.0f;
+        m_pitch = -glm::pi<float>() / 6.0f;
 
         int x, y;
         input.get_cursor_delta(x, y);
