@@ -46,9 +46,8 @@ public:
         scene.get_camera().set_orthographic_projection(true);
     }
 
-    virtual void on_late_update(Scene & scene, float delta_time) {
+    void rotate_with_mouse(Scene & scene) {
         Camera & camera = scene.get_camera();
-        Transform & cam_tform = camera.transform();
         Input & input = scene.get_input();
 
         //Mouse
@@ -59,23 +58,33 @@ public:
         m_yaw -= dx;
         m_pitch -= dy;
 
-        // constrainPitch should have its effect here
         if (m_pitch > glm::radians(89.0f)) {
             m_pitch = glm::radians(89.0f);
         }
+
         if (m_pitch < glm::radians(-89.0f)) {
             m_pitch = glm::radians(-89.0f);
         }
 
-        cam_tform.rotation = glm::quat_cast(
+        camera.transform().rotation = glm::quat_cast(
             glm::eulerAngleYXZ(m_yaw, -m_pitch, 0.0f)
         );
+    }
 
-        glm::vec3 target_pos{0.0f, 0.0f, 0.0f};
-        if (m_target != NO_NODE) {
-            Node & t_node = scene.get_node(m_target);
-            target_pos = t_node.get_global_transform(scene).position;
-        }
+    virtual void on_late_update(Scene & scene, float delta_time) {
+        Camera & camera = scene.get_camera();
+        Input & input = scene.get_input();
+
+        m_pitch = -glm::pi<float>() / 4.0f;
+
+        int x, y;
+        input.get_cursor_delta(x, y);
+        float dx = (float)x * m_mouse_sensitivity;
+        m_yaw -= dx;
+
+        camera.transform().rotation = glm::quat_cast(
+            glm::eulerAngleYXZ(m_yaw, -m_pitch, 0.0f)
+        );
 
         // camera shake;
         glm::vec3 cam_shake{0.0f};
@@ -97,6 +106,12 @@ public:
                         mag * camera.get_up() * glm::cos(t);
 
             m_screen_shake_elapsed += delta_time;
+        }
+
+        glm::vec3 target_pos{0.0f, 0.0f, 0.0f};
+        if (m_target != NO_NODE) {
+            Node & t_node = scene.get_node(m_target);
+            target_pos = t_node.get_global_transform(scene).position;
         }
 
         camera.transform().position =
@@ -122,8 +137,8 @@ public:
     }
 
 private:
-    float m_yaw;
-    float m_pitch;
+    float m_yaw = 0.0f;
+    float m_pitch = 0.0f;
     float m_mouse_sensitivity = 0.005236f;
 
     NodeID m_target = NO_NODE;
