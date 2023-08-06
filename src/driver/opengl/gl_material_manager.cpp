@@ -44,28 +44,23 @@ ResourceID GLMaterialManager::upload_material(
     Material const & material
 ) {
     GLTextureManager & tm = m_texture_manager;
-    GLuint albedo_map = tm.retrieve_texture(
-        material.albedo_map.c_str(),
-        tm.texture_1x1_0xffffffff()
-    );
 
-    GLuint normal_map = tm.retrieve_texture(
-        material.normal_map.c_str(),
-        tm.texture_1x1_0x0000ff()
-    );
+    GLuint albedo_map = material.albedo_map == NO_RESOURCE ?
+        tm.texture_1x1_0xffffffff() : tm.get_texture(material.albedo_map);
+    GLuint normal_map = material.normal_map == NO_RESOURCE ?
+        tm.texture_1x1_0x0000ff() : tm.get_texture(material.normal_map);
+    GLuint roughness_map = material.roughness_map == NO_RESOURCE ?
+        tm.texture_1x1_0xff() : tm.get_texture(material.roughness_map);
+    GLuint metallic_map = material.metallic_map == NO_RESOURCE ?
+        tm.texture_1x1_0xff() : tm.get_texture(material.metallic_map);
 
-    GLuint roughness_map = tm.retrieve_texture(
-        material.roughness_map.c_str(),
-        tm.texture_1x1_0xff()
-    );
-
-    GLuint metallic_map = tm.retrieve_texture(
-        material.metallic_map.c_str(),
-        tm.texture_1x1_0xff()
-    );
-
-    ResourceID id = m_next_material_id;
-    ++m_next_material_id;
+    ResourceID id;
+    if (m_free_ids.empty()) {
+        id = m_materials.size();
+    } else {
+        id = m_free_ids.back();
+        m_free_ids.pop_back();
+    }
 
     m_materials.emplace(
         std::make_pair(
@@ -90,14 +85,8 @@ ResourceID GLMaterialManager::upload_material(
 void GLMaterialManager::free_material(
     ResourceID id
 ) {
-    GLMaterial const & mat = m_materials.at(id);
-
-    m_texture_manager.attempt_free_texture(mat.albedo_map());
-    m_texture_manager.attempt_free_texture(mat.normal_map());
-    m_texture_manager.attempt_free_texture(mat.roughness_map());
-    m_texture_manager.attempt_free_texture(mat.metallic_map());
-
     m_materials.erase(id);
+    m_free_ids.push_back(id);
 }
 
 void GLMaterialManager::upload_default_material() {

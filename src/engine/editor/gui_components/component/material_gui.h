@@ -61,6 +61,7 @@ void inner_show_component<MaterialComponent>(
 
     Scene & scene = context.scene();
     MaterialManager & man = context.get_material_manager();
+    TextureManager & tex_man = context.get_texture_manager();
 
     MaterialComponent & component = scene.get_component<MaterialComponent>(id);
     ResourceID resource_id = component.resource_id();
@@ -101,39 +102,52 @@ void inner_show_component<MaterialComponent>(
             "%.2f"
         );
 
-        static FixedString<64> albedo_map;
-        albedo_map = material.albedo_map.c_str();
-        changed |= ImGui::InputText(
+        // TODO: change textures
+        static std::string albedo_map;
+        albedo_map = material.albedo_map == NO_RESOURCE ?
+                     std::string{"<none>"} :
+                     tex_man.get_texture_path(material.albedo_map);
+
+        ImGui::InputText(
             "albedo map",
             albedo_map.data(),
-            albedo_map.buf_size(),
+            albedo_map.size(),
             ImGuiInputTextFlags_ReadOnly
         );
 
-        static FixedString<64> normal_map;
-        normal_map = material.normal_map.c_str();
-        changed |= ImGui::InputText(
+        static std::string normal_map;
+        normal_map = material.normal_map == NO_RESOURCE ?
+                     std::string{"<none>"} :
+                     tex_man.get_texture_path(material.normal_map);
+
+        ImGui::InputText(
             "normal map",
             normal_map.data(),
-            normal_map.buf_size(),
+            normal_map.size(),
             ImGuiInputTextFlags_ReadOnly
         );
 
-        static FixedString<64> metallic_map;
-        metallic_map = material.metallic_map.c_str();
-        changed |= ImGui::InputText(
+        static std::string metallic_map;
+        metallic_map = material.metallic_map == NO_RESOURCE ?
+                     std::string{"<none>"} :
+                     tex_man.get_texture_path(material.metallic_map);
+
+        ImGui::InputText(
             "metallic map",
             metallic_map.data(),
-            metallic_map.buf_size(),
+            metallic_map.size(),
             ImGuiInputTextFlags_ReadOnly
         );
 
-        static FixedString<64> roughness_map;
-        roughness_map = material.roughness_map.c_str();
-        changed |= ImGui::InputText(
+        static std::string roughness_map;
+        roughness_map = material.roughness_map == NO_RESOURCE ?
+                     std::string{"<none>"} :
+                     tex_man.get_texture_path(material.roughness_map);
+
+        ImGui::InputText(
             "roughness map",
             roughness_map.data(),
-            roughness_map.buf_size(),
+            roughness_map.size(),
             ImGuiInputTextFlags_ReadOnly
         );
 

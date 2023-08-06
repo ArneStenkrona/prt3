@@ -6,6 +6,7 @@
 #include "src/engine/component/animated_model.h"
 #include "src/engine/component/armature.h"
 #include "src/engine/component/collider_component.h"
+#include "src/engine/component/decal.h"
 #include "src/engine/component/mesh.h"
 #include "src/engine/component/door.h"
 #include "src/engine/component/material.h"
@@ -143,7 +144,8 @@ using ComponentTypes = type_pack<
     Door,
     NavigationMeshComponent,
     SoundSourceComponent,
-    Weapon
+    Weapon,
+    Decal
 >;
 
 using ComponentStoragesType = wrap_arg_pack_in_storage<std::tuple, ComponentTypes>::type;

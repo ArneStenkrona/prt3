@@ -51,4 +51,4 @@ void inner_show_component<Door>(
 
 } // namespace prt3
 
-#endif
+#endif // PRT3_DOOR_GUI_H

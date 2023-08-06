@@ -15,7 +15,8 @@ Scene::Scene(Context & context)
 {
     m_nodes.emplace_back(s_root_id);
     m_node_names.emplace_back("root");
-    m_node_mod_flags.emplace_back(Node::ModFlags::none);
+    m_node_flags.emplace_back(Node::Flags::flag_none);
+    m_node_mod_flags.emplace_back(Node::ModFlags::mod_flag_none);
 }
 
 void Scene::start() {
@@ -39,7 +40,7 @@ void Scene::update(float delta_time) {
 
 void Scene::clear_node_mod_flags() {
     for (Node::ModFlags & flags : m_node_mod_flags) {
-        flags = Node::ModFlags::none;
+        flags = Node::ModFlags::mod_flag_none;
     }
 }
 
@@ -49,13 +50,15 @@ NodeID Scene::add_node(NodeID parent_id, const char * name, UUID uuid) {
         id = m_nodes.size();
         m_nodes.emplace_back(id);
         m_node_names.emplace_back(name);
-        m_node_mod_flags.emplace_back(Node::ModFlags::none);
+        m_node_flags.emplace_back(Node::Flags::flag_none);
+        m_node_mod_flags.emplace_back(Node::ModFlags::mod_flag_none);
     } else {
         id = m_free_list.back();
         m_free_list.pop_back();
         m_nodes[id] = {id};
         m_node_names[id] = name;
-        m_node_mod_flags[id] = Node::ModFlags::none;
+        m_node_flags[id] = Node::Flags::flag_none;
+        m_node_mod_flags[id] = Node::ModFlags::mod_flag_none;
     }
 
     m_nodes[id].m_parent_id = parent_id;
@@ -63,7 +66,7 @@ NodeID Scene::add_node(NodeID parent_id, const char * name, UUID uuid) {
     m_node_uuids[id] = uuid;
     m_uuid_to_node[uuid] = id;
 
-    mark_ancestors(id, Node::ModFlags::descendant_added);
+    mark_ancestors(id, Node::ModFlags::mod_flag_descendant_added);
 
     return id;
 }
@@ -85,7 +88,7 @@ bool Scene::remove_node(NodeID id) {
                     break;
                 }
             }
-            mark_ancestors(id, Node::ModFlags::descendant_removed);
+            mark_ancestors(id, Node::ModFlags::mod_flag_descendant_removed);
         }
     }
 
@@ -155,7 +158,6 @@ NodeID Scene::get_child_with_tag(NodeID id, NodeTag tag) const {
 
     return NO_NODE;
 }
-
 
 void Scene::find_relative_path(
     NodeID a_id,
@@ -357,7 +359,6 @@ void Scene::collect_world_render_data(
             mesh_data.material_override = {};
         }
 
-
         Model const & model =
             model_manager().get_model_from_mesh_id(mesh_comp.resource_id());
 
@@ -393,7 +394,7 @@ void Scene::collect_world_render_data(
                 model.nodes()[model.meshes()[i].node_index];
             MeshRenderData mesh_data;
             mesh_data.mesh_id = resources.mesh_resource_ids[i];
-            mesh_data.material_id = resources.material_resource_ids[i];
+            mesh_data.material_id = resources.mesh_material_ids[i];
             mesh_data.material_override = model_comp.material_override();
             mesh_data.node_data.id = id;
             mesh_data.node_data.selected = selected_incl_children.find(id) !=
@@ -439,7 +440,7 @@ void Scene::collect_world_render_data(
             AnimatedMeshRenderData data;
             MeshRenderData & mesh_data = data.mesh_data;
             mesh_data.mesh_id = resources.mesh_resource_ids[i];
-            mesh_data.material_id = resources.material_resource_ids[i];
+            mesh_data.material_id = resources.mesh_material_ids[i];
             mesh_data.material_override = model_comp.material_override();
             mesh_data.node_data.id = id;
             mesh_data.node_data.selected = selected_incl_children.find(id) !=
@@ -544,6 +545,19 @@ void Scene::collect_world_render_data(
     world_data.light_data.directional_light_on = m_directional_light_on;
 
     world_data.light_data.ambient_light = m_ambient_light;
+
+    /* decals */
+    auto & decals = m_component_manager.get_all_components<Decal>();
+    for (Decal const & decal : decals) {
+        if (decal.texture_id() == NO_RESOURCE) continue;
+        Transform tform =
+            get_node(decal.node_id()).get_global_transform(*this);
+        tform.scale *= decal.dimensions();
+
+        world_data.decal_data.push_back({});
+        world_data.decal_data.back().texture = decal.texture_id();
+        world_data.decal_data.back().transform = tform.to_matrix();
+    }
 }
 
 void Scene::update_window_size(int w, int h) {
@@ -566,6 +580,14 @@ ModelManager & Scene::model_manager() {
 
 Model const & Scene::get_model(ModelHandle handle) const {
     return m_context->model_manager().get_model(handle);
+}
+
+TextureManager const & Scene::texture_manager() const {
+    return m_context->texture_manager();
+}
+
+TextureManager & Scene::texture_manager() {
+    return m_context->texture_manager();
 }
 
 SceneManager & Scene::scene_manager() {
@@ -649,7 +671,8 @@ void Scene::deserialize(std::istream & in) {
 
     for (NodeID id = 0; id < n_nodes; ++id) {
         m_node_names.push_back({});
-        m_node_mod_flags.push_back(Node::ModFlags::none);
+        m_node_flags.push_back(Node::Flags::flag_none);
+        m_node_mod_flags.push_back(Node::ModFlags::mod_flag_none);
         auto & name = m_node_names.back();
         in.read(name.data(), name.writeable_size());
 
@@ -702,7 +725,8 @@ void Scene::internal_clear(bool place_root) {
     if (place_root) {
         m_nodes.emplace_back(s_root_id);
         m_node_names.emplace_back("root");
-        m_node_mod_flags.emplace_back(Node::ModFlags::none);
+        m_node_flags.emplace_back(Node::Flags::flag_none);
+        m_node_mod_flags.emplace_back(Node::ModFlags::mod_flag_none);
     }
 
     m_component_manager.clear();
@@ -726,6 +750,7 @@ void Scene::internal_clear(bool place_root) {
     m_camera.transform() = {};
 
     m_referenced_models.clear();
+    m_referenced_textures.clear();
 
     m_autoload_scripts.clear();
 }

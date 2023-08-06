@@ -23,10 +23,12 @@ struct UniformName {
 class GLSourceBuffers {
 public:
     void init(GLint width, GLint height);
+
     void clean_up();
 
     GLuint framebuffer()           const { return m_framebuffer;           }
     GLuint selection_framebuffer() const { return m_selection_framebuffer; }
+    GLuint decal_framebuffer()    const { return m_decal_framebuffer;    }
     GLuint color_texture()         const { return m_color_texture;         }
     GLuint normal_texture()        const { return m_normal_texture;        }
     GLuint node_data_texture()     const { return m_node_data_texture;     }
@@ -51,6 +53,7 @@ public:
 private:
     GLuint m_framebuffer = 0;
     GLuint m_selection_framebuffer = 0;
+    GLuint m_decal_framebuffer = 0;
     GLuint m_color_texture = 0;
     GLuint m_normal_texture = 0;
     GLuint m_node_data_texture = 0;

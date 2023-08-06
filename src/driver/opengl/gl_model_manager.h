@@ -16,27 +16,29 @@ class GLModelManager {
 public:
     GLModelManager(GLMaterialManager & material_manager);
 
-    void upload_model(ModelHandle handle,
-                      Model const & model,
-                      ModelResource & resource);
+    void upload_model(
+        ModelHandle handle,
+        Model const & model,
+        std::vector<ResourceID> & mesh_resource_ids
+    );
 
     void free_model(
         ModelHandle handle,
-        ModelResource const & resource
+        std::vector<ResourceID> const & mesh_resource_ids
     );
 
-    ResourceID upload_line_mesh(
+    ResourceID upload_pos_mesh(
         glm::vec3 const * vertices,
         size_t n
     );
 
-    void update_line_mesh(
+    void update_pos_mesh(
         ResourceID id,
         glm::vec3 const * vertices,
         size_t n
     );
 
-    void free_line_mesh(ResourceID id);
+    void free_pos_mesh(ResourceID id);
 
     std::unordered_map<ResourceID, GLMesh> const & meshes() const
     { return m_meshes; }
@@ -48,7 +50,7 @@ private:
         GLuint ebo;
     };
 
-    struct LineMeshBufferHandles {
+    struct PosMeshBufferHandles {
         GLuint vao;
         GLuint vbo;
     };
@@ -57,8 +59,8 @@ private:
     std::unordered_map<ModelHandle, ModelBufferHandles>
         m_model_buffer_handles;
 
-    std::unordered_map<ResourceID, LineMeshBufferHandles>
-        m_line_mesh_buffer_handles;
+    std::unordered_map<ResourceID, PosMeshBufferHandles>
+        m_pos_mesh_buffer_handles;
 
     std::unordered_map<ResourceID, GLMesh> m_meshes;
     ResourceID m_next_mesh_id = 0;

@@ -34,8 +34,11 @@ TransitionState SceneManager::load_scene_if_queued(
     if (!m_fade_transition || state == -2) {
         m_fade_exclude_set.clear();
 
-        static std::unordered_set<ModelHandle> existing_handles;
-        existing_handles = scene.referenced_models();
+        static std::unordered_set<ModelHandle> existing_models;
+        existing_models = scene.referenced_models();
+
+        static std::unordered_set<ResourceID> existing_textures;
+        existing_textures = scene.referenced_textures();
 
         /* save autoload state */
         std::stringstream out_autoload;
@@ -61,12 +64,21 @@ TransitionState SceneManager::load_scene_if_queued(
         in.close();
 
         /* free unused models */
-        for (ModelHandle handle : existing_handles) {
+        for (ModelHandle handle : existing_models) {
             if (scene.referenced_models().find(handle) ==
                 scene.referenced_models().end() &&
                 edit_scene.referenced_models().find(handle) ==
                 edit_scene.referenced_models().end()) {
                 m_context.model_manager().free_model(handle);
+            }
+        }
+
+        for (ResourceID res_id : existing_textures) {
+            if (scene.referenced_textures().find(res_id) ==
+                scene.referenced_textures().end() &&
+                edit_scene.referenced_textures().find(res_id) ==
+                edit_scene.referenced_textures().end()) {
+                m_context.texture_manager().free_texture_ref(res_id);
             }
         }
 

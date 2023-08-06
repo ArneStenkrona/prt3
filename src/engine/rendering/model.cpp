@@ -56,21 +56,12 @@ inline uint16_t extract_key_index(
 
 Model::Model(char const * path)
  : m_path{path} {
-    // auto start_time = std::chrono::high_resolution_clock::now();
-
     char const * slash = std::strrchr(path, '/');
     m_name = slash ? slash + 1 : 0;
     if (!deserialize_model()) {
         load_with_assimp();
         serialize_model();
     }
-
-    // auto end_time = std::chrono::high_resolution_clock::now();
-
-    // auto duration =
-    //     std::chrono::duration_cast<std::chrono::milliseconds>
-    //     (end_time-start_time);
-    // PRT3LOG("load time: %llu ms\n", duration.count());
 }
 
 int32_t Model::get_animation_index(char const * name) const {
@@ -857,7 +848,7 @@ void Model::serialize_model() {
     }
 
     write_stream(out, m_materials.size());
-    for (Material const & material : m_materials) {
+    for (MeshMaterial const & material : m_materials) {
         write_stream(out, material.name.length());
         out.write(material.name.c_str(), material.name.length());
 
@@ -1030,7 +1021,7 @@ bool Model::deserialize_model() {
     size_t n_materials;
     read_stream(in, n_materials);
     m_materials.resize(n_materials);
-    for (Material & material : m_materials) {
+    for (MeshMaterial & material : m_materials) {
         read_string(in, material.name);
 
         read_stream(in, material.albedo);

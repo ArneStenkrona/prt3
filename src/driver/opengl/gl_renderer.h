@@ -30,56 +30,64 @@ public:
 
     virtual ~GLRenderer();
 
-    virtual void prepare_imgui_rendering();
+    void prepare_imgui_rendering() final;
 
-    virtual void render(
+    void render(
         RenderData const & render_data,
         bool editor
-    );
+    ) final;
 
-    virtual void upload_model(
+    void upload_model(
         ModelHandle handle,
         Model const & model,
-        ModelResource & resource)
-    { m_model_manager.upload_model(handle, model, resource); }
+        std::vector<ResourceID> & mesh_resource_ids
+    ) final
+    { m_model_manager.upload_model(handle, model, mesh_resource_ids); }
 
-    virtual void free_model(
+    void free_model(
         ModelHandle handle,
-        ModelResource const & resource
-    )
-    { m_model_manager.free_model(handle, resource); }
+        std::vector<ResourceID> const & mesh_resource_ids
+    ) final
+    { m_model_manager.free_model(handle, mesh_resource_ids); }
 
-    virtual ResourceID upload_line_mesh(
+    ResourceID upload_pos_mesh(
         glm::vec3 const * vertices,
         size_t n
-    )
-    { return m_model_manager.upload_line_mesh(vertices, n); }
+    ) final
+    { return m_model_manager.upload_pos_mesh(vertices, n); }
 
-    virtual void update_line_mesh(
+    void update_pos_mesh(
         ResourceID id,
         glm::vec3 const * vertices,
         size_t n
-    )
-    { m_model_manager.update_line_mesh(id, vertices, n); }
+    ) final
+    { m_model_manager.update_pos_mesh(id, vertices, n); }
 
-    virtual void free_line_mesh(ResourceID id)
-    { m_model_manager.free_line_mesh(id); }
+    void free_pos_mesh(ResourceID id) final
+    { m_model_manager.free_pos_mesh(id); }
 
-    virtual void set_postprocessing_chains(
+    void set_postprocessing_chains(
         PostProcessingChain const & scene_chain,
         PostProcessingChain const & editor_chain
-    );
+    ) final;
 
-    virtual NodeID get_selected(int x, int y);
+    NodeID get_selected(int x, int y) final;
 
-    virtual ResourceID upload_material(Material const & material)
+    ResourceID upload_material(Material const & material) final
     { return m_material_manager.upload_material(material); }
+    void free_material(ResourceID id) final
+    { m_material_manager.free_material(id); }
 
-    virtual Material const & get_material(ResourceID id) const
+    Material const & get_material(ResourceID id) const final
     { return m_material_manager.get_material(id); }
 
-    virtual Material & get_material(ResourceID id)
+    Material & get_material(ResourceID id) final
     { return m_material_manager.get_material(id); }
+
+    ResourceID upload_texture(TextureData const & data) final
+    { return m_texture_manager.upload_texture(data); }
+    void free_texture(ResourceID id) final
+    { return m_texture_manager.free_texture(id); }
 
 private:
     GLFWwindow * m_window;
@@ -94,15 +102,19 @@ private:
 
     GLSourceBuffers m_source_buffers;
 
+    GLShader * m_decal_shader;
     GLShader * m_selection_shader;
     GLShader * m_animated_selection_shader;
     GLShader * m_transparency_blend_shader;
+
+    ResourceID m_decal_mesh;
 
     uint32_t m_frame = 0; // will overflow after a few years
 
     enum PassType : unsigned {
         opaque,
         transparent,
+        decal,
         selection
     };
 
@@ -125,6 +137,11 @@ private:
         CameraRenderData const & camera_data
     );
 
+    void bind_decal_data(
+        GLShader const & s,
+        CameraRenderData const & data
+    );
+
     void bind_node_data(
         GLShader const & shader,
         NodeData node_id
@@ -139,6 +156,13 @@ private:
     void bind_bone_data(
         GLShader const & shader,
         BoneData const & bone_data
+    );
+
+    void bind_texture(
+        GLShader const & s,
+        GLVarString const & uniform_str,
+        unsigned int location,
+        GLuint texture
     );
 };
 

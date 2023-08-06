@@ -16,6 +16,7 @@ Context::Context()
  : m_renderer{*this, 960, 540, 1.0f},
    m_material_manager{*this},
    m_model_manager{*this},
+   m_texture_manager{*this},
    m_edit_scene{*this},
    m_game_scene{*this},
    m_scene_manager{*this} {

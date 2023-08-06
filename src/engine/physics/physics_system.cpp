@@ -2,6 +2,7 @@
 
 #include "src/engine/scene/scene.h"
 #include "src/util/geometry_util.h"
+#include "src/util/mesh_util.h"
 
 using namespace prt3;
 
@@ -763,9 +764,9 @@ void PhysicsSystem::update_mesh_data(
 
             if (m_collider_meshes.find(tag) == m_collider_meshes.end()) {
                 m_collider_meshes[tag] =
-                    renderer.upload_line_mesh(lines.data(), lines.size());
+                    renderer.upload_pos_mesh(lines.data(), lines.size());
             } else {
-                renderer.update_line_mesh(
+                renderer.update_pos_mesh(
                     m_collider_meshes.at(tag), lines.data(), lines.size()
                 );
             }
@@ -833,9 +834,9 @@ void PhysicsSystem::update_sphere_data(
 
             if (m_collider_meshes.find(tag) == m_collider_meshes.end()) {
                 m_collider_meshes[tag] =
-                    renderer.upload_line_mesh(lines.data(), lines.size());
+                    renderer.upload_pos_mesh(lines.data(), lines.size());
             } else {
-                renderer.update_line_mesh(
+                renderer.update_pos_mesh(
                     m_collider_meshes.at(tag), lines.data(), lines.size()
                 );
             }
@@ -863,50 +864,13 @@ void PhysicsSystem::update_box_data(
             glm::vec3 max = collider.center() + 0.5f * collider.dimensions();
             glm::vec3 min = collider.center() - 0.5f * collider.dimensions();
 
-            // bottom
-            lines[0] = glm::vec3{min.x, min.y, min.z};
-            lines[1] = glm::vec3{min.x, min.y, max.z};
-
-            lines[2] = glm::vec3{min.x, min.y, max.z};
-            lines[3] = glm::vec3{max.x, min.y, max.z};
-
-            lines[4] = glm::vec3{max.x, min.y, max.z};
-            lines[5] = glm::vec3{max.x, min.y, min.z};
-
-            lines[6] = glm::vec3{max.x, min.y, min.z};
-            lines[7] = glm::vec3{min.x, min.y, min.z};
-
-            // top
-            lines[8] = glm::vec3{min.x, max.y, min.z};
-            lines[9] = glm::vec3{min.x, max.y, max.z};
-
-            lines[10] = glm::vec3{min.x, max.y, max.z};
-            lines[11] = glm::vec3{max.x, max.y, max.z};
-
-            lines[12] = glm::vec3{max.x, max.y, max.z};
-            lines[13] = glm::vec3{max.x, max.y, min.z};
-
-            lines[14] = glm::vec3{max.x, max.y, min.z};
-            lines[15] = glm::vec3{min.x, max.y, min.z};
-
-            // connections
-            lines[16] = glm::vec3{min.x, min.y, min.z};
-            lines[17] = glm::vec3{min.x, max.y, min.z};
-
-            lines[18] = glm::vec3{min.x, min.y, max.z};
-            lines[19] = glm::vec3{min.x, max.y, max.z};
-
-            lines[20] = glm::vec3{max.x, min.y, max.z};
-            lines[21] = glm::vec3{max.x, max.y, max.z};
-
-            lines[22] = glm::vec3{max.x, min.y, min.z};
-            lines[23] = glm::vec3{max.x, max.y, min.z};
+            insert_line_box(min, max, lines.data());
 
             if (m_collider_meshes.find(tag) == m_collider_meshes.end()) {
                 m_collider_meshes[tag] =
-                    renderer.upload_line_mesh(lines.data(), lines.size());
+                    renderer.upload_pos_mesh(lines.data(), lines.size());
             } else {
-                renderer.update_line_mesh(
+                renderer.update_pos_mesh(
                     m_collider_meshes.at(tag), lines.data(), lines.size()
                 );
             }
@@ -1074,9 +1038,9 @@ void PhysicsSystem::update_capsule_data(
 
             if (m_collider_meshes.find(tag) == m_collider_meshes.end()) {
                 m_collider_meshes[tag] =
-                    renderer.upload_line_mesh(lines.data(), lines.size());
+                    renderer.upload_pos_mesh(lines.data(), lines.size());
             } else {
-                renderer.update_line_mesh(
+                renderer.update_pos_mesh(
                     m_collider_meshes.at(tag), lines.data(), lines.size()
                 );
             }

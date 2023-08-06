@@ -15,6 +15,7 @@
 #include "src/engine/navigation/navigation_system.h"
 #include "src/engine/rendering/renderer.h"
 #include "src/engine/rendering/camera.h"
+#include "src/engine/rendering/texture_manager.h"
 #include "src/engine/core/input.h"
 #include "src/util/uuid.h"
 
@@ -80,6 +81,9 @@ public:
     ) {  return register_model(model_manager()
         .add_model_to_scene_from_path(path, *this, parent_id));
     }
+
+    ResourceID upload_texture(std::string const & path)
+    { return register_texture(texture_manager().upload_texture(path)); }
 
     NodeID get_root_id() const { return s_root_id; }
 
@@ -233,6 +237,15 @@ public:
     NodeName const & get_node_name(NodeID id) const { return m_node_names[id]; }
     NodeName & get_node_name(NodeID id) { return m_node_names[id]; }
 
+    Node::Flags const & get_node_flags(NodeID id) const
+    { return m_node_flags[id]; }
+
+    Node::Flags & get_node_flags(NodeID id)
+    { return m_node_flags[id]; }
+
+    bool get_node_flag(NodeID id, Node::Flags flag) const
+    { return m_node_flags[id] & flag; }
+
     // Mod flags are cleared just before scripts are updated
     Node::ModFlags get_node_mod_flags(NodeID id) const
     { return m_node_mod_flags[id]; }
@@ -253,8 +266,13 @@ public:
     ModelManager const & model_manager() const;
     Model const & get_model(ModelHandle handle) const;
 
+    TextureManager const & texture_manager() const;
+
     std::unordered_set<ModelHandle> const & referenced_models() const
     { return m_referenced_models; }
+
+    std::unordered_set<ResourceID> const & referenced_textures() const
+    { return m_referenced_textures; }
 
     SceneManager & scene_manager();
     AudioManager & audio_manager();
@@ -275,6 +293,9 @@ public:
     NodeID & selected_node() { return m_selected_node; }
     NodeID const & selected_node() const { return m_selected_node; }
 
+    void set_shadows_on(bool on) { m_shadows_on = on; }
+    glm::vec3 & shadow_origin() { return m_shadow_origin; }
+
 private:
     Context * m_context;
 
@@ -283,6 +304,7 @@ private:
     static constexpr NodeID s_root_id = 0;
     std::vector<Node> m_nodes;
     std::vector<NodeName> m_node_names;
+    std::vector<Node::Flags> m_node_flags; // not serialized
     std::vector<Node::ModFlags> m_node_mod_flags;
     std::vector<NodeID> m_free_list;
     std::unordered_map<NodeID, UUID> m_node_uuids;
@@ -307,16 +329,23 @@ private:
 
     AmbientLight m_ambient_light;
 
+    bool m_shadows_on = false;
+    glm::vec3 m_shadow_origin = glm::vec3{0.0f};
+
     TransformCache m_transform_cache;
 
     std::unordered_set<ModelHandle> m_referenced_models;
+    std::unordered_set<ResourceID> m_referenced_textures;
 
     NodeID m_selected_node = NO_NODE;
 
     NodeID add_node(NodeID parent_id, const char * name, UUID uuid);
 
     ModelHandle register_model(ModelHandle handle)
-    { m_referenced_models.insert(handle); return handle; }
+    { if (handle != NO_MODEL) m_referenced_models.insert(handle); return handle; }
+
+    ResourceID register_texture(ResourceID id)
+    { if (id != NO_RESOURCE) m_referenced_textures.insert(id); return id; }
 
     void start();
     void update(float delta_time);
@@ -359,6 +388,7 @@ private:
     }
 
     ModelManager & model_manager();
+    TextureManager & texture_manager();
 
     friend class Context;
     friend class Engine;

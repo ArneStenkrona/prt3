@@ -1529,9 +1529,9 @@ void NavigationSystem::update_render_data(Renderer & renderer) {
 
         if (m_render_meshes.find(id) == m_render_meshes.end()) {
             m_render_meshes[id] =
-                renderer.upload_line_mesh(lines.data(), lines.size());
+                renderer.upload_pos_mesh(lines.data(), lines.size());
         } else {
-            renderer.update_line_mesh(
+            renderer.update_pos_mesh(
                 m_render_meshes.at(id), lines.data(), lines.size()
             );
         }
@@ -1545,19 +1545,13 @@ void NavigationSystem::collect_render_data(
 ) {
     update_render_data(renderer);
 
-    size_t i = data.line_data.size();
-    data.line_data.resize(
-        data.line_data.size() + m_render_meshes.size()
-    );
-
     if (m_nav_mesh_ids.find(selected_node) != m_nav_mesh_ids.end()) {
         NavMeshID id = m_nav_mesh_ids.at(selected_node);
-        data.line_data[i].mesh_id = m_render_meshes.at(id);
-        data.line_data[i].color = glm::vec4{0.0f, 0.0f, 1.0f, 1.0f};
-        data.line_data[i].transform = glm::mat4{1.0f};
-        ++i;
+        data.line_data.push_back({});
+        data.line_data.back().mesh_id = m_render_meshes.at(id);
+        data.line_data.back().color = glm::vec4{0.0f, 0.0f, 1.0f, 1.0f};
+        data.line_data.back().transform = glm::mat4{1.0f};
     }
-
 }
 
 inline float heuristic(glm::vec3 a, glm::vec3 dest) {

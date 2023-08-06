@@ -11,9 +11,11 @@ GLModelManager::GLModelManager(GLMaterialManager & material_manager)
 
 }
 
-void GLModelManager::upload_model(ModelHandle handle,
-                                  Model const & model,
-                                  ModelResource & resource) {
+void GLModelManager::upload_model(
+    ModelHandle handle,
+    Model const & model,
+    std::vector<ResourceID> & mesh_resource_ids
+) {
     // upload model buffers
     GLuint vao;
     GLuint vbo;
@@ -51,18 +53,8 @@ void GLModelManager::upload_model(ModelHandle handle,
 
     m_model_buffer_handles[handle] = {vao, vbo, ebo};
 
-    // Create gl materials
-    resource.material_resource_ids.resize(model.meshes().size());
-    std::vector<ResourceID> material_ids;
-    material_ids.resize(model.materials().size());
-    size_t material_index = 0;
-    for (Material const & material : model.materials()) {
-        material_ids[material_index] =
-            m_material_manager.upload_material(material);
-        ++material_index;
-    }
     // Create gl meshes
-    resource.mesh_resource_ids.resize(model.meshes().size());
+    mesh_resource_ids.resize(model.meshes().size());
     size_t mesh_index = 0;
     for (Model::Mesh const & mesh : model.meshes()) {
         ResourceID id = m_next_mesh_id;
@@ -71,8 +63,7 @@ void GLModelManager::upload_model(ModelHandle handle,
         GLMesh & gl_mesh = m_meshes[id];
         gl_mesh.init(vao, mesh.start_index, mesh.num_indices);
 
-        resource.mesh_resource_ids[mesh_index] = id;
-        resource.material_resource_ids[mesh_index] = material_ids[mesh.material_index];
+        mesh_resource_ids[mesh_index] = id;
         ++mesh_index;
     }
 
@@ -82,7 +73,7 @@ void GLModelManager::upload_model(ModelHandle handle,
 
 void GLModelManager::free_model(
     ModelHandle handle,
-    ModelResource const & resource
+    std::vector<ResourceID> const & mesh_resource_ids
 ) {
     glFinish();
     glFlush();
@@ -98,24 +89,12 @@ void GLModelManager::free_model(
 
     m_model_buffer_handles.erase(handle);
 
-    for (auto const & id : resource.mesh_resource_ids) {
+    for (auto const & id : mesh_resource_ids) {
         m_meshes.erase(id);
-    }
-
-    static std::unordered_set<ResourceID> free_set;
-    free_set.clear();
-
-    for (auto const & id : resource.material_resource_ids) {
-        if (free_set.find(id) != free_set.end()) {
-            continue;
-        }
-
-        m_material_manager.free_material(id);
-        free_set.insert(id);
     }
 }
 
-ResourceID GLModelManager::upload_line_mesh(
+ResourceID GLModelManager::upload_pos_mesh(
     glm::vec3 const * vertices,
     size_t n
 ) {
@@ -164,7 +143,7 @@ ResourceID GLModelManager::upload_line_mesh(
     ResourceID id = m_next_mesh_id;
     ++m_next_mesh_id;
 
-    m_line_mesh_buffer_handles[id] = {vao, vbo};
+    m_pos_mesh_buffer_handles[id] = {vao, vbo};
 
     GLMesh & gl_mesh = m_meshes[id];
     gl_mesh.init(vao, 0, static_cast<uint32_t>(n));
@@ -175,12 +154,12 @@ ResourceID GLModelManager::upload_line_mesh(
     return id;
 }
 
-void GLModelManager::update_line_mesh(
+void GLModelManager::update_pos_mesh(
     ResourceID id,
     glm::vec3 const * vertices,
     size_t n
 ) {
-    LineMeshBufferHandles buffers = m_line_mesh_buffer_handles[id];
+    PosMeshBufferHandles buffers = m_pos_mesh_buffer_handles[id];
 
     glBindBuffer(GL_ARRAY_BUFFER, buffers.vbo);
     glCheckError();
@@ -197,15 +176,15 @@ void GLModelManager::update_line_mesh(
     gl_mesh.init(buffers.vao, 0, static_cast<uint32_t>(n));
 }
 
-void GLModelManager::free_line_mesh(ResourceID id) {
-    LineMeshBufferHandles buffers = m_line_mesh_buffer_handles[id];
+void GLModelManager::free_pos_mesh(ResourceID id) {
+    PosMeshBufferHandles buffers = m_pos_mesh_buffer_handles[id];
 
     glDeleteBuffers(1, &buffers.vbo);
     glCheckError();
     glDeleteBuffers(1, &buffers.vao);
     glCheckError();
 
-    m_line_mesh_buffer_handles.erase(id);
+    m_pos_mesh_buffer_handles.erase(id);
     m_meshes.erase(id);
 }
 

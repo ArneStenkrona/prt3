@@ -1,7 +1,7 @@
 #ifndef PRT3_MATERIAL_H
 #define PRT3_MATERIAL_H
 
-#include "src/engine/rendering/resources.h"
+#include "src/engine/rendering/texture_manager.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -23,11 +23,11 @@ struct Material {
     float emissive = 0.0f;
     bool twosided = false;
     bool transparent = false;
-    std::string albedo_map;
-    std::string normal_map;
-    std::string metallic_map;
-    std::string roughness_map;
-    std::string ambient_occlusion_map;
+    ResourceID albedo_map;
+    ResourceID normal_map;
+    ResourceID metallic_map;
+    ResourceID roughness_map;
+    ResourceID ambient_occlusion_map;
 };
 
 } // namespace prt3

@@ -1,7 +1,6 @@
 #ifndef PRT3_MODEL_H
 #define PRT3_MODEL_H
 
-#include "src/engine/rendering/material.h"
 #include "src/engine/component/transform.h"
 #include "src/util/math_util.h"
 
@@ -44,6 +43,7 @@ namespace prt3 {
 class Model {
 public:
     struct Mesh;
+    struct MeshMaterial;
     struct Vertex;
     struct BonedVertex;
     struct BoneData;
@@ -57,14 +57,14 @@ public:
     Model() {}
     Model(char const * path);
 
-    std::vector<Node>      const & nodes()              const { return m_nodes; };
-    std::vector<Mesh>      const & meshes()             const { return m_meshes; };
-    std::vector<Animation> const & animations()         const { return m_animations; };
-    std::vector<Material>  const & materials()          const { return m_materials; };
-    std::vector<Vertex>    const & vertex_buffer()      const { return m_vertex_buffer; };
-    std::vector<BoneData>  const & vertex_bone_buffer() const { return m_vertex_bone_buffer; };
-    std::vector<uint32_t>  const & index_buffer()       const { return m_index_buffer; };
-    std::vector<Bone>      const & bones()              const { return m_bones; };
+    std::vector<Node>         const & nodes()              const { return m_nodes; };
+    std::vector<Mesh>         const & meshes()             const { return m_meshes; };
+    std::vector<Animation>    const & animations()         const { return m_animations; };
+    std::vector<MeshMaterial> const & materials()          const { return m_materials; };
+    std::vector<Vertex>       const & vertex_buffer()      const { return m_vertex_buffer; };
+    std::vector<BoneData>     const & vertex_bone_buffer() const { return m_vertex_bone_buffer; };
+    std::vector<uint32_t>     const & index_buffer()       const { return m_index_buffer; };
+    std::vector<Bone>         const & bones()              const { return m_bones; };
 
     void sample_animation(
         uint32_t animation_index,
@@ -113,7 +113,7 @@ private:
     std::vector<glm::vec3> m_scale_keys;
 
     std::vector<Channel> m_channels;
-    std::vector<Material> m_materials;
+    std::vector<MeshMaterial> m_materials;
     std::vector<Vertex> m_vertex_buffer;
     std::vector<BoneData> m_vertex_bone_buffer;
     std::vector<uint32_t> m_index_buffer;
@@ -160,6 +160,22 @@ struct Model::Mesh {
     uint32_t node_index;
 
     std::string name;
+};
+
+struct Model::MeshMaterial {
+    std::string name;
+    glm::vec4 albedo{1.0f, 1.0f, 1.0f, 1.0f};
+    float metallic = 0.0f;
+    float roughness = 1.0f;
+    float ao = 1.0f;
+    float emissive = 0.0f;
+    bool twosided = false;
+    bool transparent = false;
+    std::string albedo_map;
+    std::string normal_map;
+    std::string metallic_map;
+    std::string roughness_map;
+    std::string ambient_occlusion_map;
 };
 
 struct Model::Channel {

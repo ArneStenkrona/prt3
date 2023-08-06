@@ -58,14 +58,6 @@ Renderer::~Renderer() {
     ImGui::DestroyContext();
 }
 
-void Renderer::upload_model(
-    ModelHandle handle,
-    Model const & model,
-    ModelResource & resource
-) {
-    m_render_backend->upload_model(handle, model, resource);
-}
-
 void Renderer::set_window_size(int w, int h) {
     glfwSetWindowSize(m_window, w, h);
     m_context.edit_scene().update_window_size(w, h);

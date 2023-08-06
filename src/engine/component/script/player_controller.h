@@ -88,6 +88,13 @@ public:
         }
     }
 
+    virtual void on_update(Scene & scene, float delta_time) {
+        CharacterController::on_update(scene, delta_time);
+        scene.set_shadows_on(true);
+        Transform tform = get_node(scene).get_global_transform(scene);
+        scene.shadow_origin() = tform.position + glm::vec3{0.0f, 25.0f, 0.0f};
+    }
+
 REGISTER_SCRIPT_BEGIN(PlayerController, player_controller, 3968611710651155566)
 REGISTER_SERIALIZED_FIELD(m_walk_force)
 REGISTER_SERIALIZED_FIELD(m_run_force)

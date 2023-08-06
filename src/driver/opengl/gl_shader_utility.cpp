@@ -46,25 +46,29 @@ GLuint glshaderutility::create_shader(const char* vertexPath,
     vertex = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertex, 1, &vShaderCode, NULL);
     glCompileShader(vertex);
-    check_compile_errors(vertex, "VERTEX");
+    check_compile_errors(vertex, "VERTEX", vertexPath);
     // fragment Shader
     fragment = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragment, 1, &fShaderCode, NULL);
     glCompileShader(fragment);
-    check_compile_errors(fragment, "FRAGMENT");
+    check_compile_errors(fragment, "FRAGMENT", fragmentPath);
     // shader Program
     id = glCreateProgram();
     glAttachShader(id, vertex);
     glAttachShader(id, fragment);
     glLinkProgram(id);
-    check_compile_errors(id, "PROGRAM");
+    check_compile_errors(id, "PROGRAM", (std::string(vertexPath) + ", ") + fragmentPath);
     // delete the shaders as they're linked into our program now and no longer necessery
     glDeleteShader(vertex);
     glDeleteShader(fragment);
     return id;
 }
 
-void glshaderutility::check_compile_errors(GLuint shader, std::string const & type) {
+void glshaderutility::check_compile_errors(
+    GLuint shader,
+    std::string const & type,
+    std::string const & path
+) {
     GLint success;
     GLchar infoLog[1024];
     if(type != "PROGRAM")
@@ -73,7 +77,7 @@ void glshaderutility::check_compile_errors(GLuint shader, std::string const & ty
         if(!success)
         {
             glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-            PRT3ERROR("ERROR::SHADER_COMPILATION_ERROR of type: %s\n%s\n -- --------------------------------------------------- -- ", type.c_str(), infoLog);
+            PRT3ERROR("%s:\nERROR::SHADER_COMPILATION_ERROR of type: %s\n%s\n -- --------------------------------------------------- -- ", path.c_str(), type.c_str(), infoLog);
         }
     }
     else
@@ -82,7 +86,7 @@ void glshaderutility::check_compile_errors(GLuint shader, std::string const & ty
         if(!success)
         {
             glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-            PRT3ERROR("ERROR::PROGRAM_LINKING_ERROR of type: %s\n%s\n -- --------------------------------------------------- -- ", type.c_str(), infoLog);
+            PRT3ERROR("%s:\nERROR::PROGRAM_LINKING_ERROR of type: %s\n%s\n -- --------------------------------------------------- -- ", path.c_str(), type.c_str(), infoLog);
         }
     }
 }

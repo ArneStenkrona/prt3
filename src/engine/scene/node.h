@@ -22,15 +22,19 @@ constexpr NodeID NO_NODE = -1;
 
 typedef FixedString<64> NodeName;
 typedef FixedString<32> NodeTag;
-typedef uint8_t ModFlagIntType;
+typedef uint8_t NodeFlagIntType;
 
 class Scene;
 class Node {
 public:
-    enum ModFlags : ModFlagIntType {
-        none = 0,
-        descendant_removed = 1 << 0,
-        descendant_added = 1 << 1
+    enum Flags : NodeFlagIntType {
+        flag_none = 0
+    };
+
+    enum ModFlags : NodeFlagIntType {
+        mod_flag_none = 0,
+        mod_flag_descendant_removed = 1 << 0,
+        mod_flag_descendant_added = 1 << 1
     };
 
     Node(NodeID id);
@@ -76,19 +80,35 @@ private:
 
 } // namespace prt3
 
+inline prt3::Node::Flags operator|(prt3::Node::Flags a, prt3::Node::Flags b)
+{
+    return static_cast<prt3::Node::Flags>(
+        static_cast<prt3::NodeFlagIntType>(a) |
+        static_cast<prt3::NodeFlagIntType>(b)
+    );
+}
+
+inline prt3::Node::Flags operator&(prt3::Node::Flags a, prt3::Node::Flags b)
+{
+    return static_cast<prt3::Node::Flags>(
+        static_cast<prt3::NodeFlagIntType>(a) &
+        static_cast<prt3::NodeFlagIntType>(b)
+    );
+}
+
 inline prt3::Node::ModFlags operator|(prt3::Node::ModFlags a, prt3::Node::ModFlags b)
 {
     return static_cast<prt3::Node::ModFlags>(
-        static_cast<prt3::ModFlagIntType>(a) |
-        static_cast<prt3::ModFlagIntType>(b)
+        static_cast<prt3::NodeFlagIntType>(a) |
+        static_cast<prt3::NodeFlagIntType>(b)
     );
 }
 
 inline prt3::Node::ModFlags operator&(prt3::Node::ModFlags a, prt3::Node::ModFlags b)
 {
     return static_cast<prt3::Node::ModFlags>(
-        static_cast<prt3::ModFlagIntType>(a) &
-        static_cast<prt3::ModFlagIntType>(b)
+        static_cast<prt3::NodeFlagIntType>(a) &
+        static_cast<prt3::NodeFlagIntType>(b)
     );
 }
 

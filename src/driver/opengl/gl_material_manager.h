@@ -41,7 +41,7 @@ private:
     GLTextureManager & m_texture_manager;
 
     std::unordered_map<ResourceID, GLMaterial> m_materials;
-    ResourceID m_next_material_id = 0;
+    std::vector<ResourceID> m_free_ids;
 
     GLShader * m_standard_shader = nullptr;
     GLShader * m_standard_animated_shader = nullptr;

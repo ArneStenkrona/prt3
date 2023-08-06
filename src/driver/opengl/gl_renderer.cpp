@@ -3,6 +3,7 @@
 #include "src/driver/opengl/gl_shader_utility.h"
 #include "src/driver/opengl/gl_utility.h"
 #include "src/util/log.h"
+#include "src/util/mesh_util.h"
 
 #include "glm/gtx/string_cast.hpp"
 
@@ -91,6 +92,11 @@ GLRenderer::GLRenderer(
         PostProcessingChain{{ pixel_pass_info, editor_pass_info }}
     );
 
+    m_decal_shader = new GLShader(
+        "assets/shaders/opengl/decal.vs",
+        "assets/shaders/opengl/decal.fs"
+    );
+
     m_selection_shader = new GLShader(
         "assets/shaders/opengl/standard.vs",
         "assets/shaders/opengl/write_selected.fs"
@@ -105,12 +111,21 @@ GLRenderer::GLRenderer(
         "assets/shaders/opengl/passthrough.vs",
         "assets/shaders/opengl/transparency_blend_shader.fs"
     );
+
+    std::array<glm::vec3, 36> decal_vertices;
+    insert_box(glm::vec3{-0.5f}, glm::vec3{0.5f}, decal_vertices.data());
+
+    m_decal_mesh = m_model_manager.upload_pos_mesh(
+        decal_vertices.data(),
+        decal_vertices.size()
+    );
 }
 
 GLRenderer::~GLRenderer() {
     delete m_selection_shader;
     delete m_animated_selection_shader;
     delete m_transparency_blend_shader;
+    m_model_manager.free_pos_mesh(m_decal_mesh);
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
 }
@@ -188,6 +203,7 @@ void GLRenderer::render(RenderData const & render_data, bool editor) {
 
     render_framebuffer(render_data, editor, PassType::opaque);
     render_framebuffer(render_data, editor, PassType::transparent);
+    render_framebuffer(render_data, editor, PassType::decal);
 
     if (!chain.empty()) {
         render_framebuffer(
@@ -222,7 +238,12 @@ void GLRenderer::render_framebuffer(
 
     GLuint framebuffer;
     bool transparent = false;
+    bool decal = false;
     switch (type) {
+        case PassType::decal:
+            framebuffer = m_source_buffers.decal_framebuffer();
+            decal = true;
+            break;
         case PassType::opaque:
             framebuffer = opaque_framebuffer;
             break;
@@ -241,9 +262,11 @@ void GLRenderer::render_framebuffer(
     glfwGetWindowSize(m_window, &w, &h);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
     glCheckError();
-    glViewport(0, 0,
-               static_cast<GLint>(w / m_downscale_factor),
-               static_cast<GLint>(h / m_downscale_factor));
+
+    GLint view_w = static_cast<GLint>(w / m_downscale_factor);
+    GLint view_h = static_cast<GLint>(h / m_downscale_factor);
+
+    glViewport(0, 0, view_w, view_h);
     glCheckError();
 
     GLenum attachments[3] = {
@@ -252,14 +275,42 @@ void GLRenderer::render_framebuffer(
         GL_COLOR_ATTACHMENT2,
     };
 
-    if (transparent) {
+    if (decal) {
         glDepthMask(GL_FALSE);
         glCheckError();
+        glDisable(GL_DEPTH_TEST);
+        glCheckError();
+        glCullFace(GL_FRONT);
+        glCheckError();
+        glDisable(GL_BLEND);
+        glEnable(GL_BLEND);
+        glCheckError();
+        glBlendFunc(GL_DST_COLOR, GL_ZERO)
+        glCheckError();
+        glBlendEquation(GL_FUNC_ADD);
+        glCheckError();
+
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glCheckError();
+
+        glDrawBuffers(1, attachments);
+        glCheckError();
+    } else if (transparent) {
+        glDepthMask(GL_FALSE);
+        glCheckError();
+        glEnable(GL_DEPTH_TEST);
+        glCheckError();
+        glCullFace(GL_BACK);
+        glCheckError();
+
         glEnable(GL_BLEND);
         glCheckError();
         glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
         glCheckError();
         glBlendEquation(GL_FUNC_ADD);
+        glCheckError();
+
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         glCheckError();
 
         glDrawBuffers(2, attachments);
@@ -272,7 +323,15 @@ void GLRenderer::render_framebuffer(
     } else {
         glDepthMask(GL_TRUE);
         glCheckError();
+        glEnable(GL_DEPTH_TEST);
+        glCheckError();
+        glCullFace(GL_BACK);
+        glCheckError();
+
         glDisable(GL_BLEND);
+        glCheckError();
+
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         glCheckError();
 
         glDrawBuffers(3, attachments);
@@ -285,8 +344,34 @@ void GLRenderer::render_framebuffer(
     }
 
     auto const & meshes = m_model_manager.meshes();
+    if (type == PassType::decal) {
+        glUseProgram(m_decal_shader->shader());
+        glCheckError();
+        bind_decal_data(*m_decal_shader, render_data.camera_data);
 
-    if (type != PassType::selection) {
+        auto const & decal_data = render_data.world.decal_data;
+        for (DecalRenderData const & data : decal_data) {
+            static const GLVarString decal_map_str = "u_DecalMap";
+            bind_texture(
+                *m_decal_shader,
+                decal_map_str,
+                1,
+                m_texture_manager.get_texture(data.texture)
+            );
+
+            bind_transform_and_camera_data(
+                *m_decal_shader,
+                data.transform,
+                render_data.camera_data
+            );
+
+            static const GLVarString inv_mmatrix_str = "u_InvMMatrix";
+            glm::mat4 inv_mmatrix = glm::inverse(data.transform);
+            glUniformMatrix4fv(m_decal_shader->get_uniform_loc(inv_mmatrix_str), 1, GL_FALSE, &inv_mmatrix[0][0]);
+
+            m_model_manager.meshes().at(m_decal_mesh).draw_array_triangles();
+        }
+    } else if (type == PassType::opaque || type == PassType::transparent) {
         auto const & materials = m_material_manager.materials();
 
         static std::unordered_map<GLShader const *, std::vector<MeshRenderData> >
@@ -355,10 +440,12 @@ void GLRenderer::render_framebuffer(
                     mesh_data.transform,
                     render_data.camera_data
                 );
+
                 bind_node_data(
                     shader,
                     mesh_data.node_data
                 );
+
                 meshes.at(mesh_data.mesh_id).draw_elements_triangles();
             }
             glCheckError();
@@ -391,10 +478,12 @@ void GLRenderer::render_framebuffer(
                     mesh_data.transform,
                     render_data.camera_data
                 );
+
                 bind_node_data(
                     shader,
                     mesh_data.node_data
                 );
+
                 bind_bone_data(
                     shader,
                     render_data.world.bone_data[data.bone_data_index]
@@ -610,6 +699,38 @@ void GLRenderer::bind_transform_and_camera_data(
     glUniformMatrix3fv(s.get_uniform_loc(inv_tpos_matrix_str), 1, GL_FALSE, &inv_tpos_matrix[0][0]);
 }
 
+void GLRenderer::bind_decal_data(
+    GLShader const & s,
+    CameraRenderData const & data
+) {
+    glm::mat4 inv_vp_matrix = glm::inverse(data.view_matrix) *
+                              glm::inverse(data.projection_matrix);
+
+    static const GLVarString inv_vp_str = "u_InvVP";
+    glUniformMatrix4fv(s.get_uniform_loc(inv_vp_str), 1, GL_FALSE, &inv_vp_matrix[0][0]);
+
+    static const GLVarString depth_map_str = "u_DepthMap";
+    glUniform1i(s.get_uniform_loc(depth_map_str), 0);
+    glActiveTexture(GL_TEXTURE0);
+    glCheckError();
+    glBindTexture(GL_TEXTURE_2D, m_source_buffers.depth_texture());
+    glCheckError();
+
+    int w;
+    int h;
+    glfwGetWindowSize(m_window, &w, &h);
+    glCheckError();
+    GLint buffer_width = static_cast<GLint>(w / m_downscale_factor);
+    GLint buffer_height = static_cast<GLint>(h / m_downscale_factor);
+
+    static const GLVarString width_str = "u_BufferWidth";
+    glUniform1i(s.get_uniform_loc(width_str), buffer_width);
+    static const GLVarString height_str = "u_BufferHeight";
+    glUniform1i(s.get_uniform_loc(height_str), buffer_height);
+
+
+}
+
 void GLRenderer::bind_node_data(
     GLShader const & shader,
     NodeData node_data
@@ -685,5 +806,18 @@ void GLRenderer::bind_bone_data(
 ) {
     static const GLVarString bones_str = "u_Bones";
     glUniformMatrix4fv(s.get_uniform_loc(bones_str), bone_data.bones.size(), GL_FALSE, &bone_data.bones[0][0][0]);
+    glCheckError();
+}
+
+void GLRenderer::bind_texture(
+    GLShader const & s,
+    GLVarString const & uniform_str,
+    unsigned int location,
+    GLuint texture
+) {
+    glUniform1i(s.get_uniform_loc(uniform_str), location);
+    glActiveTexture(GL_TEXTURE0 + location);
+    glCheckError();
+    glBindTexture(GL_TEXTURE_2D, texture);
     glCheckError();
 }

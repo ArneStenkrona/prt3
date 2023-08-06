@@ -36,6 +36,9 @@ public:
     ModelManager & get_model_manager()
     { return m_context.model_manager(); }
 
+    TextureManager & get_texture_manager()
+    { return m_context.texture_manager(); }
+
     NodeID get_selected_node() const { return scene().selected_node(); }
     void set_selected_node(NodeID id) { scene().selected_node() = id; }
 

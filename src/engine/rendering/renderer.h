@@ -7,6 +7,7 @@
 #include "src/engine/rendering/model_manager.h"
 #include "src/engine/rendering/resources.h"
 #include "src/engine/rendering/material.h"
+#include "src/engine/rendering/texture.h"
 #include "src/driver/render_backend.h"
 #include "src/engine/core/input.h"
 
@@ -41,36 +42,43 @@ public:
     void upload_model(
         ModelHandle handle,
         Model const & model,
-        ModelResource & resource
-    );
+        std::vector<ResourceID> & mesh_resource_ids
+    )
+    { m_render_backend->upload_model(handle, model, mesh_resource_ids); }
 
     void free_model(
         ModelHandle handle,
-        ModelResource const & resource
+        std::vector<ResourceID> const & mesh_resource_ids
     )
-    { m_render_backend->free_model(handle, resource); }
+    { m_render_backend->free_model(handle, mesh_resource_ids); }
 
+    ResourceID upload_pos_mesh(glm::vec3 const * vertices, size_t n)
+    { return m_render_backend->upload_pos_mesh(vertices, n); }
 
-    ResourceID upload_line_mesh(glm::vec3 const * vertices, size_t n)
-    { return m_render_backend->upload_line_mesh(vertices, n); }
-
-    void update_line_mesh(
+    void update_pos_mesh(
         ResourceID id,
         glm::vec3 const * vertices,
         size_t n
     )
-    { m_render_backend->update_line_mesh(id, vertices, n); }
+    { m_render_backend->update_pos_mesh(id, vertices, n); }
 
-    void free_line_mesh(
+    void free_pos_mesh(
         ResourceID id
     )
-    { m_render_backend->free_line_mesh(id); }
+    { m_render_backend->free_pos_mesh(id); }
 
     ResourceID upload_material(Material const & material)
     { return m_render_backend->upload_material(material); }
+    void free_material(ResourceID id)
+    { m_render_backend->free_material(id); }
 
     Material & get_material(ResourceID id)
     { return m_render_backend->get_material(id); }
+
+    ResourceID upload_texture(TextureData const & data)
+    { return m_render_backend->upload_texture(data); }
+    void free_texture(ResourceID id)
+    { return m_render_backend->free_texture(id); }
 
     NodeID get_selected(int x, int y) {
         return m_render_backend->get_selected(x, y);

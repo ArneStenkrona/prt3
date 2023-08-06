@@ -49,6 +49,12 @@ struct AnimatedMeshRenderData {
     uint32_t bone_data_index;
 };
 
+struct DecalRenderData {
+    ResourceID texture;
+    glm::mat4 transform;
+};
+
+
 struct BoneData {
     std::array<glm::mat4, 100> bones;
 };
@@ -79,6 +85,7 @@ struct WorldRenderData {
     std::vector<BoneData> bone_data;
     std::vector<MeshRenderData> selected_mesh_data;
     std::vector<AnimatedMeshRenderData> selected_animated_mesh_data;
+    std::vector<DecalRenderData> decal_data;
     LightRenderData light_data;
 };
 
@@ -94,12 +101,13 @@ struct RenderData {
     void clear() {
         camera_data = {};
         world.light_data = {};
-        world.mesh_data.resize(0);
-        world.animated_mesh_data.resize(0);
-        world.bone_data.resize(0);
-        world.selected_mesh_data.resize(0);
-        world.selected_animated_mesh_data.resize(0);
-        editor_data.line_data.resize(0);
+        world.mesh_data.clear();
+        world.animated_mesh_data.clear();
+        world.bone_data.clear();
+        world.selected_mesh_data.clear();
+        world.selected_animated_mesh_data.clear();
+        world.decal_data.clear();
+        editor_data.line_data.clear();
     }
 };
 

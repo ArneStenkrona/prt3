@@ -24,6 +24,7 @@ class Context;
 
 struct ModelResource {
     std::vector<ResourceID> mesh_resource_ids;
+    std::vector<ResourceID> mesh_material_ids;
     std::vector<ResourceID> material_resource_ids;
 };
 
@@ -33,7 +34,6 @@ constexpr ModelHandle NO_MODEL = -1;
 class ModelManager {
 public:
     ModelManager(Context & context);
-
 
     Model const & get_model_from_mesh_id(ResourceID id) const
     { return m_models.at(m_mesh_id_to_model.at(id)); }
@@ -65,7 +65,7 @@ public:
         ModelHandle handle,
         int32_t mesh_index
     ) const {
-        return m_model_resources.at(handle).material_resource_ids.at(mesh_index);
+        return m_model_resources.at(handle).mesh_material_ids.at(mesh_index);
     }
 
     Model const & get_model(ModelHandle handle) const

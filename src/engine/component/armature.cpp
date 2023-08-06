@@ -83,7 +83,10 @@ void Armature::serialize(
 }
 
 bool Armature::validate_node_children(Scene & scene) {
-    return !scene.get_node_mod_flag(m_node_id, Node::ModFlags::descendant_removed);
+    return !scene.get_node_mod_flag(
+        m_node_id,
+        Node::ModFlags::mod_flag_descendant_removed
+    );
 }
 
 void Armature::recreate_nodes(Scene & scene) {

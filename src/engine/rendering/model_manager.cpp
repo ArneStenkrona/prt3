@@ -19,7 +19,16 @@ ModelManager::ModelManager(Context & context)
 
 void ModelManager::clear() {
     for (auto const & pair : m_model_resources) {
-        m_context.renderer().free_model(pair.first, pair.second);
+        ModelResource const & res = pair.second;
+        m_context.renderer().free_model(
+            pair.first,
+            res.mesh_resource_ids
+        );
+
+        m_context.material_manager().free_materials(
+            res.material_resource_ids.size(),
+            res.material_resource_ids.data()
+        );
     }
 
     m_models.clear();
@@ -33,10 +42,19 @@ void ModelManager::clear() {
 }
 
 void ModelManager::free_model(ModelHandle handle) {
-    m_context.renderer().free_model(handle, m_model_resources.at(handle));
+    ModelResource const & res = m_model_resources.at(handle);
+
+    m_context.renderer().free_model(
+        handle,
+        res.mesh_resource_ids
+    );
+
+    m_context.material_manager().free_materials(
+        res.material_resource_ids.size(),
+        res.material_resource_ids.data()
+    );
 
     {
-        ModelResource const & res = m_model_resources.at(handle);
         for (ResourceID id : res.mesh_resource_ids) {
             m_mesh_id_to_model.erase(id);
             m_mesh_id_to_mesh_index.erase(id);
@@ -79,7 +97,7 @@ ModelHandle ModelManager::upload_model(
         upload_model(handle);
     }
 
-    ModelHandle handle = m_path_to_model_handle[path];
+    ModelHandle handle = m_path_to_model_handle.at(path);
 
     return handle;
 }
@@ -200,7 +218,21 @@ void ModelManager::upload_model(ModelHandle handle) {
     Model const & model = m_models[handle];
     ModelResource & resource = m_model_resources[handle];
 
-    m_context.renderer().upload_model(handle, model, resource);
+    resource.material_resource_ids.resize(model.materials().size());
+    unsigned int ind = 0;
+    for (Model::MeshMaterial const & mat : model.materials()) {
+        resource.material_resource_ids[ind] =
+            m_context.material_manager().upload_material(mat);
+        ++ind;
+    }
+
+    m_context.renderer().upload_model(
+        handle,
+        model,
+        resource.mesh_resource_ids
+    );
+
+    resource.mesh_material_ids.resize(resource.mesh_resource_ids.size());
 
     thread_local std::vector<uint32_t> queue;
     queue.push_back(0);
@@ -209,18 +241,19 @@ void ModelManager::upload_model(ModelHandle handle) {
         queue.pop_back();
 
         Model::Node const & model_node = model.nodes()[model_node_index];
-        auto & manager_material_ids = m_context.material_manager().m_material_ids;
+
         if (model_node.mesh_index != -1) {
             ResourceID mesh_id = resource.mesh_resource_ids[model_node.mesh_index];
-            ResourceID material_id = resource.material_resource_ids[model_node.mesh_index];
+            Model::Mesh const & mesh = model.meshes()[model_node.mesh_index];
+            ResourceID material_id =
+                resource.material_resource_ids[mesh.material_index];
+            resource.mesh_material_ids[model_node.mesh_index] = material_id;
 
             m_mesh_id_to_model[mesh_id] = handle;
             m_material_id_to_model[material_id] = handle;
 
             m_mesh_id_to_mesh_index[mesh_id] = model_node.mesh_index;
             m_material_id_to_mesh_index[material_id] = model_node.mesh_index;
-
-            manager_material_ids.insert(material_id);
         }
 
         for (uint32_t const & index : model_node.child_indices) {

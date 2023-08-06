@@ -11,10 +11,18 @@
 
 namespace prt3 {
 
-void push_back_box(
+// geo needs space for 36 vec3's
+void insert_box(
     glm::vec3 const & lower_bound,
     glm::vec3 const & upper_bound,
-    std::vector<glm::vec3> & buffer
+    glm::vec3 * geo
+);
+
+// geo needs space for 24 vec3's
+void insert_line_box(
+    glm::vec3 const & lower_bound,
+    glm::vec3 const & upper_bound,
+    glm::vec3 * geo
 );
 
 } // namespace prt3

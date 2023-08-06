@@ -4,7 +4,7 @@
 
 using namespace prt3;
 
-void generate_texture(
+void generate_fb_texture(
     GLuint & texture,
     GLint    width,
     GLint    height,
@@ -66,7 +66,7 @@ void GLSourceBuffers::init(GLint width, GLint height) {
     glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
     glCheckError();
 
-    generate_texture(
+    generate_fb_texture(
         m_color_texture,
         width,
         height,
@@ -76,7 +76,7 @@ void GLSourceBuffers::init(GLint width, GLint height) {
         color_attachment()
     );
 
-    generate_texture(
+    generate_fb_texture(
         m_normal_texture,
         width,
         height,
@@ -86,7 +86,7 @@ void GLSourceBuffers::init(GLint width, GLint height) {
         normal_attachment()
     );
 
-    generate_texture(
+    generate_fb_texture(
         m_node_data_texture,
         width,
         height,
@@ -96,7 +96,7 @@ void GLSourceBuffers::init(GLint width, GLint height) {
         node_data_attachment()
     );
 
-    generate_texture(
+    generate_fb_texture(
         m_depth_texture,
         width,
         height,
@@ -125,7 +125,7 @@ void GLSourceBuffers::init(GLint width, GLint height) {
     glBindFramebuffer(GL_FRAMEBUFFER, m_selection_framebuffer);
     glCheckError();
 
-    generate_texture(
+    generate_fb_texture(
         m_selected_texture,
         width,
         height,
@@ -153,12 +153,11 @@ void GLSourceBuffers::init(GLint width, GLint height) {
     m_uniform_names.emplace_back("u_SelectedBuffer", m_selected_texture);
     m_uniform_names.emplace_back("u_DepthBuffer", m_depth_texture);
 
-
     // transparency
     glGenFramebuffers(1, &m_accum_framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, m_accum_framebuffer);
 
-    generate_texture(
+    generate_fb_texture(
         m_accum_texture,
         width,
         height,
@@ -168,7 +167,7 @@ void GLSourceBuffers::init(GLint width, GLint height) {
         GL_COLOR_ATTACHMENT0
     );
 
-    generate_texture(
+    generate_fb_texture(
         m_accum_alpha_texture,
         width,
         height,
@@ -188,6 +187,21 @@ void GLSourceBuffers::init(GLint width, GLint height) {
 
     m_transparency_uniform_names.emplace_back("u_AccumBuffer", m_accum_texture);
     m_transparency_uniform_names.emplace_back("u_AccumAlphaBuffer", m_accum_alpha_texture);
+
+    // decal
+    glDrawBuffers(0, nullptr);
+    glCheckError();
+
+    glGenFramebuffers(1, &m_decal_framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_decal_framebuffer);
+
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_COLOR_ATTACHMENT0,
+        GL_TEXTURE_2D,
+        m_color_texture,
+        0
+    );
 }
 
 void GLSourceBuffers::clean_up() {
@@ -231,5 +245,10 @@ void GLSourceBuffers::clean_up() {
         m_accum_alpha_texture = 0;
 
         m_transparency_uniform_names.resize(0);
+    }
+
+    if (m_decal_framebuffer != 0) {
+        glDeleteFramebuffers(1, &m_decal_framebuffer);
+        glCheckError();
     }
 }

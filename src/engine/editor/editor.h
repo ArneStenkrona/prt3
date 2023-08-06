@@ -14,6 +14,7 @@ namespace prt3 {
 class Editor {
 public:
     Editor(Context & context);
+    ~Editor();
 
     void update(float delta_time);
 
@@ -36,6 +37,8 @@ private:
     EditorContext m_editor_context;
     GizmoManager m_gizmo_manager;
     ActionManager m_action_manager;
+
+    ResourceID m_line_box_res_id;
 };
 
 } // namespace prt3

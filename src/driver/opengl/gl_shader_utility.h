@@ -68,7 +68,11 @@ namespace glshaderutility {
         glUniformMatrix4fv(glGetUniformLocation(id, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
 
-    void check_compile_errors(GLuint shader, std::string const & type);
+    void check_compile_errors(
+        GLuint shader,
+        std::string const & type,
+        std::string const & path
+    );
 } // namespace glshaderutility
 
 } // namespace prt3
