@@ -285,7 +285,7 @@ void GLRenderer::render_framebuffer(
         glDisable(GL_BLEND);
         glEnable(GL_BLEND);
         glCheckError();
-        glBlendFunc(GL_DST_COLOR, GL_ZERO)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glCheckError();
         glBlendEquation(GL_FUNC_ADD);
         glCheckError();

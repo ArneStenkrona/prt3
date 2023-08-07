@@ -31,6 +31,13 @@ public:
                 queue.push_back(child_id);
             }
         }
+
+        m_blob_shadow_id = scene.add_node_to_root("");
+        scene.add_component<Decal>(m_blob_shadow_id);
+        Decal & decal = scene.get_component<Decal>(m_blob_shadow_id);
+        decal.texture_id() =
+            scene.upload_texture("assets/textures/decals/blob_shadow.png");
+        decal.dimensions() = glm::vec3{2.0f, 1.0f, 2.0f};
     }
 
     virtual void update_input(Scene & scene, float /*delta_time*/) {
@@ -90,10 +97,32 @@ public:
 
     virtual void on_update(Scene & scene, float delta_time) {
         CharacterController::on_update(scene, delta_time);
-        scene.set_shadows_on(true);
         Transform tform = get_node(scene).get_global_transform(scene);
-        scene.shadow_origin() = tform.position + glm::vec3{0.0f, 25.0f, 0.0f};
+
+        ColliderTag tag =
+            scene.get_component<ColliderComponent>(node_id()).tag();
+        CollisionLayer mask = scene.physics_system().get_collision_mask(tag);
+
+        Node & blob_shadow = scene.get_node(m_blob_shadow_id);
+
+        RayHit hit;
+        if (scene.physics_system().raycast(
+            tform.position,
+            glm::vec3{0.0f, -1.0f, 0.0f},
+            100.0f,
+            mask,
+            tag,
+            hit
+        )) {
+            blob_shadow.set_global_position(scene, hit.position);
+            blob_shadow.local_transform().scale = glm::vec3{1.0f};
+        } else {
+            blob_shadow.local_transform().scale = glm::vec3{0.0f};
+        }
     }
+
+private:
+    NodeID m_blob_shadow_id;
 
 REGISTER_SCRIPT_BEGIN(PlayerController, player_controller, 3968611710651155566)
 REGISTER_SERIALIZED_FIELD(m_walk_force)

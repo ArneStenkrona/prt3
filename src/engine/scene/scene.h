@@ -293,9 +293,6 @@ public:
     NodeID & selected_node() { return m_selected_node; }
     NodeID const & selected_node() const { return m_selected_node; }
 
-    void set_shadows_on(bool on) { m_shadows_on = on; }
-    glm::vec3 & shadow_origin() { return m_shadow_origin; }
-
 private:
     Context * m_context;
 
@@ -328,9 +325,6 @@ private:
     bool m_directional_light_on = false;
 
     AmbientLight m_ambient_light;
-
-    bool m_shadows_on = false;
-    glm::vec3 m_shadow_origin = glm::vec3{0.0f};
 
     TransformCache m_transform_cache;
 

@@ -2,6 +2,8 @@
 #define PRT3_COLLIDER_H
 
 #include "src/engine/physics/aabb.h"
+#include "src/engine/physics/collider_tag.h"
+#include "src/engine/physics/aabb_tree.h"
 #include "src/engine/geometry/shapes.h"
 
 #include <glm/gtx/component_wise.hpp>
@@ -11,37 +13,6 @@
 namespace prt3 {
 
 class PhysicsSystem;
-
-namespace ColliderNS {
-
-enum ShapeEnum : uint8_t {
-    none,
-    mesh,
-    sphere,
-    box,
-    capsule,
-    total_num_collider_shape
-};
-
-enum TypeEnum : uint8_t {
-    collider,
-    area
-};
-
-} // namespace ColliderShape
-
-typedef ColliderNS::ShapeEnum ColliderShape;
-typedef ColliderNS::TypeEnum ColliderType;
-
-typedef uint16_t ColliderID;
-
-typedef uint16_t CollisionLayer;
-
-struct ColliderTag {
-    ColliderID id;
-    ColliderShape shape;
-    ColliderType type;
-};
 
 struct Collision {
     glm::vec3 normal;
@@ -58,14 +29,6 @@ struct CollisionResult {
     bool grounded = false;
     glm::vec3 ground_normal;
 };
-
-inline bool operator==(ColliderTag const & lhs, ColliderTag const & rhs) {
-    return lhs.type == rhs.type && lhs.shape == rhs.shape && lhs.id == rhs.id;
-}
-
-inline bool operator!=(ColliderTag const & lhs, ColliderTag const & rhs) {
-    return lhs.type != rhs.type || lhs.shape != rhs.shape || lhs.id != rhs.id;
-}
 
 class MeshCollider {
 public:
@@ -92,7 +55,7 @@ public:
 private:
     std::vector<glm::vec3> m_triangles;
     std::vector<glm::vec3> m_triangle_cache;
-    std::vector<AABB> m_aabbs;
+    DynamicAABBTree m_aabb_tree; // Consider a faster non-dynamic structure?
     Transform m_transform;
     AABB m_aabb;
 
@@ -245,16 +208,5 @@ private:
 };
 
 } // namespace prt3
-
-namespace std {
-  template <>
-  struct hash<prt3::ColliderTag> {
-    size_t operator()(prt3::ColliderTag const & t) const {
-      return hash<prt3::ColliderType>()(t.type) ^
-             (hash<prt3::ColliderShape>()(t.shape) << 1) ^
-             (hash<prt3::ColliderID>()(t.id) << 2);
-    }
-  };
-}
 
 #endif

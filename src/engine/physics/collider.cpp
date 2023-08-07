@@ -23,16 +23,29 @@ void MeshCollider::set_triangles(
 void MeshCollider::collect_triangles(
     AABB const & aabb,
     std::vector<Triangle> & triangles) const {
-    for (size_t i = 0; i < m_aabbs.size(); ++i) {
-        size_t ti = 3 * i;
-        bool intersect = AABB::intersect(aabb, m_aabbs[i]);
-        if (intersect) {
-            triangles.push_back({
-                m_triangle_cache[ti],
-                m_triangle_cache[ti + 1],
-                m_triangle_cache[ti + 2]
-            });
-        }
+
+    thread_local std::vector<ColliderTag> tags;
+    tags.clear();
+    ColliderTag dummy;
+    dummy.id = std::numeric_limits<ColliderID>::max();
+    dummy.type = ColliderType::collider;
+    dummy.shape = ColliderShape::mesh;
+    m_aabb_tree.query(
+        dummy,
+        1,
+        aabb,
+        tags
+    );
+
+    size_t ti = triangles.size();
+    triangles.resize(ti + 3 * tags.size());
+    for (ColliderTag tag : tags) {
+        triangles[ti] = {
+            m_triangle_cache[3*tag.id],
+            m_triangle_cache[3*tag.id + 1],
+            m_triangle_cache[3*tag.id + 2]
+        };
+        ++ti;
     }
 }
 
@@ -45,7 +58,6 @@ void MeshCollider::set_transform(Transform const & transform) {
 }
 
 void MeshCollider::update_triangle_cache() {
-    m_aabbs.resize(m_triangles.size() / 3);
     m_triangle_cache.resize(m_triangles.size());
 
     glm::mat4 mat = m_transform.to_matrix();
@@ -57,7 +69,9 @@ void MeshCollider::update_triangle_cache() {
         vertex_cache[i] = mat * glm::vec4(vertices[i], 1.0f);
     }
 
-    for (size_t i = 0; i < m_aabbs.size(); ++i) {
+    size_t n_triangles = m_triangles.size() / 3;
+    assert(n_triangles < std::numeric_limits<uint16_t>::max());
+    for (size_t i = 0; i < n_triangles; ++i) {
         size_t ti = 3 * i;
         glm::vec3 const & a = m_triangle_cache[ti];
         glm::vec3 const & b = m_triangle_cache[ti + 1];
@@ -65,8 +79,18 @@ void MeshCollider::update_triangle_cache() {
         glm::vec3 min = glm::min(glm::min(a, b), c);
         glm::vec3 max = glm::max(glm::max(a, b), c);
 
-        m_aabbs[i].lower_bound = min;
-        m_aabbs[i].upper_bound = max;
+        AABB aabb;
+        aabb.lower_bound = min;
+        aabb.upper_bound = max;
+        // TODO: provide more general aabb tree api that does not care about
+        //       tags, shapes, etc.
+        m_aabb_tree.insert(
+            ColliderTag{static_cast<ColliderID>(i),
+                        ColliderShape::mesh,
+                        ColliderType::collider},
+            1,
+            aabb
+        );
     }
 
     if (m_triangle_cache.empty()) {

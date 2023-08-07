@@ -4,7 +4,7 @@
 #include "aabb.h"
 
 #include "src/engine/physics/aabb.h"
-#include "src/engine/physics/collider.h"
+#include "src/engine/physics/collider_tag.h"
 
 #include <vector>
 #include <unordered_map>
