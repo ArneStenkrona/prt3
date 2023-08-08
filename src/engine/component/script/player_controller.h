@@ -114,7 +114,22 @@ public:
             tag,
             hit
         )) {
-            blob_shadow.set_global_position(scene, hit.position);
+            float eps = 0.05f;
+
+            Decal & decal = scene.get_component<Decal>(m_blob_shadow_id);
+
+            float diff_y = tform.position.y - hit.position.y;
+            float dim_y = diff_y + 2.0f * eps;
+
+            float t_xz = glm::clamp(0.5f * diff_y, 0.0f, 1.0f);
+            float dim_xz = glm::mix(2.0f, 1.0f, t_xz);
+            decal.dimensions() = glm::vec3{dim_xz, dim_y, dim_xz};
+
+            float offset_y = -(0.5f * diff_y + eps);
+
+            glm::vec3 blob_pos = tform.position;
+            blob_pos.y += offset_y;
+            blob_shadow.set_global_position(scene, blob_pos);
             blob_shadow.local_transform().scale = glm::vec3{1.0f};
         } else {
             blob_shadow.local_transform().scale = glm::vec3{0.0f};

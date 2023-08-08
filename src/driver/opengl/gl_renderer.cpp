@@ -355,7 +355,7 @@ void GLRenderer::render_framebuffer(
             bind_texture(
                 *m_decal_shader,
                 decal_map_str,
-                1,
+                2,
                 m_texture_manager.get_texture(data.texture)
             );
 
@@ -714,6 +714,13 @@ void GLRenderer::bind_decal_data(
     glActiveTexture(GL_TEXTURE0);
     glCheckError();
     glBindTexture(GL_TEXTURE_2D, m_source_buffers.depth_texture());
+    glCheckError();
+
+    static const GLVarString normal_map_str = "u_NormalMap";
+    glUniform1i(s.get_uniform_loc(normal_map_str), 1);
+    glActiveTexture(GL_TEXTURE1);
+    glCheckError();
+    glBindTexture(GL_TEXTURE_2D, m_source_buffers.normal_texture());
     glCheckError();
 
     int w;

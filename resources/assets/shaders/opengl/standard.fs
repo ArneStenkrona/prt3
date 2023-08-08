@@ -93,7 +93,7 @@ void main() {
     }
 
     outColor = lightContribution * albedo.rgb;
-    outNormal = normal;
+    outNormal = 0.5 * normal + 0.5;
 
     outMetadata.r = float(u_NodeData % uint(256)) / 255.0;
     outMetadata.g = float((u_NodeData / uint(256)) % uint(256)) / 255.0;
