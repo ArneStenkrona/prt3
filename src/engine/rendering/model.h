@@ -13,11 +13,15 @@
 
 #include <assimp/scene.h>
 
+#include <algorithm>
+#include <cstring>
+#include <fstream>
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <cstring>
-#include <algorithm>
+
+#define PRT3_MODEL_EXT "p3m"
+#define DOT_PRT3_MODEL_EXT ".p3m"
 
 namespace std {
     // thanks, Basile Starynkevitch!
@@ -66,6 +70,15 @@ public:
     std::vector<uint32_t>     const & index_buffer()       const { return m_index_buffer; };
     std::vector<Bone>         const & bones()              const { return m_bones; };
 
+    std::vector<Node>         & nodes()              { return m_nodes; };
+    std::vector<Mesh>         & meshes()             { return m_meshes; };
+    std::vector<Animation>    & animations()         { return m_animations; };
+    std::vector<MeshMaterial> & materials()          { return m_materials; };
+    std::vector<Vertex>       & vertex_buffer()      { return m_vertex_buffer; };
+    std::vector<BoneData>     & vertex_bone_buffer() { return m_vertex_bone_buffer; };
+    std::vector<uint32_t>     & index_buffer()       { return m_index_buffer; };
+    std::vector<Bone>         & bones()              { return m_bones; };
+
     void sample_animation(
         uint32_t animation_index,
         float t,
@@ -95,6 +108,9 @@ public:
 
     std::string const & name() const { return m_name; };
     std::string const & path() const { return m_path; }
+    void set_path(std::string path) { m_path = path; }
+
+    void save_prt3model(char const * path);
 
 private:
     std::string m_name;
@@ -128,10 +144,14 @@ private:
     void calculate_tangent_space();
     std::string get_texture(aiMaterial & aiMat, aiTextureType type, char const * model_path);
 
-    void load_with_assimp();
+    void load_with_assimp(char const * path);
 
-    void serialize_model();
-    bool deserialize_model();
+    bool attempt_load_cached(char const * path);
+
+    void load_prt3model(std::FILE * in);
+    inline void load_prt3model(char const * path)
+    { load_prt3model(std::fopen(path, "rb")); }
+
 };
 
 struct Model::Node {
@@ -142,7 +162,6 @@ struct Model::Node {
     int32_t channel_index = -1;
     Transform transform;
     Transform inherited_transform;
-    // std::string name;
     std::string name;
 };
 

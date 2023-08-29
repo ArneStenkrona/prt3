@@ -8,6 +8,7 @@
 #include "src/engine/rendering/material_manager.h"
 #include "src/engine/rendering/model_manager.h"
 #include "src/engine/rendering/texture_manager.h"
+#include "src/engine/core/backend_type.h"
 #include "src/engine/core/input.h"
 #include "src/engine/project/project.h"
 
@@ -17,7 +18,7 @@ class Engine;
 
 class Context {
 public:
-    Context();
+    Context(BackendType backend_type);
     Context(Context const & other) = delete;
     Context & operator=(Context const & other) = delete;
 

@@ -16,10 +16,11 @@
 #include <assimp/postprocess.h>
 
 #include <cstring>
-#include <fstream>
 #include <cstdio>
 
 using namespace prt3;
+
+static std::string const cached_postfix = "_prt3cache";
 
 inline uint16_t extract_key_index(
     uint8_t const * locations,
@@ -58,9 +59,21 @@ Model::Model(char const * path)
  : m_path{path} {
     char const * slash = std::strrchr(path, '/');
     m_name = slash ? slash + 1 : 0;
-    if (!deserialize_model()) {
-        load_with_assimp();
-        serialize_model();
+
+    char const * extension = get_file_extension(path);
+    if (strcmp(extension, PRT3_MODEL_EXT) == 0) {
+        load_prt3model(path);
+    } else {
+        if (!attempt_load_cached(path)) {
+            load_with_assimp(path);
+            static std::string prt3_cache;
+            prt3_cache = path + cached_postfix;
+
+            CRC32String checksum = compute_crc32(path);
+            std::ofstream out(path, std::ios::binary);
+            out.write(checksum.data(), checksum.writeable_size());
+            save_prt3model(path);
+        }
     }
 }
 
@@ -402,8 +415,7 @@ void Model::calculate_tangent_space() {
     }
 }
 
-void Model::load_with_assimp() {
-    char const * path = m_path.c_str();
+void Model::load_with_assimp(char const * path) {
 
     Assimp::Importer importer;
     importer.SetPropertyInteger(
@@ -769,17 +781,8 @@ void Model::load_with_assimp() {
     // calculate_tangent_space();
 }
 
-static std::string const serialized_postfix = "_prt3cache";
-
-void Model::serialize_model() {
-    std::string serialized_path = m_path + serialized_postfix;
-
-    CRC32String checksum = compute_crc32(m_path.c_str());
-
-    std::ofstream out(serialized_path, std::ios::binary);
-
-    out.write(checksum.data(), checksum.writeable_size());
-
+void Model::save_prt3model(char const * path) {
+    std::ofstream out(path, std::ios::binary);
     write_stream(out, m_valid);
 
     write_stream(out, m_nodes.size());
@@ -895,19 +898,16 @@ void Model::serialize_model() {
     }
 
     out.close();
-
 #ifdef __EMSCRIPTEN__
-    emscripten_save_file_via_put(serialized_path);
+    emscripten_save_file_via_put(path);
 #endif // __EMSCRIPTEN__
 }
 
-bool Model::deserialize_model() {
-    static std::string serialized_path;
-    serialized_path = m_path + serialized_postfix;
+bool Model::attempt_load_cached(char const * path) {
+    std::string cache_path = std::string{path} + cached_postfix;
 
     std::FILE * in;
-
-    in = std::fopen(serialized_path.c_str(), "rb");
+    in = std::fopen(cache_path.c_str(), "rb");
 
     if (!in) {
         return false;
@@ -917,13 +917,18 @@ bool Model::deserialize_model() {
     std::fread(checksum.data(), 1, checksum.writeable_size(), in);
 
     if (!Args::force_cached()) {
-        CRC32String current_checksum = compute_crc32(m_path.c_str());
+        CRC32String current_checksum = compute_crc32(path);
 
         if (checksum != current_checksum) {
             return false;
         }
     }
 
+    load_prt3model(in);
+    return true;
+}
+
+void Model::load_prt3model(std::FILE * in) {
     read_stream(in, m_valid);
 
     size_t n_nodes;
@@ -1061,6 +1066,4 @@ bool Model::deserialize_model() {
     read_stream_n(in, m_bone_to_node.data(), n_bones);
 
     std::fclose(in);
-
-    return true;
 }

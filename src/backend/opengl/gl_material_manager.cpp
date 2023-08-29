@@ -1,6 +1,6 @@
 #include "gl_material_manager.h"
 
-#include "src/driver/opengl/gl_shader_utility.h"
+#include "src/backend/opengl/gl_shader_utility.h"
 
 using namespace prt3;
 

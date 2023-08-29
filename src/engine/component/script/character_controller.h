@@ -141,6 +141,7 @@ public:
         get_state_data(ATTACK_1) = {
             .transition = 0.05f,
             .clip_a = { .animation_index = model.get_animation_index("attack1"),
+                        .speed = 0.75f,
                         .paused = false,
                         .looping = false },
             .clip_b = { .animation_index = NO_ANIMATION},
@@ -151,6 +152,7 @@ public:
         get_state_data(ATTACK_2) = {
             .transition = 0.05f,
             .clip_a = { .animation_index = model.get_animation_index("attack2"),
+                        .speed = 0.75f,
                         .paused = false,
                         .looping = false },
             .clip_b = { .animation_index = NO_ANIMATION},
@@ -161,7 +163,7 @@ public:
         get_state_data(ATTACK_AIR_1) = {
             .transition = 0.05f,
             .clip_a = { .animation_index = model.get_animation_index("attack_air1"),
-                        .speed = 1.25f,
+                        .speed = 0.75f,
                         .paused = false,
                         .looping = false },
             .clip_b = { .animation_index = NO_ANIMATION},
@@ -172,7 +174,7 @@ public:
         get_state_data(ATTACK_AIR_2) = {
             .transition = 0.05f,
             .clip_a = { .animation_index = model.get_animation_index("attack_air2"),
-                        .speed = 1.25f,
+                        .speed = 0.75f,
                         .paused = false,
                         .looping = false },
             .clip_b = { .animation_index = NO_ANIMATION},
@@ -253,11 +255,9 @@ public:
                 if (a_frac >= 1.0f) {
                     transition_mask = IDLE | WALK | ATTACK_2;
                     queueable_mask |= IDLE | WALK;
-                } else if (a_frac >= 0.4f) {
-                    transition_mask = WALK | ATTACK_2 | JUMP;
-                    queueable_mask |= WALK;
-                } else if (a_frac >= 0.22f) {
+                } else if (a_frac >= 0.467f) {
                     transition_mask = ATTACK_2;
+                    queueable_mask |= JUMP;
                 }
 
                 if (m_state.grounded_timer > m_state.coyote_time) {
@@ -272,11 +272,9 @@ public:
                 if (a_frac >= 1.0f) {
                     transition_mask = IDLE | WALK | ATTACK_1;
                     queueable_mask |= IDLE | WALK;
-                } else if (a_frac >= 0.4f) {
-                    transition_mask = WALK | ATTACK_1 | JUMP;
-                    queueable_mask |= WALK;
-                } else if (a_frac >= 0.22f) {
+                } else if (a_frac >= 0.467f) {
                     transition_mask = ATTACK_1;
+                    queueable_mask |= JUMP;
                 }
 
                 if (m_state.grounded_timer > m_state.coyote_time) {
@@ -290,7 +288,7 @@ public:
                 if (a_frac >= 1.0f) {
                     transition_mask = FALL | ATTACK_AIR_2 | LAND;
                     queueable_mask |= FALL | LAND;
-                } else if (a_frac >= 0.17f) {
+                } else if (a_frac >= 0.467f) {
                     transition_mask = ATTACK_AIR_2 | LAND;
                     queueable_mask |= LAND;
                     if (m_state.jump_count < 2) {
@@ -304,7 +302,7 @@ public:
                 if (a_frac >= 1.0f) {
                     transition_mask = FALL | ATTACK_AIR_1 | LAND;
                     queueable_mask |= FALL | LAND;
-                } else if (a_frac >= 0.17f) {
+                } else if (a_frac >= 0.467f) {
                     transition_mask = ATTACK_AIR_1 | LAND;
                     queueable_mask |= LAND;
                     if (m_state.jump_count < 2) {
@@ -582,14 +580,11 @@ public:
             case ATTACK_1:
             case ATTACK_2: {
                 float a_frac = anim.clip_a.frac(model);
-
+                active_weapon = 0.15f < a_frac && a_frac < 0.3f;
                 float force_mag = 0.0f;
-                if (0.1f < a_frac && a_frac < 0.15f) {
-                    force_mag = m_state.state == ATTACK_1 ? 128.0f : 144.0f;
+                if (0.15f < a_frac && a_frac < 0.2f) {
+                    force_mag = 128.0f;
                 }
-
-                active_weapon = 0.1f < a_frac && a_frac < 0.25f;
-
                 m_state.force = m_state.direction * force_mag;
                 break;
             }

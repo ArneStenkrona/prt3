@@ -17,7 +17,7 @@ public:
     ComponentType & add_component(
         Scene & scene,
         NodeID id,
-        ArgTypes & ... args
+        ArgTypes && ... args
     ) {
         return get_component_storage<ComponentType>().add(scene, id, args...);
     }

@@ -10,7 +10,8 @@ using namespace prt3;
 using time_point = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
 Engine::Engine()
- : m_editor{m_context},
+ : m_context{BackendType::wasm},
+   m_editor{m_context},
    m_last_frame_time_point{std::chrono::high_resolution_clock::now()} {
     set_mode_editor();
 }

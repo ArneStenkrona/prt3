@@ -1,6 +1,6 @@
 #include "gl_texture_manager.h"
 
-#include "src/driver/opengl/gl_utility.h"
+#include "src/backend/opengl/gl_utility.h"
 #include "src/util/log.h"
 
 #include <cassert>

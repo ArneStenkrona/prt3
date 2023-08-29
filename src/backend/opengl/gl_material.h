@@ -2,7 +2,7 @@
 #define PRT3_GL_MATERIAL_H
 
 #include "src/engine/rendering/material.h"
-#include "src/driver/opengl/gl_shader.h"
+#include "src/backend/opengl/gl_shader.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE

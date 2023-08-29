@@ -130,7 +130,7 @@ public:
     }
 
     template<typename ComponentType, typename... ArgTypes>
-    ComponentType & add_component(NodeID id, ArgTypes & ... args) {
+    ComponentType & add_component(NodeID id, ArgTypes && ... args) {
         return m_component_manager.add_component<ComponentType>(*this, id, args...);
     }
 
@@ -333,6 +333,8 @@ private:
 
     NodeID m_selected_node = NO_NODE;
 
+    void place_root();
+
     NodeID add_node(NodeID parent_id, const char * name, UUID uuid);
 
     ModelHandle register_model(ModelHandle handle)
@@ -370,7 +372,7 @@ private:
 
     void add_autoload_scripts(std::unordered_set<UUID> const & uuids);
 
-    void internal_clear(bool place_root);
+    void internal_clear(bool should_place_root);
 
     void mark_ancestors(NodeID id, Node::ModFlags flag) {
         NodeID ancestor_id = m_nodes[id].parent_id();

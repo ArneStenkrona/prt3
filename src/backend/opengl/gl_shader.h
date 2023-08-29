@@ -1,7 +1,7 @@
 #ifndef PRT3_GL_SHADER_H
 #define PRT3_GL_SHADER_H
 
-#include "src/driver/opengl/gl_utility.h"
+#include "src/backend/opengl/gl_utility.h"
 #include "src/util/hash_util.h"
 
 #define GL_GLEXT_PROTOTYPES 1

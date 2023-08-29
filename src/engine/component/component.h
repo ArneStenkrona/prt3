@@ -29,7 +29,7 @@ template<typename ComponentType>
 class ComponentStorage {
 public:
     template<typename... ArgTypes>
-    ComponentType & add(Scene & scene, NodeID id, ArgTypes & ... args) {
+    ComponentType & add(Scene & scene, NodeID id, ArgTypes && ... args) {
         if (static_cast<NodeID>(node_map.size()) <= id) {
             node_map.resize(id + 1, NO_COMPONENT);
         }

@@ -177,6 +177,13 @@ public:
     void set_exit_door_id(DoorID id) { m_exit_door_id = id; }
     void set_entry_door_id(DoorID id) { m_entry_door_id = id; }
 
+    void register_door_overlap(Scene & scene, Door & door) {
+        scene.scene_manager()
+            .queue_scene(door.destination_scene_path().data());
+        m_exit_door_id = door.id();
+        m_entry_door_id = door.destination_id();
+    }
+
     void push_back_bell_index(Scene & scene, int32_t index) {
         m_bell_indices[m_bell_index_position] = index;
         m_bell_index_position =

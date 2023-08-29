@@ -2,7 +2,9 @@
 #define PRT3_AUDIO_MANAGER_H
 
 #include "src/engine/component/transform.h"
+#include "src/engine/core/backend_type.h"
 #include "src/engine/scene/node.h"
+
 
 #include "minivorbis.h"
 
@@ -63,7 +65,7 @@ struct MidiClip {
 
 class AudioManager {
 public:
-    AudioManager();
+    AudioManager(BackendType backend_type);
     ~AudioManager();
 
     SoundSourceID create_sound_source(NodeID node_id);
@@ -149,6 +151,8 @@ private:
     unsigned int m_sample_rate;
 
     bool m_initialized = false;
+
+    bool m_is_dummy;
 
     void update(
         Transform const & camera_transform,

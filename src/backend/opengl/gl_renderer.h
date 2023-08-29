@@ -1,15 +1,15 @@
 #ifndef PRT3_GL_RENDERER_H
 #define PRT3_GL_RENDERER_H
 
-#include "src/driver/render_backend.h"
-#include "src/driver/opengl/gl_shader.h"
-#include "src/driver/opengl/gl_mesh.h"
-#include "src/driver/opengl/gl_material.h"
-#include "src/driver/opengl/gl_texture_manager.h"
-#include "src/driver/opengl/gl_material_manager.h"
-#include "src/driver/opengl/gl_model_manager.h"
-#include "src/driver/opengl/gl_postprocessing_chain.h"
-#include "src/driver/opengl/gl_source_buffers.h"
+#include "src/backend/render_backend.h"
+#include "src/backend/opengl/gl_shader.h"
+#include "src/backend/opengl/gl_mesh.h"
+#include "src/backend/opengl/gl_material.h"
+#include "src/backend/opengl/gl_texture_manager.h"
+#include "src/backend/opengl/gl_material_manager.h"
+#include "src/backend/opengl/gl_model_manager.h"
+#include "src/backend/opengl/gl_postprocessing_chain.h"
+#include "src/backend/opengl/gl_source_buffers.h"
 #include "src/engine/rendering/model_manager.h"
 
 #include "backends/imgui_impl_glfw.h"

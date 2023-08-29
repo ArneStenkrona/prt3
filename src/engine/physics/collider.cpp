@@ -1,5 +1,7 @@
 #include "collider.h"
 
+#include "src/util/log.h"
+
 #include <cassert>
 
 using namespace prt3;

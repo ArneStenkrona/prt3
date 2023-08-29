@@ -32,13 +32,10 @@ void Door::serialize(
 }
 
 void Door::update(Scene & scene, std::vector<Door> & components) {
+    GameState * game_state = scene.get_autoload_script<GameState>();
     for (Door & door : components) {
         if (!scene.get_overlaps(door.node_id()).empty()) {
-            scene.scene_manager()
-                .queue_scene(door.m_destination_scene_path.data());
-            GameState * game_state = scene.get_autoload_script<GameState>();
-            game_state->set_exit_door_id(door.id());
-            game_state->set_entry_door_id(door.destination_id());
+            game_state->register_door_overlap(scene, door);
             return;
         }
     }

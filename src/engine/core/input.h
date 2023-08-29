@@ -1,7 +1,7 @@
 #ifndef PRT3_INPUT_H
 #define PRT3_INPUT_H
 
-#include "src/driver/render_backend.h"
+#include "src/backend/render_backend.h"
 
 #include <GLFW/glfw3.h>
 

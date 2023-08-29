@@ -1,7 +1,7 @@
 #ifndef PRT3_GL_MESH_H
 #define PRT3_GL_MESH_H
 
-#include "src/driver/opengl/gl_material.h"
+#include "src/backend/opengl/gl_material.h"
 #include "src/engine/rendering/render_data.h"
 #include "src/engine/rendering/postprocessing_chain.h"
 

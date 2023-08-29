@@ -1,8 +1,8 @@
 #ifndef PRT3_GL_MODEL_MANAGER_H
 #define PRT3_GL_MODEL_MANAGER_H
 
-#include "src/driver/opengl/gl_mesh.h"
-#include "src/driver/opengl/gl_material_manager.h"
+#include "src/backend/opengl/gl_mesh.h"
+#include "src/backend/opengl/gl_material_manager.h"
 #include "src/engine/rendering/model_manager.h"
 
 #define GL_GLEXT_PROTOTYPES 1

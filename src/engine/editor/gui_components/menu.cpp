@@ -4,6 +4,8 @@
 #include "src/engine/editor/editor.h"
 #include "src/util/file_util.h"
 
+#include "src/daedalus/map/map.h"
+
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -79,6 +81,8 @@ void prt3::menu(EditorContext & context) {
     thread_local bool save_scene_open = false;
     thread_local bool load_scene_open = false;
 
+    thread_local bool import_map_open = false;
+
     enum UnsavedAction {
         unsaved_action_new_scene,
         unsaved_action_load_project,
@@ -128,6 +132,14 @@ void prt3::menu(EditorContext & context) {
                 show_unsaved = true;
                 unsaved_action = unsaved_action_load_scene;
             }
+        }
+
+        ImGui::Separator();
+
+        /* map */
+        if (ImGui::MenuItem("import map")) {
+            import_map_open = true;
+            ImGui::EndMenu();
         }
 
         ImGui::EndMenu();
@@ -213,6 +225,19 @@ void prt3::menu(EditorContext & context) {
             load_scene(context, path);
         }
         load_scene_open = ImGui::IsPopupOpen(ImGui::GetID("load scene"), 0);
+    }
+
+    if (import_map_open) {
+        auto & file_dialog = context.file_dialog();
+        ImGui::OpenPopup("import map");
+
+        if (file_dialog.showFileDialog("import map",
+            imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(0, 0))
+        ) {
+            std::string const & path = file_dialog.selected_path;
+            dds::parse_map_from_model(path.c_str());
+        }
+        import_map_open = ImGui::IsPopupOpen(ImGui::GetID("import map"), 0);
     }
 
     /* project */

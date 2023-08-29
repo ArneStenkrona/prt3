@@ -34,6 +34,11 @@ void prt3::emscripten_save_file_via_put(
         "')";
 
     emscripten_run_script(arg.c_str());
-
 }
 #endif // __EMSCRIPTEN__
+
+char const * prt3::get_file_extension(char const * filename) {
+    const char *dot = strrchr(filename, '.');
+    if(!dot || dot == filename) return "";
+    return dot + 1;
+}

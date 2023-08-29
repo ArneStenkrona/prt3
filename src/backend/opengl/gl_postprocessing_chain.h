@@ -3,8 +3,8 @@
 
 #include "src/engine/rendering/postprocessing_chain.h"
 #include "src/engine/rendering/postprocessing_pass.h"
-#include "src/driver/opengl/gl_postprocessing_pass.h"
-#include "src/driver/opengl/gl_source_buffers.h"
+#include "src/backend/opengl/gl_postprocessing_pass.h"
+#include "src/backend/opengl/gl_source_buffers.h"
 
 #define GL_GLEXT_PROTOTYPES 1
 #include <GLES3/gl3.h>

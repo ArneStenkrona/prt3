@@ -60,6 +60,9 @@ public:
     NodeID node_id() const { return m_node_id; }
     ColliderTag tag() const { return m_tag; }
 
+    void set_layer(Scene & scene, CollisionLayer layer);
+    void set_mask(Scene & scene, CollisionLayer mask);
+
     void set_collider(Scene & scene, ColliderType type, ModelHandle model_handle);
     void set_collider(Scene & scene, ColliderType type, Model const & model);
     void set_collider(

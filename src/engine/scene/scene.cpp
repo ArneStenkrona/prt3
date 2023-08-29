@@ -13,10 +13,7 @@ Scene::Scene(Context & context)
    m_camera{context.renderer().window_width(),
             context.renderer().window_height()}
 {
-    m_nodes.emplace_back(s_root_id);
-    m_node_names.emplace_back("root");
-    m_node_flags.emplace_back(Node::Flags::flag_none);
-    m_node_mod_flags.emplace_back(Node::ModFlags::mod_flag_none);
+    place_root();
 }
 
 void Scene::start() {
@@ -42,6 +39,18 @@ void Scene::clear_node_mod_flags() {
     for (Node::ModFlags & flags : m_node_mod_flags) {
         flags = Node::ModFlags::mod_flag_none;
     }
+}
+
+void Scene::place_root() {
+    m_nodes.emplace_back(s_root_id);
+    m_node_names.emplace_back("root");
+    m_node_flags.emplace_back(Node::Flags::flag_none);
+    m_node_mod_flags.emplace_back(Node::ModFlags::mod_flag_none);
+
+    UUID uuid = generate_uuid();
+    m_nodes[s_root_id].m_parent_id = NO_NODE;
+    m_node_uuids[s_root_id] = uuid;
+    m_uuid_to_node[uuid] = s_root_id;
 }
 
 NodeID Scene::add_node(NodeID parent_id, const char * name, UUID uuid) {
@@ -619,8 +628,10 @@ void Scene::serialize(std::ostream & out) const {
 
     write_stream(out, n_compacted);
 
-    for (NodeID id = 0; id < n_compacted; ++id) {
-        write_stream(out, m_node_uuids.at(id));
+    for (Node const & node : m_nodes) {
+        if (node.id() != NO_NODE) {
+            write_stream(out, m_node_uuids.at(node.id()));
+        }
     }
 
     for (Node const & node : m_nodes) {
@@ -717,16 +728,13 @@ void Scene::deserialize(std::istream & in) {
     }
 }
 
-void Scene::internal_clear(bool place_root) {
+void Scene::internal_clear(bool should_place_root) {
     m_nodes.clear();
     m_free_list.clear();
     m_node_names.clear();
     m_node_mod_flags.clear();
-    if (place_root) {
-        m_nodes.emplace_back(s_root_id);
-        m_node_names.emplace_back("root");
-        m_node_flags.emplace_back(Node::Flags::flag_none);
-        m_node_mod_flags.emplace_back(Node::ModFlags::mod_flag_none);
+    if (should_place_root) {
+        place_root();
     }
 
     m_component_manager.clear();

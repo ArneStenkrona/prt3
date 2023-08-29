@@ -16,6 +16,8 @@ void emscripten_save_file_via_put(
 );
 #endif // __EMSCRIPTEN__
 
+char const * get_file_extension(char const * filename);
+
 } // namespace prt3
 
 #endif

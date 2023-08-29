@@ -1,9 +1,9 @@
 #ifndef PRT3_GL_MATERIAL_MANAGER_H
 #define PRT3_GL_MATERIAL_MANAGER_H
 
-#include "src/driver/opengl/gl_texture_manager.h"
-#include "src/driver/opengl/gl_material.h"
-#include "src/driver/opengl/gl_shader.h"
+#include "src/backend/opengl/gl_texture_manager.h"
+#include "src/backend/opengl/gl_material.h"
+#include "src/backend/opengl/gl_shader.h"
 #include "src/engine/rendering/resources.h"
 #include "src/engine/rendering/model.h"
 #include "src/engine/rendering/material.h"

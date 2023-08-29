@@ -36,6 +36,18 @@ struct Transform {
         rotation = glm::conjugate(rotation);
         return *this;
     }
+
+    static Transform compose(Transform const & outer, Transform const & inner) {
+        Transform tform;
+        tform.position = outer.position +
+            glm::rotate(
+                outer.rotation,
+                outer.scale * inner.position
+            );
+        tform.scale = inner.scale * outer.scale;
+        tform.rotation = inner.rotation * outer.rotation;
+        return tform;
+    }
 };
 
 inline bool operator==(Transform const & lhs, Transform const & rhs) {

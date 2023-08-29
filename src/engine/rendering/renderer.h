@@ -8,7 +8,8 @@
 #include "src/engine/rendering/resources.h"
 #include "src/engine/rendering/material.h"
 #include "src/engine/rendering/texture.h"
-#include "src/driver/render_backend.h"
+#include "src/backend/render_backend.h"
+#include "src/engine/core/backend_type.h"
 #include "src/engine/core/input.h"
 
 #include "backends/imgui_impl_glfw.h"
@@ -26,7 +27,8 @@ public:
     Renderer(Context & context,
              unsigned int width,
              unsigned int height,
-             float downscale_factor);
+             float downscale_factor,
+             BackendType backend_type);
     Renderer(Renderer const &) = delete;
     ~Renderer();
 
@@ -100,6 +102,8 @@ private:
     int m_window_width;
     int m_window_height;
     float m_downscale_factor;
+
+    bool m_is_dummy;
 
     void set_window_size(int w, int h);
 

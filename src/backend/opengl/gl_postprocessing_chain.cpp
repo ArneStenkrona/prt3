@@ -1,6 +1,6 @@
 #include "gl_postprocessing_chain.h"
 
-#include "src/driver/opengl/gl_utility.h"
+#include "src/backend/opengl/gl_utility.h"
 
 using namespace prt3;
 

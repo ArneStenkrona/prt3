@@ -2,7 +2,7 @@
 #define PRT3_GL_SOURCE_BUFFERS
 
 #include "src/util/fixed_string.h"
-#include "src/driver/opengl/gl_utility.h"
+#include "src/backend/opengl/gl_utility.h"
 
 #define GL_GLEXT_PROTOTYPES 1
 #include <GLES3/gl3.h>

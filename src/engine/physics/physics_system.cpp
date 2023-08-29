@@ -356,7 +356,8 @@ ColliderTag PhysicsSystem::create_collider_from_model(
             continue;
         }
 
-        glm::mat4 tform = node.transform.to_matrix();
+        glm::mat4 tform = node.inherited_transform.to_matrix();
+
         auto const & mesh = model.meshes()[node.mesh_index];
 
         auto end_index = mesh.start_index + mesh.num_indices;

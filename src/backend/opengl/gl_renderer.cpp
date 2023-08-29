@@ -1,7 +1,7 @@
 #include "gl_renderer.h"
 
-#include "src/driver/opengl/gl_shader_utility.h"
-#include "src/driver/opengl/gl_utility.h"
+#include "src/backend/opengl/gl_shader_utility.h"
+#include "src/backend/opengl/gl_utility.h"
 #include "src/util/log.h"
 #include "src/util/mesh_util.h"
 

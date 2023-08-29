@@ -23,7 +23,7 @@ public:
     ActionManager & action_manager() { return m_action_manager; }
 
     template<typename ActionType, typename... ArgTypes>
-    bool perform_action(ArgTypes... args)
+    bool perform_action(ArgTypes &&... args)
     { return m_action_manager.perform<ActionType>(args...); }
 
     void collect_render_data(

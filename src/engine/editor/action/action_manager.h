@@ -16,7 +16,7 @@ public:
     ~ActionManager();
 
     template<typename ActionType, typename... ArgTypes>
-    bool perform(ArgTypes... args) {
+    bool perform(ArgTypes &&... args) {
         Action * action = new ActionType(m_editor_context, args...);
         if (action->apply()) {
             ++m_action_count;

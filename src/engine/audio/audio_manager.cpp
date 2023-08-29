@@ -45,7 +45,9 @@ bool check_al_errors(char const * filename, int line)
 
 static AudioManager * s_am_ptr = nullptr;
 
-AudioManager::AudioManager() {
+AudioManager::AudioManager(BackendType backend_type) {
+    m_is_dummy = backend_type == BackendType::dummy;
+    if (m_is_dummy) return;
 #ifdef __EMSCRIPTEN__
     m_sample_rate = EM_ASM_INT({
         var audio_context = window.audio_context || window.webkitaudio_context;
@@ -665,6 +667,7 @@ void AudioManager::stop_midi() {
 }
 
 void AudioManager::init() {
+    if (m_is_dummy) return;
 #ifdef __EMSCRIPTEN__
     int running = EM_ASM_INT({
         var audio_context = window.audio_context || window.webkitaudio_context;

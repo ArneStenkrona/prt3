@@ -6,6 +6,7 @@
 #include "src/engine/rendering/resources.h"
 #include "src/engine/rendering/render_data.h"
 #include "src/engine/rendering/renderer.h"
+#include "src/util/sub_vec.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -26,11 +27,6 @@ class Scene;
 
 typedef int32_t NavMeshID;
 constexpr NavMeshID NO_NAV_MESH = -1;
-
-struct SubVec {
-    uint32_t start_index;
-    uint32_t num_indices;
-};
 
 struct Adjacency {
     float portal_size;

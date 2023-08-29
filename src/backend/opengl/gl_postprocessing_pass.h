@@ -2,8 +2,8 @@
 #define PRT3_GL_POSTPROCESSING_PASS_H
 
 #include "src/engine/rendering/render_data.h"
-#include "src/driver/opengl/gl_source_buffers.h"
-#include "src/driver/opengl/gl_shader.h"
+#include "src/backend/opengl/gl_source_buffers.h"
+#include "src/backend/opengl/gl_shader.h"
 
 #define GL_GLEXT_PROTOTYPES 1
 #include <GLES3/gl3.h>

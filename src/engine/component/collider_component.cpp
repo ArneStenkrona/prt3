@@ -128,6 +128,15 @@ ColliderComponent::ColliderComponent(
     deserialize(in, scene);
 }
 
+void ColliderComponent::set_layer(Scene & scene, CollisionLayer layer) {
+    scene.physics_system().set_collision_layer(m_tag, layer);
+}
+
+void ColliderComponent::set_mask(Scene & scene, CollisionLayer mask) {
+    scene.physics_system().set_collision_mask(m_tag, mask);
+}
+
+
 void ColliderComponent::set_collider(
     Scene & scene,
     ColliderType type,

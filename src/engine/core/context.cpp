@@ -12,14 +12,15 @@ using namespace prt3;
 
 using time_point = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
-Context::Context()
- : m_renderer{*this, 960, 540, 1.0f},
+Context::Context(BackendType backend_type)
+ : m_renderer{*this, 960, 540, 1.0f, backend_type},
    m_material_manager{*this},
    m_model_manager{*this},
    m_texture_manager{*this},
    m_edit_scene{*this},
    m_game_scene{*this},
-   m_scene_manager{*this} {
+   m_scene_manager{*this},
+   m_audio_manager{backend_type} {
 
 }
 
