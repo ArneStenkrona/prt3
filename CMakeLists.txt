@@ -26,6 +26,7 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/lib/hash-library"
   "${PROJECT_SOURCE_DIR}/lib/stb_image"
   "${PROJECT_SOURCE_DIR}/lib/minivorbis"
+  "${PROJECT_SOURCE_DIR}/lib/o1heap"
 )
 
 file(GLOB SOURCES
@@ -46,6 +47,7 @@ file(GLOB SOURCES
   "src/backend/opengl/gl_utility.cpp"
   "src/engine/animation/animation_system.cpp"
   "src/engine/audio/audio_manager.cpp"
+  "src/engine/audio/audio_mem_util.cpp"
   "src/engine/audio/include_vorbis.c"
   "src/engine/component/script/script.cpp"
   "src/engine/component/animated_mesh.cpp"
@@ -116,6 +118,7 @@ file(GLOB SOURCES
   "lib/ImGuizmo/*.cpp"
   "lib/hash-library/md5.cpp"
   "lib/hash-library/crc32.cpp"
+  "lib/o1heap/o1heap.c"
 )
 
 add_subdirectory(lib/glm EXCLUDE_FROM_ALL)

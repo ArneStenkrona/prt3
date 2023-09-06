@@ -5,7 +5,6 @@
 #include "src/engine/core/backend_type.h"
 #include "src/engine/scene/node.h"
 
-
 #include "minivorbis.h"
 
 #include <AL/al.h>
@@ -137,7 +136,7 @@ private:
     std::unordered_map<MidiID, std::string> m_midi_to_path;
 
     MidiClip m_current_track;
-    static constexpr size_t n_track_buffers = 4;
+    static constexpr size_t n_track_buffers = 8;
     ALuint m_track_buffers[n_track_buffers];
     ALuint m_track_source;
 

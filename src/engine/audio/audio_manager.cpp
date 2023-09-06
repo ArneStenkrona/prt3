@@ -2,8 +2,19 @@
 
 #include "src/util/log.h"
 
+#include "src/engine/audio/audio_mem_util.h"
+
+#define O1_HEAP_INSTANCE_CAPACITY 67108864u // 64 MiB
+
+#define TSF_MALLOC prt3::o1hmalloc
+#define TSF_REALLOC prt3::o1hrealloc
+#define TSF_FREE prt3::o1hfree
 #define TSF_IMPLEMENTATION
 #include "tsf.h"
+
+#define TML_MALLOC prt3::o1hmalloc
+#define TML_REALLOC prt3::o1hrealloc
+#define TML_FREE prt3::o1hfree
 #define TML_IMPLEMENTATION
 #include "tml.h"
 
@@ -70,9 +81,25 @@ AudioManager::AudioManager(BackendType backend_type) {
     m_ov_callbacks.seek_func = audio_seek_func;
     m_ov_callbacks.close_func = audio_close_func;
     m_ov_callbacks.tell_func = audio_tell_func;
+
+    init_o1h_instance(O1_HEAP_INSTANCE_CAPACITY);
 }
 
 AudioManager::~AudioManager() {
+    for (tml_message * msg : m_midis) {
+        if (msg != nullptr) {
+            tml_free(msg);
+        }
+    }
+
+    for (tsf * sf : m_sound_fonts) {
+        if (sf != nullptr) {
+            tsf_close(sf);
+        }
+    }
+
+    free_o1h_instance();
+
     if (!m_initialized) {
         return;
     }
@@ -99,18 +126,6 @@ AudioManager::~AudioManager() {
     CHECK_AL_ERRORS();
     alcCloseDevice(device);
     CHECK_AL_ERRORS();
-
-    for (tml_message * msg : m_midis) {
-        if (msg != nullptr) {
-            tml_free(msg);
-        }
-    }
-
-    for (tsf * sf : m_sound_fonts) {
-        if (sf != nullptr) {
-            tsf_close(sf);
-        }
-    }
 }
 
 SoundSourceID AudioManager::create_sound_source(NodeID node_id) {
@@ -447,7 +462,7 @@ void AudioManager::fill_midi_buffer(
 
     tml_message * msg = &clip.messages[state.msg_index];
 
-    static constexpr unsigned int block_size = 16;
+    static constexpr unsigned int block_size = 64;
     for (unsigned int sample_block = block_size;
          sample_count;
          sample_count -= sample_block,
