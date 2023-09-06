@@ -105,16 +105,16 @@ public:
 
         Node & blob_shadow = scene.get_node(m_blob_shadow_id);
 
+        float eps = 0.05f;
         RayHit hit;
         if (scene.physics_system().raycast(
-            tform.position,
+            tform.position + glm::vec3{0.0f, eps, 0.0f},
             glm::vec3{0.0f, -1.0f, 0.0f},
             100.0f,
             mask,
             tag,
             hit
         )) {
-            float eps = 0.05f;
 
             Decal & decal = scene.get_component<Decal>(m_blob_shadow_id);
 
@@ -131,6 +131,18 @@ public:
             blob_pos.y += offset_y;
             blob_shadow.set_global_position(scene, blob_pos);
             blob_shadow.local_transform().scale = glm::vec3{1.0f};
+
+            glm::vec3 up{0.0f, 1.0f, 0.0f};
+            glm::vec3 u_dot_n = glm::cross(up, hit.normal);
+            glm::vec3 axis = u_dot_n == glm::vec3{0.0f} ?
+                up : glm::normalize(u_dot_n);
+
+            float angle = acosf(glm::dot(up, hit.normal));
+
+            blob_shadow.set_global_rotation(
+                scene,
+                glm::angleAxis(angle, axis)
+            );
         } else {
             blob_shadow.local_transform().scale = glm::vec3{0.0f};
         }

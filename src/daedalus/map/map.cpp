@@ -65,6 +65,7 @@ void dds::parse_map_from_model(char const * path) {
     uint32_t room_index = 0;
     for (auto const & pair : num_to_room) {
         prt3::Scene room_scene{context};
+        room_scene.ambient_light() = glm::vec3{0.7};
 
         uint32_t room_num = pair.first;
         prt3::Model::Node const & room_node = nodes[pair.second];

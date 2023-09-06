@@ -28,7 +28,7 @@ glm::mat4 Camera::get_projection_matrix() const {
 
 glm::mat4 Camera::get_projection_matrix(float near, float far) const {
     if (m_orthographic) {
-        float h = 7.5f;
+        float h = 5.0f;
         float w = h * (m_width / m_height);
         return glm::ortho(-w, w, -h, h, near, far);
     }

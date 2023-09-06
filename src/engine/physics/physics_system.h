@@ -65,6 +65,7 @@ namespace prt3 {
 
 struct RayHit {
     glm::vec3 position;
+    glm::vec3 normal;
     ColliderTag tag;
     NodeID node_id;
 };

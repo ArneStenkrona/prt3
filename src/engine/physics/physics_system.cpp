@@ -279,6 +279,9 @@ bool PhysicsSystem::raycast(
                     hit.position = intersection;
                     hit.tag = tag;
                     hit.node_id = m_node_ids.at(tag);
+                    hit.normal = glm::normalize(
+                        glm::cross(tri.a - tri.b, tri.b - tri.c)
+                    );
                     min_t = t;
                 }
             }

@@ -232,7 +232,7 @@ private:
     void init_resources(Scene & scene) {
         // sound
         m_midi =
-            scene.audio_manager().load_midi("assets/audio/tracks/ticking.mid");
+            scene.audio_manager().load_midi("assets/audio/tracks/enter.mid");
         m_sound_font =
             scene.audio_manager().load_sound_font("assets/audio/soundfonts/CT2MGM.sf2");
     }

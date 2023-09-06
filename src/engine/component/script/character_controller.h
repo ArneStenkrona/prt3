@@ -601,7 +601,7 @@ public:
                 float a_frac = anim.clip_a.frac(model);
                 if (a_frac >= 0.25f && !m_state.jumped) {
                     m_state.gravity_velocity = -14.5f;
-                    m_state.force = m_state.jump_dir * 90.0f;
+                    m_state.force = m_state.jump_dir * m_jump_force;
                     m_state.jumped = true;
                     ++m_state.jump_count;
                 } else if (a_frac >= 0.25f) {
@@ -763,6 +763,7 @@ protected:
 
     float m_walk_force = 19.0f;
     float m_run_force = 80.0f;
+    float m_jump_force = 90.0f;
 
     CharacterState m_state;
 
