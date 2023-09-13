@@ -157,9 +157,6 @@ private:
             m_bell_audio_id,
             false
         );
-
-        GameState & game_state = *scene.get_autoload_script<GameState>();
-        game_state.push_back_bell_index(scene, m_index);
     }
 
 REGISTER_SCRIPT_BEGIN(Bell, bell, 14192787994163871465)

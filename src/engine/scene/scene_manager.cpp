@@ -32,6 +32,8 @@ TransitionState SceneManager::load_scene_if_queued(
     }
 
     if (!m_fade_transition || state == -2) {
+        scene.emit_signal("__scene_exit__", nullptr);
+
         m_fade_exclude_set.clear();
 
         static std::unordered_set<ModelHandle> existing_models;
@@ -39,24 +41,6 @@ TransitionState SceneManager::load_scene_if_queued(
 
         static std::unordered_set<ResourceID> existing_textures;
         existing_textures = scene.referenced_textures();
-
-        /* save autoload state */
-        std::stringstream out_autoload;
-        static std::vector<char> data;
-
-        for (UUID uuid : m_context.project().autoload_scripts()) {
-            Script const * script = scene.get_autoload_script(uuid);
-            if (script != nullptr) {
-                write_stream(out_autoload, true);
-                script->save_state(scene, out_autoload);
-            } else {
-                write_stream(out_autoload, false);
-            }
-        }
-
-        std::string const & s = out_autoload.str();
-        data.reserve(s.size());
-        data.assign(s.begin(), s.end());
 
         /* load scene */
         std::ifstream in(queued_scene_path(), std::ios::binary);
@@ -82,21 +66,8 @@ TransitionState SceneManager::load_scene_if_queued(
             }
         }
 
-        auto const & autoload_scripts = m_context.project().autoload_scripts();
-
-        scene.add_autoload_scripts(autoload_scripts);
-
-        /* restore autoload state */
-        imemstream in_autoload(data.data(), data.size());
-
-        for (UUID uuid : autoload_scripts) {
-            bool serialized;
-            read_stream(in_autoload, serialized);
-
-            if (serialized) {
-                Script * script = scene.get_autoload_script(uuid);
-                script->restore_state(scene, in_autoload);
-            }
+        for (Script * script : m_context.project().active_scripts()) {
+            scene.internal_add_script(script, true);
         }
 
         /* start scene */
@@ -131,7 +102,7 @@ TransitionState SceneManager::transition_fade(
     float t = float(frame) / float(n_frames - 1);
     if (state >= 0) {
         float sig_data[2] = { t, 1.0f / float(n_frames - 1) };
-        scene.emit_signal("scene_transition_out", &sig_data[0]);
+        scene.emit_signal("__scene_transition_out__", &sig_data[0]);
 
         t = 1.0f - t;
     }

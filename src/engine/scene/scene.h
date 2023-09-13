@@ -281,9 +281,7 @@ public:
     { return m_physics_system.get_overlaps(node_id); }
 
     Script * get_autoload_script(UUID uuid) {
-        if (m_autoload_scripts.find(uuid) == m_autoload_scripts.end())
-            return nullptr;
-        return m_script_container.get_script(m_autoload_scripts.at(uuid));
+        return m_script_container.get_autoload_script(uuid);
     }
 
     template<typename ScriptType>
@@ -354,8 +352,8 @@ private:
 
     void update_window_size(int w, int h);
 
-    ScriptID internal_add_script(Script * script) {
-        return m_script_container.add_script(script);
+    ScriptID internal_add_script(Script * script, bool autoload = false) {
+        return m_script_container.add_script(script, autoload);
     }
 
     Script const * internal_get_script(ScriptID id) const {
@@ -395,6 +393,7 @@ private:
     friend class EditorContext;
     friend class Armature;
     friend class SceneManager;
+    friend class Project;
     friend AnimatedModel::AnimatedModel(Scene &, NodeID, std::istream &);
     friend ModelComponent::ModelComponent(Scene &, NodeID, std::istream &);
     friend MaterialComponent::MaterialComponent(Scene &, NodeID, std::istream &);

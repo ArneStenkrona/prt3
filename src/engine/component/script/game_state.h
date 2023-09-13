@@ -40,7 +40,7 @@ public:
         SignalString const & signal,
         void * data
     ) {
-        if (signal == "scene_transition_out") {
+        if (signal == "__scene_transition_out__") {
             float t = reinterpret_cast<float*>(data)[0];
             float dt = reinterpret_cast<float*>(data)[1];
 
@@ -55,11 +55,40 @@ public:
                     player.translate_node(scene, translation);
                 }
             }
+        } else if (signal == "__scene_exit__") {
+            PlayerController * controller =
+                scene.get_script_from_node<PlayerController>(m_player_id);
+            m_player_state = controller->serialize_state(scene);
+
+            CameraController & cam = *scene.get_component<ScriptSet>(m_camera_id)
+                .get_script<CameraController>(scene);
+
+            m_cam_yaw = cam.yaw();
+            m_cam_pitch = cam.pitch();
+
+            for (Door const & door : scene.get_all_components<Door>()) {
+                if (door.id() == m_exit_door_id) {
+                    Node const & door_node = scene.get_node(door.node_id());
+                    Transform door_tform =
+                        door_node.get_global_transform(scene);
+                    glm::vec3 door_position = door_tform.position;
+
+                    Node & player = scene.get_node(m_player_id);
+                    glm::vec3 v = player.get_global_transform(scene).position -
+                                    door_position;
+
+                    glm::vec3 n = door.entry_offset();
+                    if (n != glm::vec3{0.0f}) n = glm::normalize(n);
+                    m_player_door_offset = v - glm::dot(v, n) * n;
+                    break;
+                }
+            }
         }
     }
 
     virtual void on_start(Scene & scene) {
-        scene.connect_signal("scene_transition_out", this);
+        scene.connect_signal("__scene_transition_out__", this);
+        scene.connect_signal("__scene_exit__", this);
 
         glm::vec3 spawn_position;
         glm::vec3 dir = glm::vec3{0.0f, 0.0f, 1.0f};
@@ -111,67 +140,12 @@ public:
         if (scene.audio_manager().get_playing_midi() != m_midi) {
             scene.audio_manager().play_midi(m_midi, m_sound_font);
         }
-
-        for (int32_t & ind : m_bell_indices) {
-            ind = -1;
-        }
-        m_bell_index_position = 0;
     }
 
     virtual void on_init(Scene &) {
     }
 
     virtual void on_update(Scene &, float) {
-    }
-
-    virtual void save_state(Scene const & scene, std::ostream & out) const {
-        write_stream(out, m_exit_door_id);
-        write_stream(out, m_entry_door_id);
-
-        CameraController const & cam =
-            *scene.get_component<ScriptSet>(m_camera_id)
-            .get_script<CameraController>(scene);
-
-        write_stream(out, cam.yaw());
-        write_stream(out, cam.pitch());
-
-        glm::vec3 player_door_offset;
-
-        Node const & player = scene.get_node(m_player_id);
-
-        for (Door const & door : scene.get_all_components<Door>()) {
-            if (door.id() == m_exit_door_id) {
-                Node const & door_node = scene.get_node(door.node_id());
-                Transform door_tform =
-                    door_node.get_global_transform(scene);
-                glm::vec3 door_position = door_tform.position;
-
-                glm::vec3 v = player.get_global_transform(scene).position -
-                                door_position;
-
-                glm::vec3 n = door.entry_offset();
-                if (n != glm::vec3{0.0f}) n = glm::normalize(n);
-                player_door_offset = v - glm::dot(v, n) * n;
-                break;
-            }
-        }
-        write_stream(out, player_door_offset);
-
-        PlayerController const * controller =
-            scene.get_script_from_node<PlayerController>(m_player_id);
-
-        write_stream(out, controller->serialize_state(scene));
-    }
-
-    virtual void restore_state(Scene & /*scene*/, std::istream & in) {
-        read_stream(in, m_exit_door_id);
-        read_stream(in, m_entry_door_id);
-
-        read_stream(in, m_cam_yaw);
-        read_stream(in, m_cam_pitch);
-        read_stream(in, m_player_door_offset);
-
-        read_stream(in, m_player_state);
     }
 
     void set_exit_door_id(DoorID id) { m_exit_door_id = id; }
@@ -182,28 +156,6 @@ public:
             .queue_scene(door.destination_scene_path().data());
         m_exit_door_id = door.id();
         m_entry_door_id = door.destination_id();
-    }
-
-    void push_back_bell_index(Scene & scene, int32_t index) {
-        m_bell_indices[m_bell_index_position] = index;
-        m_bell_index_position =
-            (m_bell_index_position + 1) % m_bell_indices.size();
-
-        bool correct_sequence = true;
-        for (size_t i = 0; i < m_bell_indices.size(); ++i) {
-            size_t ind = (m_bell_index_position + i) % m_bell_indices.size();
-            if (m_bell_indices[ind] != m_bell_sequence[i]) {
-                correct_sequence = false;
-                break;
-            }
-        }
-
-        if (correct_sequence) {
-            CameraController & cam =
-                *scene.get_component<ScriptSet>(m_camera_id)
-                .get_script<CameraController>(scene);
-            cam.screen_shake(0.25f, 5.0f, 0.5f, 1.0f);
-        }
     }
 
 private:
@@ -223,11 +175,6 @@ private:
 
     MidiID m_midi;
     SoundFontID m_sound_font;
-
-    static constexpr size_t seq_len = 6;
-    std::array<int32_t, seq_len> m_bell_indices;
-    std::array<int32_t, seq_len> m_bell_sequence = { 0, 1, 2, 3, 4, 5 };
-    size_t m_bell_index_position;
 
     void init_resources(Scene & scene) {
         // sound

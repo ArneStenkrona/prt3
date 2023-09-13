@@ -38,11 +38,6 @@ public:
         void * /*data*/
     ) {}
 
-    // Only called for autoloaded scripts
-    virtual void save_state(Scene const & /*scene*/, std::ostream & /*out*/) const {}
-    // Only called for autoloaded scripts
-    virtual void restore_state(Scene & /*scene*/, std::istream & /*in*/) {}
-
     enum class FieldType {
         uint8,
         uint16,

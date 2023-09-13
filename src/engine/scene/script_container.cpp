@@ -47,19 +47,29 @@ void ScriptContainer::update(Scene & scene, float delta_time) {
 
 void ScriptContainer::clear() {
     for (auto & pair : m_scripts) {
-        delete pair.second;
+        if (m_autoload_scripts.find(pair.second) ==
+            m_autoload_scripts.end()) {
+            delete pair.second;
+        }
     }
 
     m_scripts.clear();
     m_init_queue.clear();
     m_late_init_queue.clear();
+    m_autoload_scripts.clear();
+    m_uuid_to_autoload_script.clear();
 }
 
-ScriptID ScriptContainer::add_script(Script * script) {
+ScriptID ScriptContainer::add_script(Script * script, bool autoload) {
     ScriptID id = m_next_id;
     m_scripts[id] = script;
     m_init_queue.insert(script);
     m_late_init_queue.insert(script);
+
+    if (autoload) {
+        m_autoload_scripts.insert(script);
+        m_uuid_to_autoload_script[script->uuid()] = script;
+    }
 
     ++m_next_id;
 
@@ -74,5 +84,12 @@ void ScriptContainer::remove(ScriptID id) {
     }
     if (m_late_init_queue.find(script) != m_late_init_queue.end()) {
         m_late_init_queue.erase(script);
+    }
+    if (m_autoload_scripts.find(script) ==
+        m_autoload_scripts.end()) {
+        delete script;
+    } else {
+        m_autoload_scripts.erase(script);
+        m_uuid_to_autoload_script.erase(script->uuid());
     }
 }
