@@ -55,6 +55,12 @@ public:
         ColliderType type,
         Box const & box
     );
+    ColliderComponent(
+        Scene & scene,
+        NodeID node_id,
+        ColliderType type,
+        Capsule const & capsule
+    );
     ColliderComponent(Scene & scene, NodeID node_id, std::istream & in);
 
     NodeID node_id() const { return m_node_id; }

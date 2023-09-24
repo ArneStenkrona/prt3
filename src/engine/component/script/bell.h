@@ -2,7 +2,6 @@
 #define PRT3_BELL_H
 
 #include "src/engine/component/script/script.h"
-#include "src/engine/component/script/game_state.h"
 #include "src/engine/scene/scene.h"
 #include "src/util/math_util.h"
 #include "src/engine/component/weapon.h"

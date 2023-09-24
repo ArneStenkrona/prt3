@@ -235,7 +235,12 @@ void prt3::menu(EditorContext & context) {
             imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(0, 0))
         ) {
             std::string const & path = file_dialog.selected_path;
-            dds::parse_map_from_model(path.c_str());
+            dds::Map map = dds::Map::parse_map_from_model(path.c_str());
+            std::string map_out_path =
+                path.substr(0, path.find_last_of('.')) + ".map";
+
+            std::ofstream map_out{map_out_path, std::ios::binary};
+            map.serialize(map_out);
         }
         import_map_open = ImGui::IsPopupOpen(ImGui::GetID("import map"), 0);
     }

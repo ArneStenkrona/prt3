@@ -19,7 +19,7 @@ typedef int32_t AnimationID;
 constexpr int32_t NO_ANIMATION = -1;
 
 class AnimationSystem;
-
+class Scene;
 
 struct Animation {
     struct Clip {
@@ -49,8 +49,13 @@ struct Animation {
     Clip clip_b;
     float blend_factor;
 
+private:
     std::vector<glm::mat4> transforms;
     std::vector<Transform> local_transforms;
+
+    friend class AnimationSystem;
+    friend class Armature;
+    friend class Scene;
 };
 
 } // namespace prt3

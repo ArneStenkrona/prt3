@@ -2,7 +2,7 @@
 
 #include "src/engine/scene/scene.h"
 #include "src/util/serialization_util.h"
-#include "src/engine/component/script/game_state.h"
+#include "src/daedalus/game_state/game_state.h"
 
 using namespace prt3;
 
@@ -32,7 +32,8 @@ void Door::serialize(
 }
 
 void Door::update(Scene & scene, std::vector<Door> & components) {
-    GameState * game_state = scene.get_autoload_script<GameState>();
+    dds::GameState * game_state =
+        scene.get_autoload_script<dds::GameState>();
     for (Door & door : components) {
         if (!scene.get_overlaps(door.node_id()).empty()) {
             game_state->register_door_overlap(scene, door);

@@ -142,6 +142,10 @@ public:
         template<> bool     * (**u_getter<bool>())(void*)     { return &getter.boolean; }
     };
 
+    size_t get_serialized_field_index(char const * name);
+    void set_serialized_field_value(size_t field_index, FieldValue val);
+    FieldValue get_serialized_field_value(size_t field_index);
+
     virtual void serialize(std::ostream & out) const;
 
     virtual Script * copy() const = 0;
@@ -206,38 +210,38 @@ private:
 #define REGISTER_SCRIPT_BEGIN(class_name, display_name, serialization_uuid)\
 public:\
     virtual char const * name() { return #display_name; };\
-    virtual Script * copy() const { return new class_name(*this); }\
-    virtual UUID uuid() const {\
+    virtual prt3::Script * copy() const { return new class_name(*this); }\
+    virtual prt3::UUID uuid() const {\
         return serialization_uuid##ull;\
     }\
-    static constexpr UUID s_uuid = serialization_uuid##ull;\
+    static constexpr prt3::UUID s_uuid = serialization_uuid##ull;\
 protected:\
-    static Script * deserialize(\
+    static prt3::Script * deserialize(\
         std::istream & in,\
-        Scene & scene,\
-        NodeID node_id\
+        prt3::Scene & scene,\
+        prt3::NodeID node_id\
     ) {\
         return new class_name(in, scene, node_id);\
     }\
-    static Script * new_instance(\
-        Scene & scene,\
-        NodeID node_id\
+    static prt3::Script * new_instance(\
+        prt3::Scene & scene,\
+        prt3::NodeID node_id\
     ) {\
         return new class_name(scene, node_id);\
     }\
-    static inline std::vector<Script::SerializedField> const * serialized_fields() {\
+    static inline std::vector<prt3::Script::SerializedField> const * serialized_fields() {\
         return inner_serialized_fields();\
     }\
     inline static bool s_registered =\
-        Script::Register(\
+        prt3::Script::Register(\
             serialization_uuid##ull,\
             #display_name,\
             class_name::deserialize,\
             class_name::new_instance,\
             class_name::serialized_fields()\
         );\
-    static std::vector<Script::SerializedField> const * inner_serialized_fields() {\
-        static std::vector<Script::SerializedField> fields;\
+    static std::vector<prt3::Script::SerializedField> const * inner_serialized_fields() {\
+        static std::vector<prt3::Script::SerializedField> fields;\
         [[maybe_unused]] class_name *dummy;\
 
 #define REGISTER_SCRIPT_END()\

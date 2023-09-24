@@ -90,48 +90,15 @@ public:
     {
         Scene & scene = m_editor_context->scene();
         Script * script = scene.get_script(m_script_id);
-        void * sptr = reinterpret_cast<void*>(script);
-
-        auto const & fields = Script::get_serialized_fields(script->uuid());
-        Script::SerializedField const & field = fields[m_field_index];
-
-        switch(field.type) {
-            case Script::FieldType::uint8: m_original_value.u8 = field.get<uint8_t>(sptr); break;
-            case Script::FieldType::uint16: m_original_value.u16 = field.get<uint16_t>(sptr); break;
-            case Script::FieldType::uint32: m_original_value.u32 = field.get<uint32_t>(sptr); break;
-            case Script::FieldType::uint64: m_original_value.u64 = field.get<uint64_t>(sptr); break;
-            case Script::FieldType::int8: m_original_value.i8 = field.get<int8_t>(sptr); break;
-            case Script::FieldType::int16: m_original_value.i16 = field.get<int16_t>(sptr); break;
-            case Script::FieldType::int32: m_original_value.i32 = field.get<int32_t>(sptr); break;
-            case Script::FieldType::int64: m_original_value.i64 = field.get<int64_t>(sptr); break;
-            case Script::FieldType::f32: m_original_value.f32 = field.get<float>(sptr); break;
-            case Script::FieldType::f64: m_original_value.f64 = field.get<double>(sptr); break;
-            case Script::FieldType::boolean: m_original_value.boolean = field.get<bool>(sptr); break;
-        }
+        m_original_value = script->get_serialized_field_value(field_index);
     }
 
 protected:
     virtual bool apply() {
         Scene & scene = m_editor_context->scene();
         Script * script = scene.get_script(m_script_id);
-        void * sptr = reinterpret_cast<void*>(script);
 
-        auto const & fields = Script::get_serialized_fields(script->uuid());
-        Script::SerializedField const & field = fields[m_field_index];
-
-        switch(field.type) {
-            case Script::FieldType::uint8: field.get<uint8_t>(sptr) = m_value.u8; break;
-            case Script::FieldType::uint16: field.get<uint16_t>(sptr) = m_value.u16; break;
-            case Script::FieldType::uint32: field.get<uint32_t>(sptr) = m_value.u32; break;
-            case Script::FieldType::uint64: field.get<uint64_t>(sptr) = m_value.u64; break;
-            case Script::FieldType::int8: field.get<int8_t>(sptr) = m_value.i8; break;
-            case Script::FieldType::int16: field.get<int16_t>(sptr) = m_value.i16; break;
-            case Script::FieldType::int32: field.get<int32_t>(sptr) = m_value.i32; break;
-            case Script::FieldType::int64: field.get<int64_t>(sptr) = m_value.i64; break;
-            case Script::FieldType::f32: field.get<float>(sptr)   = m_value.f32; break;
-            case Script::FieldType::f64: field.get<double>(sptr)  = m_value.f64; break;
-            case Script::FieldType::boolean: field.get<bool>(sptr) = m_value.boolean; break;
-        }
+        script->set_serialized_field_value(m_field_index, m_value);
 
         return true;
     }
@@ -139,24 +106,8 @@ protected:
     virtual bool unapply() {
         Scene & scene = m_editor_context->scene();
         Script * script = scene.get_script(m_script_id);
-        void * sptr = reinterpret_cast<void*>(script);
 
-        auto const & fields = Script::get_serialized_fields(script->uuid());
-        Script::SerializedField const & field = fields[m_field_index];
-
-        switch(field.type) {
-            case Script::FieldType::uint8: field.get<uint8_t>(sptr) = m_original_value.u8; break;
-            case Script::FieldType::uint16: field.get<uint16_t>(sptr) = m_original_value.u16; break;
-            case Script::FieldType::uint32: field.get<uint32_t>(sptr) = m_original_value.u32; break;
-            case Script::FieldType::uint64: field.get<uint64_t>(sptr) = m_original_value.u64; break;
-            case Script::FieldType::int8: field.get<int8_t>(sptr) = m_original_value.i8; break;
-            case Script::FieldType::int16: field.get<int16_t>(sptr) = m_original_value.i16; break;
-            case Script::FieldType::int32: field.get<int32_t>(sptr) = m_original_value.i32; break;
-            case Script::FieldType::int64: field.get<int64_t>(sptr) = m_original_value.i64; break;
-            case Script::FieldType::f32: field.get<float>(sptr)   = m_original_value.f32; break;
-            case Script::FieldType::f64: field.get<double>(sptr)  = m_original_value.f64; break;
-            case Script::FieldType::boolean: field.get<bool>(sptr) = m_original_value.boolean; break;
-        }
+        script->set_serialized_field_value(m_field_index, m_original_value);
 
         return true;
     }

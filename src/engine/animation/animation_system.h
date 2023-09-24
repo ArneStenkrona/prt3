@@ -25,7 +25,6 @@ public:
     { return m_animations[id]; }
     Animation & get_animation(AnimationID id) { return m_animations[id]; }
 
-
     std::vector<Animation> const & animations() const { return m_animations; }
 
 private:

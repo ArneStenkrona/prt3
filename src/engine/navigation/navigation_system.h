@@ -67,7 +67,14 @@ public:
     );
 
     bool generate_path(
-        glm::vec3 start,
+        glm::vec3 origin,
+        glm::vec3 destination,
+        std::vector<glm::vec3> & path
+    ) const;
+
+    bool generate_path(
+        NavMeshID nav_mesh_id,
+        glm::vec3 origin,
         glm::vec3 destination,
         std::vector<glm::vec3> & path
     ) const;
@@ -90,6 +97,23 @@ private:
 
     std::unordered_map<NavMeshID, NavigationMesh> m_navigation_meshes;
     std::unordered_map<NavMeshID, ResourceID> m_render_meshes;
+
+    bool get_tri_origin_dest(
+        NavigationMesh const & nav_mesh,
+        glm::vec3 origin,
+        glm::vec3 destination,
+        uint32_t & tri_origin,
+        uint32_t & tri_dest
+    ) const;
+
+    bool generate_path(
+        NavMeshID nav_mesh_id,
+        glm::vec3 origin,
+        glm::vec3 destination,
+        uint32_t tri_origin,
+        uint32_t tri_dest,
+        std::vector<glm::vec3> & path
+    ) const;
 
     void update_render_data(Renderer & renderer);
 

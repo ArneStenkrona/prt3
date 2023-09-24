@@ -187,3 +187,59 @@ bool Script::Register(
 
     return true;
 }
+
+size_t Script::get_serialized_field_index(char const * name) {
+    size_t index = 0;
+    for (SerializedField const & f : Script::get_serialized_fields(uuid())) {
+        if (strcmp(f.name, name) == 0) return index;
+        ++index;
+    }
+
+    return static_cast<size_t>(-1);
+}
+
+void Script::set_serialized_field_value(size_t field_index, FieldValue val) {
+    void * sptr = reinterpret_cast<void*>(this);
+
+    auto const & fields = Script::get_serialized_fields(uuid());
+    SerializedField const & field = fields[field_index];
+
+    switch(field.type) {
+        case FieldType::uint8:   field.get<uint8_t>(sptr)  = val.u8;      break;
+        case FieldType::uint16:  field.get<uint16_t>(sptr) = val.u16;     break;
+        case FieldType::uint32:  field.get<uint32_t>(sptr) = val.u32;     break;
+        case FieldType::uint64:  field.get<uint64_t>(sptr) = val.u64;     break;
+        case FieldType::int8:    field.get<int8_t>(sptr)   = val.i8;      break;
+        case FieldType::int16:   field.get<int16_t>(sptr)  = val.i16;     break;
+        case FieldType::int32:   field.get<int32_t>(sptr)  = val.i32;     break;
+        case FieldType::int64:   field.get<int64_t>(sptr)  = val.i64;     break;
+        case FieldType::f32:     field.get<float>(sptr)    = val.f32;     break;
+        case FieldType::f64:     field.get<double>(sptr)   = val.f64;     break;
+        case FieldType::boolean: field.get<bool>(sptr)     = val.boolean; break;
+    }
+}
+
+Script::FieldValue Script::get_serialized_field_value(size_t field_index) {
+    void * sptr = reinterpret_cast<void*>(this);
+
+    auto const & fields = Script::get_serialized_fields(uuid());
+    SerializedField const & field = fields[field_index];
+
+    FieldValue val;
+
+    switch(field.type) {
+        case FieldType::uint8:   val.u8      = field.get<uint8_t>(sptr);  break;
+        case FieldType::uint16:  val.u16     = field.get<uint16_t>(sptr); break;
+        case FieldType::uint32:  val.u32     = field.get<uint32_t>(sptr); break;
+        case FieldType::uint64:  val.u64     = field.get<uint64_t>(sptr); break;
+        case FieldType::int8:    val.i8      = field.get<int8_t>(sptr);   break;
+        case FieldType::int16:   val.i16     = field.get<int16_t>(sptr);  break;
+        case FieldType::int32:   val.i32     = field.get<int32_t>(sptr);  break;
+        case FieldType::int64:   val.i64     = field.get<int64_t>(sptr);  break;
+        case FieldType::f32:     val.f32     = field.get<float>(sptr);    break;
+        case FieldType::f64:     val.f64     = field.get<double>(sptr);   break;
+        case FieldType::boolean: val.boolean = field.get<bool>(sptr);     break;
+    }
+
+    return val;
+}

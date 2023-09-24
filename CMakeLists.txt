@@ -31,7 +31,6 @@ include_directories(
 
 file(GLOB SOURCES
   "src/main/main.cpp"
-  "src/daedalus/map/map.cpp"
   "src/backend/dummy/dummy_renderer.cpp"
   "src/backend/opengl/gl_material_manager.cpp"
   "src/backend/opengl/gl_material.cpp"
@@ -45,6 +44,10 @@ file(GLOB SOURCES
   "src/backend/opengl/gl_shader.cpp"
   "src/backend/opengl/gl_source_buffers.cpp"
   "src/backend/opengl/gl_utility.cpp"
+  "src/daedalus/game_state/game_state.cpp"
+  "src/daedalus/map/map.cpp"
+  "src/daedalus/npc/npc_controller.cpp"
+  "src/daedalus/npc/npc_db.cpp"
   "src/engine/animation/animation_system.cpp"
   "src/engine/audio/audio_manager.cpp"
   "src/engine/audio/audio_mem_util.cpp"

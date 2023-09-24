@@ -135,7 +135,7 @@ private:
 } // namespace prt3
 
 namespace std {
-    template <size_t N> struct hash<prt3::FixedString<N> >   {
+    template <size_t N> struct hash<prt3::FixedString<N> > {
         size_t operator()(prt3::FixedString<N> const & s) const {
             size_t p = 16777619;
             size_t hash = 2166136261;

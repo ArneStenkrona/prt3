@@ -32,7 +32,6 @@ public:
 
         if (glm::distance(target_pos, m_path_dest) > 1.0f) {
             NavigationSystem & sys = scene.navigation_system();
-            m_path.clear();
             sys.generate_path(origin, target_pos, m_path);
             m_path_dest = target_pos;
             m_path_index = 0;

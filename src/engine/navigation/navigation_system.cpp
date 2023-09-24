@@ -1563,8 +1563,47 @@ bool NavigationSystem::generate_path(
     glm::vec3 destination,
     std::vector<glm::vec3> & path
 ) const {
-    /* find nav-mesh */
-    // TODO: get aabb_halfsize in a less ad-hoc manner
+    path.clear();
+
+    uint32_t tri_origin;
+    uint32_t tri_dest;
+
+    NavMeshID nav_mesh_id = NO_NAV_MESH;
+    /* TODO: properly handle multiple nav meshes */
+    for (auto const & pair : m_navigation_meshes) {
+        if (get_tri_origin_dest(
+            pair.second,
+            origin,
+            destination,
+            tri_origin,
+            tri_dest
+        )) {
+            nav_mesh_id = pair.first;
+            break;
+        }
+    }
+
+    if (nav_mesh_id == NO_NAV_MESH) {
+        return false;
+    }
+
+    return generate_path(
+        nav_mesh_id,
+        origin,
+        destination,
+        tri_origin,
+        tri_dest,
+        path
+    );
+}
+
+bool NavigationSystem::get_tri_origin_dest(
+    NavigationMesh const & nav_mesh,
+    glm::vec3 origin,
+    glm::vec3 destination,
+    uint32_t & tri_origin,
+    uint32_t & tri_dest
+) const {
     constexpr glm::vec3 aabb_halfsize{2.0f, 2.0f, 2.0f};
 
     constexpr ColliderTag tag = {
@@ -1576,10 +1615,6 @@ bool NavigationSystem::generate_path(
     thread_local std::vector<ColliderTag> tags;
     thread_local std::vector<ColliderTag> dest_tags;
 
-    uint32_t tri_origin;
-    uint32_t tri_dest;
-    NavMeshID nav_mesh_id = NO_NAV_MESH;
-
     AABB orig_aabb;
     orig_aabb.lower_bound = origin - glm::vec3(aabb_halfsize);
     orig_aabb.upper_bound = origin + glm::vec3(aabb_halfsize);
@@ -1589,133 +1624,92 @@ bool NavigationSystem::generate_path(
     dest_aabb.upper_bound = destination + glm::vec3(aabb_halfsize);
 
     float min_t = std::numeric_limits<float>::max();
-    for (auto const & pair : m_navigation_meshes) {
-        min_t = std::numeric_limits<float>::max();
 
-        NavigationMesh const & nav_mesh = pair.second;
+    /* origin */
+    tags.resize(0);
+    nav_mesh.aabb_tree.query(
+        tag,
+        ~0,
+        orig_aabb,
+        tags
+    );
 
-        /* origin */
-        tags.resize(0);
-        nav_mesh.aabb_tree.query(
-            tag,
-            ~0,
-            orig_aabb,
-            tags
-        );
+    dest_tags.resize(0);
+    nav_mesh.aabb_tree.query(
+        tag,
+        ~0,
+        dest_aabb,
+        dest_tags
+    );
 
-        dest_tags.resize(0);
-        nav_mesh.aabb_tree.query(
-            tag,
-            ~0,
-            dest_aabb,
-            dest_tags
-        );
-
-        thread_local std::unordered_set<uint8_t> islands;
-        islands.clear();
-        for (ColliderTag const & tag : tags) {
-            auto tri_index = tag.id;
-            uint8_t island = nav_mesh.island_indices[tri_index];
-            if (islands.find(island) == islands.end()) {
-                glm::vec3 a = nav_mesh.vertices[3 * tri_index + 0];
-                glm::vec3 b = nav_mesh.vertices[3 * tri_index + 1];
-                glm::vec3 c = nav_mesh.vertices[3 * tri_index + 2];
-
-                if (triangle_box_overlap(
-                    origin,
-                    aabb_halfsize,
-                    a,
-                    b,
-                    c
-                )) {
-                    islands.insert(island);
-                }
-            }
-        }
-
-        uint8_t island_index = 255;
-        for (ColliderTag const & tag : dest_tags) {
-            auto tri_index = tag.id;
-            uint8_t island = nav_mesh.island_indices[tri_index];
-            if (islands.find(island) != islands.end()) {
-                glm::vec3 a = nav_mesh.vertices[3 * tri_index + 0];
-                glm::vec3 b = nav_mesh.vertices[3 * tri_index + 1];
-                glm::vec3 c = nav_mesh.vertices[3 * tri_index + 2];
-                if (triangle_box_overlap(
-                    destination,
-                    aabb_halfsize,
-                    a,
-                    b,
-                    c
-                )) {
-                    island_index = island;
-                    break;
-                }
-            }
-        }
-
-        if (island_index == 255) {
-            continue;
-        }
-
-        for (ColliderTag const & tag : tags) {
-            auto tri_index = tag.id;
-            if (nav_mesh.island_indices[tri_index] != island_index) {
-                continue;
-            }
-
+    thread_local std::unordered_set<uint8_t> islands;
+    islands.clear();
+    for (ColliderTag const & tag : tags) {
+        auto tri_index = tag.id;
+        uint8_t island = nav_mesh.island_indices[tri_index];
+        if (islands.find(island) == islands.end()) {
             glm::vec3 a = nav_mesh.vertices[3 * tri_index + 0];
             glm::vec3 b = nav_mesh.vertices[3 * tri_index + 1];
             glm::vec3 c = nav_mesh.vertices[3 * tri_index + 2];
 
-            glm::vec3 tri_p = closest_point_on_triangle(
+            if (triangle_box_overlap(
                 origin,
+                aabb_halfsize,
                 a,
                 b,
                 c
-            );
-
-            float t = glm::distance(origin, tri_p);
-            if (t < min_t) {
-                min_t = t;
-                tri_origin = tri_index;
-                nav_mesh_id = pair.first;
+            )) {
+                islands.insert(island);
             }
         }
+    }
 
-        if (min_t == std::numeric_limits<float>::max()) {
-            continue;
-        }
-
-        /* destination */
-        min_t = std::numeric_limits<float>::max();
-
-        for (ColliderTag const & tag : dest_tags) {
-            auto tri_index = tag.id;
-            if (nav_mesh.island_indices[tri_index] != island_index) {
-                continue;
-            }
-
+    uint8_t island_index = 255;
+    for (ColliderTag const & tag : dest_tags) {
+        auto tri_index = tag.id;
+        uint8_t island = nav_mesh.island_indices[tri_index];
+        if (islands.find(island) != islands.end()) {
             glm::vec3 a = nav_mesh.vertices[3 * tri_index + 0];
             glm::vec3 b = nav_mesh.vertices[3 * tri_index + 1];
             glm::vec3 c = nav_mesh.vertices[3 * tri_index + 2];
-
-            glm::vec3 tri_p = closest_point_on_triangle(
+            if (triangle_box_overlap(
                 destination,
+                aabb_halfsize,
                 a,
                 b,
                 c
-            );
-
-            float t = glm::distance(destination, tri_p);
-            if (t < min_t) {
-                min_t = t;
-                tri_dest = tri_index;
+            )) {
+                island_index = island;
+                break;
             }
         }
+    }
 
-        if (min_t != std::numeric_limits<float>::max()) {
-            break;
+    if (island_index == 255) {
+        return false;
+    }
+
+    for (ColliderTag const & tag : tags) {
+        auto tri_index = tag.id;
+        if (nav_mesh.island_indices[tri_index] != island_index) {
+            continue;
+        }
+
+        glm::vec3 a = nav_mesh.vertices[3 * tri_index + 0];
+        glm::vec3 b = nav_mesh.vertices[3 * tri_index + 1];
+        glm::vec3 c = nav_mesh.vertices[3 * tri_index + 2];
+
+        glm::vec3 tri_p = closest_point_on_triangle(
+            origin,
+            a,
+            b,
+            c
+        );
+
+        float t = glm::distance(origin, tri_p);
+        if (t < min_t) {
+            min_t = t;
+            tri_origin = tri_index;
         }
     }
 
@@ -1723,6 +1717,79 @@ bool NavigationSystem::generate_path(
         return false;
     }
 
+    /* destination */
+    min_t = std::numeric_limits<float>::max();
+
+    for (ColliderTag const & tag : dest_tags) {
+        auto tri_index = tag.id;
+        if (nav_mesh.island_indices[tri_index] != island_index) {
+            continue;
+        }
+
+        glm::vec3 a = nav_mesh.vertices[3 * tri_index + 0];
+        glm::vec3 b = nav_mesh.vertices[3 * tri_index + 1];
+        glm::vec3 c = nav_mesh.vertices[3 * tri_index + 2];
+
+        glm::vec3 tri_p = closest_point_on_triangle(
+            destination,
+            a,
+            b,
+            c
+        );
+
+        float t = glm::distance(destination, tri_p);
+        if (t < min_t) {
+            min_t = t;
+            tri_dest = tri_index;
+        }
+    }
+
+    if (min_t != std::numeric_limits<float>::max()) {
+        return true;
+    }
+
+    return false;
+}
+
+bool NavigationSystem::generate_path(
+    NavMeshID nav_mesh_id,
+    glm::vec3 origin,
+    glm::vec3 destination,
+    std::vector<glm::vec3> & path
+) const {
+    path.clear();
+
+    uint32_t tri_origin;
+    uint32_t tri_dest;
+
+    if (!get_tri_origin_dest(
+        m_navigation_meshes.at(nav_mesh_id),
+        origin,
+        destination,
+        tri_origin,
+        tri_dest
+    )) {
+        return false;
+    }
+
+    return generate_path(
+        nav_mesh_id,
+        origin,
+        destination,
+        tri_origin,
+        tri_dest,
+        path
+    );
+}
+
+bool NavigationSystem::generate_path(
+    NavMeshID nav_mesh_id,
+    glm::vec3 origin,
+    glm::vec3 destination,
+    uint32_t tri_origin,
+    uint32_t tri_dest,
+    std::vector<glm::vec3> & path
+) const {
     NavigationMesh const & nav_mesh = m_navigation_meshes.at(nav_mesh_id);
     std::vector<glm::vec3> const & vertices = nav_mesh.vertices;
 
@@ -1846,6 +1913,8 @@ bool NavigationSystem::generate_path(
     path_start.y = vertices[vert_origin].y;
     index_path.push_back(-1);
 
+    thread_local std::vector<ColliderTag> tags;
+
     /* simplify path */
     bool change = true;
     while (change) {
@@ -1926,13 +1995,15 @@ bool NavigationSystem::generate_path(
 
     index_path.pop_back();
 
+    uint32_t path_ind = path.size();
+    path.resize(path.size() + index_path.size());
+
     for (int32_t index : index_path) {
         glm::vec3 pos = index >= 0 ? vertices[index] :
                         (index == -1 ? path_start : path_end);
-        path.push_back(pos);
+        path[path.size() - path_ind - 1] = pos;
+        ++path_ind;
     }
-
-    std::reverse(path.begin(), path.end());
 
     return true;
 }

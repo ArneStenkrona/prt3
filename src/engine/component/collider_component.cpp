@@ -122,6 +122,22 @@ ColliderComponent::ColliderComponent(
 ColliderComponent::ColliderComponent(
     Scene & scene,
     NodeID node_id,
+    ColliderType type,
+    Capsule const & capsule
+)
+ : m_node_id{node_id} {
+    PhysicsSystem & sys = scene.physics_system();
+    m_tag = sys.add_capsule_collider(
+        m_node_id,
+        type,
+        capsule,
+        scene.get_node(node_id).get_global_transform(scene)
+    );
+}
+
+ColliderComponent::ColliderComponent(
+    Scene & scene,
+    NodeID node_id,
     std::istream & in
 )
  : m_node_id{node_id} {
@@ -135,7 +151,6 @@ void ColliderComponent::set_layer(Scene & scene, CollisionLayer layer) {
 void ColliderComponent::set_mask(Scene & scene, CollisionLayer mask) {
     scene.physics_system().set_collision_mask(m_tag, mask);
 }
-
 
 void ColliderComponent::set_collider(
     Scene & scene,
