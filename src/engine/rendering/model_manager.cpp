@@ -105,7 +105,9 @@ ModelHandle ModelManager::upload_model(
 NodeID ModelManager::add_model_to_scene_from_path(
     std::string const & path,
     Scene             & scene,
-    NodeID              parent_id
+    NodeID              base_node,
+    bool                use_base_as_model_root,
+    bool                as_animated
 ) {
     if (m_path_to_model_handle.find(path) == m_path_to_model_handle.end()) {
         // load from file
@@ -118,10 +120,19 @@ NodeID ModelManager::add_model_to_scene_from_path(
             m_free_handles.pop_back();
             new(&m_models[handle]) Model{path.c_str()};
         }
+
+        m_path_to_model_handle.insert({path, handle});
     }
 
-    ModelHandle handle = m_path_to_model_handle[path];
-    return add_model_to_scene(scene, handle, parent_id);
+    ModelHandle handle = m_path_to_model_handle.at(path);
+
+    return add_model_to_scene(
+        scene,
+        handle,
+        base_node,
+        use_base_as_model_root,
+        as_animated
+    );
 }
 
 NodeID ModelManager::add_model_to_scene(
@@ -139,7 +150,7 @@ NodeID ModelManager::add_model_to_scene(
     }
 
     Model const & model = m_models[handle];
-    ModelResource const & resource = m_model_resources[handle];
+    ModelResource const & resource = m_model_resources.at(handle);
 
     struct QueueElement {
         uint32_t model_node_index;
@@ -182,7 +193,7 @@ NodeID ModelManager::add_model_to_scene(
 
         if (model_node.mesh_index != -1) {
             ResourceID mesh_id = resource.mesh_resource_ids[model_node.mesh_index];
-            ResourceID material_id = resource.material_resource_ids[model_node.mesh_index];
+            ResourceID material_id = resource.mesh_material_ids[model_node.mesh_index];
 
             if (as_animated) {
                 scene.add_component<AnimatedMesh>(node_id, mesh_id, model_node_id);

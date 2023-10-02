@@ -5,14 +5,33 @@
 
 using namespace dds;
 
+void do_nothing_on_empty_schedule(NPCID, GameState *) {}
+
 NPCDB::NPCDB(GameState & game_state)
- : m_game_state{game_state} {}
+ : m_game_state{game_state} {
+    /* for testing */
+    // NPCID npc_id = push_npc();
+
+    // NPC & npc = m_npcs[npc_id];
+    // npc.map_position.room = 0;
+    // npc.map_position.position = glm::vec3{0.0f};
+    // npc.model_path = "assets/models/stranger/stranger.fbx";
+    // npc.collider_radius = 0.5f;
+    // npc.collider_length = 1.0f;
+    // npc.speed = 1.0f;
+    // npc.on_empty_schedule = do_nothing_on_empty_schedule;
+
+    // NPCAction action;
+    // action.type = NPCAction::WAIT;
+    // action.u.wait.duration = 1.0f;
+    // push_schedule(npc_id, action);
+ }
 
 void NPCDB::update(prt3::Scene & scene) {
     for (NPCID id = 0; id < m_npcs.size(); ++id) {
         NPC & npc = m_npcs[id];
         if (m_loaded_npcs.find(id) == m_loaded_npcs.end()) {
-            if (npc.map_position.room == m_current_room) {
+            if (npc.map_position.room == m_game_state.current_room()) {
                 load_NPC(scene, id);
             }
         }
@@ -21,7 +40,7 @@ void NPCDB::update(prt3::Scene & scene) {
     for (auto it = m_loaded_npcs.begin();
          it != m_loaded_npcs.end();) {
         NPC & npc = m_npcs[it->first];
-        if (npc.map_position.room != m_current_room) {
+        if (npc.map_position.room != m_game_state.current_room()) {
             /* unload NPC */
             prt3::NodeID node_id = it->second;
             scene.remove_node(node_id);
@@ -36,12 +55,22 @@ void NPCDB::update(prt3::Scene & scene) {
     }
 }
 
+void NPCDB::on_scene_exit() {
+    m_loaded_npcs.clear();
+}
+
+NPCID NPCDB::push_npc() {
+    NPCID id = m_npcs.size();
+    m_npcs.push_back({});
+    m_schedules.push_back({});
+    return id;
+}
+
 void NPCDB::load_NPC(prt3::Scene & scene, NPCID id) {
     NPC const & npc = m_npcs[id];
 
     prt3::NodeID node_id = scene.add_node_to_root("NPC");
-    prt3::ModelHandle model_handle = scene.upload_model(npc.model_path);
-    scene.add_component<prt3::AnimatedModel>(node_id, model_handle);
+    scene.add_model_to_scene_from_path(npc.model_path, node_id, true, true);
 
     prt3::Capsule capsule{};
     capsule.radius = npc.collider_radius;
@@ -104,10 +133,10 @@ void NPCDB::update_npc(NPCID id) {
             break;
         }
         case NPCAction::WAIT: {
-            action.u.wait.duration -= dds::ms_per_frame;
-            if (action.u.wait.duration <= 0) {
+            if (action.u.wait.duration <= 0.0f) {
                 pop_schedule(id);
             }
+            action.u.wait.duration -= dds::ms_per_frame;
             break;
         }
         case NPCAction::WAIT_UNTIL: {

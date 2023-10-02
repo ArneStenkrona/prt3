@@ -71,6 +71,8 @@ void GameState::on_signal(
                 break;
             }
         }
+
+        m_npc_db.on_scene_exit();
     }
 }
 
@@ -136,7 +138,8 @@ void GameState::on_start(prt3::Scene & scene) {
 void GameState::on_init(prt3::Scene &) {
 }
 
-void GameState::on_update(prt3::Scene &, float) {
+void GameState::on_update(prt3::Scene & scene, float) {
+    m_npc_db.update(scene);
     m_current_time += dds::ms_per_frame;
 }
 

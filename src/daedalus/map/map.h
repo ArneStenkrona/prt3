@@ -109,6 +109,9 @@ private:
     static constexpr size_t NumNavPathCacheEntry = 128;
     prt3::LRUCache<NavPathKey, NavPath, NumNavPathCacheEntry> m_nav_mesh_path_cache;
 
+    static constexpr size_t NumNavPathLengthCacheEntry = 8192;
+    prt3::LRUCache<NavPathKey, float, NumNavPathLengthCacheEntry> m_nav_mesh_path_length_cache;
+
     struct MapPathEntry {
         MapPosition position;
         float accumulated_distance;
@@ -123,6 +126,8 @@ private:
     prt3::LRUCache<MapPathID, MapPath, NumMapPathCacheEntry> m_map_path_cache;
     MapPathID m_next_map_path_id = 0;
 
+
+
     prt3::NavigationSystem m_navigation_system;
 
     Map() {}
@@ -134,6 +139,12 @@ private:
     );
 
     NavPath const * get_nav_path(
+        RoomID room_id,
+        glm::vec3 from,
+        glm::vec3 to
+    );
+
+    float get_nav_path_length(
         RoomID room_id,
         glm::vec3 from,
         glm::vec3 to

@@ -19,18 +19,12 @@ typedef uint32_t NPCID;
 
 struct NPC {
     MapPosition map_position;
-    struct {
-        glm::vec3 b;
-        float t;
-    } unloaded_position;
-
     std::string model_path;
 
     float collider_radius;
     float collider_length;
 
     float speed;
-
 
     void (*on_empty_schedule)(NPCID, GameState*);
 };
@@ -45,6 +39,7 @@ struct NPCAction {
 
     ActionType type;
     union U {
+        constexpr U() : go_to_dest{} {}
         struct GoToDest {
             MapPosition origin;
             MapPosition destination;
@@ -69,6 +64,8 @@ public:
     NPCDB(GameState & game_state);
     void update(prt3::Scene & scene);
 
+    void on_scene_exit();
+
     bool schedule_empty(NPCID id) const { return m_schedules[id].empty(); }
     NPCAction & peek_schedule(NPCID id) { return m_schedules[id].front(); }
     void pop_schedule(NPCID id) { return m_schedules[id].pop(); }
@@ -82,13 +79,13 @@ private:
     std::vector<NPCSchedule> m_schedules;
     std::unordered_map<NPCID, prt3::NodeID> m_loaded_npcs;
 
-    RoomID m_current_room;
+    GameState & m_game_state;
+
+    NPCID push_npc();
 
     void load_NPC(prt3::Scene & scene, NPCID id);
     void update_npc(NPCID id);
     void update_go_to_dest(NPCID id, NPCAction::U::GoToDest & data);
-
-    GameState & m_game_state;
 };
 
 } // namespace dds

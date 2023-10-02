@@ -91,10 +91,19 @@ public:
     NodeID add_model_to_scene(
         Scene & scene,
         ModelHandle handle,
-        NodeID base_node
+        NodeID base_node,
+        bool use_base_as_model_root = false,
+        bool as_animated = false
     ) {
         thread_local std::vector<NodeID> temp;
-        return add_model_to_scene(scene, handle, base_node, false, false, temp);
+        return add_model_to_scene(
+            scene,
+            handle,
+            base_node,
+            use_base_as_model_root,
+            as_animated,
+            temp
+        );
     }
 
 private:
@@ -119,7 +128,9 @@ private:
     NodeID add_model_to_scene_from_path(
         std::string const & path,
         Scene & scene,
-        NodeID parent_id
+        NodeID base_node,
+        bool use_base_as_model_root = false,
+        bool as_animated = false
     );
 
     bool model_is_uploaded(ModelHandle handle);

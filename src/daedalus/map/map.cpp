@@ -474,20 +474,35 @@ bool Map::get_map_path(
     thread_local std::unordered_map<uint32_t, GInfo> info;
     info.clear();
 
+    if (from.room == to.room) {
+        float length = get_nav_path_length(
+            from.room,
+            from.position,
+            to.position
+        );
+
+        uint32_t vi =  m_doors.size(); // virtual index
+        if (length >= 0.0f) {
+            info[vi].prev = -2;
+            info[vi].dist = length;
+            q.push(QElem{vi, length});
+        }
+    }
+
     MapRoom const & room_start = m_rooms[from.room];
     for (uint32_t i = room_start.doors.start_index;
          i < room_start.doors.start_index + room_start.doors.num_indices;
          ++i) {
-        NavPath const * np = get_nav_path(
+        float length = get_nav_path_length(
             from.room,
             from.position,
             m_doors[i].position.position
         );
 
-        if (np) {
+        if (length >= 0.0f) {
             info[i].prev = -1;
-            info[i].dist = np->length;
-            q.push(QElem{i, np->length});
+            info[i].dist = length;
+            q.push(QElem{i, length});
         }
     }
 
@@ -516,7 +531,7 @@ bool Map::get_map_path(
                 float dist = qe.total_dist + np->length;
 
                 uint32_t di = qe.index - room.doors.start_index;
-                uint32_t vi = m_doors.size() + di; // virtual index
+                uint32_t vi = m_doors.size() + di + 1; // virtual index
                 if (info.find(vi) == info.end() ||
                     info.at(vi).dist > dist) {
                     info.at(vi).prev = qe.index;
@@ -529,14 +544,14 @@ bool Map::get_map_path(
             i < room.doors.start_index + room.doors.num_indices;
             ++i) {
             if (m_doors[i].dest == qe.index) continue;
-            NavPath const * np = get_nav_path(
+            float length = get_nav_path_length(
                 door.position.room,
                 door.position.position,
                 m_doors[i].position.position
             );
 
-            if (np) {
-                float dist = qe.total_dist + np->length;
+            if (length >= 0.0f) {
+                float dist = qe.total_dist + length;
 
                 if (info.find(i) == info.end() ||
                     info.at(i).dist > dist) {
@@ -548,11 +563,24 @@ bool Map::get_map_path(
     }
 
     if (curr == -1) return false;
-
     /* create path by backtracking and then reverse it */
 
-    /* insert from dest to last door */
-    {
+    if (curr == -2) {
+        /* we never leave the room */
+        NavPath const * np = get_nav_path(
+            from.room,
+            to.position,
+            from.position
+        );
+
+        for (glm::vec3 const & pos : np->path) {
+            MapPathEntry path_entry;
+            path_entry.position.room = from.room;
+            path_entry.position.position = pos;
+            path.push_back(path_entry);
+        }
+    } else {
+        /* insert from dest to last door */
         NavPath const * np = get_nav_path(
             to.room,
             to.position,
@@ -567,7 +595,7 @@ bool Map::get_map_path(
         }
     }
 
-    while (info.at(curr).prev != -1) {
+    while (info.at(curr).prev >= 0) {
         NavPath const * np = get_nav_path(
             m_doors[curr].position.room,
             m_doors[curr].position.position,
@@ -640,11 +668,45 @@ Map::NavPath const * Map::get_nav_path(
         np->path
     );
 
+    if (np->path.empty()) {
+        m_nav_mesh_path_cache.invalidate(key);
+        return nullptr;
+    }
+
     float length = 0.0f;
     for (uint32_t i = 1; i < np->path.size(); ++i) {
         length += glm::distance(np->path[i], np->path[i-1]);
     }
     np->length = length;
 
+    if (!m_nav_mesh_path_length_cache.has_key(key)) {
+        float * l = m_nav_mesh_path_length_cache.push_new_entry(key);
+        *l = length;
+    }
+
     return np;
+}
+
+float Map::get_nav_path_length(
+    RoomID room_id,
+    glm::vec3 from,
+    glm::vec3 to
+) {
+    NavPathKey key;
+    key.room = room_id;
+    key.from = from;
+    key.to = to;
+
+    float * l = m_nav_mesh_path_length_cache.access(key);
+    if (l) {
+        return *l;
+    }
+
+    get_nav_path(room_id, from, to);
+
+    l = m_nav_mesh_path_length_cache.access(key);
+    if (!l) {
+        return -1.0f;
+    }
+    return *l;
 }

@@ -57,9 +57,12 @@ public:
 
     TimeMS current_time() const { return m_current_time; }
 
+    RoomID current_room() const { return m_current_room; }
+
 private:
     Map m_map;
     NPCDB m_npc_db;
+    RoomID m_current_room = 0;
 
     TimeMS m_current_time = 0;
 

@@ -75,11 +75,21 @@ public:
     ModelHandle upload_model(std::string const & path)
     { return register_model(model_manager().upload_model(path)); }
 
-    ModelHandle add_model_to_scene_from_path(
+    NodeID add_model_to_scene_from_path(
         std::string const & path,
-        NodeID parent_id
-    ) {  return register_model(model_manager()
-        .add_model_to_scene_from_path(path, *this, parent_id));
+        NodeID base_node,
+        bool use_base_as_model_root = false,
+        bool as_animated = false
+    ) {
+        NodeID node_id = model_manager().add_model_to_scene_from_path(
+            path,
+            *this,
+            base_node,
+            use_base_as_model_root,
+            as_animated
+        );
+        register_model(model_manager().m_path_to_model_handle.at(path));
+        return node_id;
     }
 
     ResourceID upload_texture(std::string const & path)

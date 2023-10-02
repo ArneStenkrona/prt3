@@ -6,7 +6,10 @@ using namespace dds;
 void NPCController::on_init(prt3::Scene & /*scene*/) {}
 
 void NPCController::on_update(prt3::Scene & scene, float delta_time) {
-    update_action(scene, delta_time);
+    NPCDB & db = m_game_state->npc_db();
+    if (!db.schedule_empty(m_npc_id)) {
+        update_action(scene, delta_time);
+    }
 }
 
 void NPCController::update_action(prt3::Scene & scene, float /*delta_time*/) {
