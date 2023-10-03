@@ -233,6 +233,11 @@ bool PhysicsSystem::raycast(
     thread_local std::array<std::vector<ColliderID>,
             ColliderShape::total_num_collider_shape> candidates;
 
+    // clear thread_local candidate buffer
+    for (auto & candidate : candidates) {
+        candidate.resize(0);
+    }
+
     m_colliders.aabb_tree.query_raycast(
         origin,
         direction,
