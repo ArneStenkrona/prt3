@@ -62,10 +62,10 @@ void GameState::on_signal(
                 glm::vec3 door_position = door_tform.position;
 
                 prt3::Node & player = scene.get_node(m_player_id);
-                glm::vec3 v = player.get_global_transform(scene).position -
-                                door_position;
+                glm::vec3 player_pos = player.get_global_transform(scene).position;
+                glm::vec3 v = player_pos - door_position;
 
-                glm::vec3 n = door.entry_offset();
+                glm::vec3 n = door_tform.get_up();
                 if (n != glm::vec3{0.0f}) n = glm::normalize(n);
                 m_player_door_offset = v - glm::dot(v, n) * n;
                 break;
@@ -80,6 +80,11 @@ void GameState::on_start(prt3::Scene & scene) {
     scene.connect_signal("__scene_transition_out__", this);
     scene.connect_signal("__scene_exit__", this);
 
+    m_entry_overlap = true;
+    m_entry_overlap_frame = true;
+
+    m_current_room = Map::scene_to_room(scene);
+
     m_current_time = 0;
 
     glm::vec3 spawn_position;
@@ -91,17 +96,17 @@ void GameState::on_start(prt3::Scene & scene) {
                 door_node.get_global_transform(scene).position;
             spawn_position =
                 door_position +
-                door.entry_offset() +
-                m_player_door_offset;
+                door.entry_offset()/* +
+                m_player_door_offset*/;
 
-            if (door.entry_offset().x != 0.0f ||
-                door.entry_offset().z != 0.0f) {
-                dir = glm::normalize(glm::vec3{
-                    door.entry_offset().x,
-                    0.0f,
-                    door.entry_offset().z
-                });
-            }
+            // if (door.entry_offset().x != 0.0f ||
+            //     door.entry_offset().z != 0.0f) {
+            //     dir = glm::normalize(glm::vec3{
+            //         door.entry_offset().x,
+            //         0.0f,
+            //         door.entry_offset().z
+            //     });
+            // }
             break;
         }
     }
@@ -143,11 +148,19 @@ void GameState::on_update(prt3::Scene & scene, float) {
     m_current_time += dds::ms_per_frame;
 }
 
+void GameState::on_late_update(prt3::Scene & /*scene*/, float /*delta_time*/) {
+    m_entry_overlap &= m_entry_overlap_frame;
+    m_entry_overlap_frame = false;
+}
+
 void GameState::register_door_overlap(prt3::Scene & scene, prt3::Door & door) {
-    scene.scene_manager()
-        .queue_scene(door.destination_scene_path().data());
-    m_exit_door_id = door.id();
-    m_entry_door_id = door.destination_id();
+    m_entry_overlap_frame = door.id() == m_entry_door_id;
+    if (!m_entry_overlap) {
+        scene.scene_manager()
+            .queue_scene(door.destination_scene_path().data());
+        m_exit_door_id = door.id();
+        m_entry_door_id = door.destination_id();
+    }
 }
 
 void GameState::init_resources(prt3::Scene & scene) {

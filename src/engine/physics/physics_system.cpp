@@ -512,6 +512,7 @@ void PhysicsSystem::clear() {
 }
 
 void PhysicsSystem::update(
+    Scene & scene,
     Transform const * transforms,
     Transform const * transforms_history
 ) {
@@ -633,10 +634,11 @@ void PhysicsSystem::update(
         );
     }
 
-    update_areas(transforms, transforms_history);
+    update_areas(scene, transforms, transforms_history);
 }
 
 void PhysicsSystem::update_areas(
+    Scene & scene,
     Transform const * transforms,
     Transform const * transforms_history
 ) {
@@ -723,6 +725,23 @@ void PhysicsSystem::update_areas(
     for (Overlap const & overlap : overlaps) {
         m_overlaps[m_node_to_overlaps.at(overlap.a())].push_back(overlap.b());
         m_overlaps[m_node_to_overlaps.at(overlap.b())].push_back(overlap.a());
+    }
+
+    struct NodeIDPair {
+        NodeID a;
+        NodeID b;
+    };
+
+    for (Overlap const & overlap : overlaps) {
+        auto it_a = m_overlap_callbacks.find(overlap.a());
+        auto it_b = m_overlap_callbacks.find(overlap.b());
+        if (it_a != m_overlap_callbacks.end()) {
+            it_a->second(scene, overlap.b());
+        }
+
+        if (it_b != m_overlap_callbacks.end()) {
+            it_b->second(scene, overlap.a());
+        }
     }
 }
 

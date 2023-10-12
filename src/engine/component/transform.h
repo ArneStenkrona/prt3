@@ -30,10 +30,21 @@ struct Transform {
     }
 
     Transform & from_matrix(glm::mat4 const & matrix) {
-        glm::vec3 skew;
-        glm::vec4 perspective;
-        glm::decompose(matrix, scale, rotation, position, skew, perspective);
-        rotation = glm::conjugate(rotation);
+        // glm::vec3 skew;
+        // glm::vec4 perspective;
+        // glm::decompose(matrix, scale, rotation, position, skew, perspective);
+        // rotation = glm::conjugate(rotation);
+
+        position = matrix[3];
+        scale[0] = glm::length(glm::vec3(matrix[0]));
+        scale[1] = glm::length(glm::vec3(matrix[1]));
+        scale[2] = glm::length(glm::vec3(matrix[2]));
+
+        const glm::mat3 rot_mat(
+            glm::vec3(matrix[0]) / scale[0],
+            glm::vec3(matrix[1]) / scale[1],
+            glm::vec3(matrix[2]) / scale[2]);
+        rotation = glm::quat_cast(rot_mat);
         return *this;
     }
 

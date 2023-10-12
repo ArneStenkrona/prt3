@@ -48,6 +48,8 @@ file(GLOB SOURCES
   "src/daedalus/map/map.cpp"
   "src/daedalus/npc/npc_controller.cpp"
   "src/daedalus/npc/npc_db.cpp"
+  "src/daedalus/objects/interactable.cpp"
+  "src/daedalus/objects/slide.cpp"
   "src/engine/animation/animation_system.cpp"
   "src/engine/audio/audio_manager.cpp"
   "src/engine/audio/audio_mem_util.cpp"

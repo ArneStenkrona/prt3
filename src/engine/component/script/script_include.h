@@ -10,5 +10,7 @@
 /* daedalus */
 #include "src/daedalus/game_state/game_state.h"
 #include "src/daedalus/npc/npc_controller.h"
+#include "src/daedalus/objects/interactable.h"
+#include "src/daedalus/objects/slide.h"
 
 #endif // PRT3_SCRIPT_INCLUDE_H

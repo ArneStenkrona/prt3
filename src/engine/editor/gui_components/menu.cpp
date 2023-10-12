@@ -139,7 +139,6 @@ void prt3::menu(EditorContext & context) {
         /* map */
         if (ImGui::MenuItem("import map")) {
             import_map_open = true;
-            ImGui::EndMenu();
         }
 
         ImGui::EndMenu();

@@ -4,7 +4,11 @@
 
 #include "src/engine/audio/audio_mem_util.h"
 
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#define O1_HEAP_INSTANCE_CAPACITY 671088640u // 10X normal amount
+#else // __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
 #define O1_HEAP_INSTANCE_CAPACITY 67108864u // 64 MiB
+#endif // __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
 
 #define TSF_MALLOC prt3::o1hmalloc
 #define TSF_REALLOC prt3::o1hrealloc
@@ -677,7 +681,10 @@ void AudioManager::play_midi(MidiID midi_id, SoundFontID sound_font_id) {
 }
 
 void AudioManager::stop_midi() {
-    tsf_reset(m_current_track.state.sound_font);
+    if (m_current_track.sound_font_id != NO_SOUND_FONT) {
+        tsf_reset(m_current_track.state.sound_font);
+    }
+
     m_current_track = {};
 }
 

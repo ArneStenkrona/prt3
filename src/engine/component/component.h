@@ -17,6 +17,7 @@
 #include "src/engine/component/sound_source.h"
 #include "src/engine/component/weapon.h"
 #include "src/util/template_util.h"
+#include "src/util/log.h"
 
 #include <vector>
 #include <unordered_map>

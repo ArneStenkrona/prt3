@@ -49,6 +49,7 @@ inline bool operator!=(Overlap const & lhs, Overlap const & rhs) {
     return lhs.a() != rhs.a() || lhs.b() != rhs.b();
 }
 
+typedef void (*OverlapCallback)(Scene &, NodeID);
 } // namespace prt3
 
 namespace std {
@@ -242,6 +243,10 @@ public:
 
     std::vector<NodeID> const & get_overlaps(NodeID node_id) const;
 
+    void set_overlap_callback(NodeID id, OverlapCallback callback) {
+        m_overlap_callbacks[id] = callback;
+    }
+
 private:
     std::unordered_map<NodeID, ColliderTag> m_tags;
     std::unordered_map<ColliderTag, NodeID> m_node_ids;
@@ -254,14 +259,18 @@ private:
     std::unordered_map<NodeID, unsigned int> m_node_to_overlaps;
     std::vector<std::vector<NodeID> > m_overlaps;
 
+    std::unordered_map<NodeID, OverlapCallback> m_overlap_callbacks;
+
     void clear();
 
     void update(
+        Scene & scene,
         Transform const * transforms,
         Transform const * transforms_history
     );
 
     void update_areas(
+        Scene & scene,
         Transform const * transforms,
         Transform const * transforms_history
     );

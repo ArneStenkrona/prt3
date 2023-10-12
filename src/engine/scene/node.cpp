@@ -61,11 +61,9 @@ void Node::set_global_transform(
     Transform const & transform
 ) {
     Transform inherit = get_inherited_transform(scene);
-    glm::mat4 inv = glm::inverse(inherit.to_matrix());
-
-    m_local_transform.position = inv * glm::vec4(transform.position, 1.0f);
-    m_local_transform.scale = inv * glm::vec4(transform.scale, 0.0f);
-    m_local_transform.rotation = transform.rotation * glm::quat_cast(inv);
+    Transform inv;
+    inv.from_matrix(glm::inverse(inherit.to_matrix()));
+    m_local_transform = Transform::compose(inv, transform);
 }
 
 void Node::set_global_position(

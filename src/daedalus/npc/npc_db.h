@@ -14,19 +14,21 @@
 namespace dds {
 
 class GameState;
+class NPCDB;
 
 typedef uint32_t NPCID;
 
 struct NPC {
     MapPosition map_position;
     std::string model_path;
+    glm::vec3 model_scale;
 
     float collider_radius;
     float collider_length;
 
     float speed;
 
-    void (*on_empty_schedule)(NPCID, GameState*);
+    void (*on_empty_schedule)(NPCID, NPCDB &, prt3::Scene &);
 };
 
 struct NPCAction {
@@ -74,6 +76,8 @@ public:
 
     NPC & get_npc(NPCID id) { return m_npcs[id]; }
 
+    GameState & game_state() { return m_game_state; }
+
 private:
     std::vector<NPC> m_npcs;
     std::vector<NPCSchedule> m_schedules;
@@ -83,8 +87,8 @@ private:
 
     NPCID push_npc();
 
-    void load_NPC(prt3::Scene & scene, NPCID id);
-    void update_npc(NPCID id);
+    void load_npc(prt3::Scene & scene, NPCID id);
+    void update_npc(NPCID id, prt3::Scene & scene);
     void update_go_to_dest(NPCID id, NPCAction::U::GoToDest & data);
 };
 

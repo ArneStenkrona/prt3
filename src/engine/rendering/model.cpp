@@ -630,7 +630,7 @@ void Model::load_with_assimp(char const * path) {
         // process all children of the node
         for (size_t i = 0; i < node->mNumChildren; ++i) {
             tform_nodes.push_back({node->mChildren[i],
-                                   node->mChildren[i]->mTransformation * tform,
+                                   tform * node->mChildren[i]->mTransformation,
                                    node_index});
         }
     }
@@ -781,7 +781,7 @@ void Model::load_with_assimp(char const * path) {
     // calculate_tangent_space();
 }
 
-void Model::save_prt3model(char const * path) {
+void Model::save_prt3model(char const * path) const {
     std::ofstream out(path, std::ios::binary);
     write_stream(out, m_valid);
 
@@ -819,7 +819,7 @@ void Model::save_prt3model(char const * path) {
 
     write_stream(out, m_channels.size());
     out.write(
-        reinterpret_cast<char*>(m_channels.data()),
+        reinterpret_cast<char const *>(m_channels.data()),
         m_channels.size() * sizeof(m_channels[0])
     );
 
@@ -871,25 +871,25 @@ void Model::save_prt3model(char const * path) {
 
     write_stream(out, m_vertex_buffer.size());
     out.write(
-        reinterpret_cast<char*>(m_vertex_buffer.data()),
+        reinterpret_cast<char const *>(m_vertex_buffer.data()),
         m_vertex_buffer.size() * sizeof(m_vertex_buffer[0])
     );
 
     write_stream(out, m_vertex_bone_buffer.size());
     out.write(
-        reinterpret_cast<char*>(m_vertex_bone_buffer.data()),
+        reinterpret_cast<char const *>(m_vertex_bone_buffer.data()),
         m_vertex_bone_buffer.size() * sizeof(m_vertex_bone_buffer[0])
     );
 
     write_stream(out, m_index_buffer.size());
     out.write(
-        reinterpret_cast<char*>(m_index_buffer.data()),
+        reinterpret_cast<char const *>(m_index_buffer.data()),
         m_index_buffer.size() * sizeof(m_index_buffer[0])
     );
 
     write_stream(out, m_bones.size());
     out.write(
-        reinterpret_cast<char*>(m_bones.data()),
+        reinterpret_cast<char const *>(m_bones.data()),
         m_bones.size() * sizeof(m_bones[0])
     );
 

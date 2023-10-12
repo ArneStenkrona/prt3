@@ -271,6 +271,7 @@ void Scene::collect_world_render_data(
     );
 
     m_physics_system.update(
+        *this,
         m_transform_cache.global_transforms().data(),
         m_transform_cache.global_transforms_history().data()
     );

@@ -115,7 +115,6 @@ public:
             tag,
             hit
         )) {
-
             Decal & decal = scene.get_component<Decal>(m_blob_shadow_id);
 
             float diff_y = tform.position.y - hit.position.y;

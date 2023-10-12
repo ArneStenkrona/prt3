@@ -26,7 +26,6 @@ bool Engine::execute_frame() {
 
     m_transition_state = m_context.load_scene_if_queued(m_transition_state);
     if (m_transition_state != NO_TRANSITION) {
-
         Scene & scene = m_context.game_scene();
 
         scene.collect_world_render_data(render_data.world);

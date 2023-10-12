@@ -110,7 +110,7 @@ public:
     std::string const & path() const { return m_path; }
     void set_path(std::string path) { m_path = path; }
 
-    void save_prt3model(char const * path);
+    void save_prt3model(char const * path) const;
 
 private:
     std::string m_name;

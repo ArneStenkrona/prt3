@@ -46,6 +46,7 @@ public:
     virtual void on_start(prt3::Scene & scene);
     virtual void on_init(prt3::Scene &);
     virtual void on_update(prt3::Scene &, float);
+    virtual void on_late_update(prt3::Scene &, float);
 
     void set_exit_door_id(prt3::DoorID id) { m_exit_door_id = id; }
     void set_entry_door_id(prt3::DoorID id) { m_entry_door_id = id; }
@@ -59,6 +60,8 @@ public:
 
     RoomID current_room() const { return m_current_room; }
 
+    prt3::NodeID player_id() const { return m_player_id; }
+
 private:
     Map m_map;
     NPCDB m_npc_db;
@@ -68,6 +71,8 @@ private:
 
     prt3::DoorID m_exit_door_id = 0;
     prt3::DoorID m_entry_door_id = 0;
+    bool m_entry_overlap_frame;
+    bool m_entry_overlap;
 
     prt3::Prefab m_player_prefab{"assets/prefabs/player.prefab"};
     prt3::NodeID m_player_id;
