@@ -43,9 +43,12 @@ public:
     inline float far_plane() const {return m_far_plane; }
 
     inline void set_orthographic_projection(bool orthographic)
-        { m_orthographic = orthographic; }
+    { m_orthographic = orthographic; }
     inline bool get_orthographic_projection() const
-        { return m_orthographic; }
+    { return m_orthographic; }
+
+    inline float & orthographic_scale() { return m_orthographic_scale; }
+    inline float const & orthographic_scale() const { return m_orthographic_scale; }
 
     static constexpr glm::vec3 WORLD_UP{ 0.0f, 1.0f, 0.0f };
 
@@ -57,6 +60,7 @@ private:
     float m_near_plane;
     float m_far_plane;
     float m_orthographic;
+    float m_orthographic_scale = 5.0f;
 
     void set_size(int w, int h)
         { m_width = static_cast<float>(w); m_height = static_cast<float>(h); }

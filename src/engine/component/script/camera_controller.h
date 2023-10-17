@@ -44,6 +44,7 @@ public:
 
     virtual void on_init(Scene & scene) {
         scene.get_camera().set_orthographic_projection(true);
+        scene.get_camera().orthographic_scale() = 7.5f;
     }
 
     void rotate_with_mouse(Scene & scene) {
