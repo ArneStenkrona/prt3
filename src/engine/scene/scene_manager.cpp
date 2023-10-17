@@ -24,6 +24,7 @@ TransitionState SceneManager::load_scene_if_queued(
     }
 
     if (state == NO_TRANSITION) {
+        scene.emit_signal("__scene_exit__", nullptr);
         state = 0;
     }
 
@@ -32,8 +33,6 @@ TransitionState SceneManager::load_scene_if_queued(
     }
 
     if (!m_fade_transition || state == -2) {
-        scene.emit_signal("__scene_exit__", nullptr);
-
         m_fade_exclude_set.clear();
 
         static std::unordered_set<ModelHandle> existing_models;

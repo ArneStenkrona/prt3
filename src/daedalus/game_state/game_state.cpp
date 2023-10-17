@@ -60,10 +60,11 @@ void GameState::on_signal(
                 prt3::Transform door_tform =
                     door_node.get_global_transform(scene);
                 glm::vec3 door_position = door_tform.position;
+                glm::vec3 entry_position = door_position + door.entry_offset();
 
                 prt3::Node & player = scene.get_node(m_player_id);
                 glm::vec3 player_pos = player.get_global_transform(scene).position;
-                glm::vec3 v = player_pos - door_position;
+                glm::vec3 v = player_pos - entry_position;
 
                 glm::vec3 n = door_tform.get_up();
                 if (n != glm::vec3{0.0f}) n = glm::normalize(n);
@@ -96,17 +97,8 @@ void GameState::on_start(prt3::Scene & scene) {
                 door_node.get_global_transform(scene).position;
             spawn_position =
                 door_position +
-                door.entry_offset()/* +
-                m_player_door_offset*/;
-
-            // if (door.entry_offset().x != 0.0f ||
-            //     door.entry_offset().z != 0.0f) {
-            //     dir = glm::normalize(glm::vec3{
-            //         door.entry_offset().x,
-            //         0.0f,
-            //         door.entry_offset().z
-            //     });
-            // }
+                door.entry_offset() +
+                m_player_door_offset;
             break;
         }
     }

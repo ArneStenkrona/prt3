@@ -30,11 +30,6 @@ struct Transform {
     }
 
     Transform & from_matrix(glm::mat4 const & matrix) {
-        // glm::vec3 skew;
-        // glm::vec4 perspective;
-        // glm::decompose(matrix, scale, rotation, position, skew, perspective);
-        // rotation = glm::conjugate(rotation);
-
         position = matrix[3];
         scale[0] = glm::length(glm::vec3(matrix[0]));
         scale[1] = glm::length(glm::vec3(matrix[1]));
