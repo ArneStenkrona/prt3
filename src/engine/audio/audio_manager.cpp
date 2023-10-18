@@ -681,7 +681,7 @@ void AudioManager::play_midi(MidiID midi_id, SoundFontID sound_font_id) {
 }
 
 void AudioManager::stop_midi() {
-    if (m_current_track.sound_font_id != NO_SOUND_FONT) {
+    if (m_current_track.state.sound_font) {
         tsf_reset(m_current_track.state.sound_font);
     }
 
