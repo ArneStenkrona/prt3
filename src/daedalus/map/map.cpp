@@ -190,13 +190,22 @@ bool Map::parse_door(
         return false;
     }
 
+    glm::vec3 offset_dir = -global_tform.get_up();
+
+    glm::vec3 dim_offset =
+        -global_tform.get_right() * model_node.transform.scale.x / 2.0f;
+    glm::vec3 entry_offset = offset_dir * (model_node.transform.scale.y) + dim_offset;
+
+    uint32_t door_ind = ctx.map.m_doors.size();
     MapDoor map_door;
     map_door.position.room = room_index;
-    map_door.position.position = global_tform.position;
+    map_door.position.position = global_tform.position + entry_offset;
     map_door.dest = dest_door; // rename later
-    ctx.num_to_door[ctx.map.m_doors.size()] = door_id;
+    ctx.num_to_door[room_index][door_id] = door_ind;
+    ctx.door_num_to_dest_room[door_ind] = ctx.num_to_room_index.at(dest_room);
     ctx.map.m_doors.emplace_back(map_door);
     ++room.doors.num_indices;
+
 
     prt3::NodeID id = map_node_to_new_scene_node(
         ctx,
@@ -217,13 +226,7 @@ bool Map::parse_door(
     door.destination_scene_path() = dest_scene_path.c_str();
     door.destination_id() = dest_door;
 
-    glm::vec3 offset_dir = -global_tform.get_up();
-
-    glm::vec3 dim_offset =
-        -global_tform.get_right() * model_node.transform.scale.x / 2.0f;
-
-    door.entry_offset() =
-        offset_dir * (model_node.transform.scale.y) + dim_offset;
+    door.entry_offset() = entry_offset;
 
     prt3::Box box{};
     box.dimensions = glm::vec3{1.0f};
@@ -437,6 +440,7 @@ Map Map::parse_map_from_model(char const * path) {
 
     ctx.models.resize(ctx.num_to_room_node.size());
     ctx.object_models.resize(ctx.num_to_room_node.size());
+    ctx.num_to_door.resize(ctx.num_to_room_node.size());
 
     for (prt3::Model & obj_model : ctx.object_models) {
         obj_model.nodes().push_back({});
@@ -621,8 +625,10 @@ Map Map::parse_map_from_model(char const * path) {
     }
 
     /* rename door destinations */
-    for (MapDoor & door : ctx.map.m_doors) {
-        door.dest = ctx.num_to_door.at(door.dest);
+    for (uint32_t door_ind = 0; door_ind < ctx.map.m_doors.size(); ++door_ind) {
+        MapDoor & door = ctx.map.m_doors[door_ind];
+        uint32_t room_index = ctx.door_num_to_dest_room.at(door_ind);
+        door.dest = ctx.num_to_door[room_index].at(door.dest);
     }
 
     return ctx.map;
@@ -744,28 +750,38 @@ MapPathID Map::query_map_path(MapPosition origin, MapPosition destination) {
 
 MapPosition Map::interpolate_map_path(MapPathID id, float t) {
     MapPath & mp = *m_map_path_cache.access(id);
+
+    if (t >= 1.0f) {
+        return mp.path.back().position;
+    }
+
     float target_dist = mp.length * t;
     uint32_t l = 0;
-    uint32_t r = mp.path.size() - 1;
+    uint32_t r = mp.path.size();
 
-    while (l <= r) {
+    while (l < r) {
         uint32_t m = (l + r) / 2;
         if (mp.path[m].accumulated_distance <= target_dist) {
-            l = m;
+            l = m + 1;
         } else {
-            r = m - 1;
+            r = m;
         }
     }
-    float i = mp.path[l].accumulated_distance <= target_dist ? l : l - 1;
-    if (i + 1 == mp.path.size() ||
-        mp.path[i].position.room != mp.path[i + 1].position.room) {
+
+    uint32_t i = l == 0 ? l : l - 1;
+
+    if (i + 1 == mp.path.size()) {
         return mp.path.back().position;
+    }
+
+    if (mp.path[i].position.room != mp.path[i + 1].position.room) {
+        return mp.path[i + 1].position;
     }
 
     float remaining = target_dist - mp.path[i].accumulated_distance;
     float dist2next = mp.path[i + 1].accumulated_distance -
                       mp.path[i].accumulated_distance;
-    float interp = remaining / dist2next;
+    float interp = dist2next == 0.0f ? 1.0f : remaining / dist2next;
 
     MapPosition res;
     res.room = mp.path[i].position.room;
@@ -816,7 +832,7 @@ bool Map::get_map_path(
             to.position
         );
 
-        uint32_t vi =  m_doors.size(); // virtual index
+        uint32_t vi = m_doors.size(); // virtual index
         if (length >= 0.0f) {
             info[vi].prev = -2;
             info[vi].dist = length;
@@ -848,11 +864,12 @@ bool Map::get_map_path(
         q.pop();
 
         if (qe.index >= m_doors.size()) {
-            curr = info[curr].prev;
+            curr = info.at(qe.index).prev;
             break;
         }
 
-        MapDoor const & door = m_doors[m_doors[qe.index].dest];
+        uint32_t dest_ind = m_doors[qe.index].dest;
+        MapDoor const & door = m_doors[dest_ind];
         MapRoom const & room = m_rooms[door.position.room];
 
         if (door.position.room == to.room) {
@@ -865,11 +882,11 @@ bool Map::get_map_path(
             if (np) {
                 float dist = qe.total_dist + np->length;
 
-                uint32_t di = qe.index - room.doors.start_index;
-                uint32_t vi = m_doors.size() + di + 1; // virtual index
+                uint32_t vi = m_doors.size() + 1 + dest_ind; // virtual index
                 if (info.find(vi) == info.end() ||
                     info.at(vi).dist > dist) {
-                    info.at(vi).prev = qe.index;
+                    info[vi].prev = qe.index;
+                    info[vi].dist = dist;
                     q.push(QElem{vi, dist});
                 }
             }
@@ -890,7 +907,8 @@ bool Map::get_map_path(
 
                 if (info.find(i) == info.end() ||
                     info.at(i).dist > dist) {
-                    info.at(i).prev = qe.index;
+                    info[i].prev = qe.index;
+                    info[i].dist = dist;
                     q.push(QElem{i, dist});
                 }
             }
@@ -919,46 +937,46 @@ bool Map::get_map_path(
         NavPath const * np = get_nav_path(
             to.room,
             to.position,
-            m_doors[curr].position.position
+            m_doors[m_doors[curr].dest].position.position
         );
 
         for (glm::vec3 const & pos : np->path) {
             MapPathEntry path_entry;
-            path_entry.position.room = m_doors[curr].position.room;
-            path_entry.position.position = pos;
-            path.push_back(path_entry);
-        }
-    }
-
-    while (info.at(curr).prev >= 0) {
-        NavPath const * np = get_nav_path(
-            m_doors[curr].position.room,
-            m_doors[curr].position.position,
-            m_doors[info.at(curr).prev].position.position
-        );
-
-        for (glm::vec3 const & pos : np->path) {
-            MapPathEntry path_entry;
-            path_entry.position.room = m_doors[curr].position.room;
+            path_entry.position.room = to.room;
             path_entry.position.position = pos;
             path.push_back(path_entry);
         }
 
-        curr = info.at(curr).prev;
-    }
+        while (info.at(curr).prev >= 0) {
+            NavPath const * np = get_nav_path(
+                m_doors[curr].position.room,
+                m_doors[curr].position.position,
+                m_doors[m_doors[info.at(curr).prev].dest].position.position
+            );
 
-    {
-        NavPath const * np = get_nav_path(
-            from.room,
-            m_doors[curr].position.position,
-            from.position
-        );
+            for (glm::vec3 const & pos : np->path) {
+                MapPathEntry path_entry;
+                path_entry.position.room = m_doors[curr].position.room;
+                path_entry.position.position = pos;
+                path.push_back(path_entry);
+            }
 
-        for (glm::vec3 const & pos : np->path) {
-            MapPathEntry path_entry;
-            path_entry.position.room = m_doors[curr].position.room;
-            path_entry.position.position = pos;
-            path.push_back(path_entry);
+            curr = info.at(curr).prev;
+        }
+
+        {
+            NavPath const * np = get_nav_path(
+                from.room,
+                m_doors[curr].position.position,
+                from.position
+            );
+
+            for (glm::vec3 const & pos : np->path) {
+                MapPathEntry path_entry;
+                path_entry.position.room = from.room;
+                path_entry.position.position = pos;
+                path.push_back(path_entry);
+            }
         }
     }
 

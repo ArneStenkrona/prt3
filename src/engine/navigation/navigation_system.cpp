@@ -1993,8 +1993,6 @@ bool NavigationSystem::generate_path(
         }
     }
 
-    index_path.pop_back();
-
     uint32_t path_ind = path.size();
     path.resize(path.size() + index_path.size());
 

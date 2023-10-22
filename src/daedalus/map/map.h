@@ -264,7 +264,8 @@ struct ParsingContext {
     std::vector<prt3::Model> models;
     std::unordered_map<uint32_t, uint32_t> num_to_room_node;
     std::unordered_map<uint32_t, uint32_t> num_to_room_index;
-    std::unordered_map<uint32_t, uint32_t> num_to_door;
+    std::vector<std::unordered_map<uint32_t, uint32_t> > num_to_door;
+    std::unordered_map<uint32_t, uint32_t> door_num_to_dest_room;
     std::unordered_map<int32_t, prt3::NodeID> model_node_to_scene_node;
     std::vector<prt3::Model> object_models;
     std::unordered_map<uint32_t, std::unordered_map<prt3::NodeID, uint32_t> > object_meshes;

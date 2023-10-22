@@ -33,7 +33,7 @@ private:
     GameState * m_game_state;
 
     void update_action(prt3::Scene & scene, float delta_time);
-    void update_go_to_dest(prt3::Scene & scene);
+    void update_go_to_dest(prt3::Scene & scene, float delta_time);
 
 REGISTER_SCRIPT(NPCController, npc_controller, 15129599306800160206)
 };

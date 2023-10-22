@@ -10,8 +10,6 @@ void on_empty_schedule_test(
     NPCDB & npc_db,
     prt3::Scene & scene
 ) {
-    return;
-
     NPC & npc = npc_db.get_npc(id);
 
     GameState & game_state = npc_db.game_state();
@@ -37,18 +35,18 @@ NPCDB::NPCDB(GameState & game_state)
     NPCID npc_id = push_npc();
 
     NPC & npc = m_npcs[npc_id];
-    npc.map_position.room = 0;
-    npc.map_position.position = glm::vec3{0.0f};
+    npc.map_position.room = 4;
+    npc.map_position.position = glm::vec3{-4.0f, 0.5f, -0.5f};
     npc.model_path = "assets/models/stranger/stranger.fbx";
-    npc.model_scale = glm::vec3{0.35f};
+    npc.model_scale = glm::vec3{0.5f};
     npc.collider_radius = 0.5f;
     npc.collider_length = 1.0f;
-    npc.speed = 1.0f;
+    npc.speed = 0.1f;
     npc.on_empty_schedule = on_empty_schedule_test;
 
     NPCAction action;
     action.type = NPCAction::WAIT;
-    action.u.wait.duration = 1.0f;
+    action.u.wait.duration = 1000 * dds::time_scale;
     push_schedule(npc_id, action);
  }
 
@@ -137,7 +135,7 @@ void NPCDB::update_go_to_dest(NPCID id, NPCAction::U::GoToDest & data) {
         return;
     }
 
-    float length = (npc.speed / 1000.0f) * dds::ms_per_frame;
+    float length = npc.speed;
     data.t += length / map.get_map_path_length(data.path_id);
     npc.map_position = map.interpolate_map_path(data.path_id, data.t);
 
@@ -148,7 +146,7 @@ void NPCDB::update_go_to_dest(NPCID id, NPCAction::U::GoToDest & data) {
 
 void NPCDB::update_npc(NPCID id, prt3::Scene & scene) {
     if (schedule_empty(id)) {
-        return;
+        m_npcs[id].on_empty_schedule(id, *this, scene);
     }
 
     NPCAction & action = peek_schedule(id);

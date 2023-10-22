@@ -555,7 +555,8 @@ public:
         Model const & model =
             scene.get_model(armature.model_handle());
 
-        float dt_fac = 10.0f * delta_time;
+        float speed = 20.0f;
+        float dt_fac = 1.0f - glm::pow(0.5f, delta_time * speed);
 
         bool active_weapon = false;
 
@@ -627,7 +628,8 @@ public:
     }
 
     void update_direction(Scene & scene, float delta_time) {
-        float dt_fac = 10.0f * delta_time;
+        float speed = 50.0f;
+        float dt_fac = 1.0f - glm::pow(0.5f, delta_time * speed);
 
         if (get_state_data(m_state.state).can_change_direction &&
             m_state.input.direction != glm::vec3{0.0f}) {

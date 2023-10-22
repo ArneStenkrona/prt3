@@ -5,7 +5,7 @@
 #include <queue>
 #include <unordered_map>
 
-
+#include "src/util/log.h"
 
 namespace prt3 {
 

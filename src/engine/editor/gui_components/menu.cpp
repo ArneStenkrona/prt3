@@ -240,6 +240,10 @@ void prt3::menu(EditorContext & context) {
 
             std::ofstream map_out{map_out_path, std::ios::binary};
             map.serialize(map_out);
+            map_out.close();
+#ifdef __EMSCRIPTEN__
+            emscripten_save_file_via_put(map_out_path);
+#endif // __EMSCRIPTEN__
         }
         import_map_open = ImGui::IsPopupOpen(ImGui::GetID("import map"), 0);
     }

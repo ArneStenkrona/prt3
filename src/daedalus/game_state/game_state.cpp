@@ -2,7 +2,7 @@
 
 using namespace dds;
 
-#define MAP_PATH "assets/map/dds.map" // hard-coded for now
+#define MAP_PATH "assets/models/map/island.map" // hard-coded for now
 
 GameState::GameState(prt3::Scene & scene, prt3::NodeID node_id)
  : Script(scene, node_id),
