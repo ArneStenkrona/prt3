@@ -79,13 +79,26 @@ struct LightRenderData {
     AmbientLight ambient_light;
 };
 
-struct WorldRenderData {
+struct RenderRect2D {
+    glm::vec4 color;
+    glm::vec2 uv0;
+    glm::vec2 uv1;
+    glm::vec2 uv2;
+    glm::vec2 uv3;
+    glm::vec2 position;
+    glm::vec2 dimension;
+    ResourceID texture;
+    int32_t layer;
+};
+
+struct SceneRenderData {
     std::vector<MeshRenderData> mesh_data;
     std::vector<AnimatedMeshRenderData> animated_mesh_data;
     std::vector<BoneData> bone_data;
     std::vector<MeshRenderData> selected_mesh_data;
     std::vector<AnimatedMeshRenderData> selected_animated_mesh_data;
     std::vector<DecalRenderData> decal_data;
+    std::vector<RenderRect2D> canvas_data;
     LightRenderData light_data;
 };
 
@@ -95,18 +108,18 @@ struct EditorRenderData {
 
 struct RenderData {
     CameraRenderData camera_data;
-    WorldRenderData world;
+    SceneRenderData scene;
     EditorRenderData editor_data;
 
     void clear() {
         camera_data = {};
-        world.light_data = {};
-        world.mesh_data.clear();
-        world.animated_mesh_data.clear();
-        world.bone_data.clear();
-        world.selected_mesh_data.clear();
-        world.selected_animated_mesh_data.clear();
-        world.decal_data.clear();
+        scene.light_data = {};
+        scene.mesh_data.clear();
+        scene.animated_mesh_data.clear();
+        scene.bone_data.clear();
+        scene.selected_mesh_data.clear();
+        scene.selected_animated_mesh_data.clear();
+        scene.decal_data.clear();
         editor_data.line_data.clear();
     }
 };

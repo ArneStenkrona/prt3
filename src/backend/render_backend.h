@@ -24,7 +24,7 @@ public:
     virtual void prepare_imgui_rendering() = 0;
 
     virtual void render(
-        RenderData const & render_data,
+        RenderData & render_data,
         bool editor
     ) = 0;
 

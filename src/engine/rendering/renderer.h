@@ -35,7 +35,7 @@ public:
     void prepare_imgui_rendering() { m_render_backend->prepare_imgui_rendering(); }
 
     void render(
-        RenderData const & render_data,
+        RenderData & render_data,
         bool editor
     ) {
         m_render_backend->render(render_data, editor);

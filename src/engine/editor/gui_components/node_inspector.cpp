@@ -116,6 +116,14 @@ private:
     bool m_has_tag;
 };
 
+template <typename T, typename = int>
+struct HasGUI : std::false_type {
+};
+
+template <typename T>
+struct HasGUI<T, decltype(&T::inner_show_component, 0)> : std::true_type {
+};
+
 template<typename T>
 void show_component(EditorContext & context, NodeID id) {
     Scene & scene = context.context().edit_scene();
@@ -128,7 +136,10 @@ void show_component(EditorContext & context, NodeID id) {
             "remove"
         );
 
-        inner_show_component<T>(context, id);
+        if constexpr (HasGUI<T>::value)
+        {
+            inner_show_component<T>(context, id);
+        }
 
         end_group_panel();
 

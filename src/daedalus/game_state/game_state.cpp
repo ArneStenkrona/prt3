@@ -127,9 +127,9 @@ void GameState::on_start(prt3::Scene & scene) {
     cam.pitch() = m_cam_pitch;
 
     // play soundtrack
-    if (scene.audio_manager().get_playing_midi() != m_midi) {
-        scene.audio_manager().play_midi(m_midi, m_sound_font);
-    }
+    // if (scene.audio_manager().get_playing_midi() != m_midi) {
+    //     scene.audio_manager().play_midi(m_midi, m_sound_font);
+    // }
 }
 
 void GameState::on_init(prt3::Scene &) {

@@ -2,6 +2,7 @@
 #define PRT3_COMPONENT_H
 
 #include "src/engine/scene/node.h"
+#include "src/engine/component/canvas/canvas.h"
 #include "src/engine/component/animated_mesh.h"
 #include "src/engine/component/animated_model.h"
 #include "src/engine/component/armature.h"
@@ -146,7 +147,8 @@ using ComponentTypes = type_pack<
     NavigationMeshComponent,
     SoundSourceComponent,
     Weapon,
-    Decal
+    Decal,
+    Canvas
 >;
 
 using ComponentStoragesType = wrap_arg_pack_in_storage<std::tuple, ComponentTypes>::type;

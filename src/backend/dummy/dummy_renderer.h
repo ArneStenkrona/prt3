@@ -19,7 +19,7 @@ public:
     virtual void prepare_imgui_rendering() {};
 
     virtual void render(
-        RenderData const &,
+        RenderData &,
         bool
     ) {}
 

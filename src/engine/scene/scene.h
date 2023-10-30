@@ -301,6 +301,8 @@ public:
     NodeID & selected_node() { return m_selected_node; }
     NodeID const & selected_node() const { return m_selected_node; }
 
+    void get_window_size(unsigned int & w, unsigned int & h) const;
+
 private:
     Context * m_context;
 
@@ -356,8 +358,8 @@ private:
 
     void clear_node_mod_flags();
 
-    void collect_world_render_data(
-        WorldRenderData & world_data
+    void collect_render_data(
+        SceneRenderData & scene_data
     );
 
     void update_window_size(int w, int h);

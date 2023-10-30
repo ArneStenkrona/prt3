@@ -33,7 +33,7 @@ public:
     void prepare_imgui_rendering() final;
 
     void render(
-        RenderData const & render_data,
+        RenderData & render_data,
         bool editor
     ) final;
 
@@ -106,8 +106,12 @@ private:
     GLShader * m_selection_shader;
     GLShader * m_animated_selection_shader;
     GLShader * m_transparency_blend_shader;
+    GLShader * m_canvas_shader;
 
     ResourceID m_decal_mesh;
+
+    GLuint m_canvas_vao;
+    GLuint m_canvas_vbo;
 
     uint32_t m_frame = 0; // will overflow after a few years
 
@@ -123,6 +127,15 @@ private:
         bool editor,
         PassType type
     );
+
+    struct CanvasGeometry {
+        glm::vec4 pos_uv;
+        glm::vec4 color;
+    };
+
+    void create_canvas_geometry(std::vector<RenderRect2D> const & data);
+    void draw_canvas_elements(size_t start, size_t end, GLuint texture_id);
+    void render_canvas(std::vector<RenderRect2D> & data, bool editor);
 
     void render_imgui();
 

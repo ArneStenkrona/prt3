@@ -28,7 +28,7 @@ bool Engine::execute_frame() {
     if (m_transition_state != NO_TRANSITION) {
         Scene & scene = m_context.game_scene();
 
-        scene.collect_world_render_data(render_data.world);
+        scene.collect_render_data(render_data.scene);
 
         scene.get_camera().collect_camera_render_data(
             render_data.camera_data
@@ -67,7 +67,7 @@ bool Engine::execute_frame() {
 
                 scene.update(fixed_delta_time);
 
-                scene.collect_world_render_data(render_data.world);
+                scene.collect_render_data(render_data.scene);
 
                 scene.get_camera().collect_camera_render_data(
                     render_data.camera_data
@@ -88,7 +88,7 @@ bool Engine::execute_frame() {
 
                 m_editor.update(fixed_delta_time);
 
-                scene.collect_world_render_data(render_data.world);
+                scene.collect_render_data(render_data.scene);
 
                 m_editor.get_camera().collect_camera_render_data(
                     render_data.camera_data

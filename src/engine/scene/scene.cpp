@@ -30,6 +30,13 @@ void Scene::update(float delta_time) {
         armature.update(*this);
     }
 
+    auto & canvases =
+        m_component_manager.get_all_components<Canvas>();
+
+    for (Canvas & canvas : canvases) {
+        canvas.reset_stack();
+    }
+
     clear_node_mod_flags();
     m_component_manager.update(*this);
     m_script_container.update(*this, delta_time);
@@ -261,8 +268,8 @@ Input & Scene::get_input() {
     return m_context->input();
 }
 
-void Scene::collect_world_render_data(
-    WorldRenderData & world_data
+void Scene::collect_render_data(
+    SceneRenderData & scene_data
 ) {
     m_transform_cache.collect_global_transforms(
         m_nodes.data(),
@@ -305,15 +312,15 @@ void Scene::collect_world_render_data(
     std::vector<Animation> const & animations =
         m_animation_system.animations();
 
-    world_data.bone_data.resize(animations.size() + 1);
+    scene_data.bone_data.resize(animations.size() + 1);
     size_t bone_data_back_index = animations.size();
-    for (glm::mat4 & bone : world_data.bone_data[bone_data_back_index].bones) {
+    for (glm::mat4 & bone : scene_data.bone_data[bone_data_back_index].bones) {
         bone = glm::mat4{1.0f};
     }
 
     size_t bone_data_i = 0;
     for (Animation const & animation : animations) {
-        BoneData & bone_data = world_data.bone_data[bone_data_i];
+        BoneData & bone_data = scene_data.bone_data[bone_data_i];
 
         assert(animation.transforms.size() < bone_data.bones.size());
 
@@ -373,17 +380,17 @@ void Scene::collect_world_render_data(
             model_manager().get_model_from_mesh_id(mesh_comp.resource_id());
 
         if (!model.is_animated()) {
-            world_data.mesh_data.push_back(mesh_data);
+            scene_data.mesh_data.push_back(mesh_data);
         } else {
             AnimatedMeshRenderData data;
             data.mesh_data = mesh_data;
             data.bone_data_index = bone_data_back_index;
-            world_data.animated_mesh_data.push_back(data);
+            scene_data.animated_mesh_data.push_back(data);
         }
 
         if (selected_incl_children.find(id) !=
             selected_incl_children.end()) {
-            world_data.selected_mesh_data.push_back(mesh_data);
+            scene_data.selected_mesh_data.push_back(mesh_data);
         }
     }
 
@@ -414,17 +421,17 @@ void Scene::collect_world_render_data(
                 * model_node.inherited_transform.to_matrix();
 
             if (!model.is_animated()) {
-                world_data.mesh_data.push_back(mesh_data);
+                scene_data.mesh_data.push_back(mesh_data);
             } else {
                 AnimatedMeshRenderData data;
                 data.mesh_data = mesh_data;
                 data.bone_data_index = bone_data_back_index;
-                world_data.animated_mesh_data.push_back(data);
+                scene_data.animated_mesh_data.push_back(data);
             }
 
             if (selected_incl_children.find(id) !=
                 selected_incl_children.end()) {
-                world_data.selected_mesh_data.push_back(mesh_data);
+                scene_data.selected_mesh_data.push_back(mesh_data);
             }
         }
     }
@@ -462,11 +469,11 @@ void Scene::collect_world_render_data(
 
             data.mesh_data = mesh_data;
             data.bone_data_index = anim_id;
-            world_data.animated_mesh_data.push_back(data);
+            scene_data.animated_mesh_data.push_back(data);
 
             if (selected_incl_children.find(id) !=
                 selected_incl_children.end()) {
-                world_data.selected_animated_mesh_data.push_back(data);
+                scene_data.selected_animated_mesh_data.push_back(data);
             }
         }
     }
@@ -517,11 +524,11 @@ void Scene::collect_world_render_data(
         AnimatedMeshRenderData data;
         data.mesh_data = mesh_data;
         data.bone_data_index = anim_id;
-        world_data.animated_mesh_data.push_back(data);
+        scene_data.animated_mesh_data.push_back(data);
 
         if (selected_incl_children.find(id) !=
             selected_incl_children.end()) {
-            world_data.selected_animated_mesh_data.push_back(data);
+            scene_data.selected_animated_mesh_data.push_back(data);
         }
     }
 
@@ -544,17 +551,17 @@ void Scene::collect_world_render_data(
                    glm::distance2(b.position, camera_position);
         });
 
-    world_data.light_data.number_of_point_lights =
+    scene_data.light_data.number_of_point_lights =
         point_lights.size() < LightRenderData::MAX_NUMBER_OF_POINT_LIGHTS ?
             point_lights.size() : LightRenderData::MAX_NUMBER_OF_POINT_LIGHTS;
-    for (size_t i = 0; i < world_data.light_data.number_of_point_lights; ++i) {
-        world_data.light_data.point_lights[i] = point_lights[i];
+    for (size_t i = 0; i < scene_data.light_data.number_of_point_lights; ++i) {
+        scene_data.light_data.point_lights[i] = point_lights[i];
     }
 
-    world_data.light_data.directional_light = m_directional_light;
-    world_data.light_data.directional_light_on = m_directional_light_on;
+    scene_data.light_data.directional_light = m_directional_light;
+    scene_data.light_data.directional_light_on = m_directional_light_on;
 
-    world_data.light_data.ambient_light = m_ambient_light;
+    scene_data.light_data.ambient_light = m_ambient_light;
 
     /* decals */
     auto & decals = m_component_manager.get_all_components<Decal>();
@@ -564,9 +571,16 @@ void Scene::collect_world_render_data(
             get_node(decal.node_id()).get_global_transform(*this);
         tform.scale *= decal.dimensions();
 
-        world_data.decal_data.push_back({});
-        world_data.decal_data.back().texture = decal.texture_id();
-        world_data.decal_data.back().transform = tform.to_matrix();
+        scene_data.decal_data.push_back({});
+        scene_data.decal_data.back().texture = decal.texture_id();
+        scene_data.decal_data.back().transform = tform.to_matrix();
+    }
+
+    /* canvas */
+    auto & canvases =
+        m_component_manager.get_all_components<Canvas>();
+    for (Canvas & canvas : canvases) {
+        canvas.collect_render_data(*this, scene_data.canvas_data);
     }
 }
 
@@ -608,11 +622,10 @@ AudioManager & Scene::audio_manager() {
     return m_context->audio_manager();
 }
 
-#ifdef __EMSCRIPTEN__
-EM_BOOL one_iter(double, void*) {
-  return EM_TRUE;
+void Scene::get_window_size(unsigned int & w, unsigned int & h) const {
+    w = m_context->renderer().window_width();
+    h = m_context->renderer().window_height();
 }
-#endif
 
 void Scene::serialize(std::ostream & out) const {
     static std::unordered_map<NodeID, NodeID> compacted_ids;

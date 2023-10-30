@@ -112,6 +112,12 @@ GLRenderer::GLRenderer(
         "assets/shaders/opengl/transparency_blend_shader.fs"
     );
 
+    m_canvas_shader = new GLShader(
+        "assets/shaders/opengl/canvas.vs",
+        "assets/shaders/opengl/canvas.fs"
+    );
+
+    /* init decal objects */
     std::array<glm::vec3, 36> decal_vertices;
     insert_box(glm::vec3{-0.5f}, glm::vec3{0.5f}, decal_vertices.data());
 
@@ -119,6 +125,48 @@ GLRenderer::GLRenderer(
         decal_vertices.data(),
         decal_vertices.size()
     );
+
+    /* init canvas objects */
+    glGenVertexArrays(1, &m_canvas_vao);
+    glCheckError();
+    glBindVertexArray(m_canvas_vao);
+    glCheckError();
+
+    glGenBuffers(1, &m_canvas_vbo);
+    glCheckError();
+
+    static const GLVarString pos_uv_str = "a_PosUV";
+    GLint pos_uv_attr = m_canvas_shader->get_attrib_loc(pos_uv_str);
+    glCheckError();
+    glEnableVertexAttribArray(pos_uv_attr);
+    glCheckError();
+    glVertexAttribPointer(
+        pos_uv_attr,
+        4,
+        GL_FLOAT,
+        GL_FALSE,
+        sizeof(CanvasGeometry),
+        0
+    );
+    glCheckError();
+
+    static const GLVarString color_str = "a_Color";
+    GLint color_attr = m_canvas_shader->get_attrib_loc(color_str);
+    glCheckError();
+    glEnableVertexAttribArray(color_attr);
+    glCheckError();
+    glVertexAttribPointer(
+        color_attr,
+        4,
+        GL_FLOAT,
+        GL_FALSE,
+        sizeof(CanvasGeometry),
+        reinterpret_cast<void*>(offsetof(CanvasGeometry, color))
+    );
+    glCheckError();
+
+    glBindVertexArray(0);
+    glCheckError();
 }
 
 GLRenderer::~GLRenderer() {
@@ -128,6 +176,12 @@ GLRenderer::~GLRenderer() {
     m_model_manager.free_pos_mesh(m_decal_mesh);
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
+
+    /* free canvas objects */
+    glDeleteBuffers(1, &m_canvas_vbo);
+    glCheckError();
+    glDeleteBuffers(1, &m_canvas_vao);
+    glCheckError();
 }
 
 void GLRenderer::set_postprocessing_chains(
@@ -196,7 +250,7 @@ void GLRenderer::prepare_imgui_rendering() {
     ImGui_ImplGlfw_NewFrame();
 }
 
-void GLRenderer::render(RenderData const & render_data, bool editor) {
+void GLRenderer::render(RenderData & render_data, bool editor) {
     GLPostProcessingChain & chain = editor ?
         m_editor_postprocessing_chain :
         m_scene_postprocessing_chain;
@@ -213,7 +267,10 @@ void GLRenderer::render(RenderData const & render_data, bool editor) {
         );
     }
 
+    render_canvas(render_data.scene.canvas_data, editor);
+
     chain.render(render_data.camera_data, m_frame);
+
     if (editor) {
         render_imgui();
     }
@@ -349,7 +406,7 @@ void GLRenderer::render_framebuffer(
         glCheckError();
         bind_decal_data(*m_decal_shader, render_data.camera_data);
 
-        auto const & decal_data = render_data.world.decal_data;
+        auto const & decal_data = render_data.scene.decal_data;
         for (DecalRenderData const & data : decal_data) {
             static const GLVarString decal_map_str = "u_DecalMap";
             bind_texture(
@@ -388,7 +445,7 @@ void GLRenderer::render_framebuffer(
             pair.second.resize(0);
         }
 
-        for (MeshRenderData const & mesh_data : render_data.world.mesh_data) {
+        for (MeshRenderData const & mesh_data : render_data.scene.mesh_data) {
             GLMaterial const & mat = materials.at(mesh_data.material_id);
             if (mat.material().transparent != transparent) {
                 continue;
@@ -401,7 +458,7 @@ void GLRenderer::render_framebuffer(
             shader_queues[shader].push_back(mesh_data);
         }
 
-        for (AnimatedMeshRenderData const & data : render_data.world.animated_mesh_data) {
+        for (AnimatedMeshRenderData const & data : render_data.scene.animated_mesh_data) {
             GLMaterial const & mat = materials.at(data.mesh_data.material_id);
             if (mat.material().transparent != transparent) {
                 continue;
@@ -423,7 +480,7 @@ void GLRenderer::render_framebuffer(
             glCheckError();
 
             // Light data
-            LightRenderData const & light_data = render_data.world.light_data;
+            LightRenderData const & light_data = render_data.scene.light_data;
             bind_light_data(shader, light_data);
 
             for (MeshRenderData const & mesh_data : pair.second) {
@@ -460,7 +517,7 @@ void GLRenderer::render_framebuffer(
             glCheckError();
 
             // Light data
-            LightRenderData const & light_data = render_data.world.light_data;
+            LightRenderData const & light_data = render_data.scene.light_data;
             bind_light_data(shader, light_data);
 
             for (AnimatedMeshRenderData const & data : pair.second) {
@@ -486,7 +543,7 @@ void GLRenderer::render_framebuffer(
 
                 bind_bone_data(
                     shader,
-                    render_data.world.bone_data[data.bone_data_index]
+                    render_data.scene.bone_data[data.bone_data_index]
                 );
 
                 meshes.at(mesh_data.mesh_id).draw_elements_triangles();
@@ -563,7 +620,7 @@ void GLRenderer::render_framebuffer(
     } else {
         glUseProgram(m_selection_shader->shader());
         glCheckError();
-        auto const & selected_meshes = render_data.world.selected_mesh_data;
+        auto const & selected_meshes = render_data.scene.selected_mesh_data;
         for (MeshRenderData const & selected_mesh_data : selected_meshes) {
             bind_transform_and_camera_data(
                 *m_selection_shader,
@@ -581,7 +638,7 @@ void GLRenderer::render_framebuffer(
         glUseProgram(m_animated_selection_shader->shader());
         glCheckError();
         for (AnimatedMeshRenderData const & data :
-            render_data.world.selected_animated_mesh_data) {
+            render_data.scene.selected_animated_mesh_data) {
             MeshRenderData const & mesh_data = data.mesh_data;
 
             bind_transform_and_camera_data(
@@ -595,10 +652,114 @@ void GLRenderer::render_framebuffer(
             );
             bind_bone_data(
                 *m_animated_selection_shader,
-                render_data.world.bone_data[data.bone_data_index]
+                render_data.scene.bone_data[data.bone_data_index]
             );
 
             meshes.at(mesh_data.mesh_id).draw_elements_triangles();
+        }
+    }
+}
+
+void GLRenderer::create_canvas_geometry(
+    std::vector<RenderRect2D> const & data
+) {
+    thread_local std::vector<CanvasGeometry> geometry;
+    for (RenderRect2D const & rect : data) {
+        glm::vec2 dim = rect.dimension;
+
+        glm::vec2 pos = rect.position;
+
+        glm::vec4 v0{ pos.x,         pos.y,         rect.uv0.x, rect.uv0.y };
+        glm::vec4 v1{ pos.x + dim.x, pos.y,         rect.uv1.x, rect.uv1.y };
+        glm::vec4 v2{ pos.x + dim.x, pos.y + dim.y, rect.uv2.x, rect.uv2.y };
+        glm::vec4 v3{ pos.x,         pos.y + dim.y, rect.uv3.x, rect.uv3.y };
+
+        geometry.emplace_back(CanvasGeometry{ v0, rect.color });
+        geometry.emplace_back(CanvasGeometry{ v1, rect.color });
+        geometry.emplace_back(CanvasGeometry{ v2, rect.color });
+
+        geometry.emplace_back(CanvasGeometry{ v2, rect.color });
+        geometry.emplace_back(CanvasGeometry{ v1, rect.color });
+        geometry.emplace_back(CanvasGeometry{ v3, rect.color });
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_canvas_vbo);
+    glCheckError();
+
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        geometry.size() * sizeof(geometry[0]),
+        geometry.data(),
+        GL_DYNAMIC_DRAW
+    );
+    glCheckError();
+}
+
+void GLRenderer::draw_canvas_elements(
+    size_t start,
+    size_t end,
+    GLuint texture_id
+) {
+    static const GLVarString tex_str = "u_Texture";
+    glUniform1i(m_canvas_shader->get_uniform_loc(tex_str), 0);
+    glCheckError();
+    glActiveTexture(GL_TEXTURE0);
+    glCheckError();
+    glBindTexture(GL_TEXTURE_2D, texture_id);
+    glCheckError();
+
+    glBindVertexArray(m_canvas_vao);
+    glDrawArrays(GL_TRIANGLES, start, (end - start) + 1);
+}
+
+void GLRenderer::render_canvas(
+    std::vector<RenderRect2D> & data,
+    bool editor
+) {
+    if (data.empty()) return;
+
+    GLPostProcessingChain & chain = editor ?
+        m_editor_postprocessing_chain :
+        m_scene_postprocessing_chain;
+
+    glDepthMask(GL_FALSE);
+    glCheckError();
+    glDisable(GL_DEPTH_TEST);
+    glCheckError();
+    glEnable(GL_BLEND);
+    glCheckError();
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glCheckError();
+
+    GLuint framebuffer = chain.empty() ? 0 : m_source_buffers.framebuffer();
+
+    GLenum attachment = GL_COLOR_ATTACHMENT0;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glCheckError();
+    glDrawBuffers(1, &attachment);
+    glCheckError();
+    glUseProgram(m_canvas_shader->shader());
+    glCheckError();
+
+    /* sort canvas data */
+    std::sort(data.begin(), data.end(),
+    [] (RenderRect2D const & a, RenderRect2D const & b)
+        {
+            return (a.layer < b.layer);
+        }
+    );
+
+    create_canvas_geometry(data);
+
+    size_t group_start = 0;
+    for (size_t i = 0; i < data.size(); ++i) {
+        if (i + 1 == data.size() || data[i].texture != data[i + 1].texture) {
+            GLuint tex_id = data[i].texture == NO_RESOURCE ?
+                m_texture_manager.texture_1x1_0xffffffff() : data[i].texture;
+
+            draw_canvas_elements(group_start, i, tex_id);
+            group_start = i + 1;
         }
     }
 }
