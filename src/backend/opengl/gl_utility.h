@@ -13,7 +13,16 @@ typedef FixedString<64> GLVarString;
 GLenum glCheckError_(const char * file, int line);
 
 } // namespace prt3
-// #define glCheckError() glCheckError_(__FILE__, __LINE__)
-#define glCheckError()
+
+// #define PRT3GLDEBUG
+
+#ifdef PRT3GLDEBUG
+    #define GL_CHECK(stmt) do { \
+            stmt; \
+            glCheckError_(__FILE__, __LINE__); \
+        } while (0)
+#else
+    #define GL_CHECK(stmt) stmt
+#endif
 
 #endif

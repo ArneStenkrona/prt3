@@ -15,6 +15,8 @@ namespace prt3 {
 
 class GLPostProcessingChain {
 public:
+    ~GLPostProcessingChain() { clear_chain(); }
+
     void set_chain(
         PostProcessingChain const & chain,
         GLSourceBuffers const & source_buffers,

@@ -13,18 +13,15 @@ void generate_fb_texture(
     GLenum   /*type*/,
     GLenum   attachment
 ) {
-    glGenTextures(1, &texture);
-    glCheckError();
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glCheckError();
-    glTexStorage2D(
+    GL_CHECK(glGenTextures(1, &texture));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
+    GL_CHECK(glTexStorage2D(
         GL_TEXTURE_2D,
         1,
         internal_format,
         width,
         height
-    );
-    glCheckError();
+    ));
 
     // glTexImage2D slower?
     // glTexImage2D(
@@ -39,32 +36,25 @@ void generate_fb_texture(
     //     0
     // );
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glCheckError();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glCheckError();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glCheckError();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glCheckError();
+    GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+    GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+    GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+    GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
 
-    glFramebufferTexture2D(
+    GL_CHECK(glFramebufferTexture2D(
         GL_FRAMEBUFFER,
         attachment,
         GL_TEXTURE_2D,
         texture,
         0
-    );
-    glCheckError();
+    ));
 }
 
 void GLSourceBuffers::init(GLint width, GLint height) {
     clean_up();
 
-    glGenFramebuffers(1, &m_framebuffer);
-    glCheckError();
-    glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
-    glCheckError();
+    GL_CHECK(glGenFramebuffers(1, &m_framebuffer));
+    GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer));
 
     generate_fb_texture(
         m_color_texture,
@@ -106,7 +96,9 @@ void GLSourceBuffers::init(GLint width, GLint height) {
         GL_DEPTH_ATTACHMENT
     );
 
-    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+    GLenum fb_status;
+    GL_CHECK(fb_status = glCheckFramebufferStatus(GL_FRAMEBUFFER));
+    if(fb_status != GL_FRAMEBUFFER_COMPLETE) {
         assert(false && "Failed to create framebuffer!");
     }
 
@@ -116,14 +108,11 @@ void GLSourceBuffers::init(GLint width, GLint height) {
         GL_COLOR_ATTACHMENT2,
     };
 
-    glDrawBuffers(3, attachments);
-    glCheckError();
+    GL_CHECK(glDrawBuffers(3, attachments));
 
     // selection framebuffer
-    glGenFramebuffers(1, &m_selection_framebuffer);
-    glCheckError();
-    glBindFramebuffer(GL_FRAMEBUFFER, m_selection_framebuffer);
-    glCheckError();
+    GL_CHECK(glGenFramebuffers(1, &m_selection_framebuffer));
+    GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, m_selection_framebuffer));
 
     generate_fb_texture(
         m_selected_texture,
@@ -143,8 +132,7 @@ void GLSourceBuffers::init(GLint width, GLint height) {
         GL_COLOR_ATTACHMENT0
     };
 
-    glDrawBuffers(1, selection_attachments);
-    glCheckError();
+    GL_CHECK(glDrawBuffers(1, selection_attachments));
 
     // uniforms
     m_uniform_names.emplace_back("u_ColorBuffer", m_color_texture);
@@ -154,8 +142,8 @@ void GLSourceBuffers::init(GLint width, GLint height) {
     m_uniform_names.emplace_back("u_DepthBuffer", m_depth_texture);
 
     // transparency
-    glGenFramebuffers(1, &m_accum_framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, m_accum_framebuffer);
+    GL_CHECK(glGenFramebuffers(1, &m_accum_framebuffer));
+    GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, m_accum_framebuffer));
 
     generate_fb_texture(
         m_accum_texture,
@@ -177,47 +165,40 @@ void GLSourceBuffers::init(GLint width, GLint height) {
         GL_COLOR_ATTACHMENT1
     );
 
-    glFramebufferTexture2D(
+    GL_CHECK(glFramebufferTexture2D(
         GL_FRAMEBUFFER,
         GL_DEPTH_ATTACHMENT,
         GL_TEXTURE_2D,
         m_depth_texture,
         0
-    );
+    ));
 
     m_transparency_uniform_names.emplace_back("u_AccumBuffer", m_accum_texture);
     m_transparency_uniform_names.emplace_back("u_AccumAlphaBuffer", m_accum_alpha_texture);
 
     // decal
-    glDrawBuffers(0, nullptr);
-    glCheckError();
+    GL_CHECK(glDrawBuffers(0, nullptr));
 
-    glGenFramebuffers(1, &m_decal_framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, m_decal_framebuffer);
+    GL_CHECK(glGenFramebuffers(1, &m_decal_framebuffer));
+    GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, m_decal_framebuffer));
 
-    glFramebufferTexture2D(
+    GL_CHECK(glFramebufferTexture2D(
         GL_FRAMEBUFFER,
         GL_COLOR_ATTACHMENT0,
         GL_TEXTURE_2D,
         m_color_texture,
         0
-    );
+    ));
 }
 
 void GLSourceBuffers::clean_up() {
     if (m_framebuffer != 0) {
-        glDeleteFramebuffers(1, &m_framebuffer);
-        glCheckError();
-        glDeleteTextures(1, &m_color_texture);
-        glCheckError();
-        glDeleteTextures(1, &m_normal_texture);
-        glCheckError();
-        glDeleteTextures(1, &m_node_data_texture);
-        glCheckError();
-        glDeleteTextures(1, &m_selected_texture);
-        glCheckError();
-        glDeleteTextures(1, &m_depth_texture);
-        glCheckError();
+        GL_CHECK(glDeleteFramebuffers(1, &m_framebuffer));
+        GL_CHECK(glDeleteTextures(1, &m_color_texture));
+        GL_CHECK(glDeleteTextures(1, &m_normal_texture));
+        GL_CHECK(glDeleteTextures(1, &m_node_data_texture));
+        GL_CHECK(glDeleteTextures(1, &m_selected_texture));
+        GL_CHECK(glDeleteTextures(1, &m_depth_texture));
 
         m_color_texture = 0;
         m_normal_texture = 0;
@@ -229,17 +210,13 @@ void GLSourceBuffers::clean_up() {
     }
 
     if (m_selection_framebuffer != 0) {
-        glDeleteFramebuffers(1, &m_selection_framebuffer);
-        glCheckError();
+        GL_CHECK(glDeleteFramebuffers(1, &m_selection_framebuffer));
     }
 
     if (m_accum_framebuffer != 0) {
-        glDeleteFramebuffers(1, &m_accum_framebuffer);
-        glCheckError();
-        glDeleteTextures(1, &m_accum_texture);
-        glCheckError();
-        glDeleteTextures(1, &m_accum_alpha_texture);
-        glCheckError();
+        GL_CHECK(glDeleteFramebuffers(1, &m_accum_framebuffer));
+        GL_CHECK(glDeleteTextures(1, &m_accum_texture));
+        GL_CHECK(glDeleteTextures(1, &m_accum_alpha_texture));
 
         m_accum_texture = 0;
         m_accum_alpha_texture = 0;
@@ -248,7 +225,6 @@ void GLSourceBuffers::clean_up() {
     }
 
     if (m_decal_framebuffer != 0) {
-        glDeleteFramebuffers(1, &m_decal_framebuffer);
-        glCheckError();
+        GL_CHECK(glDeleteFramebuffers(1, &m_decal_framebuffer));
     }
 }

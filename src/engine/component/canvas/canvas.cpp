@@ -70,10 +70,11 @@ void Canvas::collect_render_data(Scene const & scene, std::vector<RenderRect2D> 
     scene.get_window_size(w, h);
     stack_info[0].dimension = glm::vec2{w, h};
 
-    int32_t curr_parent = -1;
+    int32_t curr_parent = -2;
     for (CanvasStackNode const & sn : m_node_stack) {
         CanvasNode const & n = sn.n;
         bool moved_up_stack = curr_parent < sn.parent;
+        curr_parent = sn.parent;
 
         if (!moved_up_stack) {
             stack_info.pop_back();
@@ -99,7 +100,7 @@ void Canvas::collect_render_data(Scene const & scene, std::vector<RenderRect2D> 
                 break;
             }
             case CanvasNode::UnitType::relative: {
-                dimension = curr_info.dimension * dimension;
+                dimension = curr_info.dimension * n.dimension;
                 break;
             }
         }
@@ -147,8 +148,9 @@ void Canvas::collect_render_data(Scene const & scene, std::vector<RenderRect2D> 
             rect.uv1 = n.uv1;
             rect.uv2 = n.uv2;
             rect.uv3 = n.uv3;
-            rect.position = position / glm::vec2{w, h};
-            rect.dimension = dimension;
+            /* convert to view space coordinates */
+            rect.position = 2.0f * (position / glm::vec2{w, h}) - 1.0f;
+            rect.dimension = 2.0f * (dimension / glm::vec2{w, h});
             rect.texture = n.texture;
             rect.layer = n.layer + m_layer * (UINT16_MAX + 1);
 

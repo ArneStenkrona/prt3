@@ -120,6 +120,7 @@ struct RenderData {
         scene.selected_mesh_data.clear();
         scene.selected_animated_mesh_data.clear();
         scene.decal_data.clear();
+        scene.canvas_data.clear();
         editor_data.line_data.clear();
     }
 };

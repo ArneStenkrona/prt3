@@ -18,8 +18,9 @@ GLenum prt3::glCheckError_(const char * file, int line) {
             case 1284:               error = "STACK_UNDERFLOW"; break;
             case 1285:                 error = "OUT_OF_MEMORY"; break;
             case 1286: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
+            default: error = "UNKNOWN ERROR"; break;
         }
-        PRT3ERROR("%s | %s | ( %d )\n", error.c_str(), file, line);
+        PRT3ERROR("%s at %s:%d \n", error.c_str(), file, line);
     }
     return errorCode;
 }

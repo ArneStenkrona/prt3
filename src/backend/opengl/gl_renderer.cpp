@@ -47,27 +47,20 @@ GLRenderer::GLRenderer(
     }
 
     /* Enable GL functionality */
-    glEnable(GL_DEPTH_TEST);
-    glCheckError();
-    glDepthFunc(GL_LESS);
-    glCheckError();
-    glEnable(GL_CULL_FACE);
-    glCheckError();
-    glCullFace(GL_BACK);
-    glCheckError();
+    GL_CHECK(glEnable(GL_DEPTH_TEST));
+    GL_CHECK(glDepthFunc(GL_LESS));
+    GL_CHECK(glEnable(GL_CULL_FACE));
+    GL_CHECK(glCullFace(GL_BACK));
 
     m_texture_manager.init();
     m_material_manager.init();
 
     ImGui_ImplGlfw_InitForOpenGL(m_window, false);
-    glCheckError();
     ImGui_ImplOpenGL3_Init("#version 300 es");
-    glCheckError();
 
     int w;
     int h;
     glfwGetWindowSize(m_window, &w, &h);
-    glCheckError();
     GLint buffer_width = static_cast<GLint>(w / m_downscale_factor);
     GLint buffer_height = static_cast<GLint>(h / m_downscale_factor);
     m_source_buffers.init(buffer_width, buffer_height);
@@ -88,33 +81,43 @@ GLRenderer::GLRenderer(
     editor_pass_info.downscale_factor = 1.0f;
 
     set_postprocessing_chains(
-        PostProcessingChain{{ pixel_pass_info, game_pass_info }},
+        PostProcessingChain{{ game_pass_info, pixel_pass_info  }},
         PostProcessingChain{{ pixel_pass_info, editor_pass_info }}
     );
 
     m_decal_shader = new GLShader(
-        "assets/shaders/opengl/decal.vs",
-        "assets/shaders/opengl/decal.fs"
+        glshaderutility::create_shader(
+            "assets/shaders/opengl/decal.vs",
+            "assets/shaders/opengl/decal.fs"
+        )
     );
 
     m_selection_shader = new GLShader(
-        "assets/shaders/opengl/standard.vs",
-        "assets/shaders/opengl/write_selected.fs"
+        glshaderutility::create_shader(
+            "assets/shaders/opengl/standard.vs",
+            "assets/shaders/opengl/write_selected.fs"
+        )
     );
 
     m_animated_selection_shader = new GLShader(
-        "assets/shaders/opengl/standard_animated.vs",
-        "assets/shaders/opengl/write_selected.fs"
+        glshaderutility::create_shader(
+            "assets/shaders/opengl/standard_animated.vs",
+            "assets/shaders/opengl/write_selected.fs"
+        )
     );
 
     m_transparency_blend_shader = new GLShader(
-        "assets/shaders/opengl/passthrough.vs",
-        "assets/shaders/opengl/transparency_blend_shader.fs"
+        glshaderutility::create_shader(
+            "assets/shaders/opengl/passthrough.vs",
+            "assets/shaders/opengl/transparency_blend_shader.fs"
+        )
     );
 
     m_canvas_shader = new GLShader(
-        "assets/shaders/opengl/canvas.vs",
-        "assets/shaders/opengl/canvas.fs"
+         glshaderutility::create_shader(
+            "assets/shaders/opengl/canvas.vs",
+            "assets/shaders/opengl/canvas.fs"
+         )
     );
 
     /* init decal objects */
@@ -127,46 +130,38 @@ GLRenderer::GLRenderer(
     );
 
     /* init canvas objects */
-    glGenVertexArrays(1, &m_canvas_vao);
-    glCheckError();
-    glBindVertexArray(m_canvas_vao);
-    glCheckError();
-
-    glGenBuffers(1, &m_canvas_vbo);
-    glCheckError();
+    GL_CHECK(glGenVertexArrays(1, &m_canvas_vao));
+    GL_CHECK(glBindVertexArray(m_canvas_vao));
+    GL_CHECK(glGenBuffers(1, &m_canvas_vbo));
+    GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_canvas_vbo));
 
     static const GLVarString pos_uv_str = "a_PosUV";
-    GLint pos_uv_attr = m_canvas_shader->get_attrib_loc(pos_uv_str);
-    glCheckError();
-    glEnableVertexAttribArray(pos_uv_attr);
-    glCheckError();
-    glVertexAttribPointer(
+    GLint pos_uv_attr;
+    GL_CHECK(pos_uv_attr = m_canvas_shader->get_attrib_loc(pos_uv_str));
+    GL_CHECK(glEnableVertexAttribArray(pos_uv_attr));
+    GL_CHECK(glVertexAttribPointer(
         pos_uv_attr,
         4,
         GL_FLOAT,
         GL_FALSE,
         sizeof(CanvasGeometry),
         0
-    );
-    glCheckError();
+    ));
 
     static const GLVarString color_str = "a_Color";
-    GLint color_attr = m_canvas_shader->get_attrib_loc(color_str);
-    glCheckError();
-    glEnableVertexAttribArray(color_attr);
-    glCheckError();
-    glVertexAttribPointer(
+    GLint color_attr;
+    GL_CHECK(color_attr = m_canvas_shader->get_attrib_loc(color_str));
+    GL_CHECK(glEnableVertexAttribArray(color_attr));
+    GL_CHECK(glVertexAttribPointer(
         color_attr,
         4,
         GL_FLOAT,
         GL_FALSE,
         sizeof(CanvasGeometry),
         reinterpret_cast<void*>(offsetof(CanvasGeometry, color))
-    );
-    glCheckError();
+    ));
 
-    glBindVertexArray(0);
-    glCheckError();
+    GL_CHECK(glBindVertexArray(0));
 }
 
 GLRenderer::~GLRenderer() {
@@ -178,10 +173,14 @@ GLRenderer::~GLRenderer() {
     ImGui_ImplGlfw_Shutdown();
 
     /* free canvas objects */
-    glDeleteBuffers(1, &m_canvas_vbo);
-    glCheckError();
-    glDeleteBuffers(1, &m_canvas_vao);
-    glCheckError();
+    GL_CHECK(glDeleteBuffers(1, &m_canvas_vbo));
+    GL_CHECK(glDeleteBuffers(1, &m_canvas_vao));
+
+    GL_CHECK(glDeleteProgram(m_decal_shader->shader()));
+    GL_CHECK(glDeleteProgram(m_selection_shader->shader()));
+    GL_CHECK(glDeleteProgram(m_animated_selection_shader->shader()));
+    GL_CHECK(glDeleteProgram(m_transparency_blend_shader->shader()));
+    GL_CHECK(glDeleteProgram(m_canvas_shader->shader()));
 }
 
 void GLRenderer::set_postprocessing_chains(
@@ -210,18 +209,18 @@ NodeID GLRenderer::get_selected(int x, int y) {
     int h;
     glfwGetWindowSize(m_window, &w, &h);
 
-    glFlush();
-    glFinish();
+    GL_CHECK(glFlush());
+    GL_CHECK(glFinish());
 
-    glBindFramebuffer(
+    GL_CHECK(glBindFramebuffer(
         GL_FRAMEBUFFER,
         m_source_buffers.framebuffer()
-    );
+    ));
 
-    glReadBuffer(m_source_buffers.node_data_attachment());
+    GL_CHECK(glReadBuffer(m_source_buffers.node_data_attachment()));
 
     GLubyte data[4];
-    glReadPixels(
+    GL_CHECK(glReadPixels(
         x / m_downscale_factor,
         (h - y) / m_downscale_factor,
         1,
@@ -229,7 +228,7 @@ NodeID GLRenderer::get_selected(int x, int y) {
         GL_RGBA,
         GL_UNSIGNED_BYTE,
         &data
-    );
+    ));
 
     uint32_t raw_id = 0;
     memcpy(&raw_id, data, 3);
@@ -267,16 +266,15 @@ void GLRenderer::render(RenderData & render_data, bool editor) {
         );
     }
 
-    render_canvas(render_data.scene.canvas_data, editor);
-
     chain.render(render_data.camera_data, m_frame);
+
+    render_canvas(render_data.scene.canvas_data);
 
     if (editor) {
         render_imgui();
     }
 
     glfwSwapBuffers(m_window);
-    glCheckError();
 
     ++m_frame;
 }
@@ -317,14 +315,12 @@ void GLRenderer::render_framebuffer(
     int w;
     int h;
     glfwGetWindowSize(m_window, &w, &h);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    glCheckError();
+    GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer));
 
     GLint view_w = static_cast<GLint>(w / m_downscale_factor);
     GLint view_h = static_cast<GLint>(h / m_downscale_factor);
 
-    glViewport(0, 0, view_w, view_h);
-    glCheckError();
+    GL_CHECK(glViewport(0, 0, view_w, view_h));
 
     GLenum attachments[3] = {
         GL_COLOR_ATTACHMENT0,
@@ -333,77 +329,53 @@ void GLRenderer::render_framebuffer(
     };
 
     if (decal) {
-        glDepthMask(GL_FALSE);
-        glCheckError();
-        glDisable(GL_DEPTH_TEST);
-        glCheckError();
-        glCullFace(GL_FRONT);
-        glCheckError();
-        glDisable(GL_BLEND);
-        glEnable(GL_BLEND);
-        glCheckError();
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glCheckError();
-        glBlendEquation(GL_FUNC_ADD);
-        glCheckError();
+        GL_CHECK(glDepthMask(GL_FALSE));
+        GL_CHECK(glDisable(GL_DEPTH_TEST));
+        GL_CHECK(glEnable(GL_CULL_FACE));
+        GL_CHECK(glCullFace(GL_FRONT));
+        GL_CHECK(glDisable(GL_BLEND));
+        GL_CHECK(glEnable(GL_BLEND));
+        GL_CHECK(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+        GL_CHECK(glBlendEquation(GL_FUNC_ADD));
 
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glCheckError();
+        GL_CHECK(glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
 
-        glDrawBuffers(1, attachments);
-        glCheckError();
+        GL_CHECK(glDrawBuffers(1, attachments));
     } else if (transparent) {
-        glDepthMask(GL_FALSE);
-        glCheckError();
-        glEnable(GL_DEPTH_TEST);
-        glCheckError();
-        glCullFace(GL_BACK);
-        glCheckError();
+        GL_CHECK(glDepthMask(GL_FALSE));
+        GL_CHECK(glEnable(GL_DEPTH_TEST));
+        GL_CHECK(glEnable(GL_CULL_FACE));
+        GL_CHECK(glCullFace(GL_BACK));
 
-        glEnable(GL_BLEND);
-        glCheckError();
-        glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
-        glCheckError();
-        glBlendEquation(GL_FUNC_ADD);
-        glCheckError();
+        GL_CHECK(glEnable(GL_BLEND));
+        GL_CHECK(glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA));
+        GL_CHECK(glBlendEquation(GL_FUNC_ADD));
 
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glCheckError();
+        GL_CHECK(glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
 
-        glDrawBuffers(2, attachments);
-        glCheckError();
+        GL_CHECK(glDrawBuffers(2, attachments));
 
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glCheckError();
-        glClear(GL_COLOR_BUFFER_BIT);
-        glCheckError();
+        GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
+        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
     } else {
-        glDepthMask(GL_TRUE);
-        glCheckError();
-        glEnable(GL_DEPTH_TEST);
-        glCheckError();
-        glCullFace(GL_BACK);
-        glCheckError();
+        GL_CHECK(glDepthMask(GL_TRUE));
+        GL_CHECK(glEnable(GL_DEPTH_TEST));
+        GL_CHECK(glEnable(GL_CULL_FACE));
+        GL_CHECK(glCullFace(GL_BACK));
 
-        glDisable(GL_BLEND);
-        glCheckError();
+        GL_CHECK(glDisable(GL_BLEND));
 
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glCheckError();
+        GL_CHECK(glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
 
-        glDrawBuffers(3, attachments);
-        glCheckError();
+        GL_CHECK(glDrawBuffers(3, attachments));
 
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        glCheckError();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glCheckError();
+        GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
+        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
     }
 
     auto const & meshes = m_model_manager.meshes();
     if (type == PassType::decal) {
-        glUseProgram(m_decal_shader->shader());
-        glCheckError();
+        GL_CHECK(glUseProgram(m_decal_shader->shader()));
         bind_decal_data(*m_decal_shader, render_data.camera_data);
 
         auto const & decal_data = render_data.scene.decal_data;
@@ -424,7 +396,12 @@ void GLRenderer::render_framebuffer(
 
             static const GLVarString inv_mmatrix_str = "u_InvMMatrix";
             glm::mat4 inv_mmatrix = glm::inverse(data.transform);
-            glUniformMatrix4fv(m_decal_shader->get_uniform_loc(inv_mmatrix_str), 1, GL_FALSE, &inv_mmatrix[0][0]);
+            GL_CHECK(glUniformMatrix4fv(
+                m_decal_shader->get_uniform_loc(inv_mmatrix_str),
+                1,
+                GL_FALSE,
+                &inv_mmatrix[0][0]
+            ));
 
             m_model_manager.meshes().at(m_decal_mesh).draw_array_triangles();
         }
@@ -476,8 +453,7 @@ void GLRenderer::render_framebuffer(
 
             GLShader const & shader = *pair.first;
             GLuint shader_id = shader.shader();
-            glUseProgram(shader_id);
-            glCheckError();
+            GL_CHECK(glUseProgram(shader_id));
 
             // Light data
             LightRenderData const & light_data = render_data.scene.light_data;
@@ -505,7 +481,6 @@ void GLRenderer::render_framebuffer(
 
                 meshes.at(mesh_data.mesh_id).draw_elements_triangles();
             }
-            glCheckError();
         }
 
         for (auto const & pair : animated_shader_queues) {
@@ -513,8 +488,7 @@ void GLRenderer::render_framebuffer(
 
             GLShader const & shader = *pair.first;
             GLuint shader_id = shader.shader();
-            glUseProgram(shader_id);
-            glCheckError();
+            GL_CHECK(glUseProgram(shader_id));
 
             // Light data
             LightRenderData const & light_data = render_data.scene.light_data;
@@ -548,22 +522,17 @@ void GLRenderer::render_framebuffer(
 
                 meshes.at(mesh_data.mesh_id).draw_elements_triangles();
             }
-            glCheckError();
         }
 
         /* Wireframes */
         if (!transparent) {
-            glDrawBuffers(1, attachments);
-            glCheckError();
+            GL_CHECK(glDrawBuffers(1, attachments));
 
-            glEnable(GL_POLYGON_OFFSET_FILL);
-            glCheckError();
-            glPolygonOffset(1.0, 1.0);
-            glCheckError();
+            GL_CHECK(glEnable(GL_POLYGON_OFFSET_FILL));
+            GL_CHECK(glPolygonOffset(1.0, 1.0));
 
             GLShader const & shader = m_material_manager.wireframe_shader();
-            glUseProgram(shader.shader());
-            glCheckError();
+            GL_CHECK(glUseProgram(shader.shader()));
 
             EditorRenderData const & editor_data = render_data.editor_data;
             for (WireframeRenderData const & data : editor_data.line_data) {
@@ -574,52 +543,37 @@ void GLRenderer::render_framebuffer(
                 );
 
                 static const GLVarString color_str = "u_Color";
-                glUniform4fv(shader.get_uniform_loc(color_str), 1, &data.color[0]);
-                glCheckError();
+                GL_CHECK(glUniform4fv(shader.get_uniform_loc(color_str), 1, &data.color[0]));
 
                 meshes.at(data.mesh_id).draw_array_lines();
             }
 
-            glDisable(GL_POLYGON_OFFSET_FILL);
+            GL_CHECK(glDisable(GL_POLYGON_OFFSET_FILL));
         }
 
         if (transparent) {
             GLShader & shader = *m_transparency_blend_shader;
-            glBindFramebuffer(GL_FRAMEBUFFER, opaque_framebuffer);
-            glCheckError();
-            glDrawBuffers(1, attachments);
-            glCheckError();
-            glUseProgram(shader.shader());
-            glCheckError();
-            glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-            glCheckError();
+            GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, opaque_framebuffer));
+            GL_CHECK(glDrawBuffers(1, attachments));
+            GL_CHECK(glUseProgram(shader.shader()));
+            GL_CHECK(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
 
             static const GLVarString accum_str = "uAccumulate";
-            glUniform1i(shader.get_uniform_loc(accum_str), 0);
-            glCheckError();
-            glActiveTexture(GL_TEXTURE0);
-            glCheckError();
-            glBindTexture(GL_TEXTURE_2D, m_source_buffers.accum_texture());
-            glCheckError();
+            GL_CHECK(glUniform1i(shader.get_uniform_loc(accum_str), 0));
+            GL_CHECK(glActiveTexture(GL_TEXTURE0));
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_source_buffers.accum_texture()));
 
             static const GLVarString accum_alpha_str = "uAccumulateAlpha";
-            glUniform1i(shader.get_uniform_loc(accum_alpha_str), 1);
-            glCheckError();
-            glActiveTexture(GL_TEXTURE1);
-            glCheckError();
-            glBindTexture(GL_TEXTURE_2D, m_source_buffers.accum_alpha_texture());
-            glCheckError();
+            GL_CHECK(glUniform1i(shader.get_uniform_loc(accum_alpha_str), 1));
+            GL_CHECK(glActiveTexture(GL_TEXTURE1));
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_source_buffers.accum_alpha_texture()));
 
-            glBindVertexArray(chain.screen_quad_vao());
-            glCheckError();
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-            glCheckError();
-            glBindVertexArray(0);
-            glCheckError();
+            GL_CHECK(glBindVertexArray(chain.screen_quad_vao()));
+            GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
+            GL_CHECK(glBindVertexArray(0));
         }
     } else {
-        glUseProgram(m_selection_shader->shader());
-        glCheckError();
+        GL_CHECK(glUseProgram(m_selection_shader->shader()));
         auto const & selected_meshes = render_data.scene.selected_mesh_data;
         for (MeshRenderData const & selected_mesh_data : selected_meshes) {
             bind_transform_and_camera_data(
@@ -635,8 +589,7 @@ void GLRenderer::render_framebuffer(
             meshes.at(selected_mesh_data.mesh_id).draw_elements_triangles();
         }
 
-        glUseProgram(m_animated_selection_shader->shader());
-        glCheckError();
+        GL_CHECK(glUseProgram(m_animated_selection_shader->shader()));
         for (AnimatedMeshRenderData const & data :
             render_data.scene.selected_animated_mesh_data) {
             MeshRenderData const & mesh_data = data.mesh_data;
@@ -664,10 +617,11 @@ void GLRenderer::create_canvas_geometry(
     std::vector<RenderRect2D> const & data
 ) {
     thread_local std::vector<CanvasGeometry> geometry;
-    for (RenderRect2D const & rect : data) {
-        glm::vec2 dim = rect.dimension;
+    geometry.clear();
 
+    for (RenderRect2D const & rect : data) {
         glm::vec2 pos = rect.position;
+        glm::vec2 dim = rect.dimension;
 
         glm::vec4 v0{ pos.x,         pos.y,         rect.uv0.x, rect.uv0.y };
         glm::vec4 v1{ pos.x + dim.x, pos.y,         rect.uv1.x, rect.uv1.y };
@@ -678,21 +632,18 @@ void GLRenderer::create_canvas_geometry(
         geometry.emplace_back(CanvasGeometry{ v1, rect.color });
         geometry.emplace_back(CanvasGeometry{ v2, rect.color });
 
+        geometry.emplace_back(CanvasGeometry{ v0, rect.color });
         geometry.emplace_back(CanvasGeometry{ v2, rect.color });
-        geometry.emplace_back(CanvasGeometry{ v1, rect.color });
         geometry.emplace_back(CanvasGeometry{ v3, rect.color });
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_canvas_vbo);
-    glCheckError();
-
-    glBufferData(
+    GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_canvas_vbo));
+    GL_CHECK(glBufferData(
         GL_ARRAY_BUFFER,
         geometry.size() * sizeof(geometry[0]),
         geometry.data(),
         GL_DYNAMIC_DRAW
-    );
-    glCheckError();
+    ));
 }
 
 void GLRenderer::draw_canvas_elements(
@@ -701,46 +652,36 @@ void GLRenderer::draw_canvas_elements(
     GLuint texture_id
 ) {
     static const GLVarString tex_str = "u_Texture";
-    glUniform1i(m_canvas_shader->get_uniform_loc(tex_str), 0);
-    glCheckError();
-    glActiveTexture(GL_TEXTURE0);
-    glCheckError();
-    glBindTexture(GL_TEXTURE_2D, texture_id);
-    glCheckError();
+    GL_CHECK(glUniform1i(m_canvas_shader->get_uniform_loc(tex_str), 0));
+    GL_CHECK(glActiveTexture(GL_TEXTURE0));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture_id));
 
-    glBindVertexArray(m_canvas_vao);
-    glDrawArrays(GL_TRIANGLES, start, (end - start) + 1);
+    GL_CHECK(glBindVertexArray(m_canvas_vao));
+
+    /* start, end is in render rect counts. We need to convert this to triangle
+     * counts.
+     */
+    size_t buf_start = 6 * start;
+    size_t buf_end = 6 * ((end - start) + 1);
+    GL_CHECK(glDrawArrays(GL_TRIANGLES, buf_start, buf_end));
 }
 
-void GLRenderer::render_canvas(
-    std::vector<RenderRect2D> & data,
-    bool editor
-) {
+void GLRenderer::render_canvas(std::vector<RenderRect2D> & data) {
     if (data.empty()) return;
 
-    GLPostProcessingChain & chain = editor ?
-        m_editor_postprocessing_chain :
-        m_scene_postprocessing_chain;
-
-    glDepthMask(GL_FALSE);
-    glCheckError();
-    glDisable(GL_DEPTH_TEST);
-    glCheckError();
-    glEnable(GL_BLEND);
-    glCheckError();
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glCheckError();
-
-    GLuint framebuffer = chain.empty() ? 0 : m_source_buffers.framebuffer();
+    GL_CHECK(glDepthMask(GL_FALSE));
+    GL_CHECK(glDisable(GL_DEPTH_TEST));
+    GL_CHECK(glDisable(GL_CULL_FACE));
+    GL_CHECK(glEnable(GL_BLEND));
+    GL_CHECK(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
     GLenum attachment = GL_COLOR_ATTACHMENT0;
 
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    glCheckError();
-    glDrawBuffers(1, &attachment);
-    glCheckError();
-    glUseProgram(m_canvas_shader->shader());
-    glCheckError();
+    /* The canvas will be rendered to whatever framebuffer that was already
+     * bound.
+     */
+    GL_CHECK(glDrawBuffers(1, &attachment));
+    GL_CHECK(glUseProgram(m_canvas_shader->shader()));
 
     /* sort canvas data */
     std::sort(data.begin(), data.end(),
@@ -773,65 +714,63 @@ void GLRenderer::bind_light_data(
     LightRenderData const & light_data
 ) {
     static const GLVarString n_point_lights_str = "u_NumberOfPointLights";
-    glUniform1i(s.get_uniform_loc(n_point_lights_str), static_cast<int>(light_data.number_of_point_lights));
+    GL_CHECK(glUniform1i(s.get_uniform_loc(n_point_lights_str), static_cast<int>(light_data.number_of_point_lights)));
 
     static const GLVarString point_lights_0_pos_str = "u_PointLights[0].position";
-    glUniform3fv(s.get_uniform_loc(point_lights_0_pos_str), 1, &light_data.point_lights[0].position[0]);
+    GL_CHECK(glUniform3fv(s.get_uniform_loc(point_lights_0_pos_str), 1, &light_data.point_lights[0].position[0]));
     static const GLVarString point_lights_0_col_str = "u_PointLights[0].color";
-    glUniform3fv(s.get_uniform_loc(point_lights_0_col_str), 1, &light_data.point_lights[0].light.color[0]);
+    GL_CHECK(glUniform3fv(s.get_uniform_loc(point_lights_0_col_str), 1, &light_data.point_lights[0].light.color[0]));
     static const GLVarString point_lights_0_a_str = "u_PointLights[0].a";
-    glUniform1f(s.get_uniform_loc(point_lights_0_a_str), light_data.point_lights[0].light.quadratic_term);
+    GL_CHECK(glUniform1f(s.get_uniform_loc(point_lights_0_a_str), light_data.point_lights[0].light.quadratic_term));
     static const GLVarString point_lights_0_b_str = "u_PointLights[0].b";
-    glUniform1f(s.get_uniform_loc(point_lights_0_b_str), light_data.point_lights[0].light.linear_term);
+    GL_CHECK(glUniform1f(s.get_uniform_loc(point_lights_0_b_str), light_data.point_lights[0].light.linear_term));
     static const GLVarString point_lights_0_c_str = "u_PointLights[0].c";
-    glUniform1f(s.get_uniform_loc(point_lights_0_c_str), light_data.point_lights[0].light.constant_term);
+    GL_CHECK(glUniform1f(s.get_uniform_loc(point_lights_0_c_str), light_data.point_lights[0].light.constant_term));
 
     static const GLVarString point_lights_1_pos_str = "u_PointLights[1].position";
-    glUniform3fv(s.get_uniform_loc(point_lights_1_pos_str), 1, &light_data.point_lights[1].position[0]);
+    GL_CHECK(glUniform3fv(s.get_uniform_loc(point_lights_1_pos_str), 1, &light_data.point_lights[1].position[0]));
     static const GLVarString point_lights_1_col_str = "u_PointLights[1].color";
-    glUniform3fv(s.get_uniform_loc(point_lights_1_col_str), 1, &light_data.point_lights[1].light.color[0]);
+    GL_CHECK(glUniform3fv(s.get_uniform_loc(point_lights_1_col_str), 1, &light_data.point_lights[1].light.color[0]));
     static const GLVarString point_lights_1_a_str = "u_PointLights[1].a";
-    glUniform1f(s.get_uniform_loc(point_lights_1_a_str), light_data.point_lights[1].light.quadratic_term);
+    GL_CHECK(glUniform1f(s.get_uniform_loc(point_lights_1_a_str), light_data.point_lights[1].light.quadratic_term));
     static const GLVarString point_lights_1_b_str = "u_PointLights[1].b";
-    glUniform1f(s.get_uniform_loc(point_lights_1_b_str), light_data.point_lights[1].light.linear_term);
+    GL_CHECK(glUniform1f(s.get_uniform_loc(point_lights_1_b_str), light_data.point_lights[1].light.linear_term));
     static const GLVarString point_lights_1_c_str = "u_PointLights[1].c";
-    glUniform1f(s.get_uniform_loc(point_lights_1_c_str), light_data.point_lights[1].light.constant_term);
-
+    GL_CHECK(glUniform1f(s.get_uniform_loc(point_lights_1_c_str), light_data.point_lights[1].light.constant_term));
 
     static const GLVarString point_lights_2_pos_str = "u_PointLights[2].position";
-    glUniform3fv(s.get_uniform_loc(point_lights_2_pos_str), 1, &light_data.point_lights[2].position[0]);
+    GL_CHECK(glUniform3fv(s.get_uniform_loc(point_lights_2_pos_str), 1, &light_data.point_lights[2].position[0]));
     static const GLVarString point_lights_2_col_str = "u_PointLights[2].color";
-    glUniform3fv(s.get_uniform_loc(point_lights_2_col_str), 1, &light_data.point_lights[2].light.color[0]);
+    GL_CHECK(glUniform3fv(s.get_uniform_loc(point_lights_2_col_str), 1, &light_data.point_lights[2].light.color[0]));
     static const GLVarString point_lights_2_a_str = "u_PointLights[2].a";
-    glUniform1f(s.get_uniform_loc(point_lights_2_a_str), light_data.point_lights[2].light.quadratic_term);
+    GL_CHECK(glUniform1f(s.get_uniform_loc(point_lights_2_a_str), light_data.point_lights[2].light.quadratic_term));
     static const GLVarString point_lights_2_b_str = "u_PointLights[2].b";
-    glUniform1f(s.get_uniform_loc(point_lights_2_b_str), light_data.point_lights[2].light.linear_term);
+    GL_CHECK(glUniform1f(s.get_uniform_loc(point_lights_2_b_str), light_data.point_lights[2].light.linear_term));
     static const GLVarString point_lights_2_c_str = "u_PointLights[2].c";
-    glUniform1f(s.get_uniform_loc(point_lights_2_c_str), light_data.point_lights[2].light.constant_term);
-
+    GL_CHECK(glUniform1f(s.get_uniform_loc(point_lights_2_c_str), light_data.point_lights[2].light.constant_term));
 
     static const GLVarString point_lights_3_pos_str = "u_PointLights[3].position";
-    glUniform3fv(s.get_uniform_loc(point_lights_3_pos_str), 1, &light_data.point_lights[3].position[0]);
+    GL_CHECK(glUniform3fv(s.get_uniform_loc(point_lights_3_pos_str), 1, &light_data.point_lights[3].position[0]));
     static const GLVarString point_lights_3_col_str = "u_PointLights[3].color";
-    glUniform3fv(s.get_uniform_loc(point_lights_3_col_str), 1, &light_data.point_lights[3].light.color[0]);
+    GL_CHECK(glUniform3fv(s.get_uniform_loc(point_lights_3_col_str), 1, &light_data.point_lights[3].light.color[0]));
     static const GLVarString point_lights_3_a_str = "u_PointLights[3].a";
-    glUniform1f(s.get_uniform_loc(point_lights_3_a_str), light_data.point_lights[3].light.quadratic_term);
+    GL_CHECK(glUniform1f(s.get_uniform_loc(point_lights_3_a_str), light_data.point_lights[3].light.quadratic_term));
     static const GLVarString point_lights_3_b_str = "u_PointLights[3].b";
-    glUniform1f(s.get_uniform_loc(point_lights_3_b_str), light_data.point_lights[3].light.linear_term);
+    GL_CHECK(glUniform1f(s.get_uniform_loc(point_lights_3_b_str), light_data.point_lights[3].light.linear_term));
     static const GLVarString point_lights_3_c_str = "u_PointLights[3].c";
-    glUniform1f(s.get_uniform_loc(point_lights_3_c_str), light_data.point_lights[3].light.constant_term);
+    GL_CHECK(glUniform1f(s.get_uniform_loc(point_lights_3_c_str), light_data.point_lights[3].light.constant_term));
 
     glm::vec3 dir_light_dir = glm::normalize(light_data.directional_light.direction);
     static const GLVarString dir_light_dir_str = "u_DirectionalLight.direction";
-    glUniform3fv(s.get_uniform_loc(dir_light_dir_str), 1, &dir_light_dir[0]);
+    GL_CHECK(glUniform3fv(s.get_uniform_loc(dir_light_dir_str), 1, &dir_light_dir[0]));
     static const GLVarString dir_light_col_str = "u_DirectionalLight.color";
-    glUniform3fv(s.get_uniform_loc(dir_light_col_str), 1, &light_data.directional_light.color[0]);
+    GL_CHECK(glUniform3fv(s.get_uniform_loc(dir_light_col_str), 1, &light_data.directional_light.color[0]));
 
     static const GLVarString dir_light_on_str = "u_DirectionalLightOn";
-    glUniform1i(s.get_uniform_loc(dir_light_on_str), static_cast<int>(light_data.directional_light_on));
+    GL_CHECK(glUniform1i(s.get_uniform_loc(dir_light_on_str), static_cast<int>(light_data.directional_light_on)));
 
     static const GLVarString ambient_light_str = "u_AmbientLight";
-    glUniform3fv(s.get_uniform_loc(ambient_light_str), 1, &light_data.ambient_light.color[0]);
+    GL_CHECK(glUniform3fv(s.get_uniform_loc(ambient_light_str), 1, &light_data.ambient_light.color[0]));
 }
 
 void GLRenderer::bind_transform_and_camera_data(
@@ -846,18 +785,18 @@ void GLRenderer::bind_transform_and_camera_data(
     glm::mat3 inv_tpos_matrix = glm::inverse(glm::transpose(m_matrix));
 
     static const GLVarString view_pos_str = "u_ViewPosition";
-    glUniform3fv(s.get_uniform_loc(view_pos_str), 1, &data.view_position[0]);
+    GL_CHECK(glUniform3fv(s.get_uniform_loc(view_pos_str), 1, &data.view_position[0]));
 
     static const GLVarString mmatrix_str = "u_MMatrix";
-    glUniformMatrix4fv(s.get_uniform_loc(mmatrix_str), 1, GL_FALSE, &m_matrix[0][0]);
+    GL_CHECK(glUniformMatrix4fv(s.get_uniform_loc(mmatrix_str), 1, GL_FALSE, &m_matrix[0][0]));
     static const GLVarString mvmatrix_str = "u_MVMatrix";
     static const GLVarString vpmatrix_str = "u_VPMatrix";
-    glUniformMatrix4fv(s.get_uniform_loc(vpmatrix_str), 1, GL_FALSE, &vp_matrix[0][0]);
-    glUniformMatrix4fv(s.get_uniform_loc(mvmatrix_str), 1, GL_FALSE, &mv_matrix[0][0]);
+    GL_CHECK(glUniformMatrix4fv(s.get_uniform_loc(vpmatrix_str), 1, GL_FALSE, &vp_matrix[0][0]));
+    GL_CHECK(glUniformMatrix4fv(s.get_uniform_loc(mvmatrix_str), 1, GL_FALSE, &mv_matrix[0][0]));
     static const GLVarString mvpmatrix_str = "u_MVPMatrix";
-    glUniformMatrix4fv(s.get_uniform_loc(mvpmatrix_str), 1, GL_FALSE, &mvp_matrix[0][0]);
+    GL_CHECK(glUniformMatrix4fv(s.get_uniform_loc(mvpmatrix_str), 1, GL_FALSE, &mvp_matrix[0][0]));
     static const GLVarString inv_tpos_matrix_str = "u_InvTposMMatrix";
-    glUniformMatrix3fv(s.get_uniform_loc(inv_tpos_matrix_str), 1, GL_FALSE, &inv_tpos_matrix[0][0]);
+    GL_CHECK(glUniformMatrix3fv(s.get_uniform_loc(inv_tpos_matrix_str), 1, GL_FALSE, &inv_tpos_matrix[0][0]));
 }
 
 void GLRenderer::bind_decal_data(
@@ -868,33 +807,28 @@ void GLRenderer::bind_decal_data(
                               glm::inverse(data.projection_matrix);
 
     static const GLVarString inv_vp_str = "u_InvVP";
-    glUniformMatrix4fv(s.get_uniform_loc(inv_vp_str), 1, GL_FALSE, &inv_vp_matrix[0][0]);
+    GL_CHECK(glUniformMatrix4fv(s.get_uniform_loc(inv_vp_str), 1, GL_FALSE, &inv_vp_matrix[0][0]));
 
     static const GLVarString depth_map_str = "u_DepthMap";
-    glUniform1i(s.get_uniform_loc(depth_map_str), 0);
-    glActiveTexture(GL_TEXTURE0);
-    glCheckError();
-    glBindTexture(GL_TEXTURE_2D, m_source_buffers.depth_texture());
-    glCheckError();
+    GL_CHECK(glUniform1i(s.get_uniform_loc(depth_map_str), 0));
+    GL_CHECK(glActiveTexture(GL_TEXTURE0));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_source_buffers.depth_texture()));
 
     static const GLVarString normal_map_str = "u_NormalMap";
-    glUniform1i(s.get_uniform_loc(normal_map_str), 1);
-    glActiveTexture(GL_TEXTURE1);
-    glCheckError();
-    glBindTexture(GL_TEXTURE_2D, m_source_buffers.normal_texture());
-    glCheckError();
+    GL_CHECK(glUniform1i(s.get_uniform_loc(normal_map_str), 1));
+    GL_CHECK(glActiveTexture(GL_TEXTURE1));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_source_buffers.normal_texture()));
 
     int w;
     int h;
-    glfwGetWindowSize(m_window, &w, &h);
-    glCheckError();
+    GL_CHECK(glfwGetWindowSize(m_window, &w, &h));
     GLint buffer_width = static_cast<GLint>(w / m_downscale_factor);
     GLint buffer_height = static_cast<GLint>(h / m_downscale_factor);
 
     static const GLVarString width_str = "u_BufferWidth";
-    glUniform1i(s.get_uniform_loc(width_str), buffer_width);
+    GL_CHECK(glUniform1i(s.get_uniform_loc(width_str), buffer_width));
     static const GLVarString height_str = "u_BufferHeight";
-    glUniform1i(s.get_uniform_loc(height_str), buffer_height);
+    GL_CHECK(glUniform1i(s.get_uniform_loc(height_str), buffer_height));
 
 
 }
@@ -912,8 +846,7 @@ void GLRenderer::bind_node_data(
 
     static const GLVarString node_data_str = "u_NodeData";
     GLuint u_node_data = static_cast<GLuint>(packed_data);
-    glUniform1ui(shader.get_uniform_loc(node_data_str), GLuint(u_node_data));
-    glCheckError();
+    GL_CHECK(glUniform1ui(shader.get_uniform_loc(node_data_str), GLuint(u_node_data)));
 }
 
 void GLRenderer::bind_material_data(
@@ -922,35 +855,24 @@ void GLRenderer::bind_material_data(
     MaterialOverride const & mat_override
 ) {
     static const GLVarString albedo_map_str = "u_AlbedoMap";
-    glUniform1i(s.get_uniform_loc(albedo_map_str), 0);
-    glActiveTexture(GL_TEXTURE0);
-    glCheckError();
-    glBindTexture(GL_TEXTURE_2D, material.albedo_map());
-    glCheckError();
+    GL_CHECK(glUniform1i(s.get_uniform_loc(albedo_map_str), 0));
+    GL_CHECK(glActiveTexture(GL_TEXTURE0));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, material.albedo_map()));
 
     static const GLVarString normal_map_str = "u_NormalMap";
-    glUniform1i(s.get_uniform_loc(normal_map_str), 1);
-    glCheckError();
-    glActiveTexture(GL_TEXTURE1);
-    glCheckError();
-    glBindTexture(GL_TEXTURE_2D, material.normal_map());
-    glCheckError();
+    GL_CHECK(glUniform1i(s.get_uniform_loc(normal_map_str), 1));
+    GL_CHECK(glActiveTexture(GL_TEXTURE1));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, material.normal_map()));
 
     static const GLVarString metallic_map_str = "u_MetallicMap";
-    glUniform1i(s.get_uniform_loc(metallic_map_str), 2);
-    glCheckError();
-    glActiveTexture(GL_TEXTURE2);
-    glCheckError();
-    glBindTexture(GL_TEXTURE_2D, material.metallic_map());
-    glCheckError();
+    GL_CHECK(glUniform1i(s.get_uniform_loc(metallic_map_str), 2));
+    GL_CHECK(glActiveTexture(GL_TEXTURE2));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, material.metallic_map()));
 
     static const GLVarString roughness_map_str = "u_RoughnessMap";
-    glUniform1i(s.get_uniform_loc(roughness_map_str), 3);
-    glCheckError();
-    glActiveTexture(GL_TEXTURE3);
-    glCheckError();
-    glBindTexture(GL_TEXTURE_2D, material.roughness_map());
-    glCheckError();
+    GL_CHECK(glUniform1i(s.get_uniform_loc(roughness_map_str), 3));
+    GL_CHECK(glActiveTexture(GL_TEXTURE3));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, material.roughness_map()));
 
     glm::vec4 albedo = material.material().albedo;
     if (mat_override.tint_active) {
@@ -958,14 +880,11 @@ void GLRenderer::bind_material_data(
     }
 
     static const GLVarString albedo_str = "u_Albedo";
-    glUniform4fv(s.get_uniform_loc(albedo_str), 1, &albedo[0]);
-    glCheckError();
+    GL_CHECK(glUniform4fv(s.get_uniform_loc(albedo_str), 1, &albedo[0]));
     static const GLVarString metallic_str = "u_Metallic";
-    glUniform1f(s.get_uniform_loc(metallic_str), material.material().metallic);
-    glCheckError();
+    GL_CHECK(glUniform1f(s.get_uniform_loc(metallic_str), material.material().metallic));
     static const GLVarString roughness_str = "u_Roughness";
-    glUniform1f(s.get_uniform_loc(roughness_str), material.material().roughness);
-    glCheckError();
+    GL_CHECK(glUniform1f(s.get_uniform_loc(roughness_str), material.material().roughness));
 }
 
 void GLRenderer::bind_bone_data(
@@ -973,8 +892,7 @@ void GLRenderer::bind_bone_data(
     BoneData const & bone_data
 ) {
     static const GLVarString bones_str = "u_Bones";
-    glUniformMatrix4fv(s.get_uniform_loc(bones_str), bone_data.bones.size(), GL_FALSE, &bone_data.bones[0][0][0]);
-    glCheckError();
+    GL_CHECK(glUniformMatrix4fv(s.get_uniform_loc(bones_str), bone_data.bones.size(), GL_FALSE, &bone_data.bones[0][0][0]));
 }
 
 void GLRenderer::bind_texture(
@@ -984,8 +902,6 @@ void GLRenderer::bind_texture(
     GLuint texture
 ) {
     glUniform1i(s.get_uniform_loc(uniform_str), location);
-    glActiveTexture(GL_TEXTURE0 + location);
-    glCheckError();
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glCheckError();
+    GL_CHECK(glActiveTexture(GL_TEXTURE0 + location));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
 }

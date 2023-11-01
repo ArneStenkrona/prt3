@@ -2,6 +2,7 @@
 #define DDS_GAME_STATE_H
 
 #include "src/daedalus/game_state/game_time.h"
+#include "src/daedalus/gui/game_gui.h"
 #include "src/daedalus/map/map.h"
 #include "src/daedalus/npc/npc_db.h"
 
@@ -66,6 +67,7 @@ private:
     Map m_map;
     NPCDB m_npc_db;
     RoomID m_current_room = 0;
+    GameGui m_game_gui;
 
     TimeMS m_current_time = 0;
 
@@ -81,6 +83,8 @@ private:
 
     prt3::Prefab m_camera_prefab{"assets/prefabs/camera.prefab"};
     prt3::NodeID m_camera_id;
+
+    prt3::NodeID m_canvas_id;
 
     float m_cam_yaw;
     float m_cam_pitch;

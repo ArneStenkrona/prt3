@@ -1,5 +1,6 @@
 #include "gl_material_manager.h"
 
+#include "src/backend/opengl/gl_utility.h"
 #include "src/backend/opengl/gl_shader_utility.h"
 
 using namespace prt3;
@@ -9,33 +10,47 @@ GLMaterialManager::GLMaterialManager(GLTextureManager & texture_manager)
 }
 
 GLMaterialManager::~GLMaterialManager() {
-    delete m_standard_shader;
+    GL_CHECK(glDeleteProgram(m_standard_shader->shader()));
+    GL_CHECK(glDeleteProgram(m_standard_animated_shader->shader()));
+    GL_CHECK(glDeleteProgram(m_transparent_shader->shader()));
+    GL_CHECK(glDeleteProgram(m_transparent_animated_shader->shader()));
+    GL_CHECK(glDeleteProgram(m_wireframe_shader->shader()));
 }
 
 void GLMaterialManager::init() {
     m_standard_shader = new GLShader(
-        "assets/shaders/opengl/standard.vs",
-        "assets/shaders/opengl/standard.fs"
+        glshaderutility::create_shader(
+            "assets/shaders/opengl/standard.vs",
+            "assets/shaders/opengl/standard.fs"
+        )
     );
 
     m_standard_animated_shader = new GLShader(
-        "assets/shaders/opengl/standard_animated.vs",
-        "assets/shaders/opengl/standard.fs"
+        glshaderutility::create_shader(
+            "assets/shaders/opengl/standard_animated.vs",
+            "assets/shaders/opengl/standard.fs"
+        )
     );
 
     m_transparent_shader = new GLShader(
-        "assets/shaders/opengl/standard.vs",
-        "assets/shaders/opengl/transparent.fs"
+        glshaderutility::create_shader(
+            "assets/shaders/opengl/standard.vs",
+            "assets/shaders/opengl/transparent.fs"
+        )
     );
 
     m_transparent_animated_shader = new GLShader(
-        "assets/shaders/opengl/standard_animated.vs",
-        "assets/shaders/opengl/transparent.fs"
+        glshaderutility::create_shader(
+            "assets/shaders/opengl/standard_animated.vs",
+            "assets/shaders/opengl/transparent.fs"
+        )
     );
 
     m_wireframe_shader = new GLShader(
-        "assets/shaders/opengl/wireframe.vs",
-        "assets/shaders/opengl/wireframe.fs"
+        glshaderutility::create_shader(
+            "assets/shaders/opengl/wireframe.vs",
+            "assets/shaders/opengl/wireframe.fs"
+        )
     );
     upload_default_material();
 }

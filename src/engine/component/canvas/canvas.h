@@ -61,6 +61,7 @@ struct CanvasNode {
     int16_t layer; // render layer, relative to parent, higher occludes lower
 
 };
+
 struct CanvasStackNode {
     CanvasNode n;
     int32_t parent;

@@ -13,8 +13,7 @@ namespace prt3 {
 
 class GLShader {
 public:
-    GLShader(const char * vertex_path, const char * fragment_path);
-    ~GLShader() { glDeleteShader(m_shader); }
+    GLShader(GLuint shader);
     GLint shader() const { return m_shader; }
 
     GLint get_uniform_loc(GLVarString const & uniform) const;

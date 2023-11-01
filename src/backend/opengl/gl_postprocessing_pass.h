@@ -13,7 +13,7 @@ namespace prt3 {
 class GLPostProcessingPass {
 public:
     GLPostProcessingPass(
-        const char * fragment_shader_path,
+        GLuint shader,
         unsigned int width,
         unsigned int height,
         GLSourceBuffers const & source_buffer,
@@ -26,6 +26,9 @@ public:
         uint32_t frame,
         GLuint screen_quad_vao
     );
+
+    GLShader const & shader() const { return m_shader; }
+
 private:
 
     GLShader m_shader;

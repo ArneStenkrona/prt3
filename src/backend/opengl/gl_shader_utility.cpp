@@ -1,5 +1,6 @@
 #include "gl_shader_utility.h"
 
+#include "src/backend/opengl/gl_utility.h"
 #include "src/util/log.h"
 
 using namespace prt3;
@@ -43,24 +44,24 @@ GLuint glshaderutility::create_shader(const char* vertexPath,
     // 2. compile shaders
     unsigned int vertex, fragment;
     // vertex shader
-    vertex = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex, 1, &vShaderCode, NULL);
-    glCompileShader(vertex);
+    GL_CHECK(vertex = glCreateShader(GL_VERTEX_SHADER));
+    GL_CHECK(glShaderSource(vertex, 1, &vShaderCode, NULL));
+    GL_CHECK(glCompileShader(vertex));
     check_compile_errors(vertex, "VERTEX", vertexPath);
     // fragment Shader
-    fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment, 1, &fShaderCode, NULL);
-    glCompileShader(fragment);
+    GL_CHECK(fragment = glCreateShader(GL_FRAGMENT_SHADER));
+    GL_CHECK(glShaderSource(fragment, 1, &fShaderCode, NULL));
+    GL_CHECK(glCompileShader(fragment));
     check_compile_errors(fragment, "FRAGMENT", fragmentPath);
     // shader Program
-    id = glCreateProgram();
-    glAttachShader(id, vertex);
-    glAttachShader(id, fragment);
-    glLinkProgram(id);
+    GL_CHECK(id = glCreateProgram());
+    GL_CHECK(glAttachShader(id, vertex));
+    GL_CHECK(glAttachShader(id, fragment));
+    GL_CHECK(glLinkProgram(id));
     check_compile_errors(id, "PROGRAM", (std::string(vertexPath) + ", ") + fragmentPath);
     // delete the shaders as they're linked into our program now and no longer necessery
-    glDeleteShader(vertex);
-    glDeleteShader(fragment);
+    GL_CHECK(glDeleteShader(vertex));
+    GL_CHECK(glDeleteShader(fragment));
     return id;
 }
 
@@ -73,19 +74,19 @@ void glshaderutility::check_compile_errors(
     GLchar infoLog[1024];
     if(type != "PROGRAM")
     {
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+        GL_CHECK(glGetShaderiv(shader, GL_COMPILE_STATUS, &success));
         if(!success)
         {
-            glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+            GL_CHECK(glGetShaderInfoLog(shader, 1024, NULL, infoLog));
             PRT3ERROR("%s:\nERROR::SHADER_COMPILATION_ERROR of type: %s\n%s\n -- --------------------------------------------------- -- ", path.c_str(), type.c_str(), infoLog);
         }
     }
     else
     {
-        glGetProgramiv(shader, GL_LINK_STATUS, &success);
+        GL_CHECK(glGetProgramiv(shader, GL_LINK_STATUS, &success));
         if(!success)
         {
-            glGetProgramInfoLog(shader, 1024, NULL, infoLog);
+            GL_CHECK(glGetProgramInfoLog(shader, 1024, NULL, infoLog));
             PRT3ERROR("%s:\nERROR::PROGRAM_LINKING_ERROR of type: %s\n%s\n -- --------------------------------------------------- -- ", path.c_str(), type.c_str(), infoLog);
         }
     }

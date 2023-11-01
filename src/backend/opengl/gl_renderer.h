@@ -135,7 +135,7 @@ private:
 
     void create_canvas_geometry(std::vector<RenderRect2D> const & data);
     void draw_canvas_elements(size_t start, size_t end, GLuint texture_id);
-    void render_canvas(std::vector<RenderRect2D> & data, bool editor);
+    void render_canvas(std::vector<RenderRect2D> & data);
 
     void render_imgui();
 

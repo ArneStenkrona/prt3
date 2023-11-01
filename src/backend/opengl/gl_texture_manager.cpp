@@ -20,15 +20,11 @@ void GLTextureManager::init() {
 
 GLTextureManager::~GLTextureManager() {
     for (auto const & pair : m_textures) {
-        glDeleteTextures(1, &pair.second);
-        glCheckError();
+        GL_CHECK(glDeleteTextures(1, &pair.second));
     }
-    glDeleteTextures(1, &m_texture_1x1_0xffffffff);
-    glCheckError();
-    glDeleteTextures(1, &m_texture_1x1_0x0000ff);
-    glCheckError();
-    glDeleteTextures(1, &m_texture_1x1_0xff);
-    glCheckError();
+    GL_CHECK(glDeleteTextures(1, &m_texture_1x1_0xffffffff));
+    GL_CHECK(glDeleteTextures(1, &m_texture_1x1_0x0000ff));
+    GL_CHECK(glDeleteTextures(1, &m_texture_1x1_0xff));
 }
 
 ResourceID GLTextureManager::upload_texture(TextureData const & data) {
@@ -57,21 +53,24 @@ ResourceID GLTextureManager::upload_texture(TextureData const & data) {
     }
 
     GLuint texture_handle;
-    glGenTextures(1, &texture_handle);
-    glCheckError();
-    glBindTexture(GL_TEXTURE_2D, texture_handle);
-    glCheckError();
+    GL_CHECK(glGenTextures(1, &texture_handle));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture_handle));
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glCheckError();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glCheckError();
+    GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+    GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
 
-    glTexImage2D(GL_TEXTURE_2D, 0, format, data.width, data.height, 0,
-                 format, GL_UNSIGNED_BYTE, data.data);
-    glCheckError();
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glCheckError();
+    GL_CHECK(glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        format,
+        data.width,
+        data.height,
+        0,
+        format,
+        GL_UNSIGNED_BYTE,
+        data.data
+    ));
+    GL_CHECK(glGenerateMipmap(GL_TEXTURE_2D));
 
     ResourceID id;
     if (m_free_ids.empty()) {
@@ -98,24 +97,28 @@ GLuint GLTextureManager::upload_texture(
     bool mipmap
 ) {
     GLuint texture;
-    glGenTextures(1, &texture);
-    glCheckError();
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glCheckError();
-    glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0,
-                    format, GL_UNSIGNED_BYTE, data);
-    glCheckError();
+    GL_CHECK(glGenTextures(1, &texture));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
+    GL_CHECK(glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        format,
+        w,
+        h,
+        0,
+        format,
+        GL_UNSIGNED_BYTE,
+        data
+    ));
     if (mipmap) {
-        glGenerateMipmap(GL_TEXTURE_2D);
-        glCheckError();
+        GL_CHECK(glGenerateMipmap(GL_TEXTURE_2D));
     }
     return texture;
 }
 
 void GLTextureManager::free_texture(ResourceID id) {
     GLuint handle = m_textures.at(id);
-    glDeleteTextures(1, &handle);
-    glCheckError();
+    GL_CHECK(glDeleteTextures(1, &handle));
     m_textures.erase(id);
     m_resource_ids.erase(handle);
     m_free_ids.push_back(id);

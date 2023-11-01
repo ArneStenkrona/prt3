@@ -126,6 +126,9 @@ void GameState::on_start(prt3::Scene & scene) {
     cam.yaw() = m_cam_yaw;
     cam.pitch() = m_cam_pitch;
 
+    m_canvas_id = scene.add_node_to_root("canvas");
+    scene.add_component<prt3::Canvas>(m_canvas_id);
+
     // play soundtrack
     // if (scene.audio_manager().get_playing_midi() != m_midi) {
     //     scene.audio_manager().play_midi(m_midi, m_sound_font);
@@ -140,9 +143,10 @@ void GameState::on_update(prt3::Scene & scene, float) {
     m_current_time += dds::ms_per_frame;
 }
 
-void GameState::on_late_update(prt3::Scene & /*scene*/, float /*delta_time*/) {
+void GameState::on_late_update(prt3::Scene & scene, float /*delta_time*/) {
     m_entry_overlap &= m_entry_overlap_frame;
     m_entry_overlap_frame = false;
+    m_game_gui.on_update(scene, m_canvas_id);
 }
 
 void GameState::register_door_overlap(prt3::Scene & scene, prt3::Door & door) {
