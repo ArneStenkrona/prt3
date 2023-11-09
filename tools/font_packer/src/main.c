@@ -2,8 +2,11 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image/stb_image_write.h"
 
+#include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
 
 static void blit_image(
     SFT_Image src,
@@ -25,17 +28,34 @@ static void blit_image(
     }
 }
 
-int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        printf("usage: \n%s <ttf path> <font size>\n", argv[0]);
-        return 1;
+void validate_char_set_has_no_duplicates(
+    unsigned char const * char_set,
+    unsigned size
+) {
+    int found[256] = {0};
+    for (unsigned i = 0; i < size; ++i) {
+        if (found[char_set[i]]) {
+            fprintf(
+                stderr,
+                "Found duplicate char \'%c\' in char_set.\n",
+                char_set[i]
+            );
+            exit(1);
+        }
+
+        found[char_set[i]] = 1;
     }
+}
 
-    char const * ttf_path = argv[1];
-    SFT_Font * font = sft_loadfile(ttf_path);
+static void rasterize_ttf(
+    char const * path,
+    double size,
+    unsigned char const * char_set,
+    unsigned char_set_size
+) {
+    validate_char_set_has_no_duplicates(char_set, char_set_size);
 
-    double size;
-    sscanf(argv[2], "%lf", &size);
+    SFT_Font * font = sft_loadfile(path);
 
     SFT sft;
     sft.font = font;
@@ -45,29 +65,60 @@ int main(int argc, char *argv[]) {
     sft.yOffset = 0;
     sft.flags = SFT_DOWNWARD_Y;
 
-    SFT_Image images[255];
+    SFT_Image images[256];
+    SFT_GMetrics metrics[256];
 
-    int total_width = 0;
-    int total_height = 0;
+    int padding = 1;
 
     /* render glyphs */
-    for (unsigned char c = 0; c < 255; ++c) {
+    for (unsigned i = 0; i < char_set_size; ++i) {
+        int c = (int)char_set[i];
         SFT_UChar uc = (SFT_UChar)c;
         SFT_Glyph glyph;
         sft_lookup(&sft, uc, &glyph);
 
-        SFT_GMetrics metrics;
-        sft_gmetrics(&sft, glyph, &metrics);
+        sft_gmetrics(&sft, glyph, &metrics[c]);
 
-        images[c].width = metrics.minWidth;
-        images[c].height = metrics.minHeight;
+        images[c].width = metrics[c].minWidth + padding;
+        images[c].height = metrics[c].minHeight + padding;
         images[c].pixels = malloc(images[c].width * images[c].height);
 
         sft_render(&sft, glyph, images[c]);
+    }
 
-        total_width += images[c].width;
-        total_height =
-            images[c].height > total_height ? images[c].height : total_height;
+    /* we pack the glyphs into a square so we calculate the side length of such
+     * a square.
+     */
+    int n_cols = (int)ceilf(sqrtf((float)char_set_size));
+
+    int total_width = 0;
+    int curr_width = 0;
+    for (unsigned i = 0; i < char_set_size; ++i) {
+        int c = (int)char_set[i];
+        curr_width += images[c].width;
+
+        if (i + 1 == char_set_size || (i + 1) % n_cols == 0) {
+            total_width = curr_width > total_width ? curr_width : total_width;
+            curr_width = 0;
+        }
+
+    }
+
+    curr_width = 0;
+    int row_height = 0;
+    int total_height = 0;
+    for (unsigned i = 0; i < char_set_size; ++i) {
+        int c = (int)char_set[i];
+        curr_width += images[c].width;
+
+        if (i + 1 == char_set_size || (i + 1) % n_cols == 0) {
+            total_height += row_height;
+            row_height = 0;
+            curr_width = 0;
+        }
+
+        row_height =
+            images[c].height > row_height ? images[c].height : row_height;
     }
 
     /* write glyphs to atlas */
@@ -75,21 +126,35 @@ int main(int argc, char *argv[]) {
     memset(atlas_image, 0, total_width * total_height);
 
     int curr_x = 0;
-    for (unsigned char c = 0; c < 255; ++c) {
+    int curr_y = 0;
+    row_height = 0;
+    curr_width = 0;
+    for (unsigned i = 0; i < char_set_size; ++i) {
+        int c = (int)char_set[i];
         blit_image(
             images[c],
             atlas_image,
             curr_x,
-            0,
+            curr_y,
             total_width
         );
+
         curr_x += images[c].width;
+
+        if ((i + 1) % n_cols == 0) {
+            curr_x = 0;
+            curr_y += row_height;
+            row_height = 0;
+        }
+
+        row_height =
+            images[c].height > row_height ? images[c].height : row_height;
     }
 
-#define BUF_SIZE 255
+#define BUF_SIZE 256
     char font_name[BUF_SIZE];
-    char const * ttf_name = strrchr(ttf_path, '/');
-    ttf_name = ttf_name ? ttf_name + 1 : ttf_path;
+    char const * ttf_name = strrchr(path, '/');
+    ttf_name = ttf_name ? ttf_name + 1 : path;
     strncpy(font_name, ttf_name, BUF_SIZE - 1);
     char * dot = (char *)strrchr(font_name, '.');
     if (dot) dot[0] = '\0';
@@ -97,16 +162,38 @@ int main(int argc, char *argv[]) {
     char file_name[BUF_SIZE] = {0};
     snprintf(file_name, BUF_SIZE, "atlas_%s.bmp", font_name);
 
-    printf("file_name: %s\n", file_name);
-
     stbi_write_bmp(file_name, total_width, total_height, 1, atlas_image);
+    printf("wrote atlas to: %s\n", file_name);
 
     /* free memory */
-    for (unsigned char c = 0; c < 255; ++c) {
+    for (unsigned i = 0; i < char_set_size; ++i) {
+        int c = (int)char_set[i];
         free(images[c].pixels);
     }
 
     sft_freefont(font);
+}
+
+#define DEFAULT_CHAR_SET_SIZE 94
+unsigned char default_char_set[DEFAULT_CHAR_SET_SIZE] = {
+    "!\"#$%&'()*+,-./0123456789:;<=>?"\
+    "@ABCDEFGHIJKLMNOPQRSTUVWXYZ"\
+    "[\\]^_`"\
+    "abcdefghijklmnopqrstuvwxyz"\
+    "{|}~"
+};
+
+int main(int argc, char *argv[]) {
+    if (argc != 3) {
+        printf("usage: \n%s <ttf path> <font size>\n", argv[0]);
+        return 1;
+    }
+
+    char const * ttf_path = argv[1];
+    double size;
+    sscanf(argv[2], "%lf", &size);
+
+    rasterize_ttf(ttf_path, size, default_char_set, DEFAULT_CHAR_SET_SIZE);
 
     return 0;
 }
