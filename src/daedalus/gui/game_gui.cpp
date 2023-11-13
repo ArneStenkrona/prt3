@@ -81,6 +81,12 @@ GameGui::GameGui(prt3::Scene & scene) {
             }
         }
     }
+
+    if (n_atlases > 0) {
+        prt3::FontChar const & fc0 = m_atlas.metadata[0].char_data[0];
+        glm::vec2 uv = fc0.uv_origin + 0.5f * fc0.uv_dimension;
+        m_atlas.uv_0xffff = uv;
+    }
 }
 
 void GameGui::on_update(
@@ -108,10 +114,10 @@ void GameGui::on_update(
 
     cn.mode = prt3::CanvasNode::Mode::rect;
 
-    cn.u.rect.uv0 = glm::vec2{0.0f, 0.0f};
-    cn.u.rect.uv1 = glm::vec2{0.0f, 0.0f};
-    cn.u.rect.uv2 = glm::vec2{0.0f, 0.0f};
-    cn.u.rect.uv3 = glm::vec2{0.0f, 0.0f};
+    cn.u.rect.uv0 = m_atlas.uv_0xffff;
+    cn.u.rect.uv1 = m_atlas.uv_0xffff;
+    cn.u.rect.uv2 = m_atlas.uv_0xffff;
+    cn.u.rect.uv3 = m_atlas.uv_0xffff;
 
     cn.layer = 0;
 

@@ -93,7 +93,9 @@ static void rasterize_ttf(
     /* render glyphs */
     for (unsigned i = 0; i < char_set_size; ++i) {
         int c = (int)char_set[i];
-        SFT_UChar uc = (SFT_UChar)c;
+        /* We map null to unicode "black box" for gui rendering.
+         */
+        SFT_UChar uc = c != 0 ?  (SFT_UChar)c : 0x25A0;
         SFT_Glyph glyph;
         sft_lookup(&sft, uc, &glyph);
 
@@ -200,9 +202,15 @@ static void rasterize_ttf(
     sft_freefont(font);
 }
 
-#define DEFAULT_CHAR_SET_SIZE 95
+/* We include the null character which we later remap to the unicode code point
+ * "BLACK SQUARE" which will render as a filled in square. This is usefull for
+ * gui rendering, where we can reuse the font atlas texture to render colored
+ * rects by simply mapping the UV-coordinates to the center of the null
+ * character.
+ */
+#define DEFAULT_CHAR_SET_SIZE 96
 unsigned char default_char_set[DEFAULT_CHAR_SET_SIZE] = {
-    " !\"#$%&'()*+,-./0123456789:;<=>?"\
+    "\0 !\"#$%&'()*+,-./0123456789:;<=>?"\
     "@ABCDEFGHIJKLMNOPQRSTUVWXYZ"\
     "[\\]^_`"\
     "abcdefghijklmnopqrstuvwxyz"\

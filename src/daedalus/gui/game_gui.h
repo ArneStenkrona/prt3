@@ -27,6 +27,7 @@ private:
 
     struct GUIAtlas {
         prt3::ResourceID texture = prt3::NO_RESOURCE;
+        glm::vec2 uv_0xffff; // points to a uv-coordinate with value 0xffff
         std::vector<FontMetadata> metadata;
     };
 
