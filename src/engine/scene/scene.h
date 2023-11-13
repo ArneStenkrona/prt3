@@ -95,6 +95,11 @@ public:
     ResourceID upload_texture(std::string const & path)
     { return register_texture(texture_manager().upload_texture(path)); }
 
+    ResourceID upload_persistent_texture(std::string const & path)
+    { return texture_manager().upload_texture(path); }
+    void free_persistent_texture(ResourceID id)
+    { return texture_manager().free_texture_ref(id); }
+
 
     void get_texture_metadata(
         ResourceID id,

@@ -22,7 +22,7 @@ public:
     void deserialize(std::istream & in);
 
     void on_game_start(Scene & initial_scene);
-    void on_game_end();
+    void on_game_end(Scene & scene);
 
     void add_autoload_script(UUID uuid) { m_autoload_scripts.insert(uuid); }
     void remove_autoload_script(UUID uuid) { m_autoload_scripts.erase(uuid); }

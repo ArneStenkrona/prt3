@@ -151,6 +151,10 @@ void GameState::on_late_update(prt3::Scene & scene, float /*delta_time*/) {
     m_game_gui.on_update(scene, m_canvas_id, *this);
 }
 
+void GameState::on_game_end(prt3::Scene & scene) {
+    m_game_gui.free_resources(scene);
+}
+
 void GameState::register_door_overlap(prt3::Scene & scene, prt3::Door & door) {
     m_entry_overlap_frame = door.id() == m_entry_door_id;
     if (!m_entry_overlap) {

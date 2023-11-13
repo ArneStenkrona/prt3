@@ -48,6 +48,7 @@ public:
     virtual void on_init(prt3::Scene &);
     virtual void on_update(prt3::Scene &, float);
     virtual void on_late_update(prt3::Scene &, float);
+    virtual void on_game_end(prt3::Scene & scene);
 
     void set_exit_door_id(prt3::DoorID id) { m_exit_door_id = id; }
     void set_entry_door_id(prt3::DoorID id) { m_entry_door_id = id; }

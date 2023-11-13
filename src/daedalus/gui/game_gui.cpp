@@ -14,7 +14,7 @@ GameGui::GameGui(prt3::Scene & scene) {
         return;
     }
 
-    m_atlas.texture = scene.upload_texture(FONT_ATLAS_PATH);
+    m_atlas.texture = scene.upload_persistent_texture(FONT_ATLAS_PATH);
     unsigned width, height, channels;
     scene.get_texture_metadata(m_atlas.texture, width, height, channels);
     glm::vec2 tex_dim{width, height};
@@ -160,4 +160,10 @@ void GameGui::on_update(
     canvas.end_node();
 
     canvas.end_node();
+}
+
+void GameGui::free_resources(prt3::Scene & scene) {
+    if (m_atlas.texture != prt3::NO_RESOURCE) {
+        scene.free_persistent_texture(m_atlas.texture);
+    }
 }

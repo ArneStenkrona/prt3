@@ -45,10 +45,10 @@ glm::vec2 get_anchor_factor(CanvasNode::AnchorPoint anchor_point) {
             return glm::vec2{0.0f, 1.0f};
         }
         case CanvasNode::AnchorPoint::bottom: {
-            return glm::vec2{0.5f, 0.5f};
+            return glm::vec2{0.5f, 1.0f};
         }
         case CanvasNode::AnchorPoint::bottom_right: {
-            return glm::vec2{1.0f, 0.5f};
+            return glm::vec2{1.0f, 1.0f};
         }
     }
 }
@@ -80,6 +80,84 @@ static float get_curr_word_width(
     }
 
     return width;
+}
+
+static void align_text_x(
+    RenderRect2D * rects,
+    uint32_t row_start,
+    uint32_t row_end,
+    float screen_width,
+    float parent_width,
+    float row_width,
+    prt3::CanvasNode::AnchorPoint alignment
+) {
+    float adjustment;
+    switch (alignment) {
+        case prt3::CanvasNode::AnchorPoint::top_left:
+        case prt3::CanvasNode::AnchorPoint::mid_left:
+        case prt3::CanvasNode::AnchorPoint::bottom_left: {
+            adjustment = -parent_width / screen_width;
+            break;
+        }
+        case prt3::CanvasNode::AnchorPoint::top:
+        case prt3::CanvasNode::AnchorPoint::mid:
+        case prt3::CanvasNode::AnchorPoint::bottom: {
+            adjustment = (parent_width - row_width) / screen_width;
+            break;
+        }
+        case prt3::CanvasNode::AnchorPoint::top_right:
+        case prt3::CanvasNode::AnchorPoint::mid_right:
+        case prt3::CanvasNode::AnchorPoint::bottom_right: {
+            adjustment = (parent_width + 2.0f * (parent_width - row_width)) /
+                         screen_width;
+            break;
+        }
+    }
+
+    for (uint32_t i = row_start; i < row_end; ++i) {
+        RenderRect2D & rect = rects[i];
+        rect.position.x += adjustment;
+    }
+}
+
+static void align_text_y(
+    RenderRect2D * rects,
+    uint32_t text_start,
+    uint32_t text_end,
+    float screen_height,
+    float parent_height,
+    float text_height,
+    float font_size,
+    prt3::CanvasNode::AnchorPoint alignment
+) {
+    float adjustment;
+    switch (alignment) {
+        case prt3::CanvasNode::AnchorPoint::top_left:
+        case prt3::CanvasNode::AnchorPoint::top:
+        case prt3::CanvasNode::AnchorPoint::top_right: {
+            adjustment = -parent_height / screen_height;
+            break;
+        }
+        case prt3::CanvasNode::AnchorPoint::mid_left:
+        case prt3::CanvasNode::AnchorPoint::mid:
+        case prt3::CanvasNode::AnchorPoint::mid_right: {
+            adjustment = -(parent_height - text_height) / screen_height;
+            break;
+        }
+        case prt3::CanvasNode::AnchorPoint::bottom_left:
+        case prt3::CanvasNode::AnchorPoint::bottom:
+        case prt3::CanvasNode::AnchorPoint::bottom_right: {
+            adjustment = (parent_height -
+                         2.0f * (parent_height - text_height - font_size)) /
+                         screen_height;
+            break;
+        }
+    }
+
+    for (uint32_t i = text_start; i < text_end; ++i) {
+        RenderRect2D & rect = rects[i];
+        rect.position.y += adjustment;
+    }
 }
 
 void Canvas::collect_render_data(Scene const & scene, std::vector<RenderRect2D> & data) {
@@ -195,11 +273,11 @@ void Canvas::collect_render_data(Scene const & scene, std::vector<RenderRect2D> 
 
                 glm::vec2 curr_pos = position;
                 curr_pos.y += dimension.y - font_size;
+                float start_y = curr_pos.y;
 
-                float limit_x = position.x + dimension.x;
-
-                size_t data_curr = data.size();
-                data.resize(data_curr + text.length);
+                float row_width = 0.0f;
+                uint32_t text_rect_start = data.size();
+                uint32_t row_start = text_rect_start;
 
                 for (uint32_t i = 0; i < text.length; ++i) {
                     unsigned char c =
@@ -222,9 +300,22 @@ void Canvas::collect_render_data(Scene const & scene, std::vector<RenderRect2D> 
 
                     if (first_char_in_word) {
                         float curr_word_width = get_curr_word_width(text, i);
-                        if (curr_pos.x + curr_word_width > limit_x) {
+                        if (row_width + curr_word_width > dimension.x) {
+                            /* reposition previous row */
+                            align_text_x(
+                                data.data(),
+                                row_start,
+                                i,
+                                w,
+                                dimension.x,
+                                row_width,
+                                n.center_point
+                            );
+
                             curr_pos.x = position.x;
                             curr_pos.y -= font_size;
+                            row_start = i;
+                            row_width = 0.0f;
                         }
                     }
 
@@ -233,7 +324,7 @@ void Canvas::collect_render_data(Scene const & scene, std::vector<RenderRect2D> 
                     rect_pos.x += lb;
                     rect_pos.y -= rect_dim.y;
 
-                    RenderRect2D & rect = data[data_curr];
+                    RenderRect2D rect;
                     rect.color = color;
                     rect.uv0 = o + glm::vec2{ 0.0f, dim.y };
                     rect.uv1 = o + glm::vec2{ dim.x, dim.y };
@@ -245,10 +336,35 @@ void Canvas::collect_render_data(Scene const & scene, std::vector<RenderRect2D> 
                     rect.texture = n.texture;
                     rect.layer = rect_layer;
 
-                    ++data_curr;
+                    data.emplace_back(rect);
 
                     curr_pos.x += advance;
+                    row_width += advance;
                 }
+
+                /* align last row */
+                align_text_x(
+                    data.data(),
+                    row_start,
+                    data.size(),
+                    w,
+                    dimension.x,
+                    row_width,
+                    n.center_point
+                );
+
+                float text_height = start_y - curr_pos.y;
+                align_text_y(
+                    data.data(),
+                    text_rect_start,
+                    data.size(),
+                    h,
+                    dimension.y,
+                    text_height,
+                    text.font_size,
+                    n.center_point
+                );
+
                 break;
             }
             case CanvasNode::Mode::invisible: {

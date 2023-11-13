@@ -19,6 +19,9 @@ public:
         prt3::NodeID canvas_id,
         GameState const & game_state
     );
+
+    void free_resources(prt3::Scene & scene);
+
 private:
 
     struct FontMetadata {

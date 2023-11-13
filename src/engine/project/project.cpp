@@ -49,8 +49,9 @@ void Project::on_game_start(Scene & initial_scene) {
     }
 }
 
-void Project::on_game_end() {
+void Project::on_game_end(Scene & scene) {
     for (Script * script : m_active_scripts) {
+        script->on_game_end(scene);
         delete script;
     }
     m_active_scripts.clear();

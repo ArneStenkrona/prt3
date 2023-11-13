@@ -37,6 +37,7 @@ public:
         SignalString const & /*signal*/,
         void * /*data*/
     ) {}
+    virtual void on_game_end(Scene & /*scene*/) {}
 
     enum class FieldType {
         uint8,
