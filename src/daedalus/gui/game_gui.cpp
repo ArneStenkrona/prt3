@@ -102,7 +102,6 @@ void GameGui::on_update(
     cn.parent_anchor = prt3::CanvasNode::AnchorPoint::mid;
     cn.center_point = prt3::CanvasNode::AnchorPoint::mid;
 
-    // cn.color = glm::vec4{1.0f, 1.0f, 1.0f, 0.5f};
     cn.color = glm::vec4{0.0f, 0.0f, 0.0f, 0.5f};
     cn.inherit_color = false;
     cn.texture = m_atlas.texture;
@@ -137,9 +136,18 @@ void GameGui::on_update(
 
     text.u.text.char_info = m_atlas.metadata[0].char_data.data();
     text.u.text.font_size = 32;
-    char const * test_text = "this is a really really long text that I typed in order to see what happens when the text is long enough as to require line breaks. Does it break cleanly or does my code break completely? Let's find out together!!!!";
-    text.u.text.text = test_text;
-    text.u.text.length = strlen(test_text);
+    char const * lorem = "Lorem ipsum dolor sit amet, consectetur adipiscing "\
+                         "elit, sed do eiusmod tempor incididunt ut labore "\
+                         "et dolore magna aliqua. Ut enim ad minim veniam, "\
+                         "quis nostrud exercitation ullamco laboris nisi "\
+                         "ut aliquip ex ea commodo consequat. Duis aute "\
+                         "irure dolor in reprehenderit in voluptate velit "\
+                         "esse cillum dolore eu fugiat nulla pariatur. "\
+                         "Excepteur sint occaecat cupidatat non proident, "\
+                         "sunt in culpa qui officia deserunt mollit anim id"\
+                         " est laborum.";
+    text.u.text.text = lorem;
+    text.u.text.length = strlen(lorem);
 
     text.layer = 0;
     canvas.begin_node(text);

@@ -53,6 +53,35 @@ glm::vec2 get_anchor_factor(CanvasNode::AnchorPoint anchor_point) {
     }
 }
 
+static bool is_whitespace(char c) {
+    // TODO: Handle all whitespace (though in practice we only expect space)
+    return c == ' ' || c == '\n';
+}
+
+static float get_curr_word_width(
+    CanvasText const & text,
+    size_t index
+) {
+    /* Note: Function is technically misnamed. We care about the width of the
+     *       word and any following punctuation.
+     */
+    float width = 0.0f;
+
+    char const * str = text.text;
+
+    /* We do not stop at text.length since we want formatting to be consistent
+     * when incrementally displaying a string across several frames.
+     */
+    while (str[index] && !is_whitespace(str[index])) {
+        unsigned char c =
+            *reinterpret_cast<unsigned const char *>(str[index]);
+        width += text.font_size * text.char_info[c].advance;
+        ++index;
+    }
+
+    return width;
+}
+
 void Canvas::collect_render_data(Scene const & scene, std::vector<RenderRect2D> & data) {
     struct StackInfo {
         glm::vec4 color;
@@ -171,9 +200,11 @@ void Canvas::collect_render_data(Scene const & scene, std::vector<RenderRect2D> 
 
                 size_t data_curr = data.size();
                 data.resize(data_curr + text.length);
+
                 for (uint32_t i = 0; i < text.length; ++i) {
                     unsigned char c =
-                        *reinterpret_cast<unsigned const char*>(&text.text[i]);
+                        *reinterpret_cast<unsigned const char *>(&text.text[i]);
+
                     FontChar const & fc = text.char_info[c];
                     glm::vec2 o = fc.uv_origin;
                     glm::vec2 dim = fc.uv_dimension;
@@ -185,9 +216,16 @@ void Canvas::collect_render_data(Scene const & scene, std::vector<RenderRect2D> 
                         fc.norm_scale *
                         glm::vec2{font_size * fc.ratio, font_size};
 
-                    if (curr_pos.x + advance > limit_x) {
-                        curr_pos.x = position.x;
-                        curr_pos.y -= font_size;
+                    bool first_char_in_word =
+                        !is_whitespace(c) &&
+                        (i == 0 || is_whitespace(text.text[i-1]));
+
+                    if (first_char_in_word) {
+                        float curr_word_width = get_curr_word_width(text, i);
+                        if (curr_pos.x + curr_word_width > limit_x) {
+                            curr_pos.x = position.x;
+                            curr_pos.y -= font_size;
+                        }
                     }
 
                     glm::vec2 offset = font_size * fc.offset;

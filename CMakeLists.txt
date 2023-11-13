@@ -144,7 +144,7 @@ add_dependencies(prt3 package_resources)
 
 # Wasm specific
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
-  set(CMAKE_CXX_FLAGS "-s USE_ZLIB=1 -fsanitize=address")
+  set(CMAKE_CXX_FLAGS "-s USE_ZLIB=1")
   set_target_properties(prt3 PROPERTIES LINK_FLAGS "${CMAKE_LINK_FLAGS} -std=c++17 --use-preload-plugins -s WASM=1 -sASSERTIONS=1 --pre-js settings.js -s DISABLE_EXCEPTION_CATCHING=1 -s MIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sGL_PREINITIALIZED_CONTEXT=1 -s TOTAL_MEMORY=323813376 -sALLOW_MEMORY_GROWTH -sWASM_BIGINT -sERROR_ON_WASM_CHANGES_AFTER_LINK -O1 -sFORCE-FILESYSTEM -lopenal -s USE_ZLIB=1 -sUSE_GLFW=3 -sSTACK_SIZE=5MB")
 endif ()
 

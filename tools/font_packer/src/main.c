@@ -337,11 +337,23 @@ static void write_atlas(
         curr_x += images[i].width;
     }
 
+    /* convert greyscale to rgba */
+    char * pixels_rgba = malloc(4 * w * h);
+    unsigned n_src_bytes = w * h;
+    unsigned curr = 0;
+    for (unsigned i = 0; i < n_src_bytes; ++i) {
+        pixels_rgba[curr++] = pixels[i];
+        pixels_rgba[curr++] = pixels[i];
+        pixels_rgba[curr++] = pixels[i];
+        pixels_rgba[curr++] = pixels[i];
+    }
+
     char outfile[256] = {0};
     snprintf(outfile, 256, "%s.png", out_prefix);
 
-    stbi_write_png(outfile, w, h, 1, pixels, 0);
+    stbi_write_png(outfile, w, h, 4, pixels_rgba, 0);
     free(pixels);
+    free(pixels_rgba);
 }
 
 static void write_metadata(
