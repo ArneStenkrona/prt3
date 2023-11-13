@@ -17,6 +17,24 @@ class ComponentStorage;
 
 class EditorContext;
 
+struct FontChar {
+    glm::vec2 uv_origin;
+    glm::vec2 uv_dimension;
+    glm::vec2 offset;
+    float advance;
+    float left_bearing;
+    float ratio;
+    float norm_scale;
+};
+
+struct CanvasText {
+    /* Should map to array with 256 entries if length is not 0 */
+    FontChar const * char_info;
+    uint32_t font_size;
+    uint32_t length;
+    char const * text;
+};
+
 struct CanvasNode {
     enum class AnchorPoint {
         top_left,
@@ -35,6 +53,12 @@ struct CanvasNode {
         relative // percentage of parent dimensions
     };
 
+    enum class Mode {
+        rect,
+        text,
+        invisible
+    };
+
     /* dimensions */
     glm::vec2 dimension;
     UnitType dimension_mode;
@@ -47,19 +71,26 @@ struct CanvasNode {
     AnchorPoint parent_anchor;
     AnchorPoint center_point;
 
-    bool rendered; // should the node be rendered?
     glm::vec4 color;
     bool inherit_color; // whether the color should be blended with ancestors
-
-    /* texture info, ignored if texture resource id is -1 */
-    glm::vec2 uv0;
-    glm::vec2 uv1;
-    glm::vec2 uv2;
-    glm::vec2 uv3;
     ResourceID texture;
 
-    int16_t layer; // render layer, relative to parent, higher occludes lower
+    Mode mode; // should the node be rendered?
 
+    union U {
+        constexpr U() : rect{} {}
+        struct {
+            /* texture info, ignored if texture resource id is -1 */
+            glm::vec2 uv0;
+            glm::vec2 uv1;
+            glm::vec2 uv2;
+            glm::vec2 uv3;
+        } rect;
+
+        CanvasText text;
+    } u;
+
+    int16_t layer; // render layer, relative to parent, higher occludes lower
 };
 
 struct CanvasStackNode {

@@ -82,6 +82,15 @@ public:
     void free_texture(ResourceID id)
     { return m_render_backend->free_texture(id); }
 
+    void get_texture_metadata(
+        ResourceID id,
+        unsigned int & width,
+        unsigned int & height,
+        unsigned int & channels
+    ) const {
+        return m_render_backend->get_texture_metadata(id, width, height, channels);
+    }
+
     NodeID get_selected(int x, int y) {
         return m_render_backend->get_selected(x, y);
     }

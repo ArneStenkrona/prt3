@@ -675,11 +675,14 @@ void GLRenderer::render_canvas(std::vector<RenderRect2D> & data) {
     GL_CHECK(glEnable(GL_BLEND));
     GL_CHECK(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
-    GLenum attachment = GL_COLOR_ATTACHMENT0;
-
     /* The canvas will be rendered to whatever framebuffer that was already
      * bound.
      */
+    GLint fbo = 0;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &fbo);
+
+    GLenum attachment = fbo == 0 ? GL_BACK : GL_COLOR_ATTACHMENT0;
+
     GL_CHECK(glDrawBuffers(1, &attachment));
     GL_CHECK(glUseProgram(m_canvas_shader->shader()));
 
@@ -697,7 +700,8 @@ void GLRenderer::render_canvas(std::vector<RenderRect2D> & data) {
     for (size_t i = 0; i < data.size(); ++i) {
         if (i + 1 == data.size() || data[i].texture != data[i + 1].texture) {
             GLuint tex_id = data[i].texture == NO_RESOURCE ?
-                m_texture_manager.texture_1x1_0xffffffff() : data[i].texture;
+                m_texture_manager.texture_1x1_0xffffffff() :
+                m_texture_manager.get_texture(data[i].texture);
 
             draw_canvas_elements(group_start, i, tex_id);
             group_start = i + 1;

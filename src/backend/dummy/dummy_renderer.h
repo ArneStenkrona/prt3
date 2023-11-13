@@ -61,8 +61,26 @@ public:
     virtual Material & get_material(ResourceID id);
 
     virtual ResourceID upload_texture(TextureData const & data);
-    virtual void free_texture(ResourceID) {};
+    virtual void free_texture(ResourceID id) {
+        m_texture_metadata.erase(id);
+    };
+
+    void get_texture_metadata(
+        ResourceID id,
+        unsigned int & width,
+        unsigned int & height,
+        unsigned int & channels
+    ) const final;
+
 private:
+    struct TextureMetadata {
+        unsigned int width;
+        unsigned int height;
+        unsigned int channels;
+    };
+
+    std::unordered_map<ResourceID, TextureMetadata> m_texture_metadata;
+
     ResourceID m_mesh_counter = 0;
     std::unordered_map<ResourceID, Material> m_materials;
     ResourceID m_texture_counter = 0;

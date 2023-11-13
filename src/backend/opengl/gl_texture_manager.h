@@ -23,6 +23,17 @@ public:
     void free_texture(ResourceID id);
 
     GLuint get_texture(ResourceID id) { return m_textures.at(id); }
+    void get_texture_metadata(
+        ResourceID id,
+        unsigned int & width,
+        unsigned int & height,
+        unsigned int & channels
+    ) const {
+        TextureMetadata md = m_texture_metadata.at(id);
+        width = md.width;
+        height = md.height;
+        channels = md.channels;
+    }
 
     GLuint texture_1x1_0xffffffff() const { return m_texture_1x1_0xffffffff; }
     GLuint texture_1x1_0x0000ff() const { return m_texture_1x1_0x0000ff; }
@@ -33,7 +44,14 @@ private:
     GLuint m_texture_1x1_0x0000ff;
     GLuint m_texture_1x1_0xff;
 
+    struct TextureMetadata {
+        unsigned int width;
+        unsigned int height;
+        unsigned int channels;
+    };
+
     std::unordered_map<ResourceID, GLuint> m_textures;
+    std::unordered_map<ResourceID, TextureMetadata> m_texture_metadata;
     std::unordered_map<GLuint, ResourceID> m_resource_ids;
 
     std::vector<ResourceID> m_free_ids;

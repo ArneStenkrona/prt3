@@ -15,7 +15,6 @@ file(REMOVE "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.js")
 
 # Set paths
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-# SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 include_directories(
   "${PROJECT_BINARY_DIR}"
@@ -145,7 +144,7 @@ add_dependencies(prt3 package_resources)
 
 # Wasm specific
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
-  set(CMAKE_CXX_FLAGS "-s USE_ZLIB=1")
+  set(CMAKE_CXX_FLAGS "-s USE_ZLIB=1 -fsanitize=address")
   set_target_properties(prt3 PROPERTIES LINK_FLAGS "${CMAKE_LINK_FLAGS} -std=c++17 --use-preload-plugins -s WASM=1 -sASSERTIONS=1 --pre-js settings.js -s DISABLE_EXCEPTION_CATCHING=1 -s MIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sGL_PREINITIALIZED_CONTEXT=1 -s TOTAL_MEMORY=323813376 -sALLOW_MEMORY_GROWTH -sWASM_BIGINT -sERROR_ON_WASM_CHANGES_AFTER_LINK -O1 -sFORCE-FILESYSTEM -lopenal -s USE_ZLIB=1 -sUSE_GLFW=3 -sSTACK_SIZE=5MB")
 endif ()
 
@@ -161,4 +160,3 @@ target_link_options(prt3 PUBLIC -Wall -Wextra -o2 -g -fno-omit-frame-pointer)
 # Link libraries
 target_link_libraries(prt3 PRIVATE assimp::assimp)
 target_link_libraries(prt3 PRIVATE glm)
-# target_link_libraries(prt3 PRIVATE ${OPENAL_LIBRARY})

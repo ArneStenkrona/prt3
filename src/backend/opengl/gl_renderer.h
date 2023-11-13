@@ -89,6 +89,15 @@ public:
     void free_texture(ResourceID id) final
     { return m_texture_manager.free_texture(id); }
 
+    void get_texture_metadata(
+        ResourceID id,
+        unsigned int & width,
+        unsigned int & height,
+        unsigned int & channels
+    ) const final {
+        return m_texture_manager.get_texture_metadata(id, width, height, channels);
+    }
+
 private:
     GLFWwindow * m_window;
     float m_downscale_factor;

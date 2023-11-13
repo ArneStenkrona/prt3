@@ -95,6 +95,14 @@ public:
     ResourceID upload_texture(std::string const & path)
     { return register_texture(texture_manager().upload_texture(path)); }
 
+
+    void get_texture_metadata(
+        ResourceID id,
+        unsigned int & width,
+        unsigned int & height,
+        unsigned int & channels
+    ) const;
+
     NodeID get_root_id() const { return s_root_id; }
 
     bool remove_node(NodeID id);

@@ -67,6 +67,13 @@ public:
 
     virtual ResourceID upload_texture(TextureData const & data) = 0;
     virtual void free_texture(ResourceID id) = 0;
+    virtual void get_texture_metadata(
+        ResourceID id,
+        unsigned int & width,
+        unsigned int & height,
+        unsigned int & channels
+    ) const = 0;
+
 private:
 };
 

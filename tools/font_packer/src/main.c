@@ -51,7 +51,9 @@ static void validate_char_set_has_no_duplicates(
 typedef struct {
     unsigned pos_x, pos_y;
     unsigned width, height;
-    unsigned offset_y;
+    int offset_y;
+    float advance;
+    float left_bearing;
 } Glyph_Metadata;
 
 typedef struct {
@@ -165,11 +167,13 @@ static void rasterize_ttf(
             total_width
         );
 
-        out_image->metadata[c].pos_y = curr_y;
         out_image->metadata[c].pos_x = curr_x;
+        out_image->metadata[c].pos_y = curr_y;
         out_image->metadata[c].width = images[c].width;
         out_image->metadata[c].height = images[c].height;
         out_image->metadata[c].offset_y = metrics[c].yOffset;
+        out_image->metadata[c].advance = (float)metrics[c].advanceWidth;
+        out_image->metadata[c].left_bearing = (float)metrics[c].leftSideBearing;
 
         curr_x += images[c].width;
 
@@ -196,9 +200,9 @@ static void rasterize_ttf(
     sft_freefont(font);
 }
 
-#define DEFAULT_CHAR_SET_SIZE 94
+#define DEFAULT_CHAR_SET_SIZE 95
 unsigned char default_char_set[DEFAULT_CHAR_SET_SIZE] = {
-    "!\"#$%&'()*+,-./0123456789:;<=>?"\
+    " !\"#$%&'()*+,-./0123456789:;<=>?"\
     "@ABCDEFGHIJKLMNOPQRSTUVWXYZ"\
     "[\\]^_`"\
     "abcdefghijklmnopqrstuvwxyz"\
@@ -324,6 +328,12 @@ static void write_atlas(
             0,
             w
         );
+
+        /* update metadata now that it is in the combined atlas */
+        for (unsigned c = 0; c < 256; ++c) {
+            images[i].metadata[c].pos_x += curr_x;
+        }
+
         curr_x += images[i].width;
     }
 
@@ -386,13 +396,17 @@ static void write_metadata(
             uint32_t y = (uint32_t)md.pos_y;
             uint32_t w = (uint32_t)md.width;
             uint32_t h = (uint32_t)md.height;
-            uint32_t oy = (uint32_t)md.offset_y;
+            int32_t oy = (int32_t)md.offset_y;
+            float a = md.advance;
+            float l = md.left_bearing;
 
             fwrite(&x, sizeof(x), 1, out);
             fwrite(&y, sizeof(y), 1, out);
             fwrite(&w, sizeof(w), 1, out);
             fwrite(&h, sizeof(h), 1, out);
             fwrite(&oy, sizeof(oy), 1, out);
+            fwrite(&a, sizeof(a), 1, out);
+            fwrite(&l, sizeof(l), 1, out);
         }
     }
 

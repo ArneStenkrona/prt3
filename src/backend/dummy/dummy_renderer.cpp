@@ -45,8 +45,23 @@ Material & DummyRenderer::get_material(ResourceID id) {
     return m_materials.at(id);
 }
 
-ResourceID DummyRenderer::upload_texture(TextureData const &) {
+ResourceID DummyRenderer::upload_texture(TextureData const & data) {
     ResourceID id = m_texture_counter;
+    m_texture_metadata[id].width = data.width;
+    m_texture_metadata[id].height = data.height;
+    m_texture_metadata[id].channels = data.channels;
     ++m_texture_counter;
     return id;
+}
+
+void DummyRenderer::get_texture_metadata(
+    ResourceID id,
+    unsigned int & width,
+    unsigned int & height,
+    unsigned int & channels
+) const {
+    TextureMetadata md = m_texture_metadata.at(id);
+    width = md.width;
+    height = md.height;
+    channels = md.channels;
 }

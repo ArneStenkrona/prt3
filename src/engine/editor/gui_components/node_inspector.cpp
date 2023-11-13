@@ -10,6 +10,7 @@
 #include "src/engine/editor/gui_components/component/animated_mesh_gui.h"
 #include "src/engine/editor/gui_components/component/animated_model_gui.h"
 #include "src/engine/editor/gui_components/component/armature_gui.h"
+#include "src/engine/editor/gui_components/component/canvas_gui.h"
 #include "src/engine/editor/gui_components/component/collider_gui.h"
 #include "src/engine/editor/gui_components/component/decal_gui.h"
 #include "src/engine/editor/gui_components/component/door_gui.h"
@@ -116,14 +117,6 @@ private:
     bool m_has_tag;
 };
 
-template <typename T, typename = int>
-struct HasGUI : std::false_type {
-};
-
-template <typename T>
-struct HasGUI<T, decltype(&T::inner_show_component, 0)> : std::true_type {
-};
-
 template<typename T>
 void show_component(EditorContext & context, NodeID id) {
     Scene & scene = context.context().edit_scene();
@@ -136,10 +129,7 @@ void show_component(EditorContext & context, NodeID id) {
             "remove"
         );
 
-        if constexpr (HasGUI<T>::value)
-        {
-            inner_show_component<T>(context, id);
-        }
+        inner_show_component<T>(context, id);
 
         end_group_panel();
 

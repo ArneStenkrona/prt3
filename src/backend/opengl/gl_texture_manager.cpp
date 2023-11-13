@@ -30,27 +30,33 @@ GLTextureManager::~GLTextureManager() {
 ResourceID GLTextureManager::upload_texture(TextureData const & data) {
     // TODO: proper format detection
     GLenum format = 0;
+    GLint alignment = 0;
     switch (data.channels) {
         case 1: {
             format = GL_LUMINANCE;
+            alignment = 1;
             break;
         }
         case 2: {
             format = GL_LUMINANCE_ALPHA;
+            alignment = 2;
             break;
         }
         case 3: {
             format = GL_RGB;
+            alignment = 1;
             break;
         }
         case 4: {
             format = GL_RGBA;
+            alignment = 4;
             break;
         }
         default: {
             assert(false && "Invalid number of channels");
         }
     }
+    GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, alignment));
 
     GLuint texture_handle;
     GL_CHECK(glGenTextures(1, &texture_handle));
@@ -82,6 +88,14 @@ ResourceID GLTextureManager::upload_texture(TextureData const & data) {
 
     m_textures.emplace(
         std::make_pair(id, texture_handle)
+    );
+
+    TextureMetadata metadata;
+    metadata.width = data.width;
+    metadata.height = data.height;
+    metadata.channels = data.channels;
+    m_texture_metadata.emplace(
+        std::make_pair(id, metadata)
     );
     m_resource_ids.emplace(
         std::make_pair(texture_handle, id)
@@ -120,6 +134,7 @@ void GLTextureManager::free_texture(ResourceID id) {
     GLuint handle = m_textures.at(id);
     GL_CHECK(glDeleteTextures(1, &handle));
     m_textures.erase(id);
+    m_texture_metadata.erase(id);
     m_resource_ids.erase(handle);
     m_free_ids.push_back(id);
 }

@@ -627,6 +627,21 @@ void Scene::get_window_size(unsigned int & w, unsigned int & h) const {
     h = m_context->renderer().window_height();
 }
 
+void Scene::get_texture_metadata(
+    ResourceID id,
+    unsigned int & width,
+    unsigned int & height,
+    unsigned int & channels
+) const {
+    return m_context->renderer().get_texture_metadata(
+        id,
+        width,
+        height,
+        channels
+    );
+}
+
+
 void Scene::serialize(std::ostream & out) const {
     static std::unordered_map<NodeID, NodeID> compacted_ids;
     compacted_ids.clear();

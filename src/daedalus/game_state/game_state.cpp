@@ -7,7 +7,8 @@ using namespace dds;
 GameState::GameState(prt3::Scene & scene, prt3::NodeID node_id)
  : Script(scene, node_id),
    m_map{MAP_PATH},
-   m_npc_db{*this} {
+   m_npc_db{*this},
+   m_game_gui{scene} {
     init_resources(scene);
 }
 
@@ -18,7 +19,8 @@ GameState::GameState(
 )
  : prt3::Script(scene, m_node_id),
    m_map{MAP_PATH},
-   m_npc_db{*this} {
+   m_npc_db{*this},
+   m_game_gui{scene} {
     init_resources(scene);
 }
 
@@ -146,7 +148,7 @@ void GameState::on_update(prt3::Scene & scene, float) {
 void GameState::on_late_update(prt3::Scene & scene, float /*delta_time*/) {
     m_entry_overlap &= m_entry_overlap_frame;
     m_entry_overlap_frame = false;
-    m_game_gui.on_update(scene, m_canvas_id);
+    m_game_gui.on_update(scene, m_canvas_id, *this);
 }
 
 void GameState::register_door_overlap(prt3::Scene & scene, prt3::Door & door) {

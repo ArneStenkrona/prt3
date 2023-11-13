@@ -86,9 +86,9 @@ void Canvas::collect_render_data(Scene const & scene, std::vector<RenderRect2D> 
         /* color */
         glm::vec4 color;
         if (n.inherit_color) {
-            color = n.color;
-        } else {
             color = curr_info.color * n.color;
+        } else {
+            color = n.color;
         }
         info.color = color;
 
@@ -140,21 +140,82 @@ void Canvas::collect_render_data(Scene const & scene, std::vector<RenderRect2D> 
         /* layer */
         int32_t layer = int32_t{curr_info.layer} + int32_t{n.layer};
         info.layer = layer;
+        int32_t rect_layer = layer + m_layer * (UINT16_MAX + 1);
 
-        if (n.rendered) {
-            RenderRect2D rect;
-            rect.color = color;
-            rect.uv0 = n.uv0;
-            rect.uv1 = n.uv1;
-            rect.uv2 = n.uv2;
-            rect.uv3 = n.uv3;
-            /* convert to view space coordinates */
-            rect.position = 2.0f * (position / glm::vec2{w, h}) - 1.0f;
-            rect.dimension = 2.0f * (dimension / glm::vec2{w, h});
-            rect.texture = n.texture;
-            rect.layer = n.layer + m_layer * (UINT16_MAX + 1);
+        switch (n.mode) {
+            case CanvasNode::Mode::rect: {
+                RenderRect2D rect;
+                rect.color = color;
+                rect.uv0 = n.u.rect.uv0;
+                rect.uv1 = n.u.rect.uv1;
+                rect.uv2 = n.u.rect.uv2;
+                rect.uv3 = n.u.rect.uv3;
+                /* convert to view space coordinates */
+                rect.position = 2.0f * (position / glm::vec2{w, h}) - 1.0f;
+                rect.dimension = 2.0f * (dimension / glm::vec2{w, h});
+                rect.texture = n.texture;
+                rect.layer = rect_layer;
 
-            data.push_back(rect);
+                data.push_back(rect);
+
+                break;
+            }
+            case CanvasNode::Mode::text: {
+                CanvasText const & text = n.u.text;
+                float font_size = static_cast<float>(text.font_size);
+
+                glm::vec2 curr_pos = position;
+                curr_pos.y += dimension.y - font_size;
+
+                float limit_x = position.x + dimension.x;
+
+                size_t data_curr = data.size();
+                data.resize(data_curr + text.length);
+                for (uint32_t i = 0; i < text.length; ++i) {
+                    unsigned char c =
+                        *reinterpret_cast<unsigned const char*>(&text.text[i]);
+                    FontChar const & fc = text.char_info[c];
+                    glm::vec2 o = fc.uv_origin;
+                    glm::vec2 dim = fc.uv_dimension;
+
+                    float lb = font_size * fc.left_bearing;
+                    float advance = font_size * fc.advance;
+
+                    glm::vec2 rect_dim =
+                        fc.norm_scale *
+                        glm::vec2{font_size * fc.ratio, font_size};
+
+                    if (curr_pos.x + advance > limit_x) {
+                        curr_pos.x = position.x;
+                        curr_pos.y -= font_size;
+                    }
+
+                    glm::vec2 offset = font_size * fc.offset;
+                    glm::vec2 rect_pos = curr_pos + offset;
+                    rect_pos.x += lb;
+                    rect_pos.y -= rect_dim.y;
+
+                    RenderRect2D & rect = data[data_curr];
+                    rect.color = color;
+                    rect.uv0 = o + glm::vec2{ 0.0f, dim.y };
+                    rect.uv1 = o + glm::vec2{ dim.x, dim.y };
+                    rect.uv2 = o + glm::vec2{ dim.x, 0.0f };
+                    rect.uv3 = o;
+                    /* convert to view space coordinates */
+                    rect.position = 2.0f * (rect_pos / glm::vec2{w, h}) - 1.0f;
+                    rect.dimension = 2.0f * (rect_dim / glm::vec2{w, h});
+                    rect.texture = n.texture;
+                    rect.layer = rect_layer;
+
+                    ++data_curr;
+
+                    curr_pos.x += advance;
+                }
+                break;
+            }
+            case CanvasNode::Mode::invisible: {
+                break;
+            }
         }
 
         stack_info.push_back(info);
