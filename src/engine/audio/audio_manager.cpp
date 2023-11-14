@@ -464,8 +464,6 @@ void AudioManager::fill_midi_buffer(
 
     char * stream = clip.buffer.data();
 
-    tml_message * msg = &clip.messages[state.msg_index];
-
     static constexpr unsigned int block_size = 64;
     for (unsigned int sample_block = block_size;
          sample_count;
@@ -475,6 +473,8 @@ void AudioManager::fill_midi_buffer(
 
         double ms_per_block =
             1000.0 / static_cast<double>(m_sample_rate);
+
+        tml_message * msg = &clip.messages[state.msg_index];
 
         state.midi_ms += sample_block * ms_per_block;
         while (state.msg_index < clip.messages.size() &&
