@@ -90,76 +90,76 @@ GameGui::GameGui(prt3::Scene & scene) {
 }
 
 void GameGui::on_update(
-    prt3::Scene & scene,
-    prt3::NodeID canvas_id,
+    prt3::Scene & /*scene*/,
+    prt3::NodeID /*canvas_id*/,
     GameState const & /*game_state*/
 ) {
     // TODO: implement
-    prt3::Canvas & canvas = scene.get_component<prt3::Canvas>(canvas_id);
+    // prt3::Canvas & canvas = scene.get_component<prt3::Canvas>(canvas_id);
 
-    prt3::CanvasNode cn;
-    cn.dimension = glm::vec2{0.5f, 0.5f};
-    cn.dimension_mode = prt3::CanvasNode::UnitType::relative;
+    // prt3::CanvasNode cn;
+    // cn.dimension = glm::vec2{0.5f, 0.5f};
+    // cn.dimension_mode = prt3::CanvasNode::UnitType::relative;
 
-    cn.position = glm::vec2{0.0f, 0.0f};
-    cn.origin = glm::vec2{0.0f, 0.0f};
-    cn.position_mode = prt3::CanvasNode::UnitType::relative;
-    cn.origin_mode = prt3::CanvasNode::UnitType::relative;
-    cn.parent_anchor = prt3::CanvasNode::AnchorPoint::mid;
-    cn.center_point = prt3::CanvasNode::AnchorPoint::mid;
+    // cn.position = glm::vec2{0.0f, 0.0f};
+    // cn.origin = glm::vec2{0.0f, 0.0f};
+    // cn.position_mode = prt3::CanvasNode::UnitType::relative;
+    // cn.origin_mode = prt3::CanvasNode::UnitType::relative;
+    // cn.parent_anchor = prt3::CanvasNode::AnchorPoint::mid;
+    // cn.center_point = prt3::CanvasNode::AnchorPoint::mid;
 
-    cn.color = glm::vec4{0.0f, 0.0f, 0.0f, 0.5f};
-    cn.inherit_color = false;
-    cn.texture = m_atlas.texture;
+    // cn.color = glm::vec4{0.0f, 0.0f, 0.0f, 0.5f};
+    // cn.inherit_color = false;
+    // cn.texture = m_atlas.texture;
 
-    cn.mode = prt3::CanvasNode::Mode::rect;
+    // cn.mode = prt3::CanvasNode::Mode::rect;
 
-    cn.u.rect.uv0 = m_atlas.uv_0xffff;
-    cn.u.rect.uv1 = m_atlas.uv_0xffff;
-    cn.u.rect.uv2 = m_atlas.uv_0xffff;
-    cn.u.rect.uv3 = m_atlas.uv_0xffff;
+    // cn.u.rect.uv0 = m_atlas.uv_0xffff;
+    // cn.u.rect.uv1 = m_atlas.uv_0xffff;
+    // cn.u.rect.uv2 = m_atlas.uv_0xffff;
+    // cn.u.rect.uv3 = m_atlas.uv_0xffff;
 
-    cn.layer = 0;
+    // cn.layer = 0;
 
-    canvas.begin_node(cn);
+    // canvas.begin_node(cn);
 
-    prt3::CanvasNode text;
-    text.dimension = glm::vec2{1.0f, 1.0f};
-    text.dimension_mode = prt3::CanvasNode::UnitType::relative;
+    // prt3::CanvasNode text;
+    // text.dimension = glm::vec2{1.0f, 1.0f};
+    // text.dimension_mode = prt3::CanvasNode::UnitType::relative;
 
-    text.position = glm::vec2{0.0f, 0.0f};
-    text.origin = glm::vec2{0.0f, 0.0f};
-    text.position_mode = prt3::CanvasNode::UnitType::relative;
-    text.origin_mode = prt3::CanvasNode::UnitType::relative;
-    text.parent_anchor = prt3::CanvasNode::AnchorPoint::mid;
-    text.center_point = prt3::CanvasNode::AnchorPoint::mid;
+    // text.position = glm::vec2{0.0f, 0.0f};
+    // text.origin = glm::vec2{0.0f, 0.0f};
+    // text.position_mode = prt3::CanvasNode::UnitType::relative;
+    // text.origin_mode = prt3::CanvasNode::UnitType::relative;
+    // text.parent_anchor = prt3::CanvasNode::AnchorPoint::mid;
+    // text.center_point = prt3::CanvasNode::AnchorPoint::mid;
 
-    text.color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
-    text.inherit_color = false;
-    text.texture = m_atlas.texture;
+    // text.color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
+    // text.inherit_color = false;
+    // text.texture = m_atlas.texture;
 
-    text.mode = prt3::CanvasNode::Mode::text;
+    // text.mode = prt3::CanvasNode::Mode::text;
 
-    text.u.text.char_info = m_atlas.metadata[0].char_data.data();
-    text.u.text.font_size = 32;
-    char const * lorem = "Lorem ipsum dolor sit amet, consectetur adipiscing "\
-                         "elit, sed do eiusmod tempor incididunt ut labore "\
-                         "et dolore magna aliqua. Ut enim ad minim veniam, "\
-                         "quis nostrud exercitation ullamco laboris nisi "\
-                         "ut aliquip ex ea commodo consequat. Duis aute "\
-                         "irure dolor in reprehenderit in voluptate velit "\
-                         "esse cillum dolore eu fugiat nulla pariatur. "\
-                         "Excepteur sint occaecat cupidatat non proident, "\
-                         "sunt in culpa qui officia deserunt mollit anim id"\
-                         " est laborum.";
-    text.u.text.text = lorem;
-    text.u.text.length = strlen(lorem);
+    // text.u.text.char_info = m_atlas.metadata[0].char_data.data();
+    // text.u.text.font_size = 16;
+    // char const * lorem = "Lorem ipsum dolor sit amet, consectetur adipiscing "\
+    //                      "elit, sed do eiusmod tempor incididunt ut labore "\
+    //                      "et dolore magna aliqua. Ut enim ad minim veniam, "\
+    //                      "quis nostrud exercitation ullamco laboris nisi "\
+    //                      "ut aliquip ex ea commodo consequat. Duis aute "\
+    //                      "irure dolor in reprehenderit in voluptate velit "\
+    //                      "esse cillum dolore eu fugiat nulla pariatur. "\
+    //                      "Excepteur sint occaecat cupidatat non proident, "\
+    //                      "sunt in culpa qui officia deserunt mollit anim id"\
+    //                      " est laborum.";
+    // text.u.text.text = lorem;
+    // text.u.text.length = strlen(lorem);
 
-    text.layer = 0;
-    canvas.begin_node(text);
-    canvas.end_node();
+    // text.layer = 0;
+    // canvas.begin_node(text);
+    // canvas.end_node();
 
-    canvas.end_node();
+    // canvas.end_node();
 }
 
 void GameGui::free_resources(prt3::Scene & scene) {

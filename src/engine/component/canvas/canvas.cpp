@@ -141,7 +141,8 @@ static void align_text_y(
         case prt3::CanvasNode::AnchorPoint::mid_left:
         case prt3::CanvasNode::AnchorPoint::mid:
         case prt3::CanvasNode::AnchorPoint::mid_right: {
-            adjustment = -(parent_height - text_height) / screen_height;
+            adjustment = -(parent_height - text_height - 1.5f * font_size) /
+                           screen_height;
             break;
         }
         case prt3::CanvasNode::AnchorPoint::bottom_left:
