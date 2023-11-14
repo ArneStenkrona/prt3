@@ -74,7 +74,7 @@ static float get_curr_word_width(
      */
     while (str[index] && !is_whitespace(str[index])) {
         unsigned char c =
-            *reinterpret_cast<unsigned const char *>(str[index]);
+            *reinterpret_cast<unsigned const char *>(&str[index]);
         width += text.font_size * text.char_info[c].advance;
         ++index;
     }
