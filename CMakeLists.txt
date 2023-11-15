@@ -45,6 +45,7 @@ file(GLOB SOURCES
   "src/backend/opengl/gl_utility.cpp"
   "src/daedalus/game_state/game_state.cpp"
   "src/daedalus/gui/game_gui.cpp"
+  "src/daedalus/gui/strings.cpp"
   "src/daedalus/map/map.cpp"
   "src/daedalus/npc/npc_controller.cpp"
   "src/daedalus/npc/npc_db.cpp"

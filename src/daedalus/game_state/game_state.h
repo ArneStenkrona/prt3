@@ -5,6 +5,7 @@
 #include "src/daedalus/gui/game_gui.h"
 #include "src/daedalus/map/map.h"
 #include "src/daedalus/npc/npc_db.h"
+#include "src/daedalus/objects/interactable.h"
 
 #include "src/engine/component/script/script.h"
 #include "src/engine/component/script/player_controller.h"
@@ -54,6 +55,9 @@ public:
     void set_entry_door_id(prt3::DoorID id) { m_entry_door_id = id; }
 
     void register_door_overlap(prt3::Scene & scene, prt3::Door & door);
+    void register_interactable(Interactable & candidate);
+
+    Interactable const * interactable() const { return m_interactable; }
 
     Map & map() { return m_map; }
     NPCDB & npc_db() { return m_npc_db; }
@@ -76,6 +80,8 @@ private:
     prt3::DoorID m_entry_door_id = 0;
     bool m_entry_overlap_frame;
     bool m_entry_overlap;
+
+    Interactable * m_interactable = nullptr;
 
     prt3::Prefab m_player_prefab{"assets/prefabs/player.prefab"};
     prt3::NodeID m_player_id;

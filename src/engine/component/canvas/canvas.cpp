@@ -215,9 +215,10 @@ void Canvas::collect_render_data(Scene const & scene, std::vector<RenderRect2D> 
         info.dimension = dimension;
 
         /* position */
-        glm::vec2 position = curr_info.position +
-                             get_anchor_factor(n.parent_anchor) *
-                             curr_info.dimension;
+        glm::vec2 position =
+            curr_info.position +
+            (glm::vec2{1.0f} - get_anchor_factor(n.parent_anchor)) *
+            curr_info.dimension;
 
         switch (n.position_mode) {
             case CanvasNode::UnitType::absolute: {

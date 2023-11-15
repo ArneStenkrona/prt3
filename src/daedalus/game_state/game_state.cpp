@@ -1,5 +1,7 @@
 #include "game_state.h"
 
+#include "src/daedalus/input_mapping/input_mapping.h"
+
 using namespace dds;
 
 #define MAP_PATH "assets/models/map/island.map" // hard-coded for now
@@ -83,6 +85,8 @@ void GameState::on_start(prt3::Scene & scene) {
     scene.connect_signal("__scene_transition_out__", this);
     scene.connect_signal("__scene_exit__", this);
 
+    m_interactable = nullptr;
+
     m_entry_overlap = true;
     m_entry_overlap_frame = true;
 
@@ -145,10 +149,17 @@ void GameState::on_update(prt3::Scene & scene, float) {
     m_current_time += dds::ms_per_frame;
 }
 
-void GameState::on_late_update(prt3::Scene & scene, float /*delta_time*/) {
+void GameState::on_late_update(prt3::Scene & scene, float delta_time) {
     m_entry_overlap &= m_entry_overlap_frame;
     m_entry_overlap_frame = false;
-    m_game_gui.on_update(scene, m_canvas_id, *this);
+    m_game_gui.on_update(scene, m_canvas_id, *this, delta_time);
+
+    /* handle interacts */
+    if (m_interactable != nullptr &&
+        scene.get_input().get_key_down(dds::input_mapping::interact)) {
+        m_interactable->interact(scene);
+    }
+    m_interactable = nullptr;
 }
 
 void GameState::on_game_end(prt3::Scene & scene) {
@@ -162,6 +173,13 @@ void GameState::register_door_overlap(prt3::Scene & scene, prt3::Door & door) {
             .queue_scene(door.destination_scene_path().data());
         m_exit_door_id = door.id();
         m_entry_door_id = door.destination_id();
+    }
+}
+
+void GameState::register_interactable(Interactable & candidate) {
+    if (m_interactable == nullptr ||
+        m_interactable->priority() < candidate.priority()) {
+        m_interactable = &candidate;
     }
 }
 

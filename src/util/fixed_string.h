@@ -126,6 +126,10 @@ public:
         return static_cast<size_t>(curr - data());
     }
 
+    void clear() {
+        m_data[0] = '\0';
+    }
+
 private:
     char m_data[N] = { 0 };
 

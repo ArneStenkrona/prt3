@@ -1,6 +1,8 @@
 #ifndef DDS_GAME_GUI_H
 #define DDS_GAME_GUI_H
 
+#include "src/daedalus/gui/strings.h"
+#include "src/daedalus/objects/interactable.h"
 #include "src/engine/scene/scene.h"
 
 #include <array>
@@ -17,12 +19,15 @@ public:
     void on_update(
         prt3::Scene & scene,
         prt3::NodeID canvas_id,
-        GameState const & game_state
+        GameState const & game_state,
+        float delta_time
     );
 
     void free_resources(prt3::Scene & scene);
 
 private:
+    Interactable const * m_prev_interactable = nullptr;
+    float m_interactable_timer = 0.0f;
 
     struct FontMetadata {
         std::array<prt3::FontChar, 256> char_data;
@@ -35,6 +40,11 @@ private:
     };
 
     GUIAtlas m_atlas;
+
+    void display_interact(
+        prt3::Canvas & canvas,
+        Interactable const & interactable
+    );
 };
 
 } // namespace dds

@@ -30,6 +30,8 @@ std::unordered_map<UUID, char const *> *
 void Script::serialize(std::ostream & out) const {
     write_stream(out, uuid());
 
+    serialize_extension(out);
+
     auto const & fields = Script::get_serialized_fields(uuid());
     write_stream(out, fields.size());
 

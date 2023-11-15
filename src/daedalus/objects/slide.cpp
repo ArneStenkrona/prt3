@@ -7,12 +7,14 @@ using namespace dds;
 void Slide::on_signal(
     prt3::Scene & /*scene*/,
     prt3::SignalString const & signal,
-    void * /*data*/
+    void * data
 ) {
     prt3::SignalString const & interact_pref = Interactable::interact_signal();
     if (!strncmp(signal.data(), interact_pref.data(), interact_pref.len())) {
         m_active = true;
-        m_displace = !m_displace;
+        InteractData const & i_data =
+            *reinterpret_cast<InteractData const *>(data);
+        m_displace = i_data.on;
     }
 }
 

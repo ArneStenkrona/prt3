@@ -147,7 +147,8 @@ public:
     void set_serialized_field_value(size_t field_index, FieldValue val);
     FieldValue get_serialized_field_value(size_t field_index);
 
-    virtual void serialize(std::ostream & out) const;
+    void serialize(std::ostream & out) const;
+    virtual void serialize_extension(std::ostream & /*out*/) const {}
 
     virtual Script * copy() const = 0;
 
