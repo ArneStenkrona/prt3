@@ -77,7 +77,7 @@ ScriptID ScriptContainer::add_script(Script * script, bool autoload) {
 }
 
 void ScriptContainer::remove(ScriptID id) {
-    Script * script = m_scripts[id];
+    Script * script = m_scripts.at(id);
     m_scripts.erase(id);
     if (m_init_queue.find(script) != m_init_queue.end()) {
         m_init_queue.erase(script);

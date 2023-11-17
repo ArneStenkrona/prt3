@@ -105,7 +105,7 @@ void NPCDB::load_npc(prt3::Scene & scene, NPCID id) {
         capsule
     );
 
-    prt3::ScriptSet script_set = scene.add_component<prt3::ScriptSet>(node_id);
+    prt3::ScriptSet & script_set = scene.add_component<prt3::ScriptSet>(node_id);
     prt3::ScriptID script_id =
         script_set.add_script<NPCController>(scene);
     NPCController & script =

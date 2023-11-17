@@ -46,7 +46,7 @@ public:
     }
 
     ComponentType const & get(NodeID id) const {
-        return components.at(node_map.at(id));
+        return components[node_map[id]];
     }
 
     ComponentType & get(NodeID id) {
