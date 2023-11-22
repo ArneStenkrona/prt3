@@ -16,8 +16,19 @@ Scene::Scene(Context & context)
     place_root();
 }
 
+bool Scene::game_is_active() {
+    return m_context->game_is_active();
+}
+
 void Scene::start() {
     m_script_container.start(*this);
+
+    auto & armatures =
+        m_component_manager.get_all_components<Armature>();
+
+    for (Armature & armature : armatures) {
+        armature.update(*this);
+    }
 }
 
 void Scene::update(float delta_time) {
@@ -165,7 +176,6 @@ NodeID Scene::get_child_with_tag(NodeID id, NodeTag tag) const {
         }
 
         Node const & curr_node = get_node(curr);
-
 
         for (NodeID const & child_id : curr_node.children_ids()) {
             queue.push_back(child_id);

@@ -39,7 +39,6 @@ public:
     std::string const & main_scene_path() const { return m_main_scene_path; }
 
 private:
-
     std::unordered_set<UUID> m_autoload_scripts;
     std::vector<Script*> m_active_scripts;
     std::string m_main_scene_path;

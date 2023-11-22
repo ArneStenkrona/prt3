@@ -8,9 +8,10 @@
 #include "src/engine/component/door.h"
 #include "src/engine/core/backend_type.h"
 #include "src/engine/core/context.h"
-#include "src/util/serialization_util.h"
 #include "src/util/file_util.h"
+#include "src/util/geometry_util.h"
 #include "src/util/log.h"
+#include "src/util/serialization_util.h"
 #include "src/util/sub_vec.h"
 
 #include <cinttypes>
@@ -43,8 +44,34 @@ Map::Map(char const * path) {
 #define TOK_COLLIDER "[col]"
 #define TOK_TRIGGER "[trigger]"
 
+enum class MapToken {
+    none,
+    room,
+    door,
+    location,
+    water,
+    object,
+    interactable,
+    slide,
+    collider,
+    trigger
+};
+
 inline bool check_tok(char const * tok, char const * str) {
     return strncmp(tok, str, strlen(tok)) == 0;
+}
+
+MapToken get_token(char const * str) {
+    if (check_tok(TOK_ROOM, str)) return MapToken::room;
+    if (check_tok(TOK_DOOR, str)) return MapToken::door;
+    if (check_tok(TOK_LOCATION, str)) return MapToken::location;
+    if (check_tok(TOK_WATER, str)) return MapToken::water;
+    if (check_tok(TOK_OBJECT, str)) return MapToken::object;
+    if (check_tok(TOK_INTERACTABLE, str)) return MapToken::interactable;
+    if (check_tok(TOK_SLIDE, str)) return MapToken::slide;
+    if (check_tok(TOK_COLLIDER, str)) return MapToken::collider;
+    if (check_tok(TOK_TRIGGER, str)) return MapToken::trigger;
+    return MapToken::none;
 }
 
 static constexpr char const * room_scene_path_base = "assets/scenes/map/room";
@@ -179,10 +206,10 @@ bool Map::parse_door(
 
     uint32_t door_id;
     uint32_t dest_room;
-    uint32_t dest_door;
+    int32_t dest_door;
     if (sscanf(
         model_node.name.c_str() + strlen(TOK_DOOR),
-        "(%" SCNu32 ",%" SCNu32 ",%" SCNu32 ")",
+        "(%" SCNu32 ",%" SCNu32 ",%" SCNi32 ")",
         &door_id,
         &dest_room,
         &dest_door
@@ -198,14 +225,18 @@ bool Map::parse_door(
 
     uint32_t door_ind = ctx.map.m_doors.size();
     MapDoor map_door;
+    map_door.shape = global_tform;
     map_door.position.room = room_index;
     map_door.position.position = global_tform.position + entry_offset;
     map_door.dest = dest_door; // rename later
+    map_door.local_id = door_id;
     ctx.num_to_door[room_index][door_id] = door_ind;
     ctx.door_num_to_dest_room[door_ind] = ctx.num_to_room_index.at(dest_room);
     ctx.map.m_doors.emplace_back(map_door);
     ++room.doors.num_indices;
 
+    ctx.map.m_local_ids[std::pair<RoomID, uint32_t>{room_index, door_id}] =
+        door_ind;
 
     prt3::NodeID id = map_node_to_new_scene_node(
         ctx,
@@ -216,6 +247,10 @@ bool Map::parse_door(
         (std::string{"door"} + std::to_string(door_id)).c_str(),
         scene
     );
+
+    if (dest_door == -1) {
+        return true;
+    }
 
     prt3::Door & door = scene.add_component<prt3::Door>(id);
     door.id() = door_id;
@@ -404,6 +439,67 @@ bool Map::parse_collider_trigger_common(
     return true;
 }
 
+void Map::generate_nav_mesh(
+    prt3::Context & prt3_context,
+    ParsingContext & ctx,
+    prt3::Model const & model
+) {
+    std::vector<glm::vec3> triangles;
+    for (prt3::Model::Node const & node : model.nodes()) {
+        prt3::Transform global_tform = node.inherited_transform;
+        glm::mat4 t_mat = global_tform.to_matrix();
+
+        bool include_mesh_in_model = false;
+        MapToken token = get_token(node.name.c_str());
+        switch (token) {
+            case MapToken::none:
+            case MapToken::water: /* for now... */ {
+                include_mesh_in_model = true;
+                break;
+            }
+            default: {}
+        }
+
+        if (!include_mesh_in_model || node.mesh_index == -1) continue;
+        prt3::Model::Mesh const & mesh = model.meshes()[node.mesh_index];
+
+        uint32_t end = mesh.start_index + mesh.num_indices;
+        size_t curr = triangles.size();
+        triangles.resize(curr + mesh.num_indices);
+
+        for (uint32_t i = mesh.start_index; i < end; ++i) {
+            glm::vec3 vert =
+                model.vertex_buffer()[model.index_buffer()[i]].position;
+            vert = t_mat * glm::vec4{vert, 1.0f};
+            triangles[curr] = vert;
+            ++curr;
+        }
+    }
+
+    prt3::Scene dummy_scene{prt3_context};
+    prt3::NodeID node_id = dummy_scene.add_node_to_root("");
+
+    /* collider */
+    prt3::ColliderComponent & col =
+        dummy_scene.add_component<prt3::ColliderComponent>(
+            node_id,
+            prt3::ColliderType::collider,
+            std::move(triangles)
+        );
+
+    /* nav mesh */
+    ctx.map.m_nav_mesh_id = ctx.map.m_navigation_system.generate_nav_mesh(
+        node_id,
+        dummy_scene,
+        dummy_scene.physics_system().get_collision_layer(col.tag()),
+        0.5f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f
+    );
+}
+
 Map Map::parse_map_from_model(char const * path) {
     ParsingContext ctx;
 
@@ -458,6 +554,8 @@ Map Map::parse_map_from_model(char const * path) {
         MapRoom & room = ctx.map.m_rooms[room_index];
         room.doors.start_index = ctx.map.m_doors.size();
 
+        ctx.model_node_to_scene_node.clear();
+
         prt3::Scene scene{prt3_context};
         // TODO: Implement a scene name instead since root node name can be
         //       overwritten.
@@ -476,9 +574,7 @@ Map Map::parse_map_from_model(char const * path) {
         new_root.parent_index = -1;
         new_root.name = room_node.name;
         new_root.transform = room_node.inherited_transform;
-        // new_root.transform.position = glm::vec3{0.0f}; // zero out position
         new_root.inherited_transform = room_node.inherited_transform;
-        // new_root.inherited_transform.position = glm::vec3{0.0f}; // zero out position
         model.nodes().push_back(new_root);
 
         for (auto index : room_node.child_indices) {
@@ -528,25 +624,49 @@ Map Map::parse_map_from_model(char const * path) {
             }
 
             bool include_mesh_in_model = false;
-            if (check_tok(TOK_DOOR, node.name.c_str())) {
-                parse_door(ctx, qni, room_index, node_index, global_tform, scene);
-            } else if (check_tok(TOK_LOCATION, node.name.c_str())) {
-                parse_location(ctx, qni, room_index, node_index, global_tform);
-            } else if (check_tok(TOK_WATER, node.name.c_str())) {
-                /* TODO */
-                include_mesh_in_model = true;
-            } else if (check_tok(TOK_OBJECT, node.name.c_str())) {
-                parse_object(ctx, qni, room_index, node_index, global_tform, scene);
-            } else if (check_tok(TOK_SLIDE, node.name.c_str())) {
-                parse_slide(ctx, qni, room_index, node_index, global_tform, scene);
-            } else if (check_tok(TOK_INTERACTABLE, node.name.c_str())) {
-                parse_interactable(ctx, qni, room_index, node_index, global_tform, scene);
-            } else if (check_tok(TOK_COLLIDER, node.name.c_str())) {
-                parse_collider(ctx, qni, room_index, node_index, global_tform, scene);
-            } else if (check_tok(TOK_TRIGGER, node.name.c_str())) {
-                parse_trigger(ctx, qni, room_index, node_index, global_tform, scene);
-            } else {
-                include_mesh_in_model = true;
+            MapToken token = get_token(node.name.c_str());
+            switch (token) {
+                case MapToken::room: {
+                    include_mesh_in_model = true;
+                    break;
+                }
+                case MapToken::door: {
+                    parse_door(ctx, qni, room_index, node_index, global_tform, scene);
+                    break;
+                }
+                case MapToken::location: {
+                    parse_location(ctx, qni, room_index, node_index, global_tform);
+                    break;
+                }
+                case MapToken::water: {
+                    /* TODO */
+                    include_mesh_in_model = true;
+                    break;
+                }
+                case MapToken::object: {
+                    parse_object(ctx, qni, room_index, node_index, global_tform, scene);
+                    break;
+                }
+                case MapToken::slide: {
+                    parse_slide(ctx, qni, room_index, node_index, global_tform, scene);
+                    break;
+                }
+                case MapToken::interactable: {
+                    parse_interactable(ctx, qni, room_index, node_index, global_tform, scene);
+                    break;
+                }
+                case MapToken::collider: {
+                    parse_collider(ctx, qni, room_index, node_index, global_tform, scene);
+                    break;
+                }
+                case MapToken::trigger: {
+                    parse_trigger(ctx, qni, room_index, node_index, global_tform, scene);
+                    break;
+                }
+                case MapToken::none: {
+                    include_mesh_in_model = true;
+                    break;
+                }
             }
 
             if (!include_mesh_in_model || node.mesh_index == -1) continue;
@@ -568,23 +688,10 @@ Map Map::parse_map_from_model(char const * path) {
         scene.add_component<prt3::ModelComponent>(room_id, handle);
 
         /* collider */
-        prt3::ColliderComponent & col =
-            scene.add_component<prt3::ColliderComponent>(
-                room_id,
-                prt3::ColliderType::collider,
-                handle
-            );
-
-        /* nav mesh */
-        room.nav_mesh_id = ctx.map.m_navigation_system.generate_nav_mesh(
+        scene.add_component<prt3::ColliderComponent>(
             room_id,
-            scene,
-            scene.physics_system().get_collision_layer(col.tag()),
-            0.5f,
-            1.0f,
-            1.0f,
-            1.0f,
-            1.0f
+            prt3::ColliderType::collider,
+            handle
         );
 
         /* save object model */
@@ -628,8 +735,11 @@ Map Map::parse_map_from_model(char const * path) {
     for (uint32_t door_ind = 0; door_ind < ctx.map.m_doors.size(); ++door_ind) {
         MapDoor & door = ctx.map.m_doors[door_ind];
         uint32_t room_index = ctx.door_num_to_dest_room.at(door_ind);
-        door.dest = ctx.num_to_door[room_index].at(door.dest);
+        door.dest = door.dest == -1 ?
+            -1 : ctx.num_to_door[room_index].at(door.dest);
     }
+
+    generate_nav_mesh(prt3_context, ctx, map_model);
 
     return ctx.map;
 }
@@ -655,25 +765,27 @@ RoomID Map::scene_to_room(prt3::Scene const & scene) {
     return id;
 }
 
+glm::vec3 Map::get_door_entry_position(uint32_t door_id) const {
+    MapDoor const & door = m_doors[door_id];
+    return door.position.position + door.entry_offset;
+}
+
+
 void Map::serialize(std::ofstream & out) {
     prt3::write_stream(out, m_rooms.size());
     for (size_t i = 0; i < m_rooms.size(); ++i) {
         prt3::write_stream(out, m_rooms[i].doors.start_index);
         prt3::write_stream(out, m_rooms[i].doors.num_indices);
-
-        if (m_rooms[i].nav_mesh_id != prt3::NO_NAV_MESH) {
-            prt3::write_stream(out, true);
-            m_navigation_system.serialize_nav_mesh(m_rooms[i].nav_mesh_id, out);
-        } else {
-            prt3::write_stream(out, false);
-        }
     }
 
     prt3::write_stream(out, m_doors.size());
     for (size_t i = 0; i < m_doors.size(); ++i) {
+        prt3::write_stream(out, m_doors[i].shape);
+        prt3::write_stream(out, m_doors[i].entry_offset);
+        prt3::write_stream(out, m_doors[i].dest);
+        prt3::write_stream(out, m_doors[i].local_id);
         prt3::write_stream(out, m_doors[i].position.position);
         prt3::write_stream(out, m_doors[i].position.room);
-        prt3::write_stream(out, m_doors[i].dest);
     }
 
     prt3::write_stream(out, m_locations.size());
@@ -682,6 +794,13 @@ void Map::serialize(std::ofstream & out) {
         out.write(pair.first.c_str(), pair.first.length());
         prt3::write_stream(out, m_locations[pair.second].position);
         prt3::write_stream(out, m_locations[pair.second].room);
+    }
+
+    if (m_nav_mesh_id != prt3::NO_NAV_MESH) {
+        prt3::write_stream(out, true);
+        m_navigation_system.serialize_nav_mesh(m_nav_mesh_id, out);
+    } else {
+        prt3::write_stream(out, false);
     }
 }
 
@@ -692,22 +811,18 @@ void Map::deserialize(std::ifstream & in) {
     for (size_t i = 0; i < m_rooms.size(); ++i) {
         prt3::read_stream(in, m_rooms[i].doors.start_index);
         prt3::read_stream(in, m_rooms[i].doors.num_indices);
-
-        bool has_nav_mesh;
-        prt3::read_stream(in, has_nav_mesh);
-        if (has_nav_mesh) {
-            m_rooms[i].nav_mesh_id =
-                m_navigation_system.deserialize_nav_mesh(i, in);
-        }
     }
 
     size_t n_doors;
     prt3::read_stream(in, n_doors);
     m_doors.resize(n_doors);
     for (size_t i = 0; i < m_doors.size(); ++i) {
+        prt3::read_stream(in, m_doors[i].shape);
+        prt3::read_stream(in, m_doors[i].entry_offset);
+        prt3::read_stream(in, m_doors[i].dest);
+        prt3::read_stream(in, m_doors[i].local_id);
         prt3::read_stream(in, m_doors[i].position.position);
         prt3::read_stream(in, m_doors[i].position.room);
-        prt3::read_stream(in, m_doors[i].dest);
     }
 
     size_t n_locations;
@@ -723,6 +838,19 @@ void Map::deserialize(std::ifstream & in) {
 
         prt3::read_stream(in, m_locations[i].position);
         prt3::read_stream(in, m_locations[i].room);
+    }
+
+    bool has_nav_mesh;
+    prt3::read_stream(in, has_nav_mesh);
+    if (has_nav_mesh) {
+        m_nav_mesh_id =
+            m_navigation_system.deserialize_nav_mesh(0, in);
+    }
+
+    for (uint32_t i = 0; i < m_doors.size(); ++i) {
+        m_local_ids[std::pair<RoomID, uint32_t>{
+            m_doors[i].position.room, m_doors[i].local_id
+        }] = i;
     }
 }
 
@@ -774,17 +902,16 @@ MapPosition Map::interpolate_map_path(MapPathID id, float t) {
         return mp.path.back().position;
     }
 
-    if (mp.path[i].position.room != mp.path[i + 1].position.room) {
-        return mp.path[i + 1].position;
-    }
-
     float remaining = target_dist - mp.path[i].accumulated_distance;
     float dist2next = mp.path[i + 1].accumulated_distance -
                       mp.path[i].accumulated_distance;
     float interp = dist2next == 0.0f ? 1.0f : remaining / dist2next;
 
     MapPosition res;
-    res.room = mp.path[i].position.room;
+    res.room = interp < mp.path[i].door_intersection ?
+        mp.path[i].position.room :
+        mp.path[i + 1].position.room;
+
     res.position = glm::mix(
         mp.path[i].position.position,
         mp.path[i + 1].position.position,
@@ -794,272 +921,122 @@ MapPosition Map::interpolate_map_path(MapPathID id, float t) {
     return res;
 }
 
+bool Map::intersects_door(
+    RoomID room_id,
+    glm::vec3 a,
+    glm::vec3 b,
+    float & t,
+    uint32_t & door_id
+) {
+    if (a == b) return false;
+
+    glm::vec3 v = b - a;
+
+    MapRoom const & room = m_rooms[room_id];
+    uint32_t doors_start = room.doors.start_index;
+    uint32_t doors_end = doors_start + room.doors.num_indices;
+    for (uint32_t i = doors_start; i < doors_end; ++i) {
+        MapDoor const & door = m_doors[i];
+        if (door.dest == -1) continue;
+
+        glm::vec3 n = glm::normalize(door.entry_offset);
+        if (glm::dot(door.entry_offset, n) > 0.0f) {
+            /* We don't want to intersect when entering from behind the door */
+            continue;
+        }
+
+        glm::mat4 tform = door.shape.to_matrix();
+
+        // normalized dimension
+        glm::vec3 nd =
+            glm::vec3{1.0f} /
+            glm::abs(glm::vec3{tform * glm::vec4{1.0f, 1.0f, 1.0f, 0.0f}});
+
+        prt3::Box box{};
+        box.dimensions = glm::vec3{1.0f + nd};
+        box.center.x = box.dimensions.x / 2.0f;
+        box.center.y = box.dimensions.y / 2.0f;
+        box.center.z = box.dimensions.z / 2.0f;
+
+        prt3::BoxCollider bc{box};
+
+
+
+        auto shape = bc.get_shape(door.shape);
+        // Order of vertices:
+        // 0 : 0, 0, 0
+        // 1 : 0, 0, 1
+        // 2 : 0, 1, 0
+        // 3 : 0, 1, 1
+        // 4 : 1, 0, 0
+        // 5 : 1, 0, 1
+        // 6 : 1, 1, 0
+        // 7 : 1, 1, 1
+        glm::vec3 v0 = shape.vertices[2];
+        glm::vec3 v1 = shape.vertices[3];
+        glm::vec3 v2 = shape.vertices[7];
+        glm::vec3 v3 = shape.vertices[6];
+
+        glm::vec3 p0;
+        glm::vec3 p1;
+        bool intersect0 = prt3::triangle_ray_intersect(a, v, v0, v1, v3, p0);
+        bool intersect1 = prt3::triangle_ray_intersect(a, v, v2, v1, v3, p1);
+
+        if (intersect0 || intersect1) {
+            glm::vec3 p = intersect0 ? p0 : p1;
+            t = glm::distance(a, p) / glm::distance(a, b);
+            door_id = i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool Map::get_map_path(
     MapPosition from,
     MapPosition to,
     std::vector<MapPathEntry> & path
 ) {
+    thread_local std::vector<glm::vec3> nav_path;
     path.clear();
-
-    struct QElem {
-        uint32_t index;
-        float total_dist;
-    };
-
-    struct Compare {
-        bool operator() (QElem const & l, QElem const & r) const
-        {
-            return l.total_dist > r.total_dist;
-        }
-    } compare;
-
-    typedef std::priority_queue<QElem, std::vector<QElem>, Compare> CostQueue;
-    thread_local CostQueue q{compare};
-    while (!q.empty()) { q.pop(); }
-
-    struct GInfo {
-        int32_t prev;
-        float dist;
-    };
-
-    thread_local std::unordered_map<uint32_t, GInfo> info;
-    info.clear();
-
-    if (from.room == to.room) {
-        float length = get_nav_path_length(
-            from.room,
-            from.position,
-            to.position
-        );
-
-        uint32_t vi = m_doors.size(); // virtual index
-        if (length >= 0.0f) {
-            info[vi].prev = -2;
-            info[vi].dist = length;
-            q.push(QElem{vi, length});
-        }
+    if (!m_navigation_system.generate_path(
+        m_nav_mesh_id,
+        from.position,
+        to.position,
+        nav_path
+    )) {
+        return false;
     }
 
-    MapRoom const & room_start = m_rooms[from.room];
-    for (uint32_t i = room_start.doors.start_index;
-         i < room_start.doors.start_index + room_start.doors.num_indices;
-         ++i) {
-        float length = get_nav_path_length(
-            from.room,
-            from.position,
-            m_doors[i].position.position
-        );
+    RoomID curr_room = from.room;
+    float accumulated_distance = 0.0f;
 
-        if (length >= 0.0f) {
-            info[i].prev = -1;
-            info[i].dist = length;
-            q.push(QElem{i, length});
+    path.resize(nav_path.size());
+
+    for (unsigned int i = 0; i + 1 < nav_path.size(); ++i) {
+        glm::vec3 a = nav_path[i];
+        glm::vec3 b = nav_path[i + 1];
+
+        MapPathEntry & entry = path[i];
+        entry.position.position = a;
+        entry.position.room = curr_room;
+
+        float t;
+        uint32_t door_id;
+        if (intersects_door(curr_room, a, b, t, door_id)) {
+            curr_room = m_doors[m_doors[door_id].dest].position.room;
+            entry.door_intersection = t;
+        } else {
+            entry.door_intersection = 1.0f;
         }
+        entry.accumulated_distance = accumulated_distance;
+        accumulated_distance += glm::distance(a, b);
     }
-
-    int32_t curr = -1; // for constructing the path
-
-    while (!q.empty()) {
-        QElem qe = q.top();
-        q.pop();
-
-        if (qe.index >= m_doors.size()) {
-            curr = info.at(qe.index).prev;
-            break;
-        }
-
-        uint32_t dest_ind = m_doors[qe.index].dest;
-        MapDoor const & door = m_doors[dest_ind];
-        MapRoom const & room = m_rooms[door.position.room];
-
-        if (door.position.room == to.room) {
-            NavPath const * np = get_nav_path(
-                door.position.room,
-                door.position.position,
-                to.position
-            );
-
-            if (np) {
-                float dist = qe.total_dist + np->length;
-
-                uint32_t vi = m_doors.size() + 1 + dest_ind; // virtual index
-                if (info.find(vi) == info.end() ||
-                    info.at(vi).dist > dist) {
-                    info[vi].prev = qe.index;
-                    info[vi].dist = dist;
-                    q.push(QElem{vi, dist});
-                }
-            }
-        }
-
-        for (uint32_t i = room.doors.start_index;
-            i < room.doors.start_index + room.doors.num_indices;
-            ++i) {
-            if (m_doors[i].dest == qe.index) continue;
-            float length = get_nav_path_length(
-                door.position.room,
-                door.position.position,
-                m_doors[i].position.position
-            );
-
-            if (length >= 0.0f) {
-                float dist = qe.total_dist + length;
-
-                if (info.find(i) == info.end() ||
-                    info.at(i).dist > dist) {
-                    info[i].prev = qe.index;
-                    info[i].dist = dist;
-                    q.push(QElem{i, dist});
-                }
-            }
-        }
-    }
-
-    if (curr == -1) return false;
-    /* create path by backtracking and then reverse it */
-
-    if (curr == -2) {
-        /* we never leave the room */
-        NavPath const * np = get_nav_path(
-            from.room,
-            to.position,
-            from.position
-        );
-
-        for (glm::vec3 const & pos : np->path) {
-            MapPathEntry path_entry;
-            path_entry.position.room = from.room;
-            path_entry.position.position = pos;
-            path.push_back(path_entry);
-        }
-    } else {
-        /* insert from dest to last door */
-        NavPath const * np = get_nav_path(
-            to.room,
-            to.position,
-            m_doors[m_doors[curr].dest].position.position
-        );
-
-        for (glm::vec3 const & pos : np->path) {
-            MapPathEntry path_entry;
-            path_entry.position.room = to.room;
-            path_entry.position.position = pos;
-            path.push_back(path_entry);
-        }
-
-        while (info.at(curr).prev >= 0) {
-            NavPath const * np = get_nav_path(
-                m_doors[curr].position.room,
-                m_doors[curr].position.position,
-                m_doors[m_doors[info.at(curr).prev].dest].position.position
-            );
-
-            for (glm::vec3 const & pos : np->path) {
-                MapPathEntry path_entry;
-                path_entry.position.room = m_doors[curr].position.room;
-                path_entry.position.position = pos;
-                path.push_back(path_entry);
-            }
-
-            curr = info.at(curr).prev;
-        }
-
-        {
-            NavPath const * np = get_nav_path(
-                from.room,
-                m_doors[curr].position.position,
-                from.position
-            );
-
-            for (glm::vec3 const & pos : np->path) {
-                MapPathEntry path_entry;
-                path_entry.position.room = from.room;
-                path_entry.position.position = pos;
-                path.push_back(path_entry);
-            }
-        }
-    }
-
-    std::reverse(path.begin(), path.end());
-
-    path[0].accumulated_distance = 0.0f;
-    for (uint32_t i = 1; i < path.size(); ++i) {
-        float dist = 0.0f;
-        if (path[i].position.room == path[i-1].position.room) {
-            dist = glm::distance(
-                path[i].position.position,
-                path[i-1].position.position
-            );
-        }
-        path[i].accumulated_distance = path[i-1].accumulated_distance + dist;
-    }
+    path.back().position.position = nav_path.back();
+    path.back().position.room = to.room;
+    path.back().door_intersection = 1.0f;
+    path.back().accumulated_distance = accumulated_distance;
 
     return true;
-}
-
-Map::NavPath const * Map::get_nav_path(
-    RoomID room_id,
-    glm::vec3 from,
-    glm::vec3 to
-) {
-    NavPathKey key;
-    key.room = room_id;
-    key.from = from;
-    key.to = to;
-
-    NavPath * np = m_nav_mesh_path_cache.access(key);
-    if (np) {
-        return np;
-    }
-
-    np = m_nav_mesh_path_cache.push_new_entry(key);
-
-    m_navigation_system.generate_path(
-        m_rooms[room_id].nav_mesh_id,
-        from,
-        to,
-        np->path
-    );
-
-    if (np->path.empty()) {
-        m_nav_mesh_path_cache.invalidate(key);
-        return nullptr;
-    }
-
-    float length = 0.0f;
-    for (uint32_t i = 1; i < np->path.size(); ++i) {
-        length += glm::distance(np->path[i], np->path[i-1]);
-    }
-    np->length = length;
-
-    if (!m_nav_mesh_path_length_cache.has_key(key)) {
-        float * l = m_nav_mesh_path_length_cache.push_new_entry(key);
-        *l = length;
-    }
-
-    return np;
-}
-
-float Map::get_nav_path_length(
-    RoomID room_id,
-    glm::vec3 from,
-    glm::vec3 to
-) {
-    NavPathKey key;
-    key.room = room_id;
-    key.from = from;
-    key.to = to;
-
-    float * l = m_nav_mesh_path_length_cache.access(key);
-    if (l) {
-        return *l;
-    }
-
-    get_nav_path(room_id, from, to);
-
-    l = m_nav_mesh_path_length_cache.access(key);
-    if (!l) {
-        return -1.0f;
-    }
-    return *l;
 }

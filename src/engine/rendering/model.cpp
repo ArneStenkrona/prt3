@@ -456,7 +456,10 @@ void Model::load_with_assimp(char const * path) {
         scene->mMaterials[i]->Get(AI_MATKEY_COLOR_AMBIENT, m_materials[i].ao);
         scene->mMaterials[i]->Get(AI_MATKEY_COLOR_EMISSIVE, m_materials[i].emissive);
 
-        m_materials[i].albedo = { color.r, color.g, color.b, 1.0f };
+        float opacity;
+        scene->mMaterials[i]->Get(AI_MATKEY_OPACITY, opacity);
+
+        m_materials[i].albedo = { color.r, color.g, color.b, opacity };
 
         scene->mMaterials[i]->Get(AI_MATKEY_OPACITY, m_materials[i].albedo.a);
         scene->mMaterials[i]->Get(AI_MATKEY_TWOSIDED, m_materials[i].twosided);

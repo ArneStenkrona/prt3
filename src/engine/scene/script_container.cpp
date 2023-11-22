@@ -1,5 +1,7 @@
 #include "script_container.h"
 
+#include "src/engine/scene/scene.h"
+
 #include <unordered_set>
 
 using namespace prt3;
@@ -10,8 +12,6 @@ ScriptContainer & ScriptContainer::operator=(ScriptContainer const & other) {
     for (auto & pair : other.m_scripts) {
         Script * copy = pair.second->copy();
         m_scripts[pair.first] = copy;
-        m_init_queue.insert(copy);
-        m_late_init_queue.insert(copy);
     }
 
     m_next_id = other.m_next_id;
@@ -19,23 +19,34 @@ ScriptContainer & ScriptContainer::operator=(ScriptContainer const & other) {
     return *this;
 }
 
+ScriptID ScriptContainer::add_script(
+    Scene & scene,
+    Script * script,
+    bool autoload
+) {
+    return add_script(scene, script, autoload, scene.game_is_active());
+}
+
 void ScriptContainer::start(Scene & scene) {
     for (auto & pair : m_scripts) {
+        if (m_autoload_scripts.find(pair.second) != m_autoload_scripts.end()) {
+            // on_init has already been called when we added the autoload script
+            continue;
+        }
+
+        pair.second->on_init(scene);
+    }
+
+    for (auto & pair : m_scripts) {
         pair.second->on_start(scene);
+    }
+
+    for (auto & pair : m_scripts) {
+        pair.second->on_late_start(scene);
     }
 }
 
 void ScriptContainer::update(Scene & scene, float delta_time) {
-    for (Script * script : m_init_queue) {
-        script->on_init(scene);
-    }
-    m_init_queue.clear();
-
-    for (Script * script : m_late_init_queue) {
-        script->on_late_init(scene);
-    }
-    m_late_init_queue.clear();
-
     for (auto & pair : m_scripts) {
         pair.second->on_update(scene, delta_time);
     }
@@ -54,21 +65,28 @@ void ScriptContainer::clear() {
     }
 
     m_scripts.clear();
-    m_init_queue.clear();
-    m_late_init_queue.clear();
     m_autoload_scripts.clear();
     m_uuid_to_autoload_script.clear();
 }
 
-ScriptID ScriptContainer::add_script(Script * script, bool autoload) {
+ScriptID ScriptContainer::add_script(
+    Scene & scene,
+    Script * script,
+    bool autoload,
+    bool init
+) {
     ScriptID id = m_next_id;
     m_scripts[id] = script;
-    m_init_queue.insert(script);
-    m_late_init_queue.insert(script);
 
     if (autoload) {
         m_autoload_scripts.insert(script);
         m_uuid_to_autoload_script[script->uuid()] = script;
+    }
+
+    if (init) {
+        script->on_init(scene);
+    } else {
+        m_unitialized.insert(script);
     }
 
     ++m_next_id;
@@ -79,12 +97,7 @@ ScriptID ScriptContainer::add_script(Script * script, bool autoload) {
 void ScriptContainer::remove(ScriptID id) {
     Script * script = m_scripts.at(id);
     m_scripts.erase(id);
-    if (m_init_queue.find(script) != m_init_queue.end()) {
-        m_init_queue.erase(script);
-    }
-    if (m_late_init_queue.find(script) != m_late_init_queue.end()) {
-        m_late_init_queue.erase(script);
-    }
+
     if (m_autoload_scripts.find(script) ==
         m_autoload_scripts.end()) {
         delete script;
@@ -92,4 +105,11 @@ void ScriptContainer::remove(ScriptID id) {
         m_autoload_scripts.erase(script);
         m_uuid_to_autoload_script.erase(script->uuid());
     }
+}
+
+void ScriptContainer::init_unitialized(Scene & scene) {
+    for (Script * script : m_unitialized) {
+        script->on_init(scene);
+    }
+    m_unitialized.clear();
 }

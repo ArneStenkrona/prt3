@@ -57,6 +57,53 @@ void AnimationSystem::init_animation(
         .resize(model.bones().size(), {});
 }
 
+void AnimationSystem::update_transforms(
+    Scene const & scene,
+    AnimationID id
+) {
+    Animation & animation = m_animations[id];
+    if (animation.model_handle == NO_MODEL) {
+        return;
+    }
+
+    if (animation.clip_a.animation_index == NO_ANIMATION) {
+        return;
+    }
+
+    Model const & model =
+        scene.model_manager().get_model(animation.model_handle);
+    if (animation.clip_b.animation_index == NO_ANIMATION ||
+        animation.blend_factor == 0.0f) {
+        model.sample_animation(
+            animation.clip_a.animation_index,
+            animation.clip_a.t,
+            animation.clip_a.looping,
+            animation.transforms.data(),
+            animation.local_transforms.data()
+        );
+    } else if (animation.blend_factor == 1.0f) {
+        model.sample_animation(
+            animation.clip_b.animation_index,
+            animation.clip_b.t,
+            animation.clip_b.looping,
+            animation.transforms.data(),
+            animation.local_transforms.data()
+        );
+    } else {
+        model.blend_animation(
+            animation.clip_a.animation_index,
+            animation.clip_a.t,
+            animation.clip_a.looping,
+            animation.clip_b.animation_index,
+            animation.clip_b.t,
+            animation.clip_b.looping,
+            animation.blend_factor,
+            animation.transforms.data(),
+            animation.local_transforms.data()
+        );
+    }
+}
+
 void AnimationSystem::update(Scene const & scene, float delta_time) {
     std::vector<Model> const & models = scene.model_manager().models();
 

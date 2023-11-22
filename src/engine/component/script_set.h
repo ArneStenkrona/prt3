@@ -22,12 +22,12 @@ public:
     ScriptSet(Scene & scene, NodeID node_id);
     ScriptSet(Scene & scene, NodeID node_id, std::istream & in);
 
-    template<class T>
-    ScriptID add_script(Scene & scene) {
+    template<class T, typename... ArgTypes>
+    ScriptID add_script(Scene & scene, ArgTypes && ... args) {
         ScriptID existing = get_script_id<T>(scene);
         if (existing != NO_SCRIPT) { return existing; }
 
-        T * script = new T(scene, m_node_id);
+        T * script = new T(scene, m_node_id, args...);
         ScriptID id = add_script_to_scene(scene, script);
         m_script_ids.push_back(id);
         return id;

@@ -3,15 +3,6 @@
 
 using namespace dds;
 
-void NPCController::on_init(prt3::Scene & /*scene*/) {}
-
-void NPCController::on_update(prt3::Scene & scene, float delta_time) {
-    NPCDB & db = m_game_state->npc_db();
-    if (!db.schedule_empty(m_npc_id)) {
-        update_action(scene, delta_time);
-    }
-}
-
 void set_anim_if_not_set(prt3::Animation & anim, int32_t anim_index) {
     if (anim.clip_a.animation_index != anim_index) {
         anim.clip_a.animation_index = anim_index;
@@ -19,6 +10,42 @@ void set_anim_if_not_set(prt3::Animation & anim, int32_t anim_index) {
         anim.clip_a.speed = 1.0f;
         anim.clip_a.t = 0.0f;
         anim.blend_factor = 0.0f;
+    }
+}
+
+void NPCController::on_init(prt3::Scene & scene) {
+    m_game_state = scene.get_autoload_script<GameState>();
+    init_animation(scene);
+}
+
+void NPCController::init_animation(prt3::Scene & scene) {
+    prt3::Armature & armature = scene.get_component<prt3::Armature>(node_id());
+    prt3::Animation & anim =
+        scene.animation_system().get_animation(armature.animation_id());
+    prt3::Model const & model = scene.get_model(armature.model_handle());
+
+    int32_t anim_index;
+
+    NPCDB & db = m_game_state->npc_db();
+    NPCAction::ActionType action_type = db.schedule_empty(m_npc_id) ?
+        NPCAction::ActionType::NONE : db.peek_schedule(m_npc_id).type;
+    switch (action_type) {
+        case NPCAction::GO_TO_DESTINATION: {
+            anim_index = model.get_animation_index("walk");
+            break;
+        }
+        default: {
+            anim_index = model.get_animation_index("idle");
+        }
+    }
+
+    set_anim_if_not_set(anim, anim_index);
+}
+
+void NPCController::on_update(prt3::Scene & scene, float delta_time) {
+    NPCDB & db = m_game_state->npc_db();
+    if (!db.schedule_empty(m_npc_id)) {
+        update_action(scene, delta_time);
     }
 }
 

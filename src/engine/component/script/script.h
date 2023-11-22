@@ -28,8 +28,8 @@ public:
     virtual char const * name() = 0;
 
     virtual void on_start(Scene &) {}
+    virtual void on_late_start(Scene &) {}
     virtual void on_init(Scene &) {}
-    virtual void on_late_init(Scene &) {}
     virtual void on_update(Scene & /*scene*/, float /*delta_time*/) {}
     virtual void on_late_update(Scene & /*scene*/, float /*delta_time*/) {}
     virtual void on_signal(

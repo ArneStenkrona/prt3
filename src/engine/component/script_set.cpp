@@ -26,7 +26,8 @@ ScriptSet::ScriptSet(
             node_id
         );
 
-        ScriptID id = add_script_to_scene(scene, script);
+        ScriptID id =
+            scene.m_script_container.add_script(scene, script, false, false);
         m_script_ids.push_back(id);
     }
 }
@@ -36,14 +37,14 @@ ScriptID ScriptSet::add_script_to_scene(Scene & scene, Script * script) {
 }
 
 Script * ScriptSet::get_script_from_scene(Scene & scene, ScriptID id) {
-    return scene.internal_get_script(id);
+    return scene.get_script(id);
 }
 
 Script const * ScriptSet::get_script_from_scene(
     Scene const & scene,
     ScriptID id
 ) const {
-    return scene.internal_get_script(id);
+    return scene.get_script(id);
 }
 
 bool ScriptSet::remove_script(Scene & scene, ScriptID id) {
@@ -63,7 +64,7 @@ bool ScriptSet::remove_script(Scene & scene, UUID uuid) {
     for (auto it = m_script_ids.begin();
          it != m_script_ids.end();
          ++it) {
-        if (scene.internal_get_script(*it)->uuid() == uuid) {
+        if (scene.get_script(*it)->uuid() == uuid) {
             scene.internal_remove_script(*it);
             m_script_ids.erase(it);
             return true;

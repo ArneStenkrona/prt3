@@ -26,7 +26,7 @@ public:
     explicit Bell(std::istream &, Scene & scene, NodeID m_node_id)
         : Script(scene, m_node_id) {}
 
-    virtual void on_late_init(Scene & scene) {
+    virtual void on_late_start(Scene & scene) {
         m_theta = 0.0f;
         m_phi = 0.0f;
 

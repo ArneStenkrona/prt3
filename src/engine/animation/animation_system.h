@@ -27,6 +27,8 @@ public:
 
     std::vector<Animation> const & animations() const { return m_animations; }
 
+    void update_transforms(Scene const & scene, AnimationID id);
+
 private:
     std::vector<Animation> m_animations;
     std::vector<AnimationID> m_free_list;

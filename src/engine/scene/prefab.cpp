@@ -175,5 +175,7 @@ NodeID Prefab::deserialize_node(Scene & scene, NodeID parent, std::istream & in)
         }
     }
 
+    scene.m_script_container.init_unitialized(scene);
+
     return ret;
 }

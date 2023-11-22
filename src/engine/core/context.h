@@ -14,8 +14,6 @@
 
 namespace prt3 {
 
-class Engine;
-
 class Context {
 public:
     Context(BackendType backend_type);
@@ -39,11 +37,14 @@ public:
 
     void set_project_from_path(std::string const & path);
 
-    void set_game_scene(Scene const & scene) { m_game_scene = scene; }
+    void start_game(Scene const & scene);
+    void end_game();
 
     TransitionState load_scene_if_queued(TransitionState state);
 
     void update_window_size(int w, int h);
+
+    bool game_is_active() { return m_game_is_active; }
 
 private:
     Renderer m_renderer;
@@ -55,6 +56,8 @@ private:
     SceneManager m_scene_manager;
     AudioManager m_audio_manager;
     Project m_project;
+
+    bool m_game_is_active = false;
 };
 
 } // namespace prt3

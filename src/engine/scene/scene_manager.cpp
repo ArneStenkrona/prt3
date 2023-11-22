@@ -71,7 +71,6 @@ TransitionState SceneManager::load_scene_if_queued(
 
         /* start scene */
         scene.start();
-        scene.update(1.0f / 60.0f);
     }
 
     if (m_fade_transition && state != NO_TRANSITION) {

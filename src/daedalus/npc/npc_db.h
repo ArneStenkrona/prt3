@@ -64,6 +64,7 @@ typedef std::queue<NPCAction> NPCSchedule;
 class NPCDB {
 public:
     NPCDB(GameState & game_state);
+    void on_scene_start(prt3::Scene & scene);
     void update(prt3::Scene & scene);
 
     void on_scene_exit();
@@ -88,6 +89,8 @@ private:
     NPCID push_npc();
 
     void load_npc(prt3::Scene & scene, NPCID id);
+    void load_npcs(prt3::Scene & scene);
+
     void update_npc(NPCID id, prt3::Scene & scene);
     void update_go_to_dest(NPCID id, NPCAction::U::GoToDest & data);
 };

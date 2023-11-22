@@ -17,13 +17,13 @@ public:
     explicit FollowPlayer(std::istream &, Scene & scene, NodeID node_id)
         : Script(scene, node_id) {}
 
-    virtual void on_late_init(Scene & scene) {
-        m_target_id = *(scene.find_nodes_by_tag("player").begin());
-        m_path_dest =
-            scene.get_node(node_id()).get_global_transform(scene).position;
-    }
-
     virtual void on_update(Scene & scene, float delta_time) {
+        if (m_target_id == NO_NODE) {
+            m_target_id = *(scene.find_nodes_by_tag("player").begin());
+            m_path_dest =
+                scene.get_node(node_id()).get_global_transform(scene).position;
+        }
+
         Node & node = scene.get_node(node_id());
         Node const & target = scene.get_node(m_target_id);
 

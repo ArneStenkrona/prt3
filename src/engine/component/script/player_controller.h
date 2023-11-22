@@ -14,11 +14,7 @@ public:
     explicit PlayerController(std::istream &, Scene & scene, NodeID m_node_id)
         : CharacterController(scene, m_node_id) {}
 
-    virtual void on_init(Scene & scene) {
-        set_tag(scene, "player");
-        CharacterController::on_init(scene);
-        scene.selected_node() = node_id();
-
+    void exclude_player_from_scene_fade(Scene & scene) {
         thread_local std::vector<NodeID> queue;
         queue.emplace_back(node_id());
         while (!queue.empty()) {
@@ -31,6 +27,14 @@ public:
                 queue.push_back(child_id);
             }
         }
+    }
+
+    virtual void on_init(Scene & scene) {
+        CharacterController::on_init(scene);
+        set_tag(scene, "player");
+        scene.selected_node() = node_id();
+
+        exclude_player_from_scene_fade(scene);
 
         m_blob_shadow_id = scene.add_node_to_root("");
         scene.add_component<Decal>(m_blob_shadow_id);

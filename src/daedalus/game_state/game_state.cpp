@@ -35,17 +35,22 @@ void GameState::on_signal(
         float t = reinterpret_cast<float*>(data)[0];
         float dt = reinterpret_cast<float*>(data)[1];
 
-        for (prt3::Door const & door : scene.get_all_components<prt3::Door>()) {
-            if (door.id() == m_entry_door_id) {
+        prt3::Camera & cam = scene.get_camera();
+        prt3::Node & player = scene.get_node(m_player_id);
 
-                prt3::Camera & cam = scene.get_camera();
-                prt3::Node & player = scene.get_node(m_player_id);
+        uint32_t exit_door_id =
+            m_map.local_to_global_door_id(m_current_room, m_exit_door_id);
+        uint32_t entry_door_id = m_map.get_door_destination_id(exit_door_id);
 
-                glm::vec3 translation = -t * dt * door.entry_offset();
-                cam.transform().position += translation;
-                player.translate_node(scene, translation);
-            }
-        }
+        glm::vec3 player_pos = player.get_global_transform(scene).position;
+        glm::vec3 entry_pos = m_map.get_door_entry_position(entry_door_id) +
+                              m_player_door_offset;
+        glm::vec3 diff = entry_pos - player_pos;
+
+        glm::vec3 translation = t * dt * diff;
+        cam.transform().position += translation;
+        player.translate_node(scene, translation);
+
     } else if (signal == "__scene_exit__") {
         prt3::PlayerController * controller =
             scene.get_script_from_node<prt3::PlayerController>(m_player_id);
@@ -94,8 +99,7 @@ void GameState::on_start(prt3::Scene & scene) {
 
     m_current_time = 0;
 
-    glm::vec3 spawn_position;
-    glm::vec3 dir = glm::vec3{0.0f, 0.0f, 1.0f};
+    glm::vec3 spawn_position{};
     for (prt3::Door const & door : scene.get_all_components<prt3::Door>()) {
         if (door.id() == m_entry_door_id) {
             prt3::Node const & door_node = scene.get_node(door.node_id());
@@ -108,17 +112,10 @@ void GameState::on_start(prt3::Scene & scene) {
             break;
         }
     }
+
     m_player_id = m_player_prefab.instantiate(scene, scene.get_root_id());
-    prt3::Node & node = scene.get_node(m_player_id);
-    node.set_global_position(scene, spawn_position);
-
-    float yaw = std::atan2(dir.x, dir.z);
-
-    glm::quat rot = glm::quat_cast(
-        glm::eulerAngleYXZ(yaw, 0.0f, 0.0f)
-    );
-
-    node.set_global_rotation(scene, rot);
+    prt3::Node & player = scene.get_node(m_player_id);
+    player.set_global_position(scene, spawn_position);
 
     prt3::PlayerController * controller =
         scene.get_script_from_node<prt3::PlayerController>(m_player_id);
@@ -131,6 +128,7 @@ void GameState::on_start(prt3::Scene & scene) {
 
     cam.yaw() = m_cam_yaw;
     cam.pitch() = m_cam_pitch;
+    cam.set_target(m_player_id);
 
     m_canvas_id = scene.add_node_to_root("canvas");
     scene.add_component<prt3::Canvas>(m_canvas_id);
@@ -139,9 +137,12 @@ void GameState::on_start(prt3::Scene & scene) {
     // if (scene.audio_manager().get_playing_midi() != m_midi) {
     //     scene.audio_manager().play_midi(m_midi, m_sound_font);
     // }
-}
 
-void GameState::on_init(prt3::Scene &) {
+    m_npc_db.on_scene_start(scene);
+
+    prt3::AnimationID anim_id =
+        scene.get_component<prt3::Armature>(m_player_id).animation_id();
+    scene.animation_system().update_transforms(scene, anim_id);
 }
 
 void GameState::on_update(prt3::Scene & scene, float) {
@@ -190,4 +191,8 @@ void GameState::init_resources(prt3::Scene & scene) {
     m_sound_font =
         scene.audio_manager()
              .load_sound_font("assets/audio/soundfonts/CT2MGM.sf2");
+
+    // player state
+    m_player_state.clip_a.animation_index = prt3::NO_ANIMATION;
+    m_player_state.clip_b.animation_index = prt3::NO_ANIMATION;
 }

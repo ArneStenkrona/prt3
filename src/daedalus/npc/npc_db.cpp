@@ -48,17 +48,14 @@ NPCDB::NPCDB(GameState & game_state)
     action.type = NPCAction::WAIT;
     action.u.wait.duration = 1000 * dds::time_scale;
     push_schedule(npc_id, action);
- }
+}
+
+void NPCDB::on_scene_start(prt3::Scene & scene) {
+    load_npcs(scene);
+}
 
 void NPCDB::update(prt3::Scene & scene) {
-    for (NPCID id = 0; id < m_npcs.size(); ++id) {
-        NPC & npc = m_npcs[id];
-        if (m_loaded_npcs.find(id) == m_loaded_npcs.end()) {
-            if (npc.map_position.room == m_game_state.current_room()) {
-                load_npc(scene, id);
-            }
-        }
-    }
+    load_npcs(scene);
 
     for (auto it = m_loaded_npcs.begin();
          it != m_loaded_npcs.end();) {
@@ -106,18 +103,29 @@ void NPCDB::load_npc(prt3::Scene & scene, NPCID id) {
     );
 
     prt3::ScriptSet & script_set = scene.add_component<prt3::ScriptSet>(node_id);
-    prt3::ScriptID script_id =
-        script_set.add_script<NPCController>(scene);
-    NPCController & script =
-        *dynamic_cast<NPCController*>(scene.get_script(script_id));
-    script.set_npc_id(id);
-    script.set_game_state(m_game_state);
+    script_set.add_script<NPCController>(scene, id);
 
     m_loaded_npcs[id] = node_id;
 
     prt3::Node & node = scene.get_node(node_id);
     node.set_global_position(scene, npc.map_position.position);
     node.set_global_scale(scene, npc.model_scale);
+
+    prt3::AnimationID anim_id =
+        scene.get_component<prt3::Armature>(node_id).animation_id();
+    scene.animation_system().update_transforms(scene, anim_id);
+}
+
+
+void NPCDB::load_npcs(prt3::Scene & scene) {
+    for (NPCID id = 0; id < m_npcs.size(); ++id) {
+        NPC & npc = m_npcs[id];
+        if (m_loaded_npcs.find(id) == m_loaded_npcs.end()) {
+            if (npc.map_position.room == m_game_state.current_room()) {
+                load_npc(scene, id);
+            }
+        }
+    }
 }
 
 void NPCDB::update_go_to_dest(NPCID id, NPCAction::U::GoToDest & data) {

@@ -46,7 +46,6 @@ public:
     );
 
     virtual void on_start(prt3::Scene & scene);
-    virtual void on_init(prt3::Scene &);
     virtual void on_update(prt3::Scene &, float);
     virtual void on_late_update(prt3::Scene &, float);
     virtual void on_game_end(prt3::Scene & scene);

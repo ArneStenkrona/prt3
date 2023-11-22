@@ -120,10 +120,8 @@ public:
     BoxCollider(Box const & box)
      : m_dimensions{box.dimensions}, m_center{box.center} {}
 
-    DiscreteConvexHull<8> get_shape(Transform const & transform) const {
+    DiscreteConvexHull<8> get_shape(glm::mat4 const & mat) const {
         DiscreteConvexHull<8> shape;
-
-        glm::mat4 mat = transform.to_matrix();
 
         glm::vec3 max = m_center + 0.5f * m_dimensions;
         glm::vec3 min = m_center - 0.5f * m_dimensions;
@@ -137,6 +135,10 @@ public:
         shape.vertices[7] = mat * (glm::vec4{max.x, max.y, max.z, 1.0f});
 
         return shape;
+    }
+
+    DiscreteConvexHull<8> get_shape(Transform const & transform) const {
+        return get_shape(transform.to_matrix());
     }
 
     Box base_shape() const {

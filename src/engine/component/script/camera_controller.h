@@ -37,16 +37,6 @@ public:
     inline float & yaw() { return m_yaw; }
     inline float & pitch() { return m_pitch; }
 
-    virtual void on_late_init(Scene & scene) {
-        NodeID player_id = *(scene.find_nodes_by_tag("player").begin());
-        set_target(player_id);
-    }
-
-    virtual void on_init(Scene & scene) {
-        scene.get_camera().set_orthographic_projection(true);
-        scene.get_camera().orthographic_scale() = 7.5f;
-    }
-
     void rotate_with_mouse(Scene & scene) {
         Camera & camera = scene.get_camera();
         Input & input = scene.get_input();
@@ -72,22 +62,13 @@ public:
         );
     }
 
-    virtual void on_late_update(Scene & scene, float delta_time) {
+    void orient_camera(Scene & scene) {
         Camera & camera = scene.get_camera();
-        Input & input = scene.get_input();
-
-        m_pitch = -glm::pi<float>() / 6.0f;
-
-        int x, y;
-        input.get_cursor_delta(x, y);
-        float dx = (float)x * m_mouse_sensitivity;
-        m_yaw -= dx;
 
         camera.transform().rotation = glm::quat_cast(
             glm::eulerAngleYXZ(m_yaw, -m_pitch, 0.0f)
         );
 
-        // camera shake;
         glm::vec3 cam_shake{0.0f};
         if (m_screen_shake_elapsed < m_screen_shake_time) {
             float t = 10.0f * m_screen_shake_elapsed;
@@ -105,8 +86,6 @@ public:
                         glm::sin(7.07 * t) * glm::min(tu, td);
             cam_shake = mag * camera.get_right() * glm::sin(t) +
                         mag * camera.get_up() * glm::cos(t);
-
-            m_screen_shake_elapsed += delta_time;
         }
 
         glm::vec3 target_pos{0.0f, 0.0f, 0.0f};
@@ -118,11 +97,30 @@ public:
         camera.transform().position =
             target_pos - (m_target_distance * camera.get_front())
             + cam_shake;
+    }
 
-        glm::vec3 pos = camera.get_position();
+    virtual void on_late_start(Scene & scene) {
+        orient_camera(scene);
+    }
+
+    virtual void on_late_update(Scene & scene, float delta_time) {
+        Input & input = scene.get_input();
+
+        m_pitch = -glm::pi<float>() / 6.0f;
+
+        int x, y;
+        input.get_cursor_delta(x, y);
+        float dx = (float)x * m_mouse_sensitivity;
+        m_yaw -= dx;
+
+        orient_camera(scene);
+
+        glm::vec3 pos =  scene.get_camera().get_position();
         Transform tform;
         tform.position = pos;
         get_node(scene).set_global_transform(scene, tform);
+
+        m_screen_shake_elapsed += delta_time;
     }
 
     void screen_shake(float magnitude,

@@ -48,3 +48,14 @@ TransitionState Context::load_scene_if_queued(TransitionState state) {
         m_edit_scene
     );
 }
+
+void Context::start_game(Scene const & scene) {
+    m_game_scene = scene;
+    m_game_is_active = true;
+    m_project.on_game_start(m_game_scene);
+}
+
+void Context::end_game() {
+    m_project.on_game_end(m_game_scene);
+    m_game_is_active = false;
+}

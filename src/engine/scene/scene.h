@@ -29,6 +29,7 @@ class Context;
 class Editor;
 class SceneManager;
 class AudioManager;
+class Prefab;
 
 class Scene {
 public:
@@ -52,6 +53,8 @@ public:
     { m_component_manager.deserialize_component<ComponentType>(in, *this, id); }
 
     void clear() { internal_clear(true); }
+
+    bool game_is_active();
 
     NodeID add_node(NodeID parent_id, NodeName name)
     { return add_node(parent_id, name.data(), generate_uuid()); }
@@ -378,15 +381,7 @@ private:
     void update_window_size(int w, int h);
 
     ScriptID internal_add_script(Script * script, bool autoload = false) {
-        return m_script_container.add_script(script, autoload);
-    }
-
-    Script const * internal_get_script(ScriptID id) const {
-        return m_script_container.scripts().at(id);
-    }
-
-    Script * internal_get_script(ScriptID id) {
-        return m_script_container.scripts().at(id);
+        return m_script_container.add_script(*this, script, autoload);
     }
 
     void internal_remove_script(ScriptID id) {
@@ -418,6 +413,7 @@ private:
     friend class EditorContext;
     friend class Armature;
     friend class SceneManager;
+    friend class Prefab;
     friend class Project;
     friend AnimatedModel::AnimatedModel(Scene &, NodeID, std::istream &);
     friend ModelComponent::ModelComponent(Scene &, NodeID, std::istream &);

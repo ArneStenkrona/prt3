@@ -94,10 +94,11 @@ public:
     virtual void on_init(Scene & scene) {
         m_state.input = {};
 
-        m_state.direction = get_node(scene).local_transform().get_front();
+        m_state.direction =
+            get_node(scene).get_global_transform(scene).get_front();
         m_state.ground_normal = glm::vec3{0.0f, 1.0f, 0.0f};
 
-        mm_weapon_id = scene.get_child_with_tag(node_id(), "weapon");
+        m_weapon_id = scene.get_child_with_tag(node_id(), "weapon");
 
         Armature & armature =
             scene.get_component<Armature>(node_id());
@@ -621,8 +622,8 @@ public:
             default: { assert(false); }
         }
 
-        if (mm_weapon_id != NO_NODE) {
-            scene.get_component<Weapon>(mm_weapon_id)
+        if (m_weapon_id != NO_NODE) {
+            scene.get_component<Weapon>(m_weapon_id)
                  .set_active(scene, active_weapon);
         }
     }
@@ -751,8 +752,10 @@ public:
             scene.animation_system().get_animation(armature.animation_id());
 
         m_state = serialized.state;
-        anim.clip_a = serialized.clip_a;
-        anim.clip_b = serialized.clip_b;
+        anim.clip_a = serialized.clip_a.animation_index == NO_ANIMATION ?
+            get_state_data(m_state.state).clip_a : serialized.clip_a;
+        anim.clip_b = serialized.clip_b.animation_index == NO_ANIMATION ?
+            get_state_data(m_state.state).clip_b : serialized.clip_b;
         anim.blend_factor = serialized.blend_factor;
 
         Node & node = scene.get_node(node_id());
@@ -769,7 +772,7 @@ protected:
 
     CharacterState m_state;
 
-    NodeID mm_weapon_id = NO_NODE;
+    NodeID m_weapon_id = NO_NODE;
 
     std::array<StateData, TOTAL_NUM_STATES> m_state_data;
 
