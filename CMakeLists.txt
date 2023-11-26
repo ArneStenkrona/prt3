@@ -56,6 +56,8 @@ file(GLOB SOURCES
   "src/engine/audio/audio_mem_util.cpp"
   "src/engine/audio/include_vorbis.c"
   "src/engine/component/canvas/canvas.cpp"
+  "src/engine/component/script/character_controller.cpp"
+  "src/engine/component/script/player_controller.cpp"
   "src/engine/component/script/script.cpp"
   "src/engine/component/animated_mesh.cpp"
   "src/engine/component/animated_model.cpp"
