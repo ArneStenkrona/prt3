@@ -145,7 +145,11 @@ void NPCDB::update_go_to_dest(NPCID id, NPCAction::U::GoToDest & data) {
 
     float length = npc.speed;
     data.t += length / map.get_map_path_length(data.path_id);
-    npc.map_position = map.interpolate_map_path(data.path_id, data.t);
+    npc.map_position = map.interpolate_map_path(
+        data.path_id,
+        data.t,
+        npc.direction
+    );
 
     if (data.t >= 1.0f) {
         pop_schedule(id);

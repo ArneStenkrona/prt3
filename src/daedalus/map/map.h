@@ -56,7 +56,11 @@ public:
     float get_map_path_length(MapPathID id)
     { return m_map_path_cache.access(id)->length; }
 
-    MapPosition interpolate_map_path(MapPathID id, float t);
+    MapPosition interpolate_map_path(
+        MapPathID id,
+        float t,
+        glm::vec3 & out_dir
+    );
 
     static std::string room_to_scene_path(RoomID room_id);
     static RoomID scene_to_room(prt3::Scene const & scene);

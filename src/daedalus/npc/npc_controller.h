@@ -37,8 +37,6 @@ private:
     NPCID m_npc_id;
     GameState * m_game_state;
 
-    void init_animation(prt3::Scene & scene);
-
     void update_action(prt3::Scene & scene, float delta_time);
     void update_go_to_dest(prt3::Scene & scene, float delta_time);
 

@@ -20,6 +20,7 @@ typedef uint32_t NPCID;
 
 struct NPC {
     MapPosition map_position;
+    glm::vec3 direction;
     std::string model_path;
     glm::vec3 model_scale;
 

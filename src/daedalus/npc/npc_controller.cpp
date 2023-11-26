@@ -15,10 +15,7 @@ void set_anim_if_not_set(prt3::Animation & anim, int32_t anim_index) {
 
 void NPCController::on_init(prt3::Scene & scene) {
     m_game_state = scene.get_autoload_script<GameState>();
-    init_animation(scene);
-}
 
-void NPCController::init_animation(prt3::Scene & scene) {
     prt3::Armature & armature = scene.get_component<prt3::Armature>(node_id());
     prt3::Animation & anim =
         scene.animation_system().get_animation(armature.animation_id());
@@ -37,6 +34,16 @@ void NPCController::init_animation(prt3::Scene & scene) {
         default: {
             anim_index = model.get_animation_index("idle");
         }
+    }
+
+    glm::vec3 dir = db.get_npc(m_npc_id).direction;
+    if (dir != glm::vec3{0.0f}) {
+        prt3::Node & node = get_node(scene);
+        prt3::Transform tform = node.get_global_transform(scene);
+
+        glm::quat rot = glm::rotation(glm::vec3{0.0f, 0.0f, 1.0f}, dir);
+        rot = glm::slerp(tform.rotation, rot, 1.0f);
+        node.set_global_rotation(scene, rot);
     }
 
     set_anim_if_not_set(anim, anim_index);

@@ -876,10 +876,20 @@ MapPathID Map::query_map_path(MapPosition origin, MapPosition destination) {
     return id;
 }
 
-MapPosition Map::interpolate_map_path(MapPathID id, float t) {
+MapPosition Map::interpolate_map_path(
+    MapPathID id,
+    float t,
+    glm::vec3 & out_dir
+) {
     MapPath & mp = *m_map_path_cache.access(id);
 
     if (t >= 1.0f) {
+        size_t prev =
+            mp.path.size() > 1 ? mp.path.size() - 2 : mp.path.size() - 1;
+        out_dir = mp.path.back().position.position -
+                  mp.path[prev].position.position;
+        out_dir =
+            out_dir != glm::vec3{0.0f} ? glm::normalize(out_dir) : out_dir;
         return mp.path.back().position;
     }
 
@@ -899,6 +909,10 @@ MapPosition Map::interpolate_map_path(MapPathID id, float t) {
     uint32_t i = l == 0 ? l : l - 1;
 
     if (i + 1 == mp.path.size()) {
+        out_dir = mp.path[i + 1].position.position -
+                  mp.path[i].position.position;
+        out_dir =
+            out_dir != glm::vec3{0.0f} ? glm::normalize(out_dir) : out_dir;
         return mp.path.back().position;
     }
 
@@ -917,6 +931,11 @@ MapPosition Map::interpolate_map_path(MapPathID id, float t) {
         mp.path[i + 1].position.position,
         interp
     );
+
+    out_dir = mp.path[i + 1].position.position -
+              mp.path[i].position.position;
+    out_dir =
+        out_dir != glm::vec3{0.0f} ? glm::normalize(out_dir) : out_dir;
 
     return res;
 }
