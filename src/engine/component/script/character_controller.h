@@ -100,6 +100,7 @@ public:
     void update_animation(Animation & animation);
 
     virtual void update_input(Scene & /*scene*/, float /*delta_time*/) {}
+    void update_post_input(Scene & scene);
 
     void handle_state(Scene & scene, float delta_time);
 
@@ -122,9 +123,13 @@ protected:
     static constexpr float gravity_constant = 0.8f;
     static constexpr float terminal_velocity = 20.0f;
 
-    float m_walk_force = 19.0f;
-    float m_run_force = 80.0f;
+    float m_walk_force = 22.0f;
+    float m_run_force = 90.0f;
     float m_jump_force = 90.0f;
+
+    float m_walk_anim_speed_a = 1.0f;
+    float m_walk_anim_speed_b = 1.5f;
+    float m_run_anim_speed = 2.5f;
 
     CharacterState m_state;
 

@@ -71,20 +71,6 @@ void PlayerController::update_input(Scene & scene, float /*delta_time*/) {
             raw_input_dir.y * glm::vec3{c_proj_y.x, 0.0f, c_proj_y.z}
         );
     }
-
-    if (m_state.grounded) {
-        m_state.input.last_grounded_direction = m_state.input.direction;
-        m_state.input.last_grounded_run = m_state.input.run;
-        m_state.jump_count = 0;
-        // project movement onto ground
-        m_state.input.direction = m_state.input.direction -
-                            glm::dot(m_state.input.direction,
-                                        m_state.ground_normal) *
-                                m_state.ground_normal;
-        if (m_state.input.direction != glm::vec3{0.0f}) {
-            m_state.input.direction = glm::normalize(m_state.input.direction);
-        }
-    }
 }
 
 void PlayerController::on_update(Scene & scene, float delta_time) {

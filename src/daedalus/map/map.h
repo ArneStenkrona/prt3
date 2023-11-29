@@ -56,9 +56,11 @@ public:
     float get_map_path_length(MapPathID id)
     { return m_map_path_cache.access(id)->length; }
 
-    MapPosition interpolate_map_path(
+    bool advance_map_path(
         MapPathID id,
-        float t,
+        glm::vec3 position,
+        float delta,
+        MapPosition & out_pos,
         glm::vec3 & out_dir
     );
 
@@ -124,6 +126,7 @@ private:
     struct MapPath {
         std::vector<MapPathEntry> path;
         float length;
+        uint32_t curr_ind;
     };
 
     static constexpr size_t NumMapPathCacheEntry = 128;

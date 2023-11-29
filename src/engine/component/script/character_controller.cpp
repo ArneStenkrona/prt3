@@ -21,7 +21,7 @@ void CharacterController::on_init(Scene & scene) {
 
     get_state_data(IDLE) = {
         .transition = 0.0f,
-        .clip_a = { .animation_index = model.get_animation_index("idle"),
+        .clip_a = { .animation_index = model.get_animation_index("idle", 0),
                     .paused = false,
                     .looping = true, },
         .clip_b = { .animation_index = NO_ANIMATION },
@@ -31,10 +31,10 @@ void CharacterController::on_init(Scene & scene) {
 
     get_state_data(WALK) = {
         .transition = 0.0f,
-        .clip_a = { .animation_index = model.get_animation_index("walk"),
+        .clip_a = { .animation_index = model.get_animation_index("walk", 0),
                     .paused = false,
                     .looping = true },
-        .clip_b = { .animation_index = model.get_animation_index("idle"),
+        .clip_b = { .animation_index = model.get_animation_index("idle", 0),
                     .paused = false,
                     .looping = true },
         .can_change_direction = true,
@@ -43,10 +43,10 @@ void CharacterController::on_init(Scene & scene) {
 
     get_state_data(RUN) = {
         .transition = 0.0f,
-        .clip_a = { .animation_index = model.get_animation_index("run"),
+        .clip_a = { .animation_index = model.get_animation_index("run", 0),
                     .paused = false,
                     .looping = true },
-        .clip_b = { .animation_index = model.get_animation_index("walk"),
+        .clip_b = { .animation_index = model.get_animation_index("walk", 0),
                     .paused = false,
                     .looping = true },
         .can_change_direction = true,
@@ -55,7 +55,7 @@ void CharacterController::on_init(Scene & scene) {
 
     get_state_data(ATTACK_1) = {
         .transition = 0.05f,
-        .clip_a = { .animation_index = model.get_animation_index("attack1"),
+        .clip_a = { .animation_index = model.get_animation_index("attack1", 0),
                     .speed = 0.75f,
                     .paused = false,
                     .looping = false },
@@ -66,7 +66,7 @@ void CharacterController::on_init(Scene & scene) {
 
     get_state_data(ATTACK_2) = {
         .transition = 0.05f,
-        .clip_a = { .animation_index = model.get_animation_index("attack2"),
+        .clip_a = { .animation_index = model.get_animation_index("attack2", 0),
                     .speed = 0.75f,
                     .paused = false,
                     .looping = false },
@@ -77,7 +77,7 @@ void CharacterController::on_init(Scene & scene) {
 
     get_state_data(ATTACK_AIR_1) = {
         .transition = 0.05f,
-        .clip_a = { .animation_index = model.get_animation_index("attack_air1"),
+        .clip_a = { .animation_index = model.get_animation_index("attack_air1", 0),
                     .speed = 0.75f,
                     .paused = false,
                     .looping = false },
@@ -88,7 +88,7 @@ void CharacterController::on_init(Scene & scene) {
 
     get_state_data(ATTACK_AIR_2) = {
         .transition = 0.05f,
-        .clip_a = { .animation_index = model.get_animation_index("attack_air2"),
+        .clip_a = { .animation_index = model.get_animation_index("attack_air2", 0),
                     .speed = 0.75f,
                     .paused = false,
                     .looping = false },
@@ -99,7 +99,7 @@ void CharacterController::on_init(Scene & scene) {
 
     get_state_data(JUMP) = {
         .transition = 0.02f,
-        .clip_a = { .animation_index = model.get_animation_index("jump"),
+        .clip_a = { .animation_index = model.get_animation_index("jump", 0),
                     .speed = 1.25f,
                     .paused = false,
                     .looping = false },
@@ -110,7 +110,7 @@ void CharacterController::on_init(Scene & scene) {
 
     get_state_data(FALL) = {
         .transition = 0.1f,
-        .clip_a = { .animation_index = model.get_animation_index("fall"),
+        .clip_a = { .animation_index = model.get_animation_index("fall", 0),
                     .paused = false,
                     .looping = true },
         .clip_b = { .animation_index = NO_ANIMATION},
@@ -120,7 +120,7 @@ void CharacterController::on_init(Scene & scene) {
 
     get_state_data(LAND) = {
         .transition = 0.02f,
-        .clip_a = { .animation_index = model.get_animation_index("land"),
+        .clip_a = { .animation_index = model.get_animation_index("land", 0),
                     .speed = 1.5f,
                     .paused = false,
                     .looping = false },
@@ -448,8 +448,10 @@ void CharacterController::update_animation(Animation & animation) {
             float fac = m_state.state == WALK ?
                 glm::clamp(m_state.run_factor, 0.0f, 1.0f) :
                 glm::clamp(m_state.run_factor - 1.0f, 0.0f, 1.0f);
-            float low = m_state.state == WALK ? 1.0 : 1.5;
-            float high = m_state.state == WALK ? 1.5 : 2.5;
+            float low = m_state.state == WALK ?
+                m_walk_anim_speed_a : m_walk_anim_speed_b;
+            float high = m_state.state == WALK ?
+                m_walk_anim_speed_b : m_run_anim_speed;
 
             animation.clip_a.speed = glm::mix(low, high, fac);
             animation.clip_b.speed = glm::mix(low, high, fac);
@@ -563,10 +565,10 @@ void CharacterController::update_direction(Scene & scene, float delta_time) {
 }
 
 void CharacterController::update_physics(Scene & scene, float delta_time) {
-    // friction
-    m_state.velocity = m_state.velocity / (1.0f + (m_state.friction * delta_time));
     // force
     m_state.velocity = m_state.velocity + m_state.force * delta_time;
+    // friction
+    m_state.velocity = m_state.velocity / (1.0f + (m_state.friction * delta_time));
 
     glm::vec3 translation = m_state.velocity * delta_time;
     translation += m_state.gravity_velocity * delta_time * m_state.gravity_direction;
@@ -615,6 +617,24 @@ void CharacterController::update_physics(Scene & scene, float delta_time) {
     m_state.grounded_timer = m_state.grounded ? 0.0f : m_state.grounded_timer + delta_time;
 }
 
+void CharacterController::update_post_input(Scene & /*scene*/) {
+    if (m_state.grounded) {
+        m_state.input.last_grounded_direction = m_state.input.direction;
+        m_state.input.last_grounded_run = m_state.input.run;
+        m_state.jump_count = 0;
+        // project movement onto ground
+        float mag = glm::length(m_state.input.direction);
+        m_state.input.direction = m_state.input.direction -
+                            glm::dot(m_state.input.direction,
+                                        m_state.ground_normal) *
+                                m_state.ground_normal;
+        if (m_state.input.direction != glm::vec3{0.0f}) {
+            m_state.input.direction =
+                mag * glm::normalize(m_state.input.direction);
+        }
+    }
+}
+
 void CharacterController::on_update(Scene & scene, float delta_time) {
     Armature & armature =
         scene.get_component<Armature>(node_id());
@@ -622,6 +642,7 @@ void CharacterController::on_update(Scene & scene, float delta_time) {
         scene.animation_system().get_animation(armature.animation_id());
 
     update_input(scene, delta_time);
+    update_post_input(scene);
 
     /* handle transitions */
     if (transition_state(scene, delta_time)) {

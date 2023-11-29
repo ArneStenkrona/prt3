@@ -27,7 +27,10 @@ struct NPC {
     float collider_radius;
     float collider_length;
 
-    float speed;
+    float walk_force;
+    float run_force;
+
+    float friction = 10.0f / dds::time_scale; // hardcoded for now
 
     void (*on_empty_schedule)(NPCID, NPCDB &, prt3::Scene &);
 };
@@ -47,7 +50,7 @@ struct NPCAction {
             MapPosition origin;
             MapPosition destination;
             MapPathID path_id;
-            float t;
+            bool running;
         } go_to_dest;
 
         struct Wait {

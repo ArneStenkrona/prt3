@@ -14,83 +14,54 @@ void set_anim_if_not_set(prt3::Animation & anim, int32_t anim_index) {
 }
 
 void NPCController::on_init(prt3::Scene & scene) {
+    m_walk_anim_speed_a = 1.0f;
+    m_walk_anim_speed_b = 1.0f;
+    m_run_anim_speed = 1.25f;
+
+    CharacterController::on_init(scene);
+
     m_game_state = scene.get_autoload_script<GameState>();
-
-    prt3::Armature & armature = scene.get_component<prt3::Armature>(node_id());
-    prt3::Animation & anim =
-        scene.animation_system().get_animation(armature.animation_id());
-    prt3::Model const & model = scene.get_model(armature.model_handle());
-
-    int32_t anim_index;
-
-    NPCDB & db = m_game_state->npc_db();
-    NPCAction::ActionType action_type = db.schedule_empty(m_npc_id) ?
-        NPCAction::ActionType::NONE : db.peek_schedule(m_npc_id).type;
-    switch (action_type) {
-        case NPCAction::GO_TO_DESTINATION: {
-            anim_index = model.get_animation_index("walk");
-            break;
-        }
-        default: {
-            anim_index = model.get_animation_index("idle");
-        }
-    }
-
-    glm::vec3 dir = db.get_npc(m_npc_id).direction;
-    if (dir != glm::vec3{0.0f}) {
-        prt3::Node & node = get_node(scene);
-        prt3::Transform tform = node.get_global_transform(scene);
-
-        glm::quat rot = glm::rotation(glm::vec3{0.0f, 0.0f, 1.0f}, dir);
-        rot = glm::slerp(tform.rotation, rot, 1.0f);
-        node.set_global_rotation(scene, rot);
-    }
-
-    set_anim_if_not_set(anim, anim_index);
 }
 
 void NPCController::on_update(prt3::Scene & scene, float delta_time) {
     NPCDB & db = m_game_state->npc_db();
-    if (!db.schedule_empty(m_npc_id)) {
-        update_action(scene, delta_time);
-    }
+    NPC & npc = db.get_npc(m_npc_id);
+
+    m_walk_force = npc.walk_force * dds::time_scale;
+    m_run_force = npc.run_force * dds::time_scale;
+
+    prt3::CharacterController::on_update(scene, delta_time);
+
+    prt3::Node & node = scene.get_node(node_id());
+
+    /* move unconditionally */
+    prt3::Transform tform = node.get_global_transform(scene);
+
+    npc.map_position.position = tform.position;
+
+    npc.friction = m_state.friction / dds::time_scale;
 }
 
-void NPCController::update_action(prt3::Scene & scene, float delta_time) {
-    prt3::Armature & armature = scene.get_component<prt3::Armature>(node_id());
-    prt3::Animation & anim =
-        scene.animation_system().get_animation(armature.animation_id());
-    prt3::Model const & model = scene.get_model(armature.model_handle());
-
+void NPCController::update_input(prt3::Scene & scene, float delta_time) {
     NPCDB & db = m_game_state->npc_db();
-
     NPCAction & action = db.peek_schedule(m_npc_id);
 
     switch (action.type) {
         case NPCAction::GO_TO_DESTINATION: {
             update_go_to_dest(scene, delta_time);
-            int32_t anim_index = model.get_animation_index("walk");
-            set_anim_if_not_set(anim, anim_index);
             break;
         }
-        case NPCAction::WAIT:
-        case NPCAction::WAIT_UNTIL: {
-            action.u.wait.duration -= dds::ms_per_frame;
-            int32_t anim_index = model.get_animation_index("idle");
-            set_anim_if_not_set(anim, anim_index);
-            break;
+        default: {
+            m_state.input.direction = glm::vec3{0.0f};
         }
-        default: {}
     }
-
-    NPC & npc = db.get_npc(m_npc_id);
-    npc.map_position.position =
-        get_node(scene).get_global_transform(scene).position;
 }
+
 
 void NPCController::update_go_to_dest(prt3::Scene & scene, float delta_time) {
     NPCDB & db = m_game_state->npc_db();
     NPC & npc = db.get_npc(m_npc_id);
+    NPCAction & action = db.peek_schedule(m_npc_id);
 
     prt3::Node & node = scene.get_node(node_id());
 
@@ -99,20 +70,28 @@ void NPCController::update_go_to_dest(prt3::Scene & scene, float delta_time) {
 
     glm::vec3 target_pos = npc.map_position.position;
     glm::vec3 delta_pos = target_pos - tform.position;
+    delta_pos.y = 0.0f;
 
-    glm::vec3 look_dir = delta_pos;
-    look_dir.y = 0.0f;
-    if (look_dir != glm::vec3{0.0f}) {
-        look_dir = glm::normalize(look_dir);
-        glm::quat target_rot = glm::rotation(glm::vec3{0.0f, 0.0f, 1.0f}, look_dir);
+    m_state.input.run = true;
 
-        float speed = 20.0f;
-        float dt_fac = 1.0f - glm::pow(0.5f, delta_time * speed);
-        glm::quat rot = glm::slerp(tform.rotation, target_rot, dt_fac);
+    glm::vec3 target_dir = npc.direction;
+    target_dir.y = 0.0f;
 
-        node.set_global_rotation(scene, rot);
+    if (action.u.go_to_dest.path_id == NO_MAP_PATH) {
+        ++m_missing_path_count;
+    } else {
+        m_missing_path_count = 0;
     }
 
-    /* push out of intersecting geometry */
-    node.move_and_collide(scene, delta_pos);
+    if (m_missing_path_count > 1) {
+        m_state.input.direction = glm::vec3{0.0f};
+    } else if (target_dir != glm::vec3{0.0f}) {
+        target_dir = glm::normalize(target_dir);
+
+        float speed = 40.0f;
+        float dt_fac = 1.0f - glm::pow(0.5f, delta_time * speed);
+        m_state.input.direction = glm::normalize(
+            glm::mix(m_state.input.direction, target_dir, dt_fac)
+        );
+    }
 }

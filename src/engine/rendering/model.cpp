@@ -70,9 +70,10 @@ Model::Model(char const * path)
             prt3_cache = path + cached_postfix;
 
             CRC32String checksum = compute_crc32(path);
-            std::ofstream out(path, std::ios::binary);
+            std::ofstream out(prt3_cache, std::ios::binary);
             out.write(checksum.data(), checksum.writeable_size());
-            save_prt3model(path);
+            out.close();
+            save_prt3model(prt3_cache.c_str());
         }
     }
 }
@@ -80,6 +81,16 @@ Model::Model(char const * path)
 int32_t Model::get_animation_index(char const * name) const {
     if (m_name_to_animation.find(name) == m_name_to_animation.end()) {
         return -1;
+    }
+    return m_name_to_animation.find(name)->second;
+}
+
+int32_t Model::get_animation_index(
+    char const * name,
+    int32_t default_index
+) const {
+    if (m_name_to_animation.find(name) == m_name_to_animation.end()) {
+        return default_index;
     }
     return m_name_to_animation.find(name)->second;
 }
@@ -416,7 +427,6 @@ void Model::calculate_tangent_space() {
 }
 
 void Model::load_with_assimp(char const * path) {
-
     Assimp::Importer importer;
     importer.SetPropertyInteger(
         AI_CONFIG_PP_SBP_REMOVE,

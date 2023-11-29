@@ -871,73 +871,88 @@ MapPathID Map::query_map_path(MapPosition origin, MapPosition destination) {
         );
     }
     mp.length = length;
+    mp.curr_ind = 0;
 
     ++m_next_map_path_id;
     return id;
 }
 
-MapPosition Map::interpolate_map_path(
+bool Map::advance_map_path(
     MapPathID id,
-    float t,
+    glm::vec3 position,
+    float delta,
+    MapPosition & out_pos,
     glm::vec3 & out_dir
 ) {
     MapPath & mp = *m_map_path_cache.access(id);
 
-    if (t >= 1.0f) {
-        size_t prev =
-            mp.path.size() > 1 ? mp.path.size() - 2 : mp.path.size() - 1;
-        out_dir = mp.path.back().position.position -
-                  mp.path[prev].position.position;
-        out_dir =
-            out_dir != glm::vec3{0.0f} ? glm::normalize(out_dir) : out_dir;
-        return mp.path.back().position;
-    }
+    glm::vec3 curr_pos = position;
 
-    float target_dist = mp.length * t;
-    uint32_t l = 0;
-    uint32_t r = mp.path.size();
+    float eps = 0.2f;
 
-    while (l < r) {
-        uint32_t m = (l + r) / 2;
-        if (mp.path[m].accumulated_distance <= target_dist) {
-            l = m + 1;
+    float remaining = delta;
+    while (mp.curr_ind + 1 < mp.path.size()) {
+        /* In practice the nav mesh may hover a bit above ground. Therefore, we
+         * need to be more lenient with distance in the y direction.
+         */
+        float adjust_factor = 0.1f;
+        glm::vec3 adjust_y_a = curr_pos;
+        glm::vec3 adjust_y_b = mp.path[mp.curr_ind + 1].position.position;
+        adjust_y_a.y *= adjust_factor;
+        adjust_y_b.y *= adjust_factor;
+
+        float dist = glm::distance(
+            adjust_y_a,
+            adjust_y_b
+        );
+
+        if (dist - remaining <= eps) {
+            ++mp.curr_ind;
+            remaining -= dist;
+            curr_pos = mp.path[mp.curr_ind].position.position;
         } else {
-            r = m;
+            break;
         }
     }
 
-    uint32_t i = l == 0 ? l : l - 1;
-
-    if (i + 1 == mp.path.size()) {
-        out_dir = mp.path[i + 1].position.position -
-                  mp.path[i].position.position;
-        out_dir =
-            out_dir != glm::vec3{0.0f} ? glm::normalize(out_dir) : out_dir;
-        return mp.path.back().position;
+    if (mp.curr_ind + 1 >= mp.path.size()) {
+        out_pos = mp.path.back().position;
+        return true;
     }
 
-    float remaining = target_dist - mp.path[i].accumulated_distance;
-    float dist2next = mp.path[i + 1].accumulated_distance -
-                      mp.path[i].accumulated_distance;
-    float interp = dist2next == 0.0f ? 1.0f : remaining / dist2next;
-
-    MapPosition res;
-    res.room = interp < mp.path[i].door_intersection ?
-        mp.path[i].position.room :
-        mp.path[i + 1].position.room;
-
-    res.position = glm::mix(
-        mp.path[i].position.position,
-        mp.path[i + 1].position.position,
-        interp
+    float seg_dist = glm::distance(
+        curr_pos,
+        mp.path[mp.curr_ind + 1].position.position
     );
 
-    out_dir = mp.path[i + 1].position.position -
-              mp.path[i].position.position;
-    out_dir =
-        out_dir != glm::vec3{0.0f} ? glm::normalize(out_dir) : out_dir;
+    float t = glm::min(remaining / seg_dist, 1.0f);
 
-    return res;
+    out_pos.position = glm::mix(
+        curr_pos,
+        mp.path[mp.curr_ind + 1].position.position,
+        t
+    );
+
+    float intersect_dist = glm::distance(
+        mp.path[mp.curr_ind].position.position,
+        curr_pos
+    );
+
+    float interp = intersect_dist / glm::distance(
+        mp.path[mp.curr_ind].position.position,
+        mp.path[mp.curr_ind + 1].position.position
+    );
+
+    out_pos.room = interp < mp.path[mp.curr_ind].door_intersection ?
+        mp.path[mp.curr_ind].position.room :
+        mp.path[mp.curr_ind + 1].position.room;
+
+    glm::vec3 dir = mp.path[mp.curr_ind + 1].position.position - curr_pos;
+    if (dir != glm::vec3{0.0f}) {
+        out_dir = glm::normalize(dir);
+    }
+
+    return false;
 }
 
 bool Map::intersects_door(

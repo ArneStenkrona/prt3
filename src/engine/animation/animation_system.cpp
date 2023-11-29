@@ -73,7 +73,7 @@ void AnimationSystem::update_transforms(
     Model const & model =
         scene.model_manager().get_model(animation.model_handle);
     if (animation.clip_b.animation_index == NO_ANIMATION ||
-        animation.blend_factor == 0.0f) {
+        animation.blend_factor <= 0.0f) {
         model.sample_animation(
             animation.clip_a.animation_index,
             animation.clip_a.t,
@@ -81,7 +81,7 @@ void AnimationSystem::update_transforms(
             animation.transforms.data(),
             animation.local_transforms.data()
         );
-    } else if (animation.blend_factor == 1.0f) {
+    } else if (animation.blend_factor >= 1.0f) {
         model.sample_animation(
             animation.clip_b.animation_index,
             animation.clip_b.t,
@@ -118,7 +118,7 @@ void AnimationSystem::update(Scene const & scene, float delta_time) {
 
         Model const & model = models[animation.model_handle];
         if (animation.clip_b.animation_index == NO_ANIMATION ||
-            animation.blend_factor == 0.0f) {
+            animation.blend_factor <= 0.0f) {
             model.sample_animation(
                 animation.clip_a.animation_index,
                 animation.clip_a.t,
@@ -126,7 +126,7 @@ void AnimationSystem::update(Scene const & scene, float delta_time) {
                 animation.transforms.data(),
                 animation.local_transforms.data()
             );
-        } else if (animation.blend_factor == 1.0f) {
+        } else if (animation.blend_factor >= 1.0f) {
             model.sample_animation(
                 animation.clip_b.animation_index,
                 animation.clip_b.t,

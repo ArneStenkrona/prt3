@@ -24,7 +24,7 @@ void on_empty_schedule_test(
     action.u.go_to_dest.origin = npc.map_position;
     action.u.go_to_dest.destination = dest;
     action.u.go_to_dest.path_id = NO_MAP_PATH;
-    action.u.go_to_dest.t = 0.0f;
+    action.u.go_to_dest.running = true;
 
     npc_db.push_schedule(id, action);
 }
@@ -37,11 +37,13 @@ NPCDB::NPCDB(GameState & game_state)
     NPC & npc = m_npcs[npc_id];
     npc.map_position.room = 4;
     npc.map_position.position = glm::vec3{-4.0f, 0.5f, -0.5f};
-    npc.model_path = "assets/models/stranger/stranger.fbx";
-    npc.model_scale = glm::vec3{0.5f};
+    npc.model_path = "assets/models/boss1/boss1.fbx";
+    npc.model_scale = glm::vec3{0.62f};
     npc.collider_radius = 0.5f;
-    npc.collider_length = 1.0f;
-    npc.speed = 0.1f;
+    npc.collider_length = 2.0f;
+    npc.walk_force = 39.0f / dds::time_scale;
+    npc.run_force = 90.0f / dds::time_scale;
+
     npc.on_empty_schedule = on_empty_schedule_test;
 
     NPCAction action;
@@ -134,7 +136,6 @@ void NPCDB::update_go_to_dest(NPCID id, NPCAction::U::GoToDest & data) {
 
     if (!map.has_map_path(data.path_id)) {
         data.origin = npc.map_position;
-        data.t = 0.0f;
         data.path_id = map.query_map_path(data.origin, data.destination);
     }
 
@@ -143,15 +144,19 @@ void NPCDB::update_go_to_dest(NPCID id, NPCAction::U::GoToDest & data) {
         return;
     }
 
-    float length = npc.speed;
-    data.t += length / map.get_map_path_length(data.path_id);
-    npc.map_position = map.interpolate_map_path(
+    float force = data.running ? npc.run_force : npc.walk_force;
+    float velocity = (force / npc.friction);
+
+    float length = velocity * dds::frame_dt_over_time_scale;
+    bool arrived = map.advance_map_path(
         data.path_id,
-        data.t,
+        npc.map_position.position,
+        length,
+        npc.map_position,
         npc.direction
     );
 
-    if (data.t >= 1.0f) {
+    if (arrived) {
         pop_schedule(id);
     }
 }

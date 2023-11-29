@@ -100,6 +100,7 @@ public:
     ) const;
 
     int32_t get_animation_index(char const * name) const;
+    int32_t get_animation_index(char const * name, int32_t default_index) const;
     int32_t get_number_of_bones() const { return m_bones.size(); }
 
     inline bool is_animated() const { return !m_animations.empty(); }
