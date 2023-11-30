@@ -12,21 +12,19 @@ namespace dds {
 class NPCController : public prt3::CharacterController {
 public:
     explicit NPCController(prt3::Scene & scene, prt3::NodeID node_id)
-        : prt3::CharacterController(scene, node_id) {}
+    : prt3::CharacterController(scene, node_id) {}
 
-        explicit NPCController(
-            prt3::Scene & scene,
-            prt3::NodeID node_id,
-            NPCID npc_id
-        )
-        : prt3::CharacterController(scene, node_id), m_npc_id{npc_id} {}
+    explicit NPCController(
+        prt3::Scene & scene,
+        prt3::NodeID node_id,
+        NPCID npc_id
+    ) : prt3::CharacterController(scene, node_id), m_npc_id{npc_id} {}
 
     explicit NPCController(
         std::istream &,
         prt3::Scene & scene,
         prt3::NodeID node_id
-    )
-        : prt3::CharacterController(scene, node_id) {}
+    ) : prt3::CharacterController(scene, node_id) {}
 
     virtual void on_init(prt3::Scene & scene);
 
@@ -37,7 +35,10 @@ private:
     NPCID m_npc_id;
     GameState * m_game_state;
 
-    int m_missing_path_count;
+    unsigned int m_missing_path_count;
+
+    static constexpr unsigned int m_rolling_avg_n = 10;
+    float m_movement_performance = 1.0f;
 
     void update_go_to_dest(prt3::Scene & scene, float delta_time);
 

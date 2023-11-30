@@ -133,6 +133,11 @@ protected:
 
     CharacterState m_state;
 
+    struct UpdateData {
+        float expected_move_distance = 0.0f;
+        float move_distance = 0.0f;
+    } m_update_data;
+
     NodeID m_weapon_id = NO_NODE;
 
     std::array<StateData, TOTAL_NUM_STATES> m_state_data;

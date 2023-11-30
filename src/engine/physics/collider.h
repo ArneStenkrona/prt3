@@ -28,6 +28,7 @@ struct CollisionResult {
     unsigned int n_collisions;
     bool grounded = false;
     glm::vec3 ground_normal;
+    float move_distance;
 };
 
 class MeshCollider {

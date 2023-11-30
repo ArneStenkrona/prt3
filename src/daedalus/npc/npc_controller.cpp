@@ -85,6 +85,8 @@ void NPCController::on_init(prt3::Scene & scene) {
         default: {
         }
     }
+
+    m_movement_performance = 1.0f;
 }
 
 void NPCController::on_update(prt3::Scene & scene, float delta_time) {
@@ -104,6 +106,14 @@ void NPCController::on_update(prt3::Scene & scene, float delta_time) {
     npc.map_position.position = tform.position;
 
     npc.friction = m_state.friction / dds::time_scale;
+
+    float n = static_cast<float>(m_rolling_avg_n);
+    float movement_performance = m_update_data.expected_move_distance == 0 ?
+        1.0f :
+        m_update_data.move_distance / m_update_data.expected_move_distance;
+    m_movement_performance = m_movement_performance -
+                             (m_movement_performance / n) +
+                             (movement_performance / n);
 }
 
 void NPCController::update_input(prt3::Scene & scene, float delta_time) {
@@ -157,5 +167,9 @@ void NPCController::update_go_to_dest(prt3::Scene & scene, float delta_time) {
         m_state.input.direction = glm::normalize(
             glm::mix(m_state.input.direction, target_dir, dt_fac)
         );
+    }
+
+    if (m_movement_performance < 0.2f) {
+        db.pop_schedule(m_npc_id);
     }
 }

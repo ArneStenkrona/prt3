@@ -574,6 +574,7 @@ void CharacterController::update_physics(Scene & scene, float delta_time) {
     translation += m_state.gravity_velocity * delta_time * m_state.gravity_direction;
 
     auto res = get_node(scene).move_and_collide(scene, translation);
+
     m_state.grounded = res.grounded;
     if (res.grounded) {
         m_state.gravity_velocity = 0.0f;
@@ -584,6 +585,9 @@ void CharacterController::update_physics(Scene & scene, float delta_time) {
         m_state.gravity_direction = glm::vec3{0.0f, -1.0f, 0.0f};
         m_state.friction = 5.0f;
     }
+
+    m_update_data.expected_move_distance = glm::length(translation);
+    m_update_data.move_distance = res.move_distance;
 
     if (m_state.grounded_timer <= m_state.coyote_time && m_state.gravity_velocity > 0.0f) {
         PhysicsSystem const & sys = scene.physics_system();

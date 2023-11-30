@@ -477,6 +477,8 @@ private:
 
         CollisionResult ret{};
 
+        glm::vec3 start_pos = transform.position;
+
         glm::vec3 curr_movement = movement;
         while (iteration < MAX_COLLISION_ITER) {
             Collision & collision = ret.collisions[ret.n_collisions];
@@ -676,6 +678,8 @@ private:
 
             ++iteration;
         }
+
+        ret.move_distance = glm::distance(start_pos, transform.position);
         return ret;
     }
 
