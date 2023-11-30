@@ -111,7 +111,8 @@ public:
     std::string const & path() const { return m_path; }
     void set_path(std::string path) { m_path = path; }
 
-    void save_prt3model(char const * path) const;
+    void save_prt3model(char const * path) const
+    { std::ofstream out{path, std::ios::binary}; save_prt3model(out, path); }
 
 private:
     std::string m_name;
@@ -148,6 +149,8 @@ private:
     void load_with_assimp(char const * path);
 
     bool attempt_load_cached(char const * path);
+
+    void save_prt3model(std::ofstream & out, char const * path) const;
 
     void load_prt3model(std::FILE * in);
     inline void load_prt3model(char const * path)

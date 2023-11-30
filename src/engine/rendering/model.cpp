@@ -72,8 +72,7 @@ Model::Model(char const * path)
             CRC32String checksum = compute_crc32(path);
             std::ofstream out(prt3_cache, std::ios::binary);
             out.write(checksum.data(), checksum.writeable_size());
-            out.close();
-            save_prt3model(prt3_cache.c_str());
+            save_prt3model(out, prt3_cache.c_str());
         }
     }
 }
@@ -794,8 +793,7 @@ void Model::load_with_assimp(char const * path) {
     // calculate_tangent_space();
 }
 
-void Model::save_prt3model(char const * path) const {
-    std::ofstream out(path, std::ios::binary);
+void Model::save_prt3model(std::ofstream & out, char const * path) const {
     write_stream(out, m_valid);
 
     write_stream(out, m_nodes.size());
@@ -1077,6 +1075,4 @@ void Model::load_prt3model(std::FILE * in) {
     m_bone_to_node.resize(n_bones);
     read_stream_n(in, m_bones.data(), n_bones);
     read_stream_n(in, m_bone_to_node.data(), n_bones);
-
-    std::fclose(in);
 }
