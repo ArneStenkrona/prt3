@@ -14,13 +14,77 @@ void set_anim_if_not_set(prt3::Animation & anim, int32_t anim_index) {
 }
 
 void NPCController::on_init(prt3::Scene & scene) {
+    m_game_state = scene.get_autoload_script<GameState>();
+    NPCDB & db = m_game_state->npc_db();
+    NPC & npc = db.get_npc(m_npc_id);
+
+    /* Temporary workaround due to the fact that the nav mesh is usually
+     * hovering a bit above ground. The better solution is to update nav mesh
+     * generation so that the mesh snaps to the actual ground.
+     */
+    prt3::ColliderTag tag =
+        scene.get_component<prt3::ColliderComponent>(node_id()).tag();
+    prt3::CollisionLayer mask = scene.physics_system().get_collision_mask(tag);
+
+    float eps = 0.1f;
+
+    glm::vec3 pos = get_node(scene).get_global_transform(scene).position;
+    pos += npc.direction * eps;
+
+    prt3::RayHit hit;
+    if (scene.physics_system().raycast(
+        pos + glm::vec3{0.0f, eps, 0.0f},
+        glm::vec3{0.0f, -1.0f, 0.0f},
+        2.0f,
+        mask,
+        tag,
+        hit
+    )) {
+        get_node(scene).set_global_position(scene, hit.position);
+    }
+
     m_walk_anim_speed_a = 1.0f;
     m_walk_anim_speed_b = 1.0f;
     m_run_anim_speed = 1.25f;
 
+    m_walk_force = npc.walk_force * dds::time_scale;
+    m_run_force = npc.run_force * dds::time_scale;
+
+    NPCAction::ActionType action_type = db.schedule_empty(m_npc_id) ?
+    NPCAction::NONE : db.peek_schedule(m_npc_id).type;
+
+    // pre-init
+    switch (action_type) {
+        case NPCAction::GO_TO_DESTINATION: {
+            NPCAction & action = db.peek_schedule(m_npc_id);
+            auto & gtd = action.u.go_to_dest;
+            m_state.state = gtd.running ?
+                CharacterController::State::RUN :
+                CharacterController::State::WALK;
+            break;
+        }
+        default: {
+        }
+    }
+
     CharacterController::on_init(scene);
 
-    m_game_state = scene.get_autoload_script<GameState>();
+    // post-init
+    switch (action_type) {
+        case NPCAction::GO_TO_DESTINATION: {
+            NPCAction & action = db.peek_schedule(m_npc_id);
+            auto & gtd = action.u.go_to_dest;
+            float force = gtd.running ? m_run_force : m_walk_force;
+            float speed = force / (npc.friction * dds::time_scale);
+            m_state.velocity = speed * npc.direction;
+            m_state.direction = npc.direction;
+            m_state.input.direction = npc.direction;
+            m_state.run_factor = gtd.running ? 2.0f : 1.0f;
+            break;
+        }
+        default: {
+        }
+    }
 }
 
 void NPCController::on_update(prt3::Scene & scene, float delta_time) {

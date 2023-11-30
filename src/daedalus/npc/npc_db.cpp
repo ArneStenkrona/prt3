@@ -94,6 +94,10 @@ void NPCDB::load_npc(prt3::Scene & scene, NPCID id) {
     prt3::NodeID node_id = scene.add_node_to_root("NPC");
     scene.add_model_to_scene_from_path(npc.model_path, node_id, true, true);
 
+    prt3::Node & node = scene.get_node(node_id);
+    node.set_global_position(scene, npc.map_position.position);
+    node.set_global_scale(scene, npc.model_scale);
+
     prt3::Capsule capsule{};
     capsule.radius = npc.collider_radius;
     capsule.start.y = npc.collider_radius;
@@ -108,10 +112,6 @@ void NPCDB::load_npc(prt3::Scene & scene, NPCID id) {
     script_set.add_script<NPCController>(scene, id);
 
     m_loaded_npcs[id] = node_id;
-
-    prt3::Node & node = scene.get_node(node_id);
-    node.set_global_position(scene, npc.map_position.position);
-    node.set_global_scale(scene, npc.model_scale);
 
     prt3::AnimationID anim_id =
         scene.get_component<prt3::Armature>(node_id).animation_id();
