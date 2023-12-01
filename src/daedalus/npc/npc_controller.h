@@ -41,6 +41,7 @@ private:
     float m_movement_performance = 1.0f;
 
     void update_go_to_dest(prt3::Scene & scene, float delta_time);
+    void update_warp(prt3::Scene & scene, float delta_time);
 
     virtual void update_input(prt3::Scene & /*scene*/, float /*delta_time*/);
 

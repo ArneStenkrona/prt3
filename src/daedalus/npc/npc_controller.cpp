@@ -63,6 +63,10 @@ void NPCController::on_init(prt3::Scene & scene) {
                 CharacterController::State::WALK;
             break;
         }
+        case NPCAction::WARP: {
+            update_warp(scene, 0.0f);
+            break;
+        }
         default: {
         }
     }
@@ -87,6 +91,29 @@ void NPCController::on_init(prt3::Scene & scene) {
     }
 
     m_movement_performance = 1.0f;
+}
+
+void set_material_override(
+    prt3::Scene & scene,
+    prt3::NodeID node_id,
+    prt3::MaterialOverride mat_override
+) {
+    thread_local std::vector<prt3::NodeID> queue;
+    queue.push_back(node_id);
+    while (!queue.empty()) {
+        prt3::NodeID id = queue.back();
+        prt3::Node const & node = scene.get_node(id);
+        queue.pop_back();
+
+        if (scene.has_component<prt3::MaterialComponent>(id)) {
+            auto & mat = scene.get_component<prt3::MaterialComponent>(id);
+            mat.material_override() = mat_override;
+        }
+
+        for (prt3::NodeID child_id : node.children_ids()) {
+            queue.push_back(child_id);
+        }
+    }
 }
 
 void NPCController::on_update(prt3::Scene & scene, float delta_time) {
@@ -125,12 +152,16 @@ void NPCController::update_input(prt3::Scene & scene, float delta_time) {
             update_go_to_dest(scene, delta_time);
             break;
         }
+        case NPCAction::WARP: {
+            update_warp(scene, delta_time);
+            m_state.input.direction = glm::vec3{0.0f};
+            break;
+        }
         default: {
             m_state.input.direction = glm::vec3{0.0f};
         }
     }
 }
-
 
 void NPCController::update_go_to_dest(prt3::Scene & scene, float delta_time) {
     NPCDB & db = m_game_state->npc_db();
@@ -170,6 +201,33 @@ void NPCController::update_go_to_dest(prt3::Scene & scene, float delta_time) {
     }
 
     if (m_movement_performance < 0.2f) {
-        db.pop_schedule(m_npc_id);
+        db.pop_schedule(m_npc_id, ScheduleStatus::stuck_on_path);
     }
+}
+
+void NPCController::update_warp(prt3::Scene & scene, float /*delta_time*/) {
+    NPCDB & db = m_game_state->npc_db();
+    NPC & npc = db.get_npc(m_npc_id);
+    NPCAction & action = db.peek_schedule(m_npc_id);
+    auto & warp = action.u.warp;
+
+    float alpha;
+    switch (warp.phase) {
+        case NPCAction::U::Warp::Phase::fade_in: {
+            alpha = 1.0f -
+                glm::clamp(float(warp.timer) / warp.fade_time, 0.0f, 1.0f);
+            break;
+        }
+        case NPCAction::U::Warp::Phase::fade_out: {
+            alpha = glm::clamp(float(warp.timer) / warp.fade_time, 0.0f, 1.0f);
+            break;
+        }
+    }
+
+    get_node(scene).set_global_position(scene, npc.map_position.position);
+
+    prt3::MaterialOverride mo;
+    mo.tint_active = true;
+    mo.tint = glm::vec4{1.0f, 1.0f, 1.0f, alpha};
+    set_material_override(scene, node_id(), mo);
 }

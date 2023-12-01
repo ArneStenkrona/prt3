@@ -32,12 +32,16 @@ struct NPC {
 
     float friction = 10.0f / dds::time_scale; // hardcoded for now
 
+    bool stuck = false;
+    TimeMS stuck_since;
+
     void (*on_empty_schedule)(NPCID, NPCDB &, prt3::Scene &);
 };
 
 struct NPCAction {
     enum ActionType {
         GO_TO_DESTINATION,
+        WARP,
         WAIT,
         WAIT_UNTIL,
         NONE
@@ -53,6 +57,18 @@ struct NPCAction {
             bool running;
         } go_to_dest;
 
+        struct Warp {
+            enum class Phase {
+                fade_out,
+                fade_in
+            };
+
+            TimeMS fade_time;
+            TimeMS timer;
+            Phase phase;
+            MapPosition destination;
+        } warp;
+
         struct Wait {
             TimeMS duration;
         } wait;
@@ -65,6 +81,13 @@ struct NPCAction {
 
 typedef std::queue<NPCAction> NPCSchedule;
 
+enum class ScheduleStatus {
+    success,
+    // go to dest
+    no_path_found,
+    stuck_on_path
+};
+
 class NPCDB {
 public:
     NPCDB(GameState & game_state);
@@ -75,7 +98,10 @@ public:
 
     bool schedule_empty(NPCID id) const { return m_schedules[id].empty(); }
     NPCAction & peek_schedule(NPCID id) { return m_schedules[id].front(); }
-    void pop_schedule(NPCID id) { return m_schedules[id].pop(); }
+    void pop_schedule(
+        NPCID id,
+        ScheduleStatus status = ScheduleStatus::success
+    );
     void push_schedule(NPCID id, NPCAction const & action)
     { return m_schedules[id].push(action); }
 
@@ -96,7 +122,10 @@ private:
     void load_npcs(prt3::Scene & scene);
 
     void update_npc(NPCID id, prt3::Scene & scene);
+
     void update_go_to_dest(NPCID id, NPCAction::U::GoToDest & data);
+
+    void update_warp(NPCID id, NPCAction::U::Warp & data);
 };
 
 } // namespace dds

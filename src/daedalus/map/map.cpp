@@ -888,7 +888,7 @@ bool Map::advance_map_path(
 
     glm::vec3 curr_pos = position;
 
-    float eps = 0.2f;
+    float eps = 0.4f;
 
     float remaining = delta;
     while (mp.curr_ind + 1 < mp.path.size()) {

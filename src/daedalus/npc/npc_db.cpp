@@ -20,11 +20,22 @@ void on_empty_schedule_test(
     dest.room = game_state.current_room();
 
     NPCAction action;
-    action.type = NPCAction::GO_TO_DESTINATION;
-    action.u.go_to_dest.origin = npc.map_position;
-    action.u.go_to_dest.destination = dest;
-    action.u.go_to_dest.path_id = NO_MAP_PATH;
-    action.u.go_to_dest.running = true;
+
+    TimeMS time = game_state.current_time();
+    if ((npc.stuck && time - npc.stuck_since > 1000 * dds::time_scale)) {
+        action.type = NPCAction::WARP;
+        action.u.warp.fade_time = 1000 * dds::time_scale;
+        action.u.warp.timer = 0;
+        action.u.warp.destination = dest;
+        action.u.warp.phase = NPCAction::U::Warp::Phase::fade_in;
+    } else {
+        action.type = NPCAction::GO_TO_DESTINATION;
+        action.u.go_to_dest.origin = npc.map_position;
+        action.u.go_to_dest.destination = dest;
+        action.u.go_to_dest.path_id = NO_MAP_PATH;
+        action.u.go_to_dest.running = true;
+    }
+
 
     npc_db.push_schedule(id, action);
 }
@@ -81,6 +92,28 @@ void NPCDB::on_scene_exit() {
     m_loaded_npcs.clear();
 }
 
+void NPCDB::pop_schedule(
+    NPCID id,
+    ScheduleStatus status
+) {
+    m_schedules[id].pop();
+
+    NPC & npc = m_npcs[id];
+    switch (status) {
+        case ScheduleStatus::no_path_found:
+        case ScheduleStatus::stuck_on_path: {
+            if (!npc.stuck) {
+                npc.stuck_since = m_game_state.current_time();
+            }
+            npc.stuck = true;
+            break;
+        }
+        default: {
+            npc.stuck = false;
+        }
+    }
+}
+
 NPCID NPCDB::push_npc() {
     NPCID id = m_npcs.size();
     m_npcs.push_back({});
@@ -108,13 +141,14 @@ void NPCDB::load_npc(prt3::Scene & scene, NPCID id) {
         capsule
     );
 
+    prt3::AnimationID anim_id =
+        scene.get_component<prt3::Armature>(node_id).animation_id();
+
     prt3::ScriptSet & script_set = scene.add_component<prt3::ScriptSet>(node_id);
     script_set.add_script<NPCController>(scene, id);
 
     m_loaded_npcs[id] = node_id;
 
-    prt3::AnimationID anim_id =
-        scene.get_component<prt3::Armature>(node_id).animation_id();
     scene.animation_system().update_transforms(scene, anim_id);
 }
 
@@ -130,7 +164,10 @@ void NPCDB::load_npcs(prt3::Scene & scene) {
     }
 }
 
-void NPCDB::update_go_to_dest(NPCID id, NPCAction::U::GoToDest & data) {
+void NPCDB::update_go_to_dest(
+    NPCID id,
+    NPCAction::U::GoToDest & data
+) {
     NPC & npc = m_npcs[id];
     Map & map = m_game_state.map();
 
@@ -140,7 +177,7 @@ void NPCDB::update_go_to_dest(NPCID id, NPCAction::U::GoToDest & data) {
     }
 
     if (data.path_id == NO_MAP_PATH) {
-        pop_schedule(id);
+        pop_schedule(id, ScheduleStatus::no_path_found);
         return;
     }
 
@@ -161,6 +198,38 @@ void NPCDB::update_go_to_dest(NPCID id, NPCAction::U::GoToDest & data) {
     }
 }
 
+void NPCDB::update_warp(
+    NPCID id,
+    NPCAction::U::Warp & data
+) {
+    NPC & npc = m_npcs[id];
+
+    bool complete = false;
+
+    switch (data.phase) {
+        case NPCAction::U::Warp::Phase::fade_in: {
+            if (data.timer >= data.fade_time) {
+                data.phase = NPCAction::U::Warp::Phase::fade_out;
+                data.timer = 0;
+                npc.map_position = data.destination;
+            }
+            break;
+        }
+        case NPCAction::U::Warp::Phase::fade_out: {
+            if (data.timer >= data.fade_time) {
+                complete = true;
+            }
+            break;
+        }
+    }
+
+    data.timer += dds::ms_per_frame;
+
+    if (complete) {
+        pop_schedule(id);
+    }
+}
+
 void NPCDB::update_npc(NPCID id, prt3::Scene & scene) {
     if (schedule_empty(id)) {
         m_npcs[id].on_empty_schedule(id, *this, scene);
@@ -171,6 +240,10 @@ void NPCDB::update_npc(NPCID id, prt3::Scene & scene) {
     switch (action.type) {
         case NPCAction::GO_TO_DESTINATION: {
             update_go_to_dest(id, action.u.go_to_dest);
+            break;
+        }
+        case NPCAction::WARP: {
+            update_warp(id, action.u.warp);
             break;
         }
         case NPCAction::WAIT: {

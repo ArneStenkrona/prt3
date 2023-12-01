@@ -139,16 +139,16 @@ void SceneManager::set_tint(
     for (auto & comp : scene.get_all_components<MaterialComponent>()) {
         if (exclude.find(comp.node_id()) != exclude.end()) continue;
         comp.material_override().tint_active = active;
-        comp.material_override().tint = tint;
+        comp.material_override().tint = glm::vec4{tint, 1.0f};
     }
     for (auto & comp : scene.get_all_components<ModelComponent>()) {
         if (exclude.find(comp.node_id()) != exclude.end()) continue;
         comp.material_override().tint_active = active;
-        comp.material_override().tint = tint;
+        comp.material_override().tint = glm::vec4{tint, 1.0f};
     }
     for (auto & comp : scene.get_all_components<AnimatedModel>()) {
         if (exclude.find(comp.node_id()) != exclude.end()) continue;
         comp.material_override().tint_active = active;
-        comp.material_override().tint = tint;
+        comp.material_override().tint = glm::vec4{tint, 1.0f};
     }
 }

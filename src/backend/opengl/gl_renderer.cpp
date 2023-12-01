@@ -249,6 +249,14 @@ void GLRenderer::prepare_imgui_rendering() {
     ImGui_ImplGlfw_NewFrame();
 }
 
+static bool is_transparent(
+    MeshRenderData const & mesh_data,
+    GLMaterial const & mat
+) {
+    MaterialOverride const & mo = mesh_data.material_override;
+    return mat.material().transparent || (mo.tint_active && mo.tint.a < 1.0f);
+}
+
 void GLRenderer::render(RenderData & render_data, bool editor) {
     GLPostProcessingChain & chain = editor ?
         m_editor_postprocessing_chain :
@@ -424,7 +432,7 @@ void GLRenderer::render_framebuffer(
 
         for (MeshRenderData const & mesh_data : render_data.scene.mesh_data) {
             GLMaterial const & mat = materials.at(mesh_data.material_id);
-            if (mat.material().transparent != transparent) {
+            if (is_transparent(mesh_data, mat) != transparent) {
                 continue;
             }
             GLShader const * shader =
@@ -437,7 +445,7 @@ void GLRenderer::render_framebuffer(
 
         for (AnimatedMeshRenderData const & data : render_data.scene.animated_mesh_data) {
             GLMaterial const & mat = materials.at(data.mesh_data.material_id);
-            if (mat.material().transparent != transparent) {
+            if (is_transparent(data.mesh_data, mat) != transparent) {
                 continue;
             }
             GLShader const * shader =
@@ -880,7 +888,7 @@ void GLRenderer::bind_material_data(
 
     glm::vec4 albedo = material.material().albedo;
     if (mat_override.tint_active) {
-        albedo = albedo * glm::vec4{mat_override.tint, 1.0f};
+        albedo = albedo * mat_override.tint;
     }
 
     static const GLVarString albedo_str = "u_Albedo";

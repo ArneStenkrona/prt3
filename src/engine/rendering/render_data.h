@@ -33,7 +33,7 @@ struct NodeData {
 
 struct MaterialOverride {
     bool tint_active;
-    glm::vec3 tint;
+    glm::vec4 tint;
 };
 
 struct MeshRenderData {
