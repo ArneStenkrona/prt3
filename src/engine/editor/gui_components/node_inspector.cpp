@@ -18,6 +18,7 @@
 #include "src/engine/editor/gui_components/component/mesh_gui.h"
 #include "src/engine/editor/gui_components/component/model_gui.h"
 #include "src/engine/editor/gui_components/component/navigation_mesh_gui.h"
+#include "src/engine/editor/gui_components/component/particle_system_gui.h"
 #include "src/engine/editor/gui_components/component/point_light_gui.h"
 #include "src/engine/editor/gui_components/component/script_set_gui.h"
 #include "src/engine/editor/gui_components/component/sound_source_gui.h"

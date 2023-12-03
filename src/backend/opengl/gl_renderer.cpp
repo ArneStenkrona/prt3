@@ -120,6 +120,13 @@ GLRenderer::GLRenderer(
          )
     );
 
+    m_particle_shader = new GLShader(
+         glshaderutility::create_shader(
+            "assets/shaders/opengl/particle.vs",
+            "assets/shaders/opengl/particle.fs"
+         )
+    );
+
     /* init decal objects */
     std::array<glm::vec3, 36> decal_vertices;
     insert_box(glm::vec3{-0.5f}, glm::vec3{0.5f}, decal_vertices.data());
@@ -161,6 +168,9 @@ GLRenderer::GLRenderer(
         reinterpret_cast<void*>(offsetof(CanvasGeometry, color))
     ));
 
+    /* init particle buffers */
+    create_particle_buffers();
+
     GL_CHECK(glBindVertexArray(0));
 }
 
@@ -176,11 +186,14 @@ GLRenderer::~GLRenderer() {
     GL_CHECK(glDeleteBuffers(1, &m_canvas_vbo));
     GL_CHECK(glDeleteBuffers(1, &m_canvas_vao));
 
+    free_particle_buffers();
+
     GL_CHECK(glDeleteProgram(m_decal_shader->shader()));
     GL_CHECK(glDeleteProgram(m_selection_shader->shader()));
     GL_CHECK(glDeleteProgram(m_animated_selection_shader->shader()));
     GL_CHECK(glDeleteProgram(m_transparency_blend_shader->shader()));
     GL_CHECK(glDeleteProgram(m_canvas_shader->shader()));
+    GL_CHECK(glDeleteProgram(m_particle_shader->shader()));
 }
 
 void GLRenderer::set_postprocessing_chains(
@@ -262,16 +275,12 @@ void GLRenderer::render(RenderData & render_data, bool editor) {
         m_editor_postprocessing_chain :
         m_scene_postprocessing_chain;
 
-    render_framebuffer(render_data, editor, PassType::opaque);
-    render_framebuffer(render_data, editor, PassType::transparent);
-    render_framebuffer(render_data, editor, PassType::decal);
+    render_opaque(render_data, editor);
+    render_transparent(render_data, editor);
+    render_decals(render_data);
 
     if (!chain.empty()) {
-        render_framebuffer(
-            render_data,
-            editor,
-            PassType::selection
-        );
+        render_selection(render_data);
     }
 
     chain.render(render_data.camera_data, m_frame);
@@ -287,39 +296,132 @@ void GLRenderer::render(RenderData & render_data, bool editor) {
     ++m_frame;
 }
 
-void GLRenderer::render_framebuffer(
+void GLRenderer::render_meshes(
     RenderData const & render_data,
-    bool editor,
-    PassType type
+    bool transparent
 ) {
-    GLPostProcessingChain const & chain = editor ?
-        m_editor_postprocessing_chain :
-        m_scene_postprocessing_chain;
+    auto const & materials = m_material_manager.materials();
 
-    GLuint opaque_framebuffer = chain.empty() ?
-        0 : m_source_buffers.framebuffer();
+    static std::unordered_map<GLShader const *, std::vector<MeshRenderData> >
+        shader_queues;
 
-    GLuint framebuffer;
-    bool transparent = false;
-    bool decal = false;
-    switch (type) {
-        case PassType::decal:
-            framebuffer = m_source_buffers.decal_framebuffer();
-            decal = true;
-            break;
-        case PassType::opaque:
-            framebuffer = opaque_framebuffer;
-            break;
-        case PassType::transparent:
-            transparent = true;
-            framebuffer = m_source_buffers.accum_framebuffer();
-            break;
-        case PassType::selection:
-            framebuffer = m_source_buffers.selection_framebuffer();
-            break;
+    static std::unordered_map<GLShader const *, std::vector<AnimatedMeshRenderData> >
+        animated_shader_queues;
+
+    for (auto & pair : shader_queues) {
+        pair.second.resize(0);
     }
 
-    // Bind the framebuffer
+    for (auto & pair : animated_shader_queues) {
+        pair.second.resize(0);
+    }
+
+    for (MeshRenderData const & mesh_data : render_data.scene.mesh_data) {
+        GLMaterial const & mat = materials.at(mesh_data.material_id);
+        if (is_transparent(mesh_data, mat) != transparent) {
+            continue;
+        }
+        GLShader const * shader =
+            &materials.at(mesh_data.material_id).get_shader(
+                false,
+                transparent
+            );
+        shader_queues[shader].push_back(mesh_data);
+    }
+
+    for (AnimatedMeshRenderData const & data : render_data.scene.animated_mesh_data) {
+        GLMaterial const & mat = materials.at(data.mesh_data.material_id);
+        if (is_transparent(data.mesh_data, mat) != transparent) {
+            continue;
+        }
+        GLShader const * shader =
+            &materials.at(data.mesh_data.material_id).get_shader(
+                true,
+                transparent
+            );
+        animated_shader_queues[shader].push_back(data);
+    }
+
+    auto const & meshes = m_model_manager.meshes();
+
+    for (auto const & pair : shader_queues) {
+        if (pair.second.empty()) { continue; }
+
+        GLShader const & shader = *pair.first;
+        GLuint shader_id = shader.shader();
+        GL_CHECK(glUseProgram(shader_id));
+
+        // Light data
+        LightRenderData const & light_data = render_data.scene.light_data;
+        bind_light_data(shader, light_data);
+
+        for (MeshRenderData const & mesh_data : pair.second) {
+            GLMaterial const & material = materials.at(mesh_data.material_id);
+
+            bind_material_data(
+                shader,
+                material,
+                mesh_data.material_override
+            );
+
+            bind_transform_and_camera_data(
+                shader,
+                mesh_data.transform,
+                render_data.camera_data
+            );
+
+            bind_node_data(
+                shader,
+                mesh_data.node_data
+            );
+
+            meshes.at(mesh_data.mesh_id).draw_elements_triangles();
+        }
+    }
+
+    for (auto const & pair : animated_shader_queues) {
+        if (pair.second.empty()) { continue; }
+
+        GLShader const & shader = *pair.first;
+        GLuint shader_id = shader.shader();
+        GL_CHECK(glUseProgram(shader_id));
+
+        // Light data
+        LightRenderData const & light_data = render_data.scene.light_data;
+        bind_light_data(shader, light_data);
+
+        for (AnimatedMeshRenderData const & data : pair.second) {
+            MeshRenderData const & mesh_data = data.mesh_data;
+            GLMaterial const & material = materials.at(mesh_data.material_id);
+
+            bind_material_data(
+                shader,
+                material,
+                mesh_data.material_override
+            );
+
+            bind_transform_and_camera_data(
+                shader,
+                mesh_data.transform,
+                render_data.camera_data
+            );
+
+            bind_node_data(
+                shader,
+                mesh_data.node_data
+            );
+
+            bind_bone_data(
+                shader,
+                render_data.scene.bone_data[data.bone_data_index]
+            );
+
+            meshes.at(mesh_data.mesh_id).draw_elements_triangles();
+        }
+    }
+}
+
+void GLRenderer::bind_viewport_framebuffer(GLuint framebuffer) {
     int w;
     int h;
     glfwGetWindowSize(m_window, &w, &h);
@@ -329,6 +431,21 @@ void GLRenderer::render_framebuffer(
     GLint view_h = static_cast<GLint>(h / m_downscale_factor);
 
     GL_CHECK(glViewport(0, 0, view_w, view_h));
+}
+
+void GLRenderer::render_opaque(
+    RenderData const & render_data,
+    bool editor
+) {
+    GLPostProcessingChain const & chain = editor ?
+        m_editor_postprocessing_chain :
+        m_scene_postprocessing_chain;
+
+    GLuint framebuffer = chain.empty() ?
+        0 : m_source_buffers.framebuffer();
+
+    // Bind the framebuffer
+    bind_viewport_framebuffer(framebuffer);
 
     GLenum attachments[3] = {
         GL_COLOR_ATTACHMENT0,
@@ -336,288 +453,424 @@ void GLRenderer::render_framebuffer(
         GL_COLOR_ATTACHMENT2,
     };
 
-    if (decal) {
-        GL_CHECK(glDepthMask(GL_FALSE));
-        GL_CHECK(glDisable(GL_DEPTH_TEST));
-        GL_CHECK(glEnable(GL_CULL_FACE));
-        GL_CHECK(glCullFace(GL_FRONT));
-        GL_CHECK(glDisable(GL_BLEND));
-        GL_CHECK(glEnable(GL_BLEND));
-        GL_CHECK(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-        GL_CHECK(glBlendEquation(GL_FUNC_ADD));
+    /* capabilities */
+    GL_CHECK(glDepthMask(GL_TRUE));
+    GL_CHECK(glEnable(GL_DEPTH_TEST));
+    GL_CHECK(glEnable(GL_CULL_FACE));
+    GL_CHECK(glCullFace(GL_BACK));
 
-        GL_CHECK(glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+    GL_CHECK(glDisable(GL_BLEND));
 
-        GL_CHECK(glDrawBuffers(1, attachments));
-    } else if (transparent) {
-        GL_CHECK(glDepthMask(GL_FALSE));
-        GL_CHECK(glEnable(GL_DEPTH_TEST));
-        GL_CHECK(glEnable(GL_CULL_FACE));
-        GL_CHECK(glCullFace(GL_BACK));
+    GL_CHECK(glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
 
-        GL_CHECK(glEnable(GL_BLEND));
-        GL_CHECK(glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA));
-        GL_CHECK(glBlendEquation(GL_FUNC_ADD));
+    GL_CHECK(glDrawBuffers(3, attachments));
 
-        GL_CHECK(glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+    GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
+    GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-        GL_CHECK(glDrawBuffers(2, attachments));
+    /* draw */
+    render_meshes(render_data, false);
 
-        GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
-        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
-    } else {
-        GL_CHECK(glDepthMask(GL_TRUE));
-        GL_CHECK(glEnable(GL_DEPTH_TEST));
-        GL_CHECK(glEnable(GL_CULL_FACE));
-        GL_CHECK(glCullFace(GL_BACK));
+    GL_CHECK(glDrawBuffers(1, attachments));
 
-        GL_CHECK(glDisable(GL_BLEND));
+    GL_CHECK(glEnable(GL_POLYGON_OFFSET_FILL));
+    GL_CHECK(glPolygonOffset(1.0, 1.0));
 
-        GL_CHECK(glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+    GLShader const & shader = m_material_manager.wireframe_shader();
+    GL_CHECK(glUseProgram(shader.shader()));
 
-        GL_CHECK(glDrawBuffers(3, attachments));
+    EditorRenderData const & editor_data = render_data.editor_data;
+    for (WireframeRenderData const & data : editor_data.line_data) {
+        bind_transform_and_camera_data(
+            shader,
+            data.transform,
+            render_data.camera_data
+        );
 
-        GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
-        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+        static const GLVarString color_str = "u_Color";
+        GL_CHECK(glUniform4fv(shader.get_uniform_loc(color_str), 1, &data.color[0]));
+
+        auto const & meshes = m_model_manager.meshes();
+        meshes.at(data.mesh_id).draw_array_lines();
     }
 
+    GL_CHECK(glDisable(GL_POLYGON_OFFSET_FILL));
+}
+
+void GLRenderer::render_transparent(
+    RenderData const & render_data,
+    bool editor
+) {
+    /* get framebuffers */
+    GLPostProcessingChain const & chain = editor ?
+        m_editor_postprocessing_chain :
+        m_scene_postprocessing_chain;
+
+    GLuint opaque_framebuffer = chain.empty() ?
+        0 : m_source_buffers.framebuffer();
+
+    GLuint framebuffer = m_source_buffers.accum_framebuffer();
+
+    // blit the opaque depth buffer
+    GL_CHECK(glBindFramebuffer(GL_READ_FRAMEBUFFER, opaque_framebuffer));
+    GL_CHECK(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer));
+    GL_CHECK(glBlitFramebuffer(
+        0,
+        0,
+        m_source_buffers.width(),
+        m_source_buffers.height(),
+        0,
+        0,
+        m_source_buffers.width(),
+        m_source_buffers.height(),
+        GL_DEPTH_BUFFER_BIT,
+        GL_NEAREST
+    ));
+    GL_CHECK(glBindFramebuffer(GL_READ_FRAMEBUFFER, 0));
+    GL_CHECK(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
+
+    bind_viewport_framebuffer(framebuffer);
+
+    /* capabilities */
+    GL_CHECK(glDepthMask(GL_FALSE));
+    GL_CHECK(glEnable(GL_DEPTH_TEST));
+    GL_CHECK(glEnable(GL_CULL_FACE));
+    GL_CHECK(glCullFace(GL_BACK));
+
+    GL_CHECK(glEnable(GL_BLEND));
+    GL_CHECK(glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA));
+    GL_CHECK(glBlendEquation(GL_FUNC_ADD));
+
+    GL_CHECK(glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+
+    GLenum attachments[2] = {
+        GL_COLOR_ATTACHMENT0,
+        GL_COLOR_ATTACHMENT1
+    };
+
+    GL_CHECK(glDrawBuffers(2, attachments));
+
+    GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
+
+    GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
+
+    /* render meshes */
+    render_meshes(render_data, true);
+
+    /* render particles */
+    render_particles(render_data);
+
+    /* resolve transparency buffers onto regular framebuffer */
+    GLShader & shader = *m_transparency_blend_shader;
+    GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, opaque_framebuffer));
+
+    GL_CHECK(glDrawBuffers(1, attachments));
+    GL_CHECK(glUseProgram(shader.shader()));
+    GL_CHECK(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+
+    static const GLVarString accum_str = "uAccumulate";
+    GL_CHECK(glUniform1i(shader.get_uniform_loc(accum_str), 0));
+    GL_CHECK(glActiveTexture(GL_TEXTURE0));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_source_buffers.accum_texture()));
+
+    static const GLVarString accum_alpha_str = "uAccumulateAlpha";
+    GL_CHECK(glUniform1i(shader.get_uniform_loc(accum_alpha_str), 1));
+    GL_CHECK(glActiveTexture(GL_TEXTURE1));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_source_buffers.accum_alpha_texture()));
+
+    GL_CHECK(glBindVertexArray(chain.screen_quad_vao()));
+    GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
+    GL_CHECK(glBindVertexArray(0));
+}
+
+static constexpr size_t MAX_PARTICLES = 1000;
+
+void GLRenderer::create_particle_buffers() {
+    static const GLfloat vertex_data[] = {
+        -0.5f, -0.5f, 0.0f,
+        0.5f, -0.5f, 0.0f,
+        -0.5f, 0.5f, 0.0f,
+        0.5f, 0.5f, 0.0f,
+    };
+
+    GL_CHECK(glGenVertexArrays(1, &m_particle_vao));
+    GL_CHECK(glBindVertexArray(m_particle_vao));
+
+    GL_CHECK(glGenBuffers(1, &m_particle_vbo));
+    GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_particle_vbo));
+    GL_CHECK(glBufferData(
+        GL_ARRAY_BUFFER,
+        sizeof(vertex_data),
+        vertex_data,
+        GL_STATIC_DRAW
+    ));
+
+    GL_CHECK(glGenBuffers(1, &m_particle_attr_vbo));
+    GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_particle_attr_vbo));
+    GL_CHECK(glBufferData(
+        GL_ARRAY_BUFFER,
+        MAX_PARTICLES * sizeof(ParticleAttributes),
+        NULL,
+        GL_STREAM_DRAW
+    ));
+
+    GL_CHECK(glBindVertexArray(0));
+}
+
+void GLRenderer::render_particles(RenderData const & render_data) {
+    /* vertex data */
+    GL_CHECK(glBindVertexArray(m_particle_vao));
+
+    GL_CHECK(glEnableVertexAttribArray(0));
+    GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_particle_vbo));
+    GL_CHECK(glVertexAttribPointer(
+        0,
+        3,
+        GL_FLOAT,
+        GL_FALSE,
+        0,
+        reinterpret_cast<void*>(0)
+    ));
+
+    /* particle attributes */
+    ParticleData const & data = render_data.scene.particle_data;
+
+    GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_particle_attr_vbo));
+    GL_CHECK(glBufferData(
+        GL_ARRAY_BUFFER,
+        MAX_PARTICLES * sizeof(ParticleAttributes),
+        NULL,
+        GL_STREAM_DRAW
+    )); // buffer orphaning
+    GL_CHECK(glBufferSubData(
+        GL_ARRAY_BUFFER,
+        0,
+        data.attributes.size() * sizeof(ParticleAttributes),
+        data.attributes.data()
+    ));
+
+    GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_particle_attr_vbo));
+
+    GL_CHECK(glEnableVertexAttribArray(1));
+    GL_CHECK(glVertexAttribPointer(
+        1,
+        4,
+        GL_FLOAT,
+        GL_FALSE,
+        sizeof(ParticleAttributes),
+        reinterpret_cast<void*>(offsetof(ParticleAttributes, pos_size))
+    ));
+    GL_CHECK(glEnableVertexAttribArray(2));
+    GL_CHECK(glVertexAttribPointer(
+        2,
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        sizeof(ParticleAttributes),
+        reinterpret_cast<void*>(offsetof(ParticleAttributes, base_uv))
+    ));
+    GL_CHECK(glEnableVertexAttribArray(3));
+    GL_CHECK(glVertexAttribPointer(
+        3,
+        4,
+        GL_UNSIGNED_BYTE,
+        GL_TRUE,
+        sizeof(ParticleAttributes),
+        reinterpret_cast<void*>(offsetof(ParticleAttributes, color))
+    ));
+
+    /* vertex positions, per-vertex */
+    GL_CHECK(glVertexAttribDivisor(0, 0));
+    /* particle attributes, per-instance */
+    GL_CHECK(glVertexAttribDivisor(1, 1));
+    GL_CHECK(glVertexAttribDivisor(2, 1));
+    GL_CHECK(glVertexAttribDivisor(3, 1));
+
+    GLShader & shader = *m_particle_shader;
+    GL_CHECK(glUseProgram(shader.shader()));
+
+    LightRenderData const & light_data = render_data.scene.light_data;
+    bind_light_data(shader, light_data);
+
+    static const GLVarString view_pos_str = "u_ViewPosition";
+    GL_CHECK(glUniform3fv(shader.get_uniform_loc(view_pos_str), 1, &render_data.camera_data.view_position[0]));
+
+    static const GLVarString near_str = "u_NearPlane";
+    GL_CHECK(glUniform1f(shader.get_uniform_loc(near_str), render_data.camera_data.near_plane));
+    static const GLVarString far_str = "u_FarPlane";
+    GL_CHECK(glUniform1f(shader.get_uniform_loc(far_str), render_data.camera_data.far_plane));
+
+    glm::mat4 v_matrix = render_data.camera_data.view_matrix;
+    glm::mat3 u_inv_v_rot{1.0f};
+    /* Upper-left 3x3 submatrix needs to be identity for billboarding. */
+    for (unsigned i = 0; i < 3; ++i) {
+        for (unsigned j = 0; j < 3; ++j) {
+            u_inv_v_rot[j][i] = v_matrix[i][j];
+            // v_matrix[i][j] = i == j ?
+            //     glm::length(glm::vec3(v_matrix[i])) :
+            //     0.0f;
+        }
+    }
+
+    glm::mat4 vp_matrix = render_data.camera_data.projection_matrix * v_matrix;
+
+    static const GLVarString vpmatrix_str = "u_VPMatrix";
+    GL_CHECK(glUniformMatrix4fv(shader.get_uniform_loc(vpmatrix_str), 1, GL_FALSE, &vp_matrix[0][0]));
+
+    static const GLVarString ivrmatrix_str = "u_invVRotMatrix";
+    GL_CHECK(glUniformMatrix3fv(shader.get_uniform_loc(ivrmatrix_str), 1, GL_FALSE, &u_inv_v_rot[0][0]));
+
+    static const GLVarString depth_map_str = "u_DepthMap";
+    GL_CHECK(glUniform1i(shader.get_uniform_loc(depth_map_str), 0));
+    GL_CHECK(glActiveTexture(GL_TEXTURE0));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_source_buffers.depth_texture()));
+
+    for (ParticleData::TextureRange const & range : data.textures) {
+        static const GLVarString tex_str = "u_Texture";
+        GL_CHECK(glUniform1i(shader.get_uniform_loc(tex_str), 1));
+        GL_CHECK(glActiveTexture(GL_TEXTURE1));
+
+        GLuint tex_id = range.texture == NO_RESOURCE ?
+            m_texture_manager.texture_1x1_0xffffffff() :
+            m_texture_manager.get_texture(range.texture);
+
+        GL_CHECK(glBindTexture(GL_TEXTURE_2D, tex_id));
+
+        static const GLVarString inv_div = "u_InvDiv";
+        GL_CHECK(glUniform2fv(shader.get_uniform_loc(inv_div), 1, &range.inv_div[0]));
+
+        GL_CHECK(glDrawArraysInstanced(
+            GL_TRIANGLE_STRIP,
+            4 * range.start_index,
+            4,
+            range.count
+        ));
+    }
+
+    GL_CHECK(glBindVertexArray(0));
+}
+
+void GLRenderer::free_particle_buffers() {
+    GL_CHECK(glDeleteBuffers(1, &m_particle_vbo));
+    GL_CHECK(glDeleteBuffers(1, &m_particle_attr_vbo));
+    GL_CHECK(glDeleteBuffers(1, &m_particle_vao));
+}
+
+void GLRenderer::render_decals(RenderData const & render_data) {
+    /* bind framebuffer */
+    GLuint framebuffer = m_source_buffers.decal_framebuffer();
+    bind_viewport_framebuffer(framebuffer);
+
+    /* capabilities */
+    GL_CHECK(glDepthMask(GL_FALSE));
+    GL_CHECK(glDisable(GL_DEPTH_TEST));
+    GL_CHECK(glEnable(GL_CULL_FACE));
+    GL_CHECK(glCullFace(GL_FRONT));
+    GL_CHECK(glDisable(GL_BLEND));
+    GL_CHECK(glEnable(GL_BLEND));
+    GL_CHECK(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    GL_CHECK(glBlendEquation(GL_FUNC_ADD));
+    GL_CHECK(glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+    GLenum attachment = GL_COLOR_ATTACHMENT0;
+    GL_CHECK(glDrawBuffers(1, &attachment));
+
+    /* draw */
+    GL_CHECK(glUseProgram(m_decal_shader->shader()));
+    bind_decal_data(*m_decal_shader, render_data.camera_data);
+
+    auto const & decal_data = render_data.scene.decal_data;
+    for (DecalRenderData const & data : decal_data) {
+        static const GLVarString decal_map_str = "u_DecalMap";
+        bind_texture(
+            *m_decal_shader,
+            decal_map_str,
+            2,
+            m_texture_manager.get_texture(data.texture)
+        );
+
+        bind_transform_and_camera_data(
+            *m_decal_shader,
+            data.transform,
+            render_data.camera_data
+        );
+
+        static const GLVarString inv_mmatrix_str = "u_InvMMatrix";
+        glm::mat4 inv_mmatrix = glm::inverse(data.transform);
+        GL_CHECK(glUniformMatrix4fv(
+            m_decal_shader->get_uniform_loc(inv_mmatrix_str),
+            1,
+            GL_FALSE,
+            &inv_mmatrix[0][0]
+        ));
+
+        m_model_manager.meshes().at(m_decal_mesh).draw_array_triangles();
+    }
+}
+
+void GLRenderer::render_selection(RenderData const & render_data) {
+    /* bind framebuffer */
+    GLuint framebuffer = m_source_buffers.selection_framebuffer();
+    bind_viewport_framebuffer(framebuffer);
+
+    /* capabilities */
+    GL_CHECK(glDepthMask(GL_TRUE));
+    GL_CHECK(glEnable(GL_DEPTH_TEST));
+    GL_CHECK(glEnable(GL_CULL_FACE));
+    GL_CHECK(glCullFace(GL_BACK));
+
+    GL_CHECK(glDisable(GL_BLEND));
+
+    GL_CHECK(glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+
+    GLenum attachments[3] = {
+        GL_COLOR_ATTACHMENT0,
+        GL_COLOR_ATTACHMENT1,
+        GL_COLOR_ATTACHMENT2,
+    };
+    GL_CHECK(glDrawBuffers(3, attachments));
+
+    GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
+    GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+    /* draw */
+    GL_CHECK(glUseProgram(m_selection_shader->shader()));
+
     auto const & meshes = m_model_manager.meshes();
-    if (type == PassType::decal) {
-        GL_CHECK(glUseProgram(m_decal_shader->shader()));
-        bind_decal_data(*m_decal_shader, render_data.camera_data);
+    auto const & selected_meshes = render_data.scene.selected_mesh_data;
+    for (MeshRenderData const & selected_mesh_data : selected_meshes) {
+        bind_transform_and_camera_data(
+            *m_selection_shader,
+            selected_mesh_data.transform,
+            render_data.camera_data
+        );
+        bind_node_data(
+            *m_selection_shader,
+            selected_mesh_data.node_data
+        );
 
-        auto const & decal_data = render_data.scene.decal_data;
-        for (DecalRenderData const & data : decal_data) {
-            static const GLVarString decal_map_str = "u_DecalMap";
-            bind_texture(
-                *m_decal_shader,
-                decal_map_str,
-                2,
-                m_texture_manager.get_texture(data.texture)
-            );
+        meshes.at(selected_mesh_data.mesh_id).draw_elements_triangles();
+    }
 
-            bind_transform_and_camera_data(
-                *m_decal_shader,
-                data.transform,
-                render_data.camera_data
-            );
+    GL_CHECK(glUseProgram(m_animated_selection_shader->shader()));
+    for (AnimatedMeshRenderData const & data :
+        render_data.scene.selected_animated_mesh_data) {
+        MeshRenderData const & mesh_data = data.mesh_data;
 
-            static const GLVarString inv_mmatrix_str = "u_InvMMatrix";
-            glm::mat4 inv_mmatrix = glm::inverse(data.transform);
-            GL_CHECK(glUniformMatrix4fv(
-                m_decal_shader->get_uniform_loc(inv_mmatrix_str),
-                1,
-                GL_FALSE,
-                &inv_mmatrix[0][0]
-            ));
+        bind_transform_and_camera_data(
+            *m_animated_selection_shader,
+            mesh_data.transform,
+            render_data.camera_data
+        );
+        bind_node_data(
+            *m_animated_selection_shader,
+            mesh_data.node_data
+        );
+        bind_bone_data(
+            *m_animated_selection_shader,
+            render_data.scene.bone_data[data.bone_data_index]
+        );
 
-            m_model_manager.meshes().at(m_decal_mesh).draw_array_triangles();
-        }
-    } else if (type == PassType::opaque || type == PassType::transparent) {
-        auto const & materials = m_material_manager.materials();
-
-        static std::unordered_map<GLShader const *, std::vector<MeshRenderData> >
-            shader_queues;
-
-        static std::unordered_map<GLShader const *, std::vector<AnimatedMeshRenderData> >
-            animated_shader_queues;
-
-        for (auto & pair : shader_queues) {
-            pair.second.resize(0);
-        }
-
-        for (auto & pair : animated_shader_queues) {
-            pair.second.resize(0);
-        }
-
-        for (MeshRenderData const & mesh_data : render_data.scene.mesh_data) {
-            GLMaterial const & mat = materials.at(mesh_data.material_id);
-            if (is_transparent(mesh_data, mat) != transparent) {
-                continue;
-            }
-            GLShader const * shader =
-                &materials.at(mesh_data.material_id).get_shader(
-                    false,
-                    transparent
-                );
-            shader_queues[shader].push_back(mesh_data);
-        }
-
-        for (AnimatedMeshRenderData const & data : render_data.scene.animated_mesh_data) {
-            GLMaterial const & mat = materials.at(data.mesh_data.material_id);
-            if (is_transparent(data.mesh_data, mat) != transparent) {
-                continue;
-            }
-            GLShader const * shader =
-                &materials.at(data.mesh_data.material_id).get_shader(
-                    true,
-                    transparent
-                );
-            animated_shader_queues[shader].push_back(data);
-        }
-
-        for (auto const & pair : shader_queues) {
-            if (pair.second.empty()) { continue; }
-
-            GLShader const & shader = *pair.first;
-            GLuint shader_id = shader.shader();
-            GL_CHECK(glUseProgram(shader_id));
-
-            // Light data
-            LightRenderData const & light_data = render_data.scene.light_data;
-            bind_light_data(shader, light_data);
-
-            for (MeshRenderData const & mesh_data : pair.second) {
-                GLMaterial const & material = materials.at(mesh_data.material_id);
-
-                bind_material_data(
-                    shader,
-                    material,
-                    mesh_data.material_override
-                );
-
-                bind_transform_and_camera_data(
-                    shader,
-                    mesh_data.transform,
-                    render_data.camera_data
-                );
-
-                bind_node_data(
-                    shader,
-                    mesh_data.node_data
-                );
-
-                meshes.at(mesh_data.mesh_id).draw_elements_triangles();
-            }
-        }
-
-        for (auto const & pair : animated_shader_queues) {
-            if (pair.second.empty()) { continue; }
-
-            GLShader const & shader = *pair.first;
-            GLuint shader_id = shader.shader();
-            GL_CHECK(glUseProgram(shader_id));
-
-            // Light data
-            LightRenderData const & light_data = render_data.scene.light_data;
-            bind_light_data(shader, light_data);
-
-            for (AnimatedMeshRenderData const & data : pair.second) {
-                MeshRenderData const & mesh_data = data.mesh_data;
-                GLMaterial const & material = materials.at(mesh_data.material_id);
-
-                bind_material_data(
-                    shader,
-                    material,
-                    mesh_data.material_override
-                );
-
-                bind_transform_and_camera_data(
-                    shader,
-                    mesh_data.transform,
-                    render_data.camera_data
-                );
-
-                bind_node_data(
-                    shader,
-                    mesh_data.node_data
-                );
-
-                bind_bone_data(
-                    shader,
-                    render_data.scene.bone_data[data.bone_data_index]
-                );
-
-                meshes.at(mesh_data.mesh_id).draw_elements_triangles();
-            }
-        }
-
-        /* Wireframes */
-        if (!transparent) {
-            GL_CHECK(glDrawBuffers(1, attachments));
-
-            GL_CHECK(glEnable(GL_POLYGON_OFFSET_FILL));
-            GL_CHECK(glPolygonOffset(1.0, 1.0));
-
-            GLShader const & shader = m_material_manager.wireframe_shader();
-            GL_CHECK(glUseProgram(shader.shader()));
-
-            EditorRenderData const & editor_data = render_data.editor_data;
-            for (WireframeRenderData const & data : editor_data.line_data) {
-                bind_transform_and_camera_data(
-                    shader,
-                    data.transform,
-                    render_data.camera_data
-                );
-
-                static const GLVarString color_str = "u_Color";
-                GL_CHECK(glUniform4fv(shader.get_uniform_loc(color_str), 1, &data.color[0]));
-
-                meshes.at(data.mesh_id).draw_array_lines();
-            }
-
-            GL_CHECK(glDisable(GL_POLYGON_OFFSET_FILL));
-        }
-
-        if (transparent) {
-            GLShader & shader = *m_transparency_blend_shader;
-            GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, opaque_framebuffer));
-            GL_CHECK(glDrawBuffers(1, attachments));
-            GL_CHECK(glUseProgram(shader.shader()));
-            GL_CHECK(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
-
-            static const GLVarString accum_str = "uAccumulate";
-            GL_CHECK(glUniform1i(shader.get_uniform_loc(accum_str), 0));
-            GL_CHECK(glActiveTexture(GL_TEXTURE0));
-            GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_source_buffers.accum_texture()));
-
-            static const GLVarString accum_alpha_str = "uAccumulateAlpha";
-            GL_CHECK(glUniform1i(shader.get_uniform_loc(accum_alpha_str), 1));
-            GL_CHECK(glActiveTexture(GL_TEXTURE1));
-            GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_source_buffers.accum_alpha_texture()));
-
-            GL_CHECK(glBindVertexArray(chain.screen_quad_vao()));
-            GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
-            GL_CHECK(glBindVertexArray(0));
-        }
-    } else {
-        GL_CHECK(glUseProgram(m_selection_shader->shader()));
-        auto const & selected_meshes = render_data.scene.selected_mesh_data;
-        for (MeshRenderData const & selected_mesh_data : selected_meshes) {
-            bind_transform_and_camera_data(
-                *m_selection_shader,
-                selected_mesh_data.transform,
-                render_data.camera_data
-            );
-            bind_node_data(
-                *m_selection_shader,
-                selected_mesh_data.node_data
-            );
-
-            meshes.at(selected_mesh_data.mesh_id).draw_elements_triangles();
-        }
-
-        GL_CHECK(glUseProgram(m_animated_selection_shader->shader()));
-        for (AnimatedMeshRenderData const & data :
-            render_data.scene.selected_animated_mesh_data) {
-            MeshRenderData const & mesh_data = data.mesh_data;
-
-            bind_transform_and_camera_data(
-                *m_animated_selection_shader,
-                mesh_data.transform,
-                render_data.camera_data
-            );
-            bind_node_data(
-                *m_animated_selection_shader,
-                mesh_data.node_data
-            );
-            bind_bone_data(
-                *m_animated_selection_shader,
-                render_data.scene.bone_data[data.bone_data_index]
-            );
-
-            meshes.at(mesh_data.mesh_id).draw_elements_triangles();
-        }
+        meshes.at(mesh_data.mesh_id).draw_elements_triangles();
     }
 }
 
@@ -633,8 +886,8 @@ void GLRenderer::create_canvas_geometry(
 
         glm::vec4 v0{ pos.x,         pos.y,         rect.uv0.x, rect.uv0.y };
         glm::vec4 v1{ pos.x + dim.x, pos.y,         rect.uv1.x, rect.uv1.y };
-        glm::vec4 v2{ pos.x + dim.x, pos.y + dim.y, rect.uv2.x, rect.uv2.y };
         glm::vec4 v3{ pos.x,         pos.y + dim.y, rect.uv3.x, rect.uv3.y };
+        glm::vec4 v2{ pos.x + dim.x, pos.y + dim.y, rect.uv2.x, rect.uv2.y };
 
         geometry.emplace_back(CanvasGeometry{ v0, rect.color });
         geometry.emplace_back(CanvasGeometry{ v1, rect.color });
@@ -916,4 +1169,26 @@ void GLRenderer::bind_texture(
     glUniform1i(s.get_uniform_loc(uniform_str), location);
     GL_CHECK(glActiveTexture(GL_TEXTURE0 + location));
     GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
+}
+
+void GLRenderer::bind_transparency_buffers(
+    GLShader const & shader,
+    GLuint opaque_framebuffer
+) {
+    GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, opaque_framebuffer));
+
+    GLenum attachment = GL_COLOR_ATTACHMENT0;
+    GL_CHECK(glDrawBuffers(1, &attachment));
+    GL_CHECK(glUseProgram(shader.shader()));
+    GL_CHECK(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+
+    static const GLVarString accum_str = "uAccumulate";
+    GL_CHECK(glUniform1i(shader.get_uniform_loc(accum_str), 0));
+    GL_CHECK(glActiveTexture(GL_TEXTURE0));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_source_buffers.accum_texture()));
+
+    static const GLVarString accum_alpha_str = "uAccumulateAlpha";
+    GL_CHECK(glUniform1i(shader.get_uniform_loc(accum_alpha_str), 1));
+    GL_CHECK(glActiveTexture(GL_TEXTURE1));
+    GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_source_buffers.accum_alpha_texture()));
 }

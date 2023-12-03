@@ -53,6 +53,9 @@ void generate_fb_texture(
 void GLSourceBuffers::init(GLint width, GLint height) {
     clean_up();
 
+    m_width = width;
+    m_height = height;
+
     GL_CHECK(glGenFramebuffers(1, &m_framebuffer));
     GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer));
 
@@ -165,13 +168,15 @@ void GLSourceBuffers::init(GLint width, GLint height) {
         GL_COLOR_ATTACHMENT1
     );
 
-    GL_CHECK(glFramebufferTexture2D(
-        GL_FRAMEBUFFER,
-        GL_DEPTH_ATTACHMENT,
-        GL_TEXTURE_2D,
-        m_depth_texture,
-        0
-    ));
+    generate_fb_texture(
+        m_accum_depth_texture,
+        width,
+        height,
+        GL_DEPTH_COMPONENT24,
+        GL_DEPTH_COMPONENT,
+        GL_UNSIGNED_INT,
+        GL_DEPTH_ATTACHMENT
+    );
 
     m_transparency_uniform_names.emplace_back("u_AccumBuffer", m_accum_texture);
     m_transparency_uniform_names.emplace_back("u_AccumAlphaBuffer", m_accum_alpha_texture);
@@ -217,9 +222,11 @@ void GLSourceBuffers::clean_up() {
         GL_CHECK(glDeleteFramebuffers(1, &m_accum_framebuffer));
         GL_CHECK(glDeleteTextures(1, &m_accum_texture));
         GL_CHECK(glDeleteTextures(1, &m_accum_alpha_texture));
+        GL_CHECK(glDeleteTextures(1, &m_accum_depth_texture));
 
         m_accum_texture = 0;
         m_accum_alpha_texture = 0;
+        m_accum_depth_texture = 0;
 
         m_transparency_uniform_names.resize(0);
     }

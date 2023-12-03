@@ -13,6 +13,7 @@
 #include <iostream>
 #include <string>
 #include <cstring>
+#include <cstdlib>
 
 prt3::Engine engine;
 #ifdef __EMSCRIPTEN__
@@ -49,6 +50,9 @@ int main(int argc, char** argv) {
     if (!prt3::Args::project_path().empty()) {
         engine.set_project_from_path(prt3::Args::project_path());
     }
+
+    // init random
+    srand(0);
 
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(main_loop, 0, true);

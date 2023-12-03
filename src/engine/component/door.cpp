@@ -31,7 +31,11 @@ void Door::serialize(
     write_c_string(out, m_destination_scene_path.data());
 }
 
-void Door::update(Scene & scene, std::vector<Door> & components) {
+void Door::update(
+    Scene & scene,
+    float /*delta_time*/,
+    std::vector<Door> & components
+) {
     dds::GameState * game_state =
         scene.get_autoload_script<dds::GameState>();
     for (Door & door : components) {

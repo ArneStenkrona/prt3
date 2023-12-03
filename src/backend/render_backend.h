@@ -74,6 +74,8 @@ public:
         unsigned int & channels
     ) const = 0;
 
+    virtual void * get_internal_texture_id(ResourceID id) const = 0;
+
 private:
 };
 

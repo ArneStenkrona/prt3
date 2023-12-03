@@ -22,7 +22,7 @@ public:
     ResourceID upload_texture(TextureData const & data);
     void free_texture(ResourceID id);
 
-    GLuint get_texture(ResourceID id) { return m_textures.at(id); }
+    GLuint get_texture(ResourceID id) const { return m_textures.at(id); }
     void get_texture_metadata(
         ResourceID id,
         unsigned int & width,

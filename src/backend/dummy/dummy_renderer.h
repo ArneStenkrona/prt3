@@ -72,6 +72,10 @@ public:
         unsigned int & channels
     ) const final;
 
+    void * get_internal_texture_id(ResourceID id) const final {
+        return reinterpret_cast<void *>(static_cast<intptr_t>(id));
+    }
+
 private:
     struct TextureMetadata {
         unsigned int width;

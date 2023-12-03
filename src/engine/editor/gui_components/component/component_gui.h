@@ -1,6 +1,9 @@
 #ifndef PRT3_COMPONENT_GUI_H
 #define PRT3_COMPONENT_GUI_H
 
+#include "src/engine/editor/editor_context.h"
+#include "src/engine/scene/node.h"
+
 namespace prt3 {
 
 template<typename T>

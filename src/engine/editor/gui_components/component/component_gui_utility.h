@@ -1,12 +1,15 @@
 #ifndef PRT3_COMPONENT_GUI_UTILITY_H
 #define PRT3_COMPONENT_GUI_UTILITY_H
 
+#include "src/engine/editor/action/action.h"
 #include "src/engine/editor/gui_components/component/component_gui.h"
 #include "src/engine/editor/editor_context.h"
+#include "src/engine/editor/editor.h"
 #include "src/engine/scene/scene.h"
 #include "src/util/fixed_string.h"
 
 #include "imgui.h"
+#include "imgui_internal.h"
 
 #include <cstdint>
 
@@ -71,7 +74,21 @@ template<typename T>
 bool display_value(char const * label, T & val);
 
 template<>
-bool display_value<int32_t>(char const * label, int32_t & val) {
+inline bool display_value<bool>(char const * label, bool & val) {
+    return ImGui::Checkbox(label, &val);
+}
+
+template<>
+inline bool display_value<uint32_t>(char const * label, uint32_t & val) {
+    return ImGui::InputScalar(
+        label,
+        ImGuiDataType_U32,
+        &val
+    );
+}
+
+template<>
+inline bool display_value<int32_t>(char const * label, int32_t & val) {
     return ImGui::InputScalar(
         label,
         ImGuiDataType_S32,
@@ -80,7 +97,7 @@ bool display_value<int32_t>(char const * label, int32_t & val) {
 }
 
 template<>
-bool display_value<float>(char const * label, float & val) {
+inline bool display_value<float>(char const * label, float & val) {
     return ImGui::InputScalar(
         label,
         ImGuiDataType_Float,
@@ -89,13 +106,19 @@ bool display_value<float>(char const * label, float & val) {
 }
 
 template<>
-bool display_value<glm::vec3>(char const * label, glm::vec3 & val) {
+inline bool display_value<glm::vec3>(char const * label, glm::vec3 & val) {
     float* vecp = reinterpret_cast<float*>(&val);
     return ImGui::InputFloat3(
         label,
         vecp,
         "%.2f"
     );
+}
+
+template<>
+inline bool display_value<glm::vec4>(char const * label, glm::vec4 & val) {
+    float* vecp = reinterpret_cast<float*>(&val);
+    return ImGui::ColorEdit4(label, vecp);
 }
 
 template<typename ComponentType, typename FieldType>
@@ -169,7 +192,7 @@ void edit_fixed_string_path_field(
                 val
             );
         }
-        open = ImGui::IsPopupOpen(ImGui::GetID("set path"), 0);
+        open = ImGui::IsPopupOpen("set path", 0);
     }
 
     ImGui::PopID();
@@ -261,6 +284,117 @@ bool bit_field(
 
     window->Flags = oldFlags;
     return anyPressed;
+}
+
+template<typename ComponentType>
+class ActionSetTexture : public Action {
+public:
+    ActionSetTexture(
+        EditorContext & editor_context,
+        NodeID node_id,
+        size_t tex_id_offset,
+        std::string const & texture
+    ) : m_editor_context{&editor_context},
+        m_node_id{node_id},
+        m_tex_id_offset{tex_id_offset}
+    {
+        TextureManager & man = m_editor_context->get_texture_manager();
+        ResourceID orig_id = get_tex_id();
+        m_id_to_free = orig_id;
+
+        m_path = texture;
+        if (orig_id != NO_RESOURCE) {
+            m_original_path = man.get_texture_path(orig_id);
+        }
+    }
+
+protected:
+    virtual bool apply() {
+        Scene & scene = m_editor_context->scene();
+        TextureManager & man = m_editor_context->get_texture_manager();
+
+        if (m_id_to_free != NO_RESOURCE) {
+            man.free_texture_ref(m_id_to_free);
+        }
+
+        ResourceID res_id = scene.upload_texture(m_path);
+        get_tex_id() = res_id;
+
+        m_id_to_free = res_id;
+
+        return true;
+    }
+
+    virtual bool unapply() {
+        Scene & scene = m_editor_context->scene();
+        TextureManager & man = m_editor_context->get_texture_manager();
+
+        man.free_texture_ref(m_id_to_free);
+
+        if (!m_original_path.empty()) {
+            ResourceID res_id = scene.upload_texture(m_original_path);
+            get_tex_id() = res_id;
+            m_id_to_free = res_id;
+        } else {
+            m_id_to_free = NO_RESOURCE;
+            get_tex_id() = NO_RESOURCE;
+        }
+
+        return true;
+    }
+
+private:
+    EditorContext * m_editor_context;
+    NodeID m_node_id;
+    size_t m_tex_id_offset;
+    ResourceID m_id_to_free;
+    std::string m_path;
+    std::string m_original_path;
+
+    inline ResourceID & get_tex_id() {
+        Scene & scene = m_editor_context->scene();
+        ComponentType & comp = scene.get_component<ComponentType>(m_node_id);
+        return *reinterpret_cast<ResourceID*>(
+            reinterpret_cast<char*>(&comp) + m_tex_id_offset
+        );
+    }
+};
+
+char const * texture_dialogue(EditorContext & context, ResourceID tex_id);
+
+template<typename ComponentType>
+bool set_texture(
+    EditorContext & context,
+    NodeID id,
+    size_t tex_id_offset
+) {
+    Scene & scene = context.scene();
+    ComponentType & component = scene.get_component<ComponentType>(id);
+
+    ResourceID & tex_id = *reinterpret_cast<ResourceID*>(
+        reinterpret_cast<char*>(&component) + tex_id_offset
+    );
+
+    bool res = false;
+    char const * path = texture_dialogue(context, tex_id);
+    if (path != nullptr) {
+        context.editor()
+            .perform_action<ActionSetTexture<ComponentType> >(
+            id,
+            tex_id_offset,
+            path
+        );
+        res = true;
+    }
+
+    if (tex_id != NO_RESOURCE) {
+        void * internal_id = scene.get_internal_texture_id(tex_id);
+        unsigned w, h, channels;
+        scene.get_texture_metadata(tex_id, w, h, channels);
+        ImGui::Image(internal_id, ImVec2(w, h));
+    }
+
+    return res;
 }
 
 } // namespace prt3

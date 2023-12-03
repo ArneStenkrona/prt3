@@ -61,7 +61,11 @@ private:
 
     void remove(Scene & /*scene*/) {}
 
-    static void update(Scene & scene, std::vector<Door> & components);
+    static void update(
+        Scene & scene,
+        float delta_time,
+        std::vector<Door> & components
+    );
 
     friend class ComponentStorage<Door>;
     friend class ComponentManager;

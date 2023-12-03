@@ -118,7 +118,8 @@ private:
             >(m_component_storages);
     }
 
-    void update(Scene & scene) { inner_update(scene, m_component_storages); }
+    void update(Scene & scene, float delta_time)
+    { inner_update(scene, delta_time, m_component_storages); }
 
     void clear();
 
@@ -255,22 +256,24 @@ private:
     template<typename T>
     inline constexpr void update_if_exists(
         Scene & scene,
+        float delta_time,
         ComponentStorage<T> & storage
     ) {
         if constexpr (HasUpdate<T>::value)
-            T::update(scene, storage.get_all_components());
+            T::update(scene, delta_time, storage.get_all_components());
     }
 
     template<size_t I = 0, typename... Tp>
     void inner_update(
         Scene & scene,
+        float delta_time,
         std::tuple<ComponentStorage<Tp>...> & t
     ) {
         auto & storage = std::get<I>(t);
-        update_if_exists(scene, storage);
+        update_if_exists(scene, delta_time, storage);
 
         if constexpr(I+1 != sizeof...(Tp))
-            inner_update<I+1>(scene, t);
+            inner_update<I+1>(scene, delta_time, t);
     }
 
     friend class Scene;

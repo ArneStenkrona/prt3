@@ -14,7 +14,10 @@ GLenum glCheckError_(const char * file, int line);
 
 } // namespace prt3
 
-// #define PRT3GLDEBUG
+#if DEBUG == 0
+#else
+#define PRT3GLDEBUG
+#endif
 
 #ifdef PRT3GLDEBUG
     #define GL_CHECK(stmt) do { \

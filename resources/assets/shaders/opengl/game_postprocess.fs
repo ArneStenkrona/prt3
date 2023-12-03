@@ -39,11 +39,9 @@ void main() {
 
     bool selected = texture(u_SelectedBuffer, v_TexCoordinate).r != 0.0;
 
-
     if (!selected_visible && selected) {
         color.rgb *= 0.25;
     }
-
 
     // float selectedFloat = texture(u_SelectedBuffer, v_TexCoordinate).r;
     // bool selected = selectedFloat == 1.0;

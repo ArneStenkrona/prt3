@@ -49,7 +49,7 @@ void Scene::update(float delta_time) {
     }
 
     clear_node_mod_flags();
-    m_component_manager.update(*this);
+    m_component_manager.update(*this, delta_time);
     m_script_container.update(*this, delta_time);
 }
 
@@ -592,6 +592,12 @@ void Scene::collect_render_data(
     for (Canvas & canvas : canvases) {
         canvas.collect_render_data(*this, scene_data.canvas_data);
     }
+
+    /* particle systems */
+    ParticleSystem::collect_render_data(
+        m_component_manager.get_all_components<ParticleSystem>(),
+        scene_data.particle_data
+    );
 }
 
 void Scene::update_window_size(int w, int h) {
@@ -651,6 +657,9 @@ void Scene::get_texture_metadata(
     );
 }
 
+void * Scene::get_internal_texture_id(ResourceID id) const {
+    return m_context->renderer().get_internal_texture_id(id);
+}
 
 void Scene::serialize(std::ostream & out) const {
     static std::unordered_map<NodeID, NodeID> compacted_ids;

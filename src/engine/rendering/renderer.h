@@ -91,6 +91,10 @@ public:
         return m_render_backend->get_texture_metadata(id, width, height, channels);
     }
 
+    void * get_internal_texture_id(ResourceID id) const {
+        return m_render_backend->get_internal_texture_id(id);
+    }
+
     NodeID get_selected(int x, int y) {
         return m_render_backend->get_selected(x, y);
     }

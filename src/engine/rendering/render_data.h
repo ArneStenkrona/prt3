@@ -91,6 +91,25 @@ struct RenderRect2D {
     int32_t layer;
 };
 
+struct ParticleAttributes {
+    glm::vec4 pos_size; // (x, y, z, size)
+    glm::vec2 base_uv;
+    std::array<uint8_t, 4> color;
+};
+
+struct ParticleData {
+    std::vector<ParticleAttributes> attributes;
+
+    struct TextureRange {
+        uint32_t start_index;
+        uint32_t count;
+        glm::vec2 inv_div;
+        ResourceID texture;
+    };
+
+    std::vector<TextureRange> textures;
+};
+
 struct SceneRenderData {
     std::vector<MeshRenderData> mesh_data;
     std::vector<AnimatedMeshRenderData> animated_mesh_data;
@@ -99,6 +118,7 @@ struct SceneRenderData {
     std::vector<AnimatedMeshRenderData> selected_animated_mesh_data;
     std::vector<DecalRenderData> decal_data;
     std::vector<RenderRect2D> canvas_data;
+    ParticleData particle_data;
     LightRenderData light_data;
 };
 
@@ -121,6 +141,8 @@ struct RenderData {
         scene.selected_animated_mesh_data.clear();
         scene.decal_data.clear();
         scene.canvas_data.clear();
+        scene.particle_data.attributes.clear();
+        scene.particle_data.textures.clear();
         editor_data.line_data.clear();
     }
 };

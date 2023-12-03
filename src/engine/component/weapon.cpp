@@ -69,7 +69,11 @@ bool Weapon::is_hit_signal(SignalString const & signal) {
     );
 }
 
-void Weapon::update(Scene & scene, std::vector<Weapon> & components) {
+void Weapon::update(
+    Scene & scene,
+    float /*delta_time*/,
+    std::vector<Weapon> & components
+) {
     SignalString signal = HIT_SIGNAL_BASE;
     char * id_ptr = signal.data() + sizeof(HIT_SIGNAL_BASE) - 1;
 

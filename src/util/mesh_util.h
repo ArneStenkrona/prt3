@@ -7,8 +7,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include <vector>
-
 namespace prt3 {
 
 // geo needs space for 36 vec3's

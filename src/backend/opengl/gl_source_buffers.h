@@ -38,11 +38,15 @@ public:
     GLuint accum_framebuffer()   const { return m_accum_framebuffer;   }
     GLuint accum_texture()       const { return m_accum_texture;       }
     GLuint accum_alpha_texture() const { return m_accum_alpha_texture; }
+    GLuint accum_depth_texture() const { return m_accum_depth_texture; }
 
     GLenum color_attachment()     const { return GL_COLOR_ATTACHMENT0; }
     GLenum normal_attachment()    const { return GL_COLOR_ATTACHMENT1; }
     GLenum node_data_attachment() const { return GL_COLOR_ATTACHMENT2; }
     GLenum selected_attachment()  const { return GL_COLOR_ATTACHMENT0; }
+
+    GLint width() const { return m_width; }
+    GLint height() const { return m_height; }
 
     std::vector<UniformName> const & uniform_names() const
     { return m_uniform_names; }
@@ -64,6 +68,10 @@ private:
     GLuint m_accum_framebuffer = 0;
     GLuint m_accum_texture = 0;
     GLuint m_accum_alpha_texture = 0;
+    GLuint m_accum_depth_texture = 0;
+
+    GLint m_width;
+    GLint m_height;
 
     std::vector<UniformName> m_uniform_names;
 

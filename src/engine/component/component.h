@@ -13,6 +13,7 @@
 #include "src/engine/component/material.h"
 #include "src/engine/component/model.h"
 #include "src/engine/component/navigation_mesh.h"
+#include "src/engine/component/particle_system.h"
 #include "src/engine/component/point_light.h"
 #include "src/engine/component/script_set.h"
 #include "src/engine/component/sound_source.h"
@@ -148,7 +149,8 @@ using ComponentTypes = type_pack<
     SoundSourceComponent,
     Weapon,
     Decal,
-    Canvas
+    Canvas,
+    ParticleSystem
 >;
 
 using ComponentStoragesType = wrap_arg_pack_in_storage<std::tuple, ComponentTypes>::type;

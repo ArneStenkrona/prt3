@@ -111,6 +111,8 @@ public:
         unsigned int & channels
     ) const;
 
+    void * get_internal_texture_id(ResourceID id) const;
+
     NodeID get_root_id() const { return s_root_id; }
 
     bool remove_node(NodeID id);

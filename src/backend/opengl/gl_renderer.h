@@ -98,6 +98,12 @@ public:
         return m_texture_manager.get_texture_metadata(id, width, height, channels);
     }
 
+    void * get_internal_texture_id(ResourceID id) const final {
+        return reinterpret_cast<void *>(static_cast<intptr_t>(
+            m_texture_manager.get_texture(id)
+        ));
+    }
+
 private:
     GLFWwindow * m_window;
     float m_downscale_factor;
@@ -116,26 +122,26 @@ private:
     GLShader * m_animated_selection_shader;
     GLShader * m_transparency_blend_shader;
     GLShader * m_canvas_shader;
+    GLShader * m_particle_shader;
 
     ResourceID m_decal_mesh;
 
     GLuint m_canvas_vao;
     GLuint m_canvas_vbo;
 
+    GLuint m_particle_vao;
+    GLuint m_particle_vbo;
+    GLuint m_particle_attr_vbo;
+
     uint32_t m_frame = 0; // will overflow after a few years
 
-    enum PassType : unsigned {
-        opaque,
-        transparent,
-        decal,
-        selection
-    };
+    void render_meshes(RenderData const & render_data, bool transparent);
+    void bind_viewport_framebuffer(GLuint framebuffer);
 
-    void render_framebuffer(
-        RenderData const & render_data,
-        bool editor,
-        PassType type
-    );
+    void render_opaque(RenderData const & render_data, bool editor);
+    void render_transparent(RenderData const & render_data, bool editor);
+    void render_decals(RenderData const & render_data);
+    void render_selection(RenderData const & render_data);
 
     struct CanvasGeometry {
         glm::vec4 pos_uv;
@@ -145,6 +151,10 @@ private:
     void create_canvas_geometry(std::vector<RenderRect2D> const & data);
     void draw_canvas_elements(size_t start, size_t end, GLuint texture_id);
     void render_canvas(std::vector<RenderRect2D> & data);
+
+    void create_particle_buffers();
+    void render_particles(RenderData const & render_data);
+    void free_particle_buffers();
 
     void render_imgui();
 
@@ -185,6 +195,11 @@ private:
         GLVarString const & uniform_str,
         unsigned int location,
         GLuint texture
+    );
+
+    void bind_transparency_buffers(
+        GLShader const & shader,
+        GLuint opaque_framebuffer
     );
 };
 
