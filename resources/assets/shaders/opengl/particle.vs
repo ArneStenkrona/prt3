@@ -16,7 +16,7 @@ out vec4 v_Color;
 out vec2 v_screenUV;
 
 void main() {
-    v_UV = a_BaseUV + u_InvDiv * a_VertexPos.xy;
+    v_UV = a_BaseUV - u_InvDiv * a_VertexPos.xy;
     vec3 offset = (u_invVRotMatrix * a_PosSize.w * a_VertexPos.xyz);
     vec3 pos = a_PosSize.xyz + offset;
     v_Position = pos;

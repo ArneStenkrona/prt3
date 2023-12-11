@@ -702,13 +702,9 @@ void GLRenderer::render_particles(RenderData const & render_data) {
 
     glm::mat4 v_matrix = render_data.camera_data.view_matrix;
     glm::mat3 u_inv_v_rot{1.0f};
-    /* Upper-left 3x3 submatrix needs to be identity for billboarding. */
     for (unsigned i = 0; i < 3; ++i) {
         for (unsigned j = 0; j < 3; ++j) {
             u_inv_v_rot[j][i] = v_matrix[i][j];
-            // v_matrix[i][j] = i == j ?
-            //     glm::length(glm::vec3(v_matrix[i])) :
-            //     0.0f;
         }
     }
 

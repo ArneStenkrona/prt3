@@ -194,6 +194,15 @@ void inner_show_component<ParticleSystem>(
     );
 
     if (params.texture_id != NO_RESOURCE) {
+        edit_field<ParticleSystem, bool>(
+            context,
+            id,
+            "animated",
+            offsetof(ParticleSystem, m_parameters.animated)
+        );
+    }
+
+    if (params.texture_id != NO_RESOURCE && params.animated) {
         edit_field<ParticleSystem, float>(
             context,
             id,
@@ -204,7 +213,21 @@ void inner_show_component<ParticleSystem>(
         edit_field<ParticleSystem, uint32_t>(
             context,
             id,
-            "number of frames",
+            "columns",
+            offsetof(ParticleSystem, m_parameters.tex_div_w)
+        );
+
+        edit_field<ParticleSystem, uint32_t>(
+            context,
+            id,
+            "rows",
+            offsetof(ParticleSystem, m_parameters.tex_div_h)
+        );
+
+        edit_field<ParticleSystem, uint32_t>(
+            context,
+            id,
+            "frames",
             offsetof(ParticleSystem, m_parameters.n_frames)
         );
 

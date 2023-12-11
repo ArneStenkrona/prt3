@@ -317,10 +317,14 @@ protected:
             man.free_texture_ref(m_id_to_free);
         }
 
-        ResourceID res_id = scene.upload_texture(m_path);
-        get_tex_id() = res_id;
-
-        m_id_to_free = res_id;
+        if (!m_path.empty()) {
+            ResourceID res_id = scene.upload_texture(m_path);
+            get_tex_id() = res_id;
+            m_id_to_free = res_id;
+        } else {
+            m_id_to_free = NO_RESOURCE;
+            get_tex_id() = NO_RESOURCE;
+        }
 
         return true;
     }
@@ -329,7 +333,9 @@ protected:
         Scene & scene = m_editor_context->scene();
         TextureManager & man = m_editor_context->get_texture_manager();
 
-        man.free_texture_ref(m_id_to_free);
+        if (m_id_to_free != NO_RESOURCE) {
+            man.free_texture_ref(m_id_to_free);
+        }
 
         if (!m_original_path.empty()) {
             ResourceID res_id = scene.upload_texture(m_original_path);

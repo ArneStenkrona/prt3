@@ -20,6 +20,9 @@ char const * prt3::texture_dialogue(
             tex_path.size(),
             ImGuiInputTextFlags_ReadOnly
         );
+        if (ImGui::Button("clear")) {
+            return "";
+        }
     } else {
         ImGui::TextColored(ImVec4(1.0f,1.0f,0.0f,1.0f), "%s", "no texture");
     }
