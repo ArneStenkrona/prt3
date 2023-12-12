@@ -276,8 +276,8 @@ void GLRenderer::render(RenderData & render_data, bool editor) {
         m_scene_postprocessing_chain;
 
     render_opaque(render_data, editor);
-    render_transparent(render_data, editor);
     render_decals(render_data);
+    render_transparent(render_data, editor);
 
     if (!chain.empty()) {
         render_selection(render_data);
