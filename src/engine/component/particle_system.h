@@ -33,15 +33,15 @@ public:
     ResourceID const & texture_id() const { return m_parameters.texture_id; }
     ResourceID & texture_id() { return m_parameters.texture_id; }
 
-    void serialize(
-        std::ostream & out,
-        Scene const & scene
-    ) const;
-
     static void collect_render_data(
         std::vector<ParticleSystem> const & components,
         ParticleData & data
     );
+
+    void serialize(
+        std::ostream & out,
+        Scene const & scene
+    ) const;
 
     static char const * name() { return "Particle System"; }
     static constexpr UUID uuid = 6487834433703112638ull;

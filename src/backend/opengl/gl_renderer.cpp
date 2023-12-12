@@ -790,14 +790,19 @@ void GLRenderer::render_decals(RenderData const & render_data) {
             render_data.camera_data
         );
 
+        GLShader & shader = *m_decal_shader;
+
         static const GLVarString inv_mmatrix_str = "u_InvMMatrix";
         glm::mat4 inv_mmatrix = glm::inverse(data.transform);
         GL_CHECK(glUniformMatrix4fv(
-            m_decal_shader->get_uniform_loc(inv_mmatrix_str),
+            shader.get_uniform_loc(inv_mmatrix_str),
             1,
             GL_FALSE,
             &inv_mmatrix[0][0]
         ));
+
+        static const GLVarString color_str = "u_Color";
+        GL_CHECK(glUniform4fv(shader.get_uniform_loc(color_str), 1, &data.color[0]));
 
         m_model_manager.meshes().at(m_decal_mesh).draw_array_triangles();
     }

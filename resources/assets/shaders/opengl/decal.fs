@@ -12,6 +12,8 @@ uniform mat4 u_InvVP;
 uniform int u_BufferWidth;
 uniform int u_BufferHeight;
 
+uniform vec4 u_Color;
+
 layout(location = 0) out vec4 outColor;
 
 void main() {
@@ -32,6 +34,6 @@ void main() {
     if (dot(normal, mup) < 0.70710678118) discard;
 
     vec2 decalUV = mpos.xz + 0.5;
-    vec4 decalColor = texture(u_DecalMap, decalUV);
+    vec4 decalColor = u_Color * texture(u_DecalMap, decalUV);
     outColor = decalColor;
 }

@@ -1,6 +1,7 @@
 #ifndef PRT3_DECAL_H
 #define PRT3_DECAL_H
 
+#include "src/engine/rendering/render_data.h"
 #include "src/engine/scene/node.h"
 #include "src/engine/rendering/texture_manager.h"
 #include "src/util/uuid.h"
@@ -33,6 +34,15 @@ public:
     glm::vec3 const & dimensions() const { return m_dimensions; }
     glm::vec3 & dimensions() { return m_dimensions; }
 
+    glm::vec4 const & color() const { return m_color; }
+    glm::vec4 & color() { return m_color; }
+
+    static void collect_render_data(
+        std::vector<Decal> const & components,
+        std::vector<Transform> const & global_transforms,
+        std::vector<DecalRenderData> & data
+    );
+
     void serialize(
         std::ostream & out,
         Scene const & scene
@@ -45,8 +55,8 @@ private:
     NodeID m_node_id;
 
     ResourceID m_texture_id = NO_RESOURCE;
-
     glm::vec3 m_dimensions = glm::vec3{1.0f};
+    glm::vec4 m_color = glm::vec4{1.0f};
 
     void remove(Scene & /*scene*/) {}
 

@@ -574,24 +574,18 @@ void Scene::collect_render_data(
     scene_data.light_data.ambient_light = m_ambient_light;
 
     /* decals */
-    auto & decals = m_component_manager.get_all_components<Decal>();
-    for (Decal const & decal : decals) {
-        if (decal.texture_id() == NO_RESOURCE) continue;
-        Transform tform =
-            get_node(decal.node_id()).get_global_transform(*this);
-        tform.scale *= decal.dimensions();
-
-        scene_data.decal_data.push_back({});
-        scene_data.decal_data.back().texture = decal.texture_id();
-        scene_data.decal_data.back().transform = tform.to_matrix();
-    }
+    Decal::collect_render_data(
+        m_component_manager.get_all_components<Decal>(),
+        global_transforms,
+        scene_data.decal_data
+    );
 
     /* canvas */
-    auto & canvases =
-        m_component_manager.get_all_components<Canvas>();
-    for (Canvas & canvas : canvases) {
-        canvas.collect_render_data(*this, scene_data.canvas_data);
-    }
+    Canvas::collect_render_data(
+        *this,
+        m_component_manager.get_all_components<Canvas>(),
+        scene_data.canvas_data
+    );
 
     /* particle systems */
     ParticleSystem::collect_render_data(

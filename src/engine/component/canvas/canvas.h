@@ -113,10 +113,15 @@ public:
     static char const * name() { return "Canvas"; }
     static constexpr UUID uuid = 15829914204448507677ull;
 
-    void collect_render_data(
+    inline static void collect_render_data(
         Scene const & scene,
+        std::vector<Canvas> const & components,
         std::vector<RenderRect2D> & data
-    );
+    ) {
+        for (Canvas const & canvas : components) {
+            canvas.collect_render_data(scene, data);
+        }
+    }
 
     void begin_node(CanvasNode const & node) {
         CanvasStackNode n;
@@ -143,6 +148,11 @@ private:
         m_node_stack.clear();
         m_current_parent = -1;
     }
+
+    void collect_render_data(
+        Scene const & scene,
+        std::vector<RenderRect2D> & data
+    ) const;
 
     void remove(Scene & /*scene*/) {}
 

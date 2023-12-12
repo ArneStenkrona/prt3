@@ -29,6 +29,13 @@ void inner_show_component<Decal>(
         offsetof(Decal, m_dimensions)
     );
 
+    edit_field<Decal, glm::vec4>(
+        context,
+        id,
+        "color",
+        offsetof(Decal, m_color)
+    );
+
     ImGui::PopItemWidth();
 }
 

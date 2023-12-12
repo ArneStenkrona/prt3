@@ -50,8 +50,9 @@ struct AnimatedMeshRenderData {
 };
 
 struct DecalRenderData {
-    ResourceID texture;
     glm::mat4 transform;
+    glm::vec4 color;
+    ResourceID texture;
 };
 
 

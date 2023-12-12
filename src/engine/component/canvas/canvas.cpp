@@ -161,7 +161,10 @@ static void align_text_y(
     }
 }
 
-void Canvas::collect_render_data(Scene const & scene, std::vector<RenderRect2D> & data) {
+void Canvas::collect_render_data(
+    Scene const & scene,
+    std::vector<RenderRect2D> & data
+) const {
     struct StackInfo {
         glm::vec4 color;
         int32_t layer;
