@@ -37,8 +37,11 @@ void Decal::collect_render_data(
 ) {
     for (Decal const & decal : components) {
         if (decal.texture_id() == NO_RESOURCE) continue;
+        Transform tform = global_transforms[decal.node_id()];
+        tform.scale *= decal.dimensions();
+
         data.push_back({});
-        data.back().transform = global_transforms[decal.node_id()].to_matrix();
+        data.back().transform = tform.to_matrix();
         data.back().color = decal.m_color;
         data.back().texture = decal.texture_id();
     }
