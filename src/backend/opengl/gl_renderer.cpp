@@ -618,6 +618,8 @@ void GLRenderer::create_particle_buffers() {
 }
 
 void GLRenderer::render_particles(RenderData const & render_data) {
+    ParticleData const & data = render_data.scene.particle_data;
+
     /* vertex data */
     GL_CHECK(glBindVertexArray(m_particle_vao));
 
@@ -633,8 +635,6 @@ void GLRenderer::render_particles(RenderData const & render_data) {
     ));
 
     /* particle attributes */
-    ParticleData const & data = render_data.scene.particle_data;
-
     GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_particle_attr_vbo));
     GL_CHECK(glBufferData(
         GL_ARRAY_BUFFER,
@@ -652,32 +652,8 @@ void GLRenderer::render_particles(RenderData const & render_data) {
     GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_particle_attr_vbo));
 
     GL_CHECK(glEnableVertexAttribArray(1));
-    GL_CHECK(glVertexAttribPointer(
-        1,
-        4,
-        GL_FLOAT,
-        GL_FALSE,
-        sizeof(ParticleAttributes),
-        reinterpret_cast<void*>(offsetof(ParticleAttributes, pos_size))
-    ));
     GL_CHECK(glEnableVertexAttribArray(2));
-    GL_CHECK(glVertexAttribPointer(
-        2,
-        2,
-        GL_FLOAT,
-        GL_FALSE,
-        sizeof(ParticleAttributes),
-        reinterpret_cast<void*>(offsetof(ParticleAttributes, base_uv))
-    ));
     GL_CHECK(glEnableVertexAttribArray(3));
-    GL_CHECK(glVertexAttribPointer(
-        3,
-        4,
-        GL_UNSIGNED_BYTE,
-        GL_TRUE,
-        sizeof(ParticleAttributes),
-        reinterpret_cast<void*>(offsetof(ParticleAttributes, color))
-    ));
 
     /* vertex positions, per-vertex */
     GL_CHECK(glVertexAttribDivisor(0, 0));
@@ -735,9 +711,38 @@ void GLRenderer::render_particles(RenderData const & render_data) {
         static const GLVarString inv_div = "u_InvDiv";
         GL_CHECK(glUniform2fv(shader.get_uniform_loc(inv_div), 1, &range.inv_div[0]));
 
+        /* base offset */
+        size_t b = sizeof(ParticleAttributes) * range.start_index;
+        GL_CHECK(glVertexAttribPointer(
+            1,
+            4,
+            GL_FLOAT,
+            GL_FALSE,
+            sizeof(ParticleAttributes),
+            reinterpret_cast<void*>(b + offsetof(ParticleAttributes, pos_size))
+        ));
+        GL_CHECK(glEnableVertexAttribArray(2));
+        GL_CHECK(glVertexAttribPointer(
+            2,
+            2,
+            GL_FLOAT,
+            GL_FALSE,
+            sizeof(ParticleAttributes),
+            reinterpret_cast<void*>(b + offsetof(ParticleAttributes, base_uv))
+        ));
+        GL_CHECK(glEnableVertexAttribArray(3));
+        GL_CHECK(glVertexAttribPointer(
+            3,
+            4,
+            GL_UNSIGNED_BYTE,
+            GL_TRUE,
+            sizeof(ParticleAttributes),
+            reinterpret_cast<void*>(b + offsetof(ParticleAttributes, color))
+        ));
+
         GL_CHECK(glDrawArraysInstanced(
             GL_TRIANGLE_STRIP,
-            4 * range.start_index,
+            0,
             4,
             range.count
         ));

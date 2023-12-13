@@ -30,7 +30,7 @@ Prefab::Prefab(char const * path) {
     );
 }
 
-NodeID mapped_parent_id = -2;
+static constexpr NodeID mapped_parent_id = -2;
 
 void Prefab::serialize_node(
     Scene const & scene,
@@ -123,7 +123,11 @@ NodeID Prefab::instantiate(Scene & scene, NodeID parent) {
     return deserialize_node(scene, parent, in);
 }
 
-NodeID Prefab::deserialize_node(Scene & scene, NodeID parent, std::istream & in) {
+NodeID Prefab::deserialize_node(
+    Scene & scene,
+    NodeID parent,
+    std::istream & in
+) {
     thread_local std::unordered_map<NodeID, NodeID> id_map;
     id_map.clear();
     id_map[mapped_parent_id] = parent;
@@ -175,7 +179,9 @@ NodeID Prefab::deserialize_node(Scene & scene, NodeID parent, std::istream & in)
         }
     }
 
-    scene.m_script_container.init_unitialized(scene);
+    if (scene.game_is_active()) {
+        scene.m_script_container.init_unitialized(scene);
+    }
 
     return ret;
 }

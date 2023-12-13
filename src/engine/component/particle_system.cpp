@@ -301,9 +301,9 @@ void ParticleSystem::collect_render_data(
         range.inv_div.y = inv_div_h;
 
         data.textures.push_back(range);
-        data.attributes.resize(n_particles);
+        uint32_t i = data.attributes.size();
+        data.attributes.resize(i + n_particles);
 
-        uint32_t i = 0;
         for (Particle const & particle : ps.m_particles) {
             if (!particle.alive) continue;
             ParticleAttributes & attr = data.attributes[i];
