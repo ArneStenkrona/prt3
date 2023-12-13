@@ -123,7 +123,7 @@ void NPCController::on_update(prt3::Scene & scene, float delta_time) {
     m_walk_force = npc.walk_force * dds::time_scale;
     m_run_force = npc.run_force * dds::time_scale;
 
-    prt3::CharacterController::on_update(scene, delta_time);
+    CharacterController::on_update(scene, delta_time);
 
     prt3::Node & node = scene.get_node(node_id());
 

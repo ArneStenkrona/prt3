@@ -1,5 +1,5 @@
-#ifndef PRT3_CHARACTER_CONTROLLER_H
-#define PRT3_CHARACTER_CONTROLLER_H
+#ifndef DDS_CHARACTER_CONTROLLER_H
+#define DDS_CHARACTER_CONTROLLER_H
 
 #include "src/engine/component/script/script.h"
 #include "src/engine/scene/scene.h"
@@ -12,9 +12,9 @@
 
 #include <glm/gtx/string_cast.hpp>
 
-namespace prt3 {
+namespace dds {
 
-class CharacterController : public Script {
+class CharacterController : public prt3::Script {
 public:
     typedef uint32_t StateType;
     enum State : StateType {
@@ -35,8 +35,8 @@ public:
 
     struct StateData {
         float transition;
-        Animation::Clip clip_a;
-        Animation::Clip clip_b;
+        prt3::Animation::Clip clip_a;
+        prt3::Animation::Clip clip_b;
         bool can_change_direction;
         bool inherit_animation_time;
     };
@@ -75,47 +75,51 @@ public:
 
     struct SerializedState {
         CharacterState state;
-        Animation::Clip clip_a;
-        Animation::Clip clip_b;
+        prt3::Animation::Clip clip_a;
+        prt3::Animation::Clip clip_b;
         float blend_factor;
         glm::quat rotation;
     };
 
-    explicit CharacterController(Scene & scene, NodeID node_id)
-        : Script(scene, node_id) {}
+    explicit CharacterController(prt3::Scene & scene, prt3::NodeID node_id)
+        : prt3::Script(scene, node_id) {}
 
-    explicit CharacterController(std::istream &, Scene & scene, NodeID node_id)
-        : Script(scene, node_id) {}
+    explicit CharacterController(
+        std::istream &,
+        prt3::Scene & scene,
+        prt3::NodeID node_id
+    )
+        : prt3::Script(scene, node_id) {}
 
-    virtual void on_init(Scene & scene);
+    virtual void on_init(prt3::Scene & scene);
 
-    bool transition_state(Scene & scene, float /*delta_time*/);
+    bool transition_state(prt3::Scene & scene, float /*delta_time*/);
 
-    void init_animation(Animation & animation);
+    void init_animation(prt3::Animation & animation);
 
-    void init_state(Scene & scene);
+    void init_state(prt3::Scene & scene);
 
     float get_blend_factor() const;
 
-    void update_animation(Animation & animation);
+    void update_animation(prt3::Animation & animation);
 
-    virtual void update_input(Scene & /*scene*/, float /*delta_time*/) {}
-    void update_post_input(Scene & scene);
+    virtual void update_input(prt3::Scene & /*scene*/, float /*delta_time*/) {}
+    void update_post_input(prt3::Scene & scene);
 
-    void handle_state(Scene & scene, float delta_time);
+    void handle_state(prt3::Scene & scene, float delta_time);
 
-    void update_direction(Scene & scene, float delta_time);
+    void update_direction(prt3::Scene & scene, float delta_time);
 
-    void update_physics(Scene & scene, float delta_time);
+    void update_physics(prt3::Scene & scene, float delta_time);
 
-    virtual void on_update(Scene & scene, float delta_time);
+    virtual void on_update(prt3::Scene & scene, float delta_time);
 
     CharacterState & state() { return m_state; }
     CharacterState const & state() const { return m_state; }
 
-    SerializedState serialize_state(Scene const & scene) const;
+    SerializedState serialize_state(prt3::Scene const & scene) const;
     void deserialize_state(
-        Scene & scene,
+        prt3::Scene & scene,
         SerializedState const & serialized
     );
 
@@ -138,7 +142,7 @@ protected:
         float move_distance = 0.0f;
     } m_update_data;
 
-    NodeID m_weapon_id = NO_NODE;
+    prt3::NodeID m_weapon_id = prt3::NO_NODE;
 
     std::array<StateData, TOTAL_NUM_STATES> m_state_data;
 

@@ -1,30 +1,30 @@
 #ifndef DDS_NPC_CONTROLLER_H
 #define DDS_NPC_CONTROLLER_H
 
+#include "src/daedalus/character/character_controller.h"
 #include "src/daedalus/game_state/game_state.h"
-#include "src/engine/component/script/character_controller.h"
 #include "src/engine/scene/scene.h"
 
 #include <vector>
 
 namespace dds {
 
-class NPCController : public prt3::CharacterController {
+class NPCController : public CharacterController {
 public:
     explicit NPCController(prt3::Scene & scene, prt3::NodeID node_id)
-    : prt3::CharacterController(scene, node_id) {}
+    : CharacterController(scene, node_id) {}
 
     explicit NPCController(
         prt3::Scene & scene,
         prt3::NodeID node_id,
         NPCID npc_id
-    ) : prt3::CharacterController(scene, node_id), m_npc_id{npc_id} {}
+    ) : CharacterController(scene, node_id), m_npc_id{npc_id} {}
 
     explicit NPCController(
         std::istream &,
         prt3::Scene & scene,
         prt3::NodeID node_id
-    ) : prt3::CharacterController(scene, node_id) {}
+    ) : CharacterController(scene, node_id) {}
 
     virtual void on_init(prt3::Scene & scene);
 

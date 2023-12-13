@@ -1,23 +1,23 @@
 #include "player_controller.h"
 
-using namespace prt3;
+using namespace dds;
 
-void PlayerController::exclude_player_from_scene_fade(Scene & scene) {
-    thread_local std::vector<NodeID> queue;
+void PlayerController::exclude_player_from_scene_fade(prt3::Scene & scene) {
+    thread_local std::vector<prt3::NodeID> queue;
     queue.emplace_back(node_id());
     while (!queue.empty()) {
-        NodeID id = queue.back();
+        prt3::NodeID id = queue.back();
         queue.pop_back();
 
         scene.scene_manager().exclude_node_from_fade(id);
 
-        for (NodeID child_id : scene.get_node(id).children_ids()) {
+        for (prt3::NodeID child_id : scene.get_node(id).children_ids()) {
             queue.push_back(child_id);
         }
     }
 }
 
-void PlayerController::on_init(Scene & scene) {
+void PlayerController::on_init(prt3::Scene & scene) {
     CharacterController::on_init(scene);
     set_tag(scene, "player");
     scene.selected_node() = node_id();
@@ -25,32 +25,32 @@ void PlayerController::on_init(Scene & scene) {
     exclude_player_from_scene_fade(scene);
 
     m_blob_shadow_id = scene.add_node_to_root("");
-    scene.add_component<Decal>(m_blob_shadow_id);
-    Decal & decal = scene.get_component<Decal>(m_blob_shadow_id);
+    scene.add_component<prt3::Decal>(m_blob_shadow_id);
+    prt3::Decal & decal = scene.get_component<prt3::Decal>(m_blob_shadow_id);
     decal.texture_id() =
         scene.upload_texture("assets/textures/decals/blob_shadow.png");
     decal.dimensions() = glm::vec3{2.0f, 1.0f, 2.0f};
 }
 
-void PlayerController::update_input(Scene & scene, float /*delta_time*/) {
-    Input & input = scene.get_input();
+void PlayerController::update_input(prt3::Scene & scene, float /*delta_time*/) {
+    prt3::Input & input = scene.get_input();
 
-    m_state.input.run = input.get_key(KeyCode::KEY_CODE_LEFT_SHIFT);
-    m_state.input.attack = input.get_key_down(KeyCode::KEY_CODE_ENTER);
-    m_state.input.jump = input.get_key_down(KeyCode::KEY_CODE_SPACE);
+    m_state.input.run = input.get_key(prt3::KeyCode::KEY_CODE_LEFT_SHIFT);
+    m_state.input.attack = input.get_key_down(prt3::KeyCode::KEY_CODE_ENTER);
+    m_state.input.jump = input.get_key_down(prt3::KeyCode::KEY_CODE_SPACE);
 
     glm::vec2 raw_input_dir{0.0f};
 
-    if (input.get_key(KeyCode::KEY_CODE_W)) {
+    if (input.get_key(prt3::KeyCode::KEY_CODE_W)) {
         raw_input_dir += glm::vec2{0.0f, 1.0f};
     }
-    if (input.get_key(KeyCode::KEY_CODE_S)) {
+    if (input.get_key(prt3::KeyCode::KEY_CODE_S)) {
         raw_input_dir -= glm::vec2{0.0f, 1.0f};
     }
-    if (input.get_key(KeyCode::KEY_CODE_A)) {
+    if (input.get_key(prt3::KeyCode::KEY_CODE_A)) {
         raw_input_dir -= glm::vec2{1.0f, 0.0f};
     }
-    if (input.get_key(KeyCode::KEY_CODE_D)) {
+    if (input.get_key(prt3::KeyCode::KEY_CODE_D)) {
         raw_input_dir += glm::vec2{1.0f, 0.0f};
     }
 
@@ -58,7 +58,7 @@ void PlayerController::update_input(Scene & scene, float /*delta_time*/) {
     // project input according to camera
     if (raw_input_dir != glm::vec2{0.0f}) {
         // compute look direction
-        Camera const & camera = scene.get_camera();
+        prt3::Camera const & camera = scene.get_camera();
         glm::vec3 c_proj_x = camera.get_right();
         constexpr float quarter_pi = glm::pi<float>() / 4.0f;
         glm::vec3 c_proj_y =
@@ -73,18 +73,18 @@ void PlayerController::update_input(Scene & scene, float /*delta_time*/) {
     }
 }
 
-void PlayerController::on_update(Scene & scene, float delta_time) {
+void PlayerController::on_update(prt3::Scene & scene, float delta_time) {
     CharacterController::on_update(scene, delta_time);
-    Transform tform = get_node(scene).get_global_transform(scene);
+    prt3::Transform tform = get_node(scene).get_global_transform(scene);
 
-    ColliderTag tag =
-        scene.get_component<ColliderComponent>(node_id()).tag();
-    CollisionLayer mask = scene.physics_system().get_collision_mask(tag);
+    prt3::ColliderTag tag =
+        scene.get_component<prt3::ColliderComponent>(node_id()).tag();
+    prt3::CollisionLayer mask = scene.physics_system().get_collision_mask(tag);
 
-    Node & blob_shadow = scene.get_node(m_blob_shadow_id);
+    prt3::Node & blob_shadow = scene.get_node(m_blob_shadow_id);
 
     float eps = 0.05f;
-    RayHit hit;
+    prt3::RayHit hit;
     if (scene.physics_system().raycast(
         tform.position + glm::vec3{0.0f, eps, 0.0f},
         glm::vec3{0.0f, -1.0f, 0.0f},
@@ -93,7 +93,7 @@ void PlayerController::on_update(Scene & scene, float delta_time) {
         tag,
         hit
     )) {
-        Decal & decal = scene.get_component<Decal>(m_blob_shadow_id);
+        prt3::Decal & decal = scene.get_component<prt3::Decal>(m_blob_shadow_id);
 
         float diff_y = tform.position.y - hit.position.y;
         float dim_y = diff_y + 2.0f * eps;

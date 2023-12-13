@@ -3,9 +3,9 @@
 
 #include <utility>
 
-using namespace prt3;
+using namespace dds;
 
-void CharacterController::on_init(Scene & scene) {
+void CharacterController::on_init(prt3::Scene & scene) {
     m_state.input = {};
 
     m_state.direction =
@@ -14,9 +14,9 @@ void CharacterController::on_init(Scene & scene) {
 
     m_weapon_id = scene.get_child_with_tag(node_id(), "weapon");
 
-    Armature & armature =
-        scene.get_component<Armature>(node_id());
-    Model const & model =
+    prt3::Armature & armature =
+        scene.get_component<prt3::Armature>(node_id());
+    prt3::Model const & model =
         scene.get_model(armature.model_handle());
 
     get_state_data(IDLE) = {
@@ -24,7 +24,7 @@ void CharacterController::on_init(Scene & scene) {
         .clip_a = { .animation_index = model.get_animation_index("idle", 0),
                     .paused = false,
                     .looping = true, },
-        .clip_b = { .animation_index = NO_ANIMATION },
+        .clip_b = { .animation_index = prt3::NO_ANIMATION },
         .can_change_direction = false,
         .inherit_animation_time = true
     };
@@ -59,7 +59,7 @@ void CharacterController::on_init(Scene & scene) {
                     .speed = 0.75f,
                     .paused = false,
                     .looping = false },
-        .clip_b = { .animation_index = NO_ANIMATION},
+        .clip_b = { .animation_index = prt3::NO_ANIMATION},
         .can_change_direction = false,
         .inherit_animation_time = false
     };
@@ -70,7 +70,7 @@ void CharacterController::on_init(Scene & scene) {
                     .speed = 0.75f,
                     .paused = false,
                     .looping = false },
-        .clip_b = { .animation_index = NO_ANIMATION},
+        .clip_b = { .animation_index = prt3::NO_ANIMATION},
         .can_change_direction = false,
         .inherit_animation_time = false
     };
@@ -81,7 +81,7 @@ void CharacterController::on_init(Scene & scene) {
                     .speed = 0.75f,
                     .paused = false,
                     .looping = false },
-        .clip_b = { .animation_index = NO_ANIMATION},
+        .clip_b = { .animation_index = prt3::NO_ANIMATION},
         .can_change_direction = false,
         .inherit_animation_time = false
     };
@@ -92,7 +92,7 @@ void CharacterController::on_init(Scene & scene) {
                     .speed = 0.75f,
                     .paused = false,
                     .looping = false },
-        .clip_b = { .animation_index = NO_ANIMATION},
+        .clip_b = { .animation_index = prt3::NO_ANIMATION},
         .can_change_direction = false,
         .inherit_animation_time = false
     };
@@ -103,7 +103,7 @@ void CharacterController::on_init(Scene & scene) {
                     .speed = 1.25f,
                     .paused = false,
                     .looping = false },
-        .clip_b = { .animation_index = NO_ANIMATION},
+        .clip_b = { .animation_index = prt3::NO_ANIMATION},
         .can_change_direction = false,
         .inherit_animation_time = false
     };
@@ -113,7 +113,7 @@ void CharacterController::on_init(Scene & scene) {
         .clip_a = { .animation_index = model.get_animation_index("fall", 0),
                     .paused = false,
                     .looping = true },
-        .clip_b = { .animation_index = NO_ANIMATION},
+        .clip_b = { .animation_index = prt3::NO_ANIMATION},
         .can_change_direction = false,
         .inherit_animation_time = false
     };
@@ -124,7 +124,7 @@ void CharacterController::on_init(Scene & scene) {
                     .speed = 1.5f,
                     .paused = false,
                     .looping = false },
-        .clip_b = { .animation_index = NO_ANIMATION},
+        .clip_b = { .animation_index = prt3::NO_ANIMATION},
         .can_change_direction = false,
         .inherit_animation_time = false
     };
@@ -135,14 +135,14 @@ void CharacterController::on_init(Scene & scene) {
 }
 
 bool CharacterController::transition_state(
-    Scene & scene,
+    prt3::Scene & scene,
     float /*delta_time*/
 ) {
-    Armature & armature =
-        scene.get_component<Armature>(node_id());
-    Animation & anim =
+    prt3::Armature & armature =
+        scene.get_component<prt3::Armature>(node_id());
+    prt3::Animation & anim =
         scene.animation_system().get_animation(armature.animation_id());
-    Model const & model =
+    prt3::Model const & model =
         scene.get_model(armature.model_handle());
 
     float a_frac = anim.clip_a.frac(model);
@@ -319,7 +319,7 @@ bool CharacterController::transition_state(
     return false;
 }
 
-void CharacterController::init_animation(Animation & animation) {
+void CharacterController::init_animation(prt3::Animation & animation) {
     StateData const & data = get_state_data(m_state.state);
 
     float t_a = data.clip_a.t;
@@ -340,7 +340,7 @@ void CharacterController::init_animation(Animation & animation) {
     animation.clip_a.t = t_a;
 }
 
-void CharacterController::init_state(Scene & scene) {
+void CharacterController::init_state(prt3::Scene & scene) {
     if (get_state_data(m_state.state).transition != 0.0f) {
         m_state.transition = 0.0f;
         m_state.transition_complete = false;
@@ -348,12 +348,12 @@ void CharacterController::init_state(Scene & scene) {
         m_state.transition_complete = true;
     }
 
-    Armature & armature =
-        scene.get_component<Armature>(node_id());
-    Animation & anim =
+    prt3::Armature & armature =
+        scene.get_component<prt3::Armature>(node_id());
+    prt3::Animation & anim =
         scene.animation_system().get_animation(armature.animation_id());
     init_animation(anim);
-    Model const & model =
+    prt3::Model const & model =
         scene.get_model(armature.model_handle());
 
     switch (m_state.state) {
@@ -422,7 +422,7 @@ float CharacterController::get_blend_factor() const {
     }
 }
 
-void CharacterController::update_animation(Animation & animation) {
+void CharacterController::update_animation(prt3::Animation & animation) {
     StateData const & data = get_state_data(m_state.state);
 
     bool exit_transition = false;
@@ -465,12 +465,12 @@ void CharacterController::update_animation(Animation & animation) {
         get_blend_factor();
 }
 
-void CharacterController::handle_state(Scene & scene, float delta_time) {
-    Armature & armature =
-        scene.get_component<Armature>(node_id());
-    Animation & anim =
+void CharacterController::handle_state(prt3::Scene & scene, float delta_time) {
+    prt3::Armature & armature =
+        scene.get_component<prt3::Armature>(node_id());
+    prt3::Animation & anim =
         scene.animation_system().get_animation(armature.animation_id());
-    Model const & model =
+    prt3::Model const & model =
         scene.get_model(armature.model_handle());
 
     float speed = 20.0f;
@@ -539,13 +539,13 @@ void CharacterController::handle_state(Scene & scene, float delta_time) {
         default: { assert(false); }
     }
 
-    if (m_weapon_id != NO_NODE) {
-        scene.get_component<Weapon>(m_weapon_id)
+    if (m_weapon_id != prt3::NO_NODE) {
+        scene.get_component<prt3::Weapon>(m_weapon_id)
                 .set_active(scene, active_weapon);
     }
 }
 
-void CharacterController::update_direction(Scene & scene, float delta_time) {
+void CharacterController::update_direction(prt3::Scene & scene, float delta_time) {
     float speed = 50.0f;
     float dt_fac = 1.0f - glm::pow(0.5f, delta_time * speed);
 
@@ -564,7 +564,7 @@ void CharacterController::update_direction(Scene & scene, float delta_time) {
     }
 }
 
-void CharacterController::update_physics(Scene & scene, float delta_time) {
+void CharacterController::update_physics(prt3::Scene & scene, float delta_time) {
     // force
     m_state.velocity = m_state.velocity + m_state.force * delta_time;
     // friction
@@ -590,16 +590,16 @@ void CharacterController::update_physics(Scene & scene, float delta_time) {
     m_update_data.move_distance = res.move_distance;
 
     if (m_state.grounded_timer <= m_state.coyote_time && m_state.gravity_velocity > 0.0f) {
-        PhysicsSystem const & sys = scene.physics_system();
+        prt3::PhysicsSystem const & sys = scene.physics_system();
 
         glm::vec3 pos = get_node(scene).get_global_transform(scene).position;
         float snap_dist = 0.05f;
 
-        RayHit hit;
+        prt3::RayHit hit;
 
-        ColliderTag tag =
-            scene.get_component<ColliderComponent>(node_id()).tag();
-        CollisionLayer mask = sys.get_collision_mask(tag);
+        prt3::ColliderTag tag =
+            scene.get_component<prt3::ColliderComponent>(node_id()).tag();
+        prt3::CollisionLayer mask = sys.get_collision_mask(tag);
 
         if (sys.raycast(
                 pos,
@@ -621,7 +621,7 @@ void CharacterController::update_physics(Scene & scene, float delta_time) {
     m_state.grounded_timer = m_state.grounded ? 0.0f : m_state.grounded_timer + delta_time;
 }
 
-void CharacterController::update_post_input(Scene & /*scene*/) {
+void CharacterController::update_post_input(prt3::Scene & /*scene*/) {
     if (m_state.grounded) {
         m_state.input.last_grounded_direction = m_state.input.direction;
         m_state.input.last_grounded_run = m_state.input.run;
@@ -639,10 +639,10 @@ void CharacterController::update_post_input(Scene & /*scene*/) {
     }
 }
 
-void CharacterController::on_update(Scene & scene, float delta_time) {
-    Armature & armature =
-        scene.get_component<Armature>(node_id());
-    Animation & anim =
+void CharacterController::on_update(prt3::Scene & scene, float delta_time) {
+    prt3::Armature & armature =
+        scene.get_component<prt3::Armature>(node_id());
+    prt3::Animation & anim =
         scene.animation_system().get_animation(armature.animation_id());
 
     update_input(scene, delta_time);
@@ -662,15 +662,15 @@ void CharacterController::on_update(Scene & scene, float delta_time) {
     m_state.transition += delta_time;
 }
 
-prt3::CharacterController::SerializedState CharacterController::serialize_state(
-    Scene const & scene
+dds::CharacterController::SerializedState CharacterController::serialize_state(
+    prt3::Scene const & scene
 ) const {
-    Armature const & armature =
-        scene.get_component<Armature>(node_id());
-    Animation const & anim =
+    prt3::Armature const & armature =
+        scene.get_component<prt3::Armature>(node_id());
+    prt3::Animation const & anim =
         scene.animation_system().get_animation(armature.animation_id());
 
-    Transform global_tform =
+    prt3::Transform global_tform =
         scene.get_node(node_id()).get_global_transform(scene);
 
     SerializedState serialized;
@@ -684,21 +684,21 @@ prt3::CharacterController::SerializedState CharacterController::serialize_state(
 }
 
 void CharacterController::deserialize_state(
-    Scene & scene,
+    prt3::Scene & scene,
     SerializedState const & serialized
 ) {
-    Armature & armature =
-        scene.get_component<Armature>(node_id());
-    Animation & anim =
+    prt3::Armature & armature =
+        scene.get_component<prt3::Armature>(node_id());
+    prt3::Animation & anim =
         scene.animation_system().get_animation(armature.animation_id());
 
     m_state = serialized.state;
-    anim.clip_a = serialized.clip_a.animation_index == NO_ANIMATION ?
+    anim.clip_a = serialized.clip_a.animation_index == prt3::NO_ANIMATION ?
         get_state_data(m_state.state).clip_a : serialized.clip_a;
-    anim.clip_b = serialized.clip_b.animation_index == NO_ANIMATION ?
+    anim.clip_b = serialized.clip_b.animation_index == prt3::NO_ANIMATION ?
         get_state_data(m_state.state).clip_b : serialized.clip_b;
     anim.blend_factor = serialized.blend_factor;
 
-    Node & node = scene.get_node(node_id());
+    prt3::Node & node = scene.get_node(node_id());
     node.set_global_rotation(scene, serialized.rotation);
 }

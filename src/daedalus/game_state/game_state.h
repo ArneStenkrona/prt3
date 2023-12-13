@@ -8,7 +8,7 @@
 #include "src/daedalus/objects/interactable.h"
 
 #include "src/engine/component/script/script.h"
-#include "src/engine/component/script/player_controller.h"
+#include "src/daedalus/character/player_controller.h"
 #include "src/engine/component/script/camera_controller.h"
 #include "src/engine/scene/scene.h"
 #include "src/engine/component/door.h"
@@ -84,7 +84,7 @@ private:
 
     prt3::Prefab m_player_prefab{"assets/prefabs/player.prefab"};
     prt3::NodeID m_player_id;
-    prt3::CharacterController::SerializedState m_player_state = {};
+    CharacterController::SerializedState m_player_state = {};
     glm::vec3 m_player_door_offset;
 
     prt3::Prefab m_camera_prefab{"assets/prefabs/camera.prefab"};

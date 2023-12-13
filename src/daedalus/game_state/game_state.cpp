@@ -52,8 +52,8 @@ void GameState::on_signal(
         player.translate_node(scene, translation);
 
     } else if (signal == "__scene_exit__") {
-        prt3::PlayerController * controller =
-            scene.get_script_from_node<prt3::PlayerController>(m_player_id);
+        PlayerController * controller =
+            scene.get_script_from_node<PlayerController>(m_player_id);
         m_player_state = controller->serialize_state(scene);
 
         prt3::CameraController & cam =
@@ -117,8 +117,8 @@ void GameState::on_start(prt3::Scene & scene) {
     prt3::Node & player = scene.get_node(m_player_id);
     player.set_global_position(scene, spawn_position);
 
-    prt3::PlayerController * controller =
-        scene.get_script_from_node<prt3::PlayerController>(m_player_id);
+    PlayerController * controller =
+        scene.get_script_from_node<PlayerController>(m_player_id);
     controller->deserialize_state(scene, m_player_state);
 
     m_camera_id = m_camera_prefab.instantiate(scene, scene.get_root_id());
