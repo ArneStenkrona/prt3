@@ -112,8 +112,8 @@ void GameState::on_start(prt3::Scene & scene) {
             break;
         }
     }
-
-    m_player_id = m_player_prefab.instantiate(scene, scene.get_root_id());
+    prt3::Prefab const & player_prefab = m_prefab_db.get(PrefabDB::player);
+    m_player_id = player_prefab.instantiate(scene, scene.get_root_id());
     prt3::Node & player = scene.get_node(m_player_id);
     player.set_global_position(scene, spawn_position);
 
@@ -121,7 +121,8 @@ void GameState::on_start(prt3::Scene & scene) {
         scene.get_script_from_node<PlayerController>(m_player_id);
     controller->deserialize_state(scene, m_player_state);
 
-    m_camera_id = m_camera_prefab.instantiate(scene, scene.get_root_id());
+    prt3::Prefab const & camera_prefab = m_prefab_db.get(PrefabDB::camera);
+    m_camera_id = camera_prefab.instantiate(scene, scene.get_root_id());
     prt3::CameraController & cam =
         *scene.get_component<prt3::ScriptSet>(m_camera_id)
             .get_script<prt3::CameraController>(scene);

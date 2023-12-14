@@ -12,7 +12,7 @@ class Prefab {
 public:
     Prefab(char const * path);
 
-    NodeID instantiate(Scene & scene, NodeID parent);
+    NodeID instantiate(Scene & scene, NodeID parent) const;
 
     static void serialize_node(
         Scene const & scene,
@@ -27,7 +27,6 @@ public:
     );
 private:
     std::vector<char> m_data;
-
 };
 
 } // namespace prt3

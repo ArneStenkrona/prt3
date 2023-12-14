@@ -50,8 +50,9 @@ NPCDB::NPCDB(GameState & game_state)
     npc.map_position.position = glm::vec3{-4.0f, 0.5f, -0.5f};
     npc.model_path = "assets/models/boss1/boss1.fbx";
     npc.model_scale = glm::vec3{0.62f};
-    npc.collider_radius = 0.5f;
-    npc.collider_length = 2.0f;
+    npc.prefab_id = PrefabDB::dark_flames;
+    npc.collider_radius = 1.0f;
+    npc.collider_length = 3.75f;
     npc.walk_force = 39.0f / dds::time_scale;
     npc.run_force = 90.0f / dds::time_scale;
 
@@ -150,6 +151,12 @@ void NPCDB::load_npc(prt3::Scene & scene, NPCID id) {
     m_loaded_npcs[id] = node_id;
 
     scene.animation_system().update_transforms(scene, anim_id);
+
+    if (npc.prefab_id != PrefabDB::none) {
+        prt3::Prefab const & prefab =
+            m_game_state.prefab_db().get(npc.prefab_id);
+        prefab.instantiate(scene, node_id);
+    }
 }
 
 

@@ -2,6 +2,7 @@
 #define DDS_NPC_DB_H
 
 #include "src/daedalus/game_state/game_time.h"
+#include "src/daedalus/game_state/prefab_db.h"
 #include "src/daedalus/map/map.h"
 #include "src/engine/scene/scene.h"
 #include "src/engine/scene/node.h"
@@ -23,6 +24,7 @@ struct NPC {
     glm::vec3 direction;
     std::string model_path;
     glm::vec3 model_scale;
+    PrefabDB::PrefabID prefab_id = PrefabDB::none;
 
     float collider_radius;
     float collider_length;

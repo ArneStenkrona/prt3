@@ -118,7 +118,7 @@ void Prefab::serialize_node(
         }
     }
 }
-NodeID Prefab::instantiate(Scene & scene, NodeID parent) {
+NodeID Prefab::instantiate(Scene & scene, NodeID parent) const {
     imemstream in(m_data.data(), m_data.size());
     return deserialize_node(scene, parent, in);
 }

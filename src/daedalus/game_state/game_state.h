@@ -9,6 +9,7 @@
 
 #include "src/engine/component/script/script.h"
 #include "src/daedalus/character/player_controller.h"
+#include "src/daedalus/game_state/prefab_db.h"
 #include "src/engine/component/script/camera_controller.h"
 #include "src/engine/scene/scene.h"
 #include "src/engine/component/door.h"
@@ -60,6 +61,7 @@ public:
 
     Map & map() { return m_map; }
     NPCDB & npc_db() { return m_npc_db; }
+    PrefabDB const & prefab_db() { return m_prefab_db; }
 
     TimeMS current_time() const { return m_current_time; }
 
@@ -70,6 +72,7 @@ public:
 private:
     Map m_map;
     NPCDB m_npc_db;
+    PrefabDB m_prefab_db;
     RoomID m_current_room = 0;
     GameGui m_game_gui;
 
@@ -82,12 +85,10 @@ private:
 
     Interactable * m_interactable = nullptr;
 
-    prt3::Prefab m_player_prefab{"assets/prefabs/player.prefab"};
     prt3::NodeID m_player_id;
     CharacterController::SerializedState m_player_state = {};
     glm::vec3 m_player_door_offset;
 
-    prt3::Prefab m_camera_prefab{"assets/prefabs/camera.prefab"};
     prt3::NodeID m_camera_id;
 
     prt3::NodeID m_canvas_id;
