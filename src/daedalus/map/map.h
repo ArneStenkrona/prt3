@@ -56,6 +56,9 @@ public:
     float get_map_path_length(MapPathID id)
     { return m_map_path_cache.access(id)->length; }
 
+    MapPosition get_map_destination(MapPathID id)
+    { return m_map_path_cache.access(id)->path.back().position; }
+
     bool advance_map_path(
         MapPathID id,
         glm::vec3 position,

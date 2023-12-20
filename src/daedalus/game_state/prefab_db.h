@@ -1,6 +1,7 @@
 #ifndef DDS_PREFAB_DB_H
 #define DDS_PREFAB_DB_H
 
+#include "src/daedalus/game_state/id.h"
 #include "src/engine/scene/prefab.h"
 
 #include <array>
@@ -9,7 +10,7 @@ namespace dds {
 
 class PrefabDB {
 public:
-    enum PrefabID {
+    enum PrefabID : DDSID {
         player,
         camera,
         dark_flames,

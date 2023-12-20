@@ -994,8 +994,6 @@ bool Map::intersects_door(
 
         prt3::BoxCollider bc{box};
 
-
-
         auto shape = bc.get_shape(door.shape);
         // Order of vertices:
         // 0 : 0, 0, 0

@@ -40,8 +40,9 @@ private:
     static constexpr unsigned int m_rolling_avg_n = 10;
     float m_movement_performance = 1.0f;
 
-    void update_go_to_dest(prt3::Scene & scene, float delta_time);
+    void update_moving(prt3::Scene & scene, float delta_time);
     void update_warp(prt3::Scene & scene, float delta_time);
+    void update_attack(prt3::Scene & scene, float delta_time);
 
     virtual void update_input(prt3::Scene & /*scene*/, float /*delta_time*/);
 

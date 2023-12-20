@@ -166,6 +166,13 @@ protected:
         }
     }
 
+    void smooth_change_dir(glm::vec3 dir, float speed, float delta_time) {
+        float dt_fac = 1.0f - glm::pow(0.5f, delta_time * speed);
+        m_state.input.direction = glm::normalize(
+            glm::mix(m_state.input.direction, dir, dt_fac)
+        );
+    }
+
 REGISTER_SCRIPT(CharacterController, character_controller, 7387722065150816170)
 };
 

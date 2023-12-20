@@ -1,7 +1,9 @@
 #ifndef DDS_NPC_DB_H
 #define DDS_NPC_DB_H
 
+#include "src/daedalus/game_state/id.h"
 #include "src/daedalus/game_state/game_time.h"
+#include "src/daedalus/game_state/item_db.h"
 #include "src/daedalus/game_state/prefab_db.h"
 #include "src/daedalus/map/map.h"
 #include "src/engine/scene/scene.h"
@@ -17,7 +19,7 @@ namespace dds {
 class GameState;
 class NPCDB;
 
-typedef uint32_t NPCID;
+typedef DDSID NPCID;
 
 struct NPC {
     MapPosition map_position;
@@ -37,27 +39,45 @@ struct NPC {
     bool stuck = false;
     TimeMS stuck_since;
 
-    void (*on_empty_schedule)(NPCID, NPCDB &, prt3::Scene &);
+    enum Mode {
+        passive, // call update when schedule is empty
+        active, // call update every time npc_db updates
+    };
+
+    Mode mode = Mode::passive;
+    void (*update)(NPCID, NPCDB &, prt3::Scene &);
 };
 
 struct NPCAction {
     enum ActionType {
         GO_TO_DESTINATION,
+        FOLLOW,
         WARP,
         WAIT,
         WAIT_UNTIL,
+        USE_ITEM,
+        ATTACK,
         NONE
     };
+    static char const * action_type_to_str(ActionType type);
 
     ActionType type;
     union U {
         constexpr U() : go_to_dest{} {}
         struct GoToDest {
-            MapPosition origin;
             MapPosition destination;
             MapPathID path_id;
             bool running;
         } go_to_dest;
+
+        struct Follow {
+            AnyID target;
+            MapPathID path_id;
+            float path_threshold;
+            float target_dist;
+            bool stop_on_arrival;
+            bool running;
+        } follow;
 
         struct Warp {
             enum class Phase {
@@ -78,6 +98,17 @@ struct NPCAction {
         struct WaitUntil {
             TimeMS deadline;
         } wait_until;
+
+        struct UseItem {
+            ItemDB::ItemID item;
+            AnyID target;
+        } use_item;
+
+        struct Attack {
+            AnyID target;
+            TimeMS timer;
+            bool activated;
+        } attack;
     } u;
 };
 
@@ -111,6 +142,11 @@ public:
 
     GameState & game_state() { return m_game_state; }
 
+    MapPosition get_target_position(
+        prt3::Scene const & scene,
+        AnyID target
+    ) const;
+
 private:
     std::vector<NPC> m_npcs;
     std::vector<NPCSchedule> m_schedules;
@@ -127,7 +163,15 @@ private:
 
     void update_go_to_dest(NPCID id, NPCAction::U::GoToDest & data);
 
+    void update_follow(
+        prt3::Scene const & scene,
+        NPCID id,
+        NPCAction::U::Follow & data
+    );
+
     void update_warp(NPCID id, NPCAction::U::Warp & data);
+
+    void update_attack(NPCID id, NPCAction::U::Attack & data);
 };
 
 } // namespace dds
