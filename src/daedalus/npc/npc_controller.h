@@ -35,8 +35,6 @@ private:
     NPCID m_npc_id;
     GameState * m_game_state;
 
-    unsigned int m_missing_path_count;
-
     static constexpr unsigned int m_rolling_avg_n = 10;
     float m_movement_performance = 1.0f;
 

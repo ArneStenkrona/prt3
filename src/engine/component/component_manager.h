@@ -13,7 +13,7 @@ namespace prt3 {
 
 class ComponentManager {
 public:
-  template<typename ComponentType, typename... ArgTypes>
+    template<typename ComponentType, typename... ArgTypes>
     ComponentType & add_component(
         Scene & scene,
         NodeID id,
@@ -168,7 +168,7 @@ private:
         read_stream(in, r_magic_num_i);
         if (r_magic_num_i != magic_num_i) {
             // TODO: error handling
-            PRT3ERROR("deserialize_store(): error!\n");
+            PRT3ERROR("deserialize_storage(): error!\n");
         }
 
         auto & storage = std::get<I>(t);

@@ -5,50 +5,6 @@
 
 using namespace dds;
 
-// void attack_target(NPCID id, NPCDB & db) {
-//     MapPosition pos;
-//     MapPosition target_pos;
-//     float dist;
-
-//     float melee_threshold = 3.0f;
-//     float projectile_threshold = 7.0f;
-
-//     if (dist < melee_threshold) {
-//         NPCAction action;
-//         action.type = NPCAction::ATTACK;
-//         auto const & attack = action.u.attack;
-//         use_item.target.id = 0; // d/c for player
-//         use_item.target.type = IDType::player;
-//         db.push_schedule(id, action);
-//     } else if (dist < projectile_threshold && use_spell) {
-//         while (!db.schedule_empty(id)) {
-//             db.pop_schedule(id, ScheduleStatus::success);
-//         }
-
-//         NPCAction action;
-//         action.type = NPCAction::USE_ITEM;
-//         auto const & use_item = action.u.use_item;
-//         use_item.item = ItemDB::spell_flame_pillar;
-//         AnyID target;
-//         use_item.target.id = 0; // d/c for player
-//         use_item.target.type = IDType::player;
-//         db.push_schedule(id, action);
-//     }
-// }
-
-char const * NPCAction::action_type_to_str(NPCAction::ActionType type) {
-    switch (type) {
-        case NPCAction::GO_TO_DESTINATION: return "GO_TO_DESTINATION";
-        case NPCAction::FOLLOW: return "FOLLOW";
-        case NPCAction::WARP: return "WARP";
-        case NPCAction::WAIT: return "WAIT";
-        case NPCAction::WAIT_UNTIL: return "WAIT_UNTIL";
-        case NPCAction::USE_ITEM: return "USE_ITEM";
-        case NPCAction::ATTACK: return "ATTACK";
-        case NPCAction::NONE: return "NONE";
-    }
-}
-
 void npc_update_test(
     NPCID id,
     NPCDB & npc_db,
@@ -62,48 +18,40 @@ void npc_update_test(
     glm::vec3 player_pos = player.get_global_transform(scene).position;
 
     TimeMS time = game_state.current_time();
-    if (npc_db.schedule_empty(id)) {
+    if (npc_db.has_no_action(id)) {
         if ((npc.stuck && time - npc.stuck_since > 1000 * dds::time_scale)) {
-            NPCAction action;
-            action.type = NPCAction::WARP;
-            action.u.warp.fade_time = 1000 * dds::time_scale;
-            action.u.warp.timer = 0;
-            action.u.warp.destination.position = player_pos;
-            action.u.warp.destination.room = game_state.current_room();
-            action.u.warp.phase = NPCAction::U::Warp::Phase::fade_in;
-            npc_db.push_schedule(id, action);
+            npc_action::Warp warp;
+            warp.fade_time = 1000 * dds::time_scale;
+            warp.timer = 0;
+            warp.destination.position = player_pos;
+            warp.destination.room = game_state.current_room();
+            warp.phase = npc_action::Warp::Phase::fade_in;
+            npc_db.queue_action<npc_action::Warp>(id, std::move(warp));
         } else {
-            NPCAction action;
-            action.type = NPCAction::FOLLOW;
             AnyID target;
             target.type = IDType::dds_id_type_player;
-            action.u.follow.target = target;
-            action.u.follow.path_id = NO_MAP_PATH;
-            action.u.follow.path_threshold = 0.5f;
-            action.u.follow.target_dist = 1.0f;
-            action.u.follow.stop_on_arrival = false;
-            action.u.follow.running = true;
-            npc_db.push_schedule(id, action);
+            npc_action::Follow follow;
+            follow.target = target;
+            follow.path_id = NO_MAP_PATH;
+            follow.path_threshold = 0.5f;
+            follow.target_dist = 1.0f;
+            follow.stop_on_arrival = false;
+            follow.running = true;
+            npc_db.queue_action<npc_action::Follow>(id, std::move(follow));
         }
     }
 
     float dist = glm::distance(npc.map_position.position, player_pos);
     float melee_threshold = 3.5f;
     if (dist < melee_threshold) {
-        while (!npc_db.schedule_empty(id) &&
-               npc_db.peek_schedule(id).type == NPCAction::FOLLOW) {
-            npc_db.pop_schedule(id, ScheduleStatus::success);
-        }
-
-        if (npc_db.schedule_empty(id)) {
-            NPCAction action;
-            action.type = NPCAction::ATTACK;
-            auto & attack = action.u.attack;
+        if (npc_db.has_no_action(id) ||
+            npc_db.get_action_type(id) == npc_action::FOLLOW) {
+            npc_action::Attack attack;
             attack.target.id = 0; // d/c for player
             attack.target.type = IDType::dds_id_type_player;
             attack.timer = 0;
             attack.activated = false;
-            npc_db.push_schedule(id, action);
+            npc_db.queue_action<npc_action::Attack>(id, std::move(attack));
         }
     }
 }
@@ -133,6 +81,13 @@ void NPCDB::on_scene_start(prt3::Scene & scene) {
 }
 
 void NPCDB::update(prt3::Scene & scene) {
+    thread_local std::vector<NPCID> remove_list;
+    update_actions(scene, remove_list);
+    update_action_queues();
+    update_npcs(scene);
+}
+
+void NPCDB::update_npcs(prt3::Scene & scene) {
     load_npcs(scene);
 
     for (auto it = m_loaded_npcs.begin();
@@ -149,34 +104,39 @@ void NPCDB::update(prt3::Scene & scene) {
     }
 
     for (NPCID id = 0; id < m_npcs.size(); ++id) {
-        update_npc(id, scene);
+        if (has_no_action(id) || m_npcs[id].mode == NPC::Mode::active) {
+            m_npcs[id].update(id, *this, scene);
+        }
     }
+}
+
+void NPCDB::update_action_queues() {
+    for (auto & pair : m_new_actions) {
+        NPCID id = pair.first;
+        if (m_current_actions[id] != npc_action::NONE) {
+            m_action_db.remove_entry_by_table_index(m_current_actions[id], id);
+            m_current_actions[id] = npc_action::NONE;
+        }
+
+        npc_action::ActionUnion & au = pair.second;
+        if (au.type == npc_action::NONE) {
+            continue;
+        }
+
+        void * action_p = reinterpret_cast<void*>(&au.u);
+        m_action_db.add_entry_by_table_index(au.type, id, action_p);
+        m_current_actions[id] = au.type;
+        /* clear status when new action is set */
+        if (au.type != npc_action::GO_TO_DESTINATION &&
+            au.type != npc_action::FOLLOW) {
+            m_npcs[id].stuck = false;
+        }
+    }
+    m_new_actions.clear();
 }
 
 void NPCDB::on_scene_exit() {
     m_loaded_npcs.clear();
-}
-
-void NPCDB::pop_schedule(
-    NPCID id,
-    ScheduleStatus status
-) {
-    m_schedules[id].pop();
-
-    NPC & npc = m_npcs[id];
-    switch (status) {
-        case ScheduleStatus::no_path_found:
-        case ScheduleStatus::stuck_on_path: {
-            if (!npc.stuck) {
-                npc.stuck_since = m_game_state.current_time();
-            }
-            npc.stuck = true;
-            break;
-        }
-        default: {
-            npc.stuck = false;
-        }
-    }
 }
 
 MapPosition NPCDB::get_target_position(
@@ -209,11 +169,10 @@ MapPosition NPCDB::get_target_position(
     }
 }
 
-
 NPCID NPCDB::push_npc() {
     NPCID id = m_npcs.size();
     m_npcs.push_back({});
-    m_schedules.push_back({});
+    m_current_actions.push_back(npc_action::NONE);
     return id;
 }
 
@@ -265,172 +224,9 @@ void NPCDB::load_npcs(prt3::Scene & scene) {
     }
 }
 
-void NPCDB::update_go_to_dest(
-    NPCID id,
-    NPCAction::U::GoToDest & data
-) {
-    NPC & npc = m_npcs[id];
-    Map & map = m_game_state.map();
-
-    if (!map.has_map_path(data.path_id)) {
-        data.path_id = map.query_map_path(npc.map_position, data.destination);
+void NPCDB::set_stuck(NPCID id) {
+    if (!m_npcs[id].stuck) {
+        m_npcs[id].stuck_since = m_game_state.current_time();
     }
-
-    if (data.path_id == NO_MAP_PATH) {
-        pop_schedule(id, ScheduleStatus::no_path_found);
-        return;
-    }
-
-    float force = data.running ? npc.run_force : npc.walk_force;
-    float velocity = (force / npc.friction);
-    float length = velocity * dds::frame_dt_over_time_scale;
-
-    bool arrived = map.advance_map_path(
-        data.path_id,
-        npc.map_position.position,
-        length,
-        npc.map_position,
-        npc.direction
-    );
-
-    if (arrived) {
-        pop_schedule(id);
-    }
-}
-
-void NPCDB::update_follow(
-    prt3::Scene const & scene,
-    NPCID id,
-    NPCAction::U::Follow & data
-) {
-    NPC & npc = m_npcs[id];
-    Map & map = m_game_state.map();
-
-    MapPosition target_pos = get_target_position(scene, data.target);
-    float dist = glm::distance(npc.map_position.position, target_pos.position);
-
-    bool has_path = map.has_map_path(data.path_id);
-    bool gen_path = !has_path;
-    if (has_path) {
-        float dest_dist = glm::distance(
-            map.get_map_destination(data.path_id).position,
-            target_pos.position
-        );
-        gen_path |= dest_dist > data.path_threshold;
-    }
-
-    if (gen_path) {
-        data.path_id = map.query_map_path(npc.map_position, target_pos);
-    }
-
-    if (data.path_id == NO_MAP_PATH) {
-        pop_schedule(id, ScheduleStatus::no_path_found);
-        return;
-    }
-
-    if (dist > data.target_dist) {
-        float force = data.running ? npc.run_force : npc.walk_force;
-        float velocity = (force / npc.friction);
-        float length = velocity * dds::frame_dt_over_time_scale;
-
-        bool arrived = map.advance_map_path(
-            data.path_id,
-            npc.map_position.position,
-            length,
-            npc.map_position,
-            npc.direction
-        );
-
-        if (arrived && data.stop_on_arrival) {
-            pop_schedule(id);
-        }
-    }
-}
-
-void NPCDB::update_warp(
-    NPCID id,
-    NPCAction::U::Warp & data
-) {
-    NPC & npc = m_npcs[id];
-
-    bool complete = false;
-
-    switch (data.phase) {
-        case NPCAction::U::Warp::Phase::fade_in: {
-            if (data.timer >= data.fade_time) {
-                data.phase = NPCAction::U::Warp::Phase::fade_out;
-                data.timer = 0;
-                npc.map_position = data.destination;
-            }
-            break;
-        }
-        case NPCAction::U::Warp::Phase::fade_out: {
-            if (data.timer >= data.fade_time) {
-                complete = true;
-            }
-            break;
-        }
-    }
-
-    data.timer += dds::ms_per_frame;
-
-    if (complete) {
-        pop_schedule(id);
-    }
-}
-
-void NPCDB::update_npc(NPCID id, prt3::Scene & scene) {
-    bool should_update =
-        schedule_empty(id) || m_npcs[id].mode == NPC::Mode::active;
-
-    if (should_update) {
-        m_npcs[id].update(id, *this, scene);
-    }
-
-    if (schedule_empty(id)) {
-        return;
-    }
-
-    NPCAction & action = peek_schedule(id);
-
-    switch (action.type) {
-        case NPCAction::GO_TO_DESTINATION: {
-            update_go_to_dest(id, action.u.go_to_dest);
-            break;
-        }
-        case NPCAction::FOLLOW: {
-            update_follow(scene, id, action.u.follow);
-            break;
-        }
-        case NPCAction::WARP: {
-            update_warp(id, action.u.warp);
-            break;
-        }
-        case NPCAction::WAIT: {
-            if (action.u.wait.duration <= 0.0f) {
-                pop_schedule(id);
-            }
-            action.u.wait.duration -= dds::ms_per_frame;
-            break;
-        }
-        case NPCAction::WAIT_UNTIL: {
-            if (action.u.wait_until.deadline >= m_game_state.current_time()) {
-                pop_schedule(id);
-            }
-            break;
-        }
-        case NPCAction::ATTACK: {
-            update_attack(id, action.u.attack);
-            break;
-        }
-        default: {}
-    }
-}
-
-void NPCDB::update_attack(NPCID id, NPCAction::U::Attack & data) {
-    // TODO: don't hardcode this limit
-    if (data.timer > dds::ms_per_frame * 30) {
-        pop_schedule(id);
-    }
-    data.timer += dds::ms_per_frame;
+    m_npcs[id].stuck = true;
 }

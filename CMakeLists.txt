@@ -51,6 +51,7 @@ file(GLOB SOURCES
   "src/daedalus/gui/game_gui.cpp"
   "src/daedalus/gui/strings.cpp"
   "src/daedalus/map/map.cpp"
+  "src/daedalus/npc/npc_action.cpp"
   "src/daedalus/npc/npc_controller.cpp"
   "src/daedalus/npc/npc_db.cpp"
   "src/daedalus/objects/interactable.cpp"

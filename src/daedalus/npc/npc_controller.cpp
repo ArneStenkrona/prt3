@@ -13,6 +13,27 @@ void set_anim_if_not_set(prt3::Animation & anim, int32_t anim_index) {
     }
 }
 
+inline static bool is_running(NPCDB const & db, NPCID id) {
+    npc_action::ActionType action_type = db.get_action_type(id);
+    if (action_type == npc_action::GO_TO_DESTINATION) {
+        return db.get_action<npc_action::GoToDest>(id).running;
+    } else if (action_type == npc_action::FOLLOW) {
+        return db.get_action<npc_action::Follow>(id).running;
+    }
+    return false;
+}
+
+inline static MapPathID path_id(NPCDB const & db, NPCID id) {
+    npc_action::ActionType action_type = db.get_action_type(id);
+    if (action_type == npc_action::GO_TO_DESTINATION) {
+        return db.get_action<npc_action::GoToDest>(id).path_id;
+    } else if (action_type == npc_action::FOLLOW) {
+        return db.get_action<npc_action::Follow>(id).path_id;
+    }
+    return NO_MAP_PATH;
+}
+
+
 void NPCController::on_init(prt3::Scene & scene) {
     m_game_state = scene.get_autoload_script<GameState>();
     NPCDB & db = m_game_state->npc_db();
@@ -50,22 +71,18 @@ void NPCController::on_init(prt3::Scene & scene) {
     m_walk_force = npc.walk_force * dds::time_scale;
     m_run_force = npc.run_force * dds::time_scale;
 
-    NPCAction::ActionType action_type = db.schedule_empty(m_npc_id) ?
-    NPCAction::NONE : db.peek_schedule(m_npc_id).type;
+    npc_action::ActionType action_type = db.get_action_type(m_npc_id);
 
     // pre-init
     switch (action_type) {
-        case NPCAction::GO_TO_DESTINATION:
-        case NPCAction::FOLLOW: {
-            NPCAction & action = db.peek_schedule(m_npc_id);
-            bool running = action_type == NPCAction::GO_TO_DESTINATION ?
-                action.u.go_to_dest.running : action.u.follow.running;
-            m_state.state = running ?
+        case npc_action::GO_TO_DESTINATION:
+        case npc_action::FOLLOW: {
+            m_state.state = is_running(db, m_npc_id) ?
                 CharacterController::State::RUN :
                 CharacterController::State::WALK;
             break;
         }
-        case NPCAction::WARP: {
+        case npc_action::WARP: {
             update_warp(scene, 0.0f);
             break;
         }
@@ -77,11 +94,9 @@ void NPCController::on_init(prt3::Scene & scene) {
 
     // post-init
     switch (action_type) {
-        case NPCAction::GO_TO_DESTINATION:
-        case NPCAction::FOLLOW: {
-            NPCAction & action = db.peek_schedule(m_npc_id);
-            bool running = action_type == NPCAction::GO_TO_DESTINATION ?
-                action.u.go_to_dest.running : action.u.follow.running;
+        case npc_action::GO_TO_DESTINATION:
+        case npc_action::FOLLOW: {
+            bool running = is_running(db, m_npc_id);
             float force = running ? m_run_force : m_walk_force;
             float speed = force / (npc.friction * dds::time_scale);
             m_state.velocity = speed * npc.direction;
@@ -138,10 +153,10 @@ void NPCController::on_update(prt3::Scene & scene, float delta_time) {
 
     npc.friction = m_state.friction / dds::time_scale;
 
-    NPCAction::ActionType action_type = db.schedule_empty(m_npc_id) ?
-        NPCAction::ActionType::NONE : db.peek_schedule(m_npc_id).type;
-    if (action_type == NPCAction::GO_TO_DESTINATION ||
-        action_type == NPCAction::FOLLOW) {
+    npc_action::ActionType action_type = db.get_action_type(m_npc_id);
+
+    if (action_type == npc_action::GO_TO_DESTINATION ||
+        action_type == npc_action::FOLLOW) {
         float n = static_cast<float>(m_rolling_avg_n);
         float movement_performance =
             m_update_data.expected_move_distance == 0.0f ?
@@ -157,23 +172,22 @@ void NPCController::on_update(prt3::Scene & scene, float delta_time) {
 
 void NPCController::update_input(prt3::Scene & scene, float delta_time) {
     NPCDB & db = m_game_state->npc_db();
-    NPCAction::ActionType action_type = db.schedule_empty(m_npc_id) ?
-         NPCAction::ActionType::NONE : db.peek_schedule(m_npc_id).type;
+    npc_action::ActionType action_type = db.get_action_type(m_npc_id);
 
     m_state.input.attack = false;
 
     switch (action_type) {
-        case NPCAction::GO_TO_DESTINATION:
-        case NPCAction::FOLLOW: {
+        case npc_action::GO_TO_DESTINATION:
+        case npc_action::FOLLOW: {
             update_moving(scene, delta_time);
             break;
         }
-        case NPCAction::WARP: {
+        case npc_action::WARP: {
             update_warp(scene, delta_time);
             m_state.input.direction = glm::vec3{0.0f};
             break;
         }
-        case NPCAction::ATTACK: {
+        case npc_action::ATTACK: {
             update_attack(scene, delta_time);
             break;
         }
@@ -186,21 +200,13 @@ void NPCController::update_input(prt3::Scene & scene, float delta_time) {
 void NPCController::update_moving(prt3::Scene & /*scene*/, float delta_time) {
     NPCDB & db = m_game_state->npc_db();
     NPC & npc = db.get_npc(m_npc_id);
-    NPCAction & action = db.peek_schedule(m_npc_id);
 
-    m_state.input.run = action.type == NPCAction::GO_TO_DESTINATION ?
-        action.u.go_to_dest.running : action.u.follow.running;
+    m_state.input.run = is_running(db, m_npc_id);
 
     glm::vec3 target_dir = npc.direction;
     target_dir.y = 0.0f;
 
-    if (target_dir == glm::vec3{0.0f}) {
-        ++m_missing_path_count;
-    } else {
-        m_missing_path_count = 0;
-    }
-
-    if (m_missing_path_count > 1) {
+    if (path_id(db, m_npc_id) == NO_MAP_PATH) {
         m_state.input.direction = glm::vec3{0.0f};
     } else if (target_dir != glm::vec3{0.0f}) {
         target_dir = glm::normalize(target_dir);
@@ -208,24 +214,24 @@ void NPCController::update_moving(prt3::Scene & /*scene*/, float delta_time) {
     }
 
     if (m_movement_performance < 0.2f) {
-        db.pop_schedule(m_npc_id, ScheduleStatus::stuck_on_path);
+        db.set_stuck(m_npc_id);
+        db.queue_clear_action(m_npc_id);
     }
 }
 
 void NPCController::update_warp(prt3::Scene & scene, float /*delta_time*/) {
     NPCDB & db = m_game_state->npc_db();
     NPC & npc = db.get_npc(m_npc_id);
-    NPCAction & action = db.peek_schedule(m_npc_id);
-    auto & warp = action.u.warp;
+    npc_action::Warp & warp = db.get_action<npc_action::Warp>(m_npc_id);
 
     float alpha;
     switch (warp.phase) {
-        case NPCAction::U::Warp::Phase::fade_in: {
+        case npc_action::Warp::Phase::fade_in: {
             alpha = 1.0f -
                 glm::clamp(float(warp.timer) / warp.fade_time, 0.0f, 1.0f);
             break;
         }
-        case NPCAction::U::Warp::Phase::fade_out: {
+        case npc_action::Warp::Phase::fade_out: {
             alpha = glm::clamp(float(warp.timer) / warp.fade_time, 0.0f, 1.0f);
             break;
         }
@@ -241,19 +247,18 @@ void NPCController::update_warp(prt3::Scene & scene, float /*delta_time*/) {
 
 void NPCController::update_attack(prt3::Scene & scene, float delta_time) {
     NPCDB & db = m_game_state->npc_db();
-    NPCAction & action = db.peek_schedule(m_npc_id);
+    npc_action::Attack & attack = db.get_action<npc_action::Attack>(m_npc_id);
 
-    if (action.u.attack.activated) {
+    if (attack.activated) {
         return;
     }
-    action.u.attack.activated = true;
+    attack.activated = true;
 
     prt3::Node & node = scene.get_node(node_id());
 
     prt3::Transform tform = node.get_global_transform(scene);
 
-    glm::vec3 target =
-        db.get_target_position(scene, action.u.attack.target).position;
+    glm::vec3 target = db.get_target_position(scene, attack.target).position;
     glm::vec3 dir = target - tform.position;
     dir.y = 0.0f;
     if (dir != glm::vec3{0.0f}) {
