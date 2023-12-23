@@ -156,7 +156,7 @@ void ParticleSystem::emit_particle(Scene & scene, Particle & particle) {
 
             float theta = 2.0f * glm::pi<float>() * random_float();
 
-            pos = glm::cos(theta) * a + glm::sin(theta) * b;
+            pos = circle.radius * (glm::cos(theta) * a + glm::sin(theta) * b);
 
             dir = glm::mat3{tform.to_matrix()} * circle.direction;
             break;
@@ -213,7 +213,7 @@ void ParticleSystem::update_system(Scene & scene, float delta_time) {
     glm::vec3 gf =
         params.gravity * glm::vec3{0.0f, -1.0f, 0.0f} * delta_time;
 
-    bool should_emit = false;
+    unsigned emit_count = 0;
 
     if (params.max_particles != m_particles.size()) {
         m_particles.resize(params.max_particles);
@@ -221,7 +221,8 @@ void ParticleSystem::update_system(Scene & scene, float delta_time) {
 
     if (params.emission_rate * m_particle_timer >= 1.0f) {
         /* emit particle */
-        should_emit = true;
+        emit_count =
+            static_cast<unsigned>(params.emission_rate * m_particle_timer);
         m_particle_timer -= 1.0f / params.emission_rate;
     }
 
@@ -230,8 +231,8 @@ void ParticleSystem::update_system(Scene & scene, float delta_time) {
             particle.alive = false;
         }
 
-        if (!particle.alive && should_emit) {
-            should_emit = false;
+        if (!particle.alive && emit_count > 0) {
+            --emit_count;
             emit_particle(scene, particle);
             continue;
         }
