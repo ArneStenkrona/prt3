@@ -36,6 +36,7 @@ public:
     Scene(Context & context);
 
     void serialize(std::ostream & out) const;
+
     void deserialize(std::istream & in);
 
     void serialize_components(std::ostream & out, NodeID id) const
@@ -113,7 +114,7 @@ public:
 
     void * get_internal_texture_id(ResourceID id) const;
 
-    NodeID get_root_id() const { return s_root_id; }
+    NodeID root_id() const { return s_root_id; }
 
     bool remove_node(NodeID id);
 

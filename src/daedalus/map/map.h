@@ -22,6 +22,7 @@
 namespace dds {
 
 typedef uint32_t RoomID;
+constexpr RoomID NO_ROOM = static_cast<RoomID>(-1);
 typedef int32_t LocationID;
 constexpr LocationID NO_LOCATION = -1;
 

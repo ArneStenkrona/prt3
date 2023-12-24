@@ -29,7 +29,8 @@ public:
         JUMP             = 1 << 7,
         FALL             = 1 << 8,
         LAND             = 1 << 9,
-        TOTAL_NUM_STATES = 10 // number of states, excluding 'none'
+        CAST_SPELL        = 1 << 10,
+        TOTAL_NUM_STATES = 11 // number of states, excluding 'none'
     };
     static constexpr StateType all_states = ~0;
 
@@ -48,6 +49,7 @@ public:
         bool run;
         bool attack;
         bool jump;
+        bool cast_spell;
     };
 
     struct CharacterState {
@@ -58,7 +60,7 @@ public:
         glm::vec3 velocity = glm::vec3{0.0f};
         glm::vec3 force = glm::vec3{0.0f};
         float friction = 10.0f;
-        float coyote_time = 0.1f;
+        float coyote_time = 0.15f;
         State state = IDLE;
         State queued_state = NONE;
         float transition = 0.0f;
@@ -162,6 +164,7 @@ protected:
             case JUMP: return m_state_data[7];
             case FALL: return m_state_data[8];
             case LAND: return m_state_data[9];
+            case CAST_SPELL: return m_state_data[10];
             default: { assert(false); return m_state_data[0]; }
         }
     }

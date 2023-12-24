@@ -7,6 +7,7 @@ namespace dds {
 
 typedef uint32_t DDSID;
 typedef DDSID NPCID;
+typedef DDSID ObjectID;
 
 enum IDType : DDSID {
     dds_id_type_npc,

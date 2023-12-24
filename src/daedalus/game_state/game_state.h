@@ -10,6 +10,7 @@
 #include "src/engine/component/script/script.h"
 #include "src/daedalus/character/player_controller.h"
 #include "src/daedalus/game_state/item_db.h"
+#include "src/daedalus/game_state/object_db.h"
 #include "src/daedalus/game_state/prefab_db.h"
 #include "src/engine/component/script/camera_controller.h"
 #include "src/engine/scene/scene.h"
@@ -62,8 +63,11 @@ public:
 
     Map & map() { return m_map; }
     NPCDB & npc_db() { return m_npc_db; }
-    ItemDB const & item_db() { return m_item_db; }
-    PrefabDB const & prefab_db() { return m_prefab_db; }
+    ItemDB const & item_db() const { return m_item_db; }
+    ItemDB & item_db() { return m_item_db; }
+    PrefabDB const & prefab_db() const { return m_prefab_db; }
+    ObjectDB const & object_db() const { return m_object_db; }
+    ObjectDB & object_db() { return m_object_db; }
 
     TimeMS current_time() const { return m_current_time; }
 
@@ -76,6 +80,7 @@ private:
     NPCDB m_npc_db;
     ItemDB m_item_db;
     PrefabDB m_prefab_db;
+    ObjectDB m_object_db;
     RoomID m_current_room = 0;
     GameGui m_game_gui;
 

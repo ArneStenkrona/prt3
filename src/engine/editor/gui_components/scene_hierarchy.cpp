@@ -20,7 +20,7 @@ using namespace prt3;
 
 void prt3::scene_hierarchy(EditorContext & context) {
     Scene & scene = context.context().edit_scene();
-    NodeID root_id = scene.get_root_id();
+    NodeID root_id = scene.root_id();
     std::vector<Node> & nodes = context.get_scene_nodes();
 
     thread_local std::vector<NodeID> node_ids;
@@ -137,7 +137,7 @@ void prt3::scene_hierarchy(EditorContext & context) {
 
         NodeID parent = context.get_selected_node();
         if (parent == NO_NODE) {
-            parent = scene.get_root_id();
+            parent = scene.root_id();
         }
 
         context.editor().perform_action<ActionAddNode>(
@@ -147,7 +147,7 @@ void prt3::scene_hierarchy(EditorContext & context) {
     }
 
     if (context.get_selected_node() != NO_NODE &&
-        context.get_selected_node() != context.scene().get_root_id()) {
+        context.get_selected_node() != context.scene().root_id()) {
         ImGui::SameLine();
         if (ImGui::Button("remove node")) {
             NodeID to_remove = context.get_selected_node();
@@ -178,7 +178,7 @@ void prt3::scene_hierarchy(EditorContext & context) {
 
             NodeID parent = context.get_selected_node();
             if (parent == NO_NODE) {
-                parent = scene.get_root_id();
+                parent = scene.root_id();
             }
 
             context.editor().perform_action<ActionInstantiatePrefab>(

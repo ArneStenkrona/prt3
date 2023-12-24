@@ -99,6 +99,17 @@ void ParticleSystem::set_default_parameters() {
     params.max_particles = 64;
 }
 
+void ParticleSystem::advance_simulation(
+    Scene & scene,
+    float duration,
+    float delta_time
+) {
+    for (float t = 0.0f; t < duration; t += delta_time) {
+        update_system(scene, delta_time);
+    }
+}
+
+
 void ParticleSystem::init(Scene & scene, float delta_time) {
     m_particles.resize(m_parameters.max_particles);
     for (Particle & particle : m_particles) {
@@ -123,10 +134,10 @@ void ParticleSystem::init(Scene & scene, float delta_time) {
         }
     }
 
+    m_active_particles = 0;
+
     if (m_parameters.prewarm) {
-        for (float t = 0.0f; t < m_parameters.lifetime.max; t += delta_time) {
-            update_system(scene, delta_time);
-        }
+        advance_simulation(scene, m_parameters.lifetime.max, delta_time);
     }
 
     m_init = true;
@@ -190,6 +201,8 @@ void ParticleSystem::emit_particle(Scene & scene, Particle & particle) {
     particle.scale = particle.start_scale;
     particle.dampening = params.dampening.apply();
     particle.alive = true;
+
+    ++m_active_particles;
 }
 
 static inline uint32_t get_frame(
@@ -227,8 +240,9 @@ void ParticleSystem::update_system(Scene & scene, float delta_time) {
     }
 
     for (Particle & particle : m_particles) {
-        if (particle.t >= particle.lifetime) {
+        if (particle.alive && particle.t >= particle.lifetime) {
             particle.alive = false;
+            --m_active_particles;
         }
 
         if (!particle.alive && emit_count > 0) {

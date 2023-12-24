@@ -154,7 +154,7 @@ prt3::NodeID Map::map_node_to_new_scene_node(
 
     int32_t parent_index = model_node.parent_index;
 
-    prt3::NodeID parent_id = scene.get_root_id();
+    prt3::NodeID parent_id = scene.root_id();
     auto it = ctx.model_node_to_scene_node.find(parent_index);
     if (it != ctx.model_node_to_scene_node.end()) {
         parent_id = it->second;
@@ -559,7 +559,7 @@ Map Map::parse_map_from_model(char const * path) {
         prt3::Scene scene{prt3_context};
         // TODO: Implement a scene name instead since root node name can be
         //       overwritten.
-        scene.get_node_name(scene.get_root_id()) =
+        scene.get_node_name(scene.root_id()) =
             (std::string("room") + std::to_string(room_index)).c_str();
 
         scene.ambient_light() = glm::vec3{0.7};
@@ -754,7 +754,7 @@ std::string Map::room_to_scene_path(RoomID room_id) {
 }
 
 RoomID Map::scene_to_room(prt3::Scene const & scene) {
-    char const * root_name = scene.get_node_name(scene.get_root_id()).data();
+    char const * root_name = scene.get_node_name(scene.root_id()).data();
     uint32_t id32;
     int res = sscanf(root_name + strlen("room"), "%" SCNu32, &id32);
     if (res == EOF) {

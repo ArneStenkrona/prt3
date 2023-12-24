@@ -20,7 +20,7 @@ void new_scene(EditorContext & context) {
 
     context.editor().action_manager().clear();
     context.editor().action_manager().reset_action_count();
-    context.set_selected_node(context.scene().get_root_id());
+    context.set_selected_node(context.scene().root_id());
 }
 
 void save_scene(EditorContext & context, std::string const & path) {
@@ -45,7 +45,7 @@ void load_scene(EditorContext & context, std::string const & path) {
 
     context.editor().action_manager().clear();
     context.editor().action_manager().reset_action_count();
-    context.set_selected_node(context.scene().get_root_id());
+    context.set_selected_node(context.scene().root_id());
 }
 
 void save_project(Project & project, std::string const & path) {

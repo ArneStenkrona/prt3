@@ -21,31 +21,6 @@ class ComponentManager;
 
 class ParticleSystem {
 public:
-    ParticleSystem(
-        Scene & scene,
-        NodeID node_id
-    );
-
-    ParticleSystem(Scene & scene, NodeID node_id, std::istream & in);
-
-    NodeID node_id() const { return m_node_id; }
-
-    ResourceID const & texture_id() const { return m_parameters.texture_id; }
-    ResourceID & texture_id() { return m_parameters.texture_id; }
-
-    static void collect_render_data(
-        std::vector<ParticleSystem> const & components,
-        ParticleData & data
-    );
-
-    void serialize(
-        std::ostream & out,
-        Scene const & scene
-    ) const;
-
-    static char const * name() { return "Particle System"; }
-    static constexpr UUID uuid = 6487834433703112638ull;
-
     struct Particle {
         glm::vec3 position;
         float t;
@@ -129,6 +104,48 @@ public:
         uint32_t max_particles;
     };
 
+    ParticleSystem(
+        Scene & scene,
+        NodeID node_id
+    );
+
+    ParticleSystem(Scene & scene, NodeID node_id, std::istream & in);
+
+    NodeID node_id() const { return m_node_id; }
+
+    ResourceID const & texture_id() const { return m_parameters.texture_id; }
+    ResourceID & texture_id() { return m_parameters.texture_id; }
+
+    inline uint32_t active_particles() const
+    { return m_active_particles; }
+
+    inline Parameters const & parameters() const {
+        return m_parameters;
+    }
+
+    inline Parameters & parameters() {
+        return m_parameters;
+    }
+
+    void set_parameters(Parameters const & parameters) {
+        m_parameters = parameters;
+    }
+
+    static void collect_render_data(
+        std::vector<ParticleSystem> const & components,
+        ParticleData & data
+    );
+
+    void advance_simulation(Scene & scene, float duration, float delta_time);
+
+    void serialize(
+        std::ostream & out,
+        Scene const & scene
+    ) const;
+
+    static char const * name() { return "Particle System"; }
+    static constexpr UUID uuid = 6487834433703112638ull;
+
 private:
     NodeID m_node_id;
 
@@ -139,6 +156,8 @@ private:
     float m_particle_timer;
 
     bool m_init = false;
+
+    uint32_t m_active_particles = 0;
 
     void set_default_parameters();
 

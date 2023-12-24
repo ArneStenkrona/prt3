@@ -195,12 +195,12 @@ void Scene::find_relative_path(
     unsigned int depth_a = 0;
     unsigned int depth_b = 0;
     NodeID a_curr_id = a_id;
-    while (a_curr_id != get_root_id()) {
+    while (a_curr_id != root_id()) {
         ++depth_a;
         a_curr_id = get_node(a_curr_id).parent_id();
     }
     NodeID b_curr_id = b_id;
-    while (b_curr_id != get_root_id()) {
+    while (b_curr_id != root_id()) {
         ++depth_b;
         b_curr_id = get_node(b_curr_id).parent_id();
     }

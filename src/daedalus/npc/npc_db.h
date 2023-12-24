@@ -47,6 +47,11 @@ struct NPC {
     void (*update)(NPCID, NPCDB &, prt3::Scene &);
 };
 
+struct ActionTimestamp {
+    TimeMS timestamp;
+    npc_action::ActionType type;
+};
+
 class NPCDB {
 public:
     NPCDB(GameState & game_state);
@@ -55,11 +60,15 @@ public:
 
     void on_scene_exit();
 
+    // Only legal if action type isn't none
+    TimeMS get_action_timestamp(NPCID id) const
+    { return m_current_actions[id].timestamp; }
+
     npc_action::ActionType get_action_type(NPCID id) const
-    { return m_current_actions[id]; }
+    { return m_current_actions[id].type; }
 
     bool has_no_action(NPCID id) const
-    { return m_current_actions[id] == npc_action::NONE; }
+    { return m_current_actions[id].type == npc_action::NONE; }
 
     template<typename T>
     T & get_action(NPCID id)
@@ -99,12 +108,15 @@ public:
 
     void set_stuck(NPCID id);
 
+    inline bool is_loaded(NPCID id) const
+    { return m_loaded_npcs.find(id) != m_loaded_npcs.end(); }
+
 private:
     std::vector<NPC> m_npcs;
     std::unordered_map<NPCID, prt3::NodeID> m_loaded_npcs;
 
     ActionDatabase m_action_db;
-    std::vector<npc_action::ActionType> m_current_actions;
+    std::vector<ActionTimestamp> m_current_actions;
     std::unordered_map<NPCID, npc_action::ActionUnion> m_new_actions;
 
     GameState & m_game_state;
@@ -140,7 +152,7 @@ private:
 
         for (NPCID id : remove_list) {
             table.remove_entry(id);
-            m_current_actions[id] = npc_action::NONE;
+            m_current_actions[id].type = npc_action::NONE;
         }
         remove_list.clear();
 

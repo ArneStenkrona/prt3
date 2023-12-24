@@ -6,6 +6,7 @@ static char const * const id_to_str[PrefabDB::n_prefab_ids] = {
     "assets/prefabs/player.prefab", // player
     "assets/prefabs/camera.prefab", // camera
     "assets/prefabs/cool_turkey.prefab", // dark_flames
+    "assets/prefabs/flame_pillar.prefab", // flame_illar
 };
 
 PrefabDB::PrefabDB() {

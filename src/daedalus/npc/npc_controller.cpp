@@ -64,9 +64,9 @@ void NPCController::on_init(prt3::Scene & scene) {
         get_node(scene).set_global_position(scene, hit.position);
     }
 
-    m_walk_anim_speed_a = 2.0f;
-    m_walk_anim_speed_b = 2.0f;
-    m_run_anim_speed = 2.5f;
+    m_walk_anim_speed_a = 2.5f;
+    m_walk_anim_speed_b = 2.5f;
+    m_run_anim_speed = 3.0f;
 
     m_walk_force = npc.walk_force * dds::time_scale;
     m_run_force = npc.run_force * dds::time_scale;
@@ -175,6 +175,7 @@ void NPCController::update_input(prt3::Scene & scene, float delta_time) {
     npc_action::ActionType action_type = db.get_action_type(m_npc_id);
 
     m_state.input.attack = false;
+    m_state.input.cast_spell = false;
 
     switch (action_type) {
         case npc_action::GO_TO_DESTINATION:
@@ -189,6 +190,10 @@ void NPCController::update_input(prt3::Scene & scene, float delta_time) {
         }
         case npc_action::ATTACK: {
             update_attack(scene, delta_time);
+            break;
+        }
+        case npc_action::USE_ITEM: {
+            update_use_item(scene, delta_time);
             break;
         }
         default: {
@@ -267,4 +272,44 @@ void NPCController::update_attack(prt3::Scene & scene, float delta_time) {
     }
 
     m_state.input.attack = true;
+}
+
+void NPCController::update_use_item(prt3::Scene & scene, float /*delta_time*/) {
+    NPCDB & db = m_game_state->npc_db();
+    npc_action::UseItem & use_item =
+        db.get_action<npc_action::UseItem>(m_npc_id);
+
+    if (use_item.activated && m_state.state == CAST_SPELL) {
+        prt3::Armature & armature =
+            scene.get_component<prt3::Armature>(node_id());
+        prt3::Animation & anim =
+            scene.animation_system().get_animation(armature.animation_id());
+        prt3::Model const & model =
+            scene.get_model(armature.model_handle());
+
+        float frac = anim.clip_a.frac(model);
+        if (frac > 0.5f) {
+            db.game_state().item_db().use(
+                m_npc_id,
+                use_item.item,
+                db.get_target_position(scene, use_item.target)
+            );
+            db.queue_clear_action(m_npc_id);
+        }
+
+        return;
+    }
+    if (m_state.state != CAST_SPELL &&
+        m_game_state->item_db().is_spell(use_item.item)) {
+        use_item.activated = true;
+        m_state.input.cast_spell = true;
+    }
+
+    if (m_state.state != CAST_SPELL &&
+        m_game_state->current_time() - db.get_action_timestamp(m_npc_id) >
+            dds::ms_per_frame * 60) {
+        /* Couldn't set character set, give up */
+        db.queue_clear_action(m_npc_id);
+        return;
+    }
 }

@@ -10,6 +10,8 @@ GameState::GameState(prt3::Scene & scene, prt3::NodeID node_id)
  : Script(scene, node_id),
    m_map{MAP_PATH},
    m_npc_db{*this},
+   m_item_db{*this},
+   m_object_db{*this},
    m_game_gui{scene} {
     init_resources(scene);
 }
@@ -22,6 +24,8 @@ GameState::GameState(
  : prt3::Script(scene, m_node_id),
    m_map{MAP_PATH},
    m_npc_db{*this},
+   m_item_db{*this},
+   m_object_db{*this},
    m_game_gui{scene} {
     init_resources(scene);
 }
@@ -97,8 +101,6 @@ void GameState::on_start(prt3::Scene & scene) {
 
     m_current_room = Map::scene_to_room(scene);
 
-    m_current_time = 0;
-
     glm::vec3 spawn_position{};
     for (prt3::Door const & door : scene.get_all_components<prt3::Door>()) {
         if (door.id() == m_entry_door_id) {
@@ -113,7 +115,7 @@ void GameState::on_start(prt3::Scene & scene) {
         }
     }
     prt3::Prefab const & player_prefab = m_prefab_db.get(PrefabDB::player);
-    m_player_id = player_prefab.instantiate(scene, scene.get_root_id());
+    m_player_id = player_prefab.instantiate(scene, scene.root_id());
     prt3::Node & player = scene.get_node(m_player_id);
     player.set_global_position(scene, spawn_position);
 
@@ -122,7 +124,7 @@ void GameState::on_start(prt3::Scene & scene) {
     controller->deserialize_state(scene, m_player_state);
 
     prt3::Prefab const & camera_prefab = m_prefab_db.get(PrefabDB::camera);
-    m_camera_id = camera_prefab.instantiate(scene, scene.get_root_id());
+    m_camera_id = camera_prefab.instantiate(scene, scene.root_id());
     prt3::CameraController & cam =
         *scene.get_component<prt3::ScriptSet>(m_camera_id)
             .get_script<prt3::CameraController>(scene);
@@ -148,6 +150,8 @@ void GameState::on_start(prt3::Scene & scene) {
 
 void GameState::on_update(prt3::Scene & scene, float) {
     m_npc_db.update(scene);
+    m_item_db.update();
+    m_object_db.update(scene);
     m_current_time += dds::ms_per_frame;
 }
 
@@ -186,6 +190,8 @@ void GameState::register_interactable(Interactable & candidate) {
 }
 
 void GameState::init_resources(prt3::Scene & scene) {
+    m_current_time = 0;
+
     // sound
     m_midi =
         scene.audio_manager().load_midi("assets/audio/tracks/enter.mid");

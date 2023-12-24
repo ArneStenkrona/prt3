@@ -14,6 +14,7 @@ public:
         player,
         camera,
         dark_flames,
+        flame_pillar,
         n_prefab_ids,
         none = n_prefab_ids
     };

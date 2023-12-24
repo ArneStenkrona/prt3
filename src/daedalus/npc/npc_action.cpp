@@ -186,19 +186,32 @@ void dds::npc_action::WaitUntil::update(
 }
 
 void dds::npc_action::UseItem::update(
-    prt3::Scene & /*scene*/,
-    NPCDB & /*db*/,
-    UseItem * /*entries*/,
+    prt3::Scene & scene,
+    NPCDB & db,
+    UseItem * entries,
     NPCID const * index_to_id,
     size_t n_entries,
     std::vector<NPCID> & remove_list
 ) {
     for (uint32_t index = 0; index < n_entries; ++index) {
-        // auto & entry = entries[index];
+        auto & entry = entries[index];
         NPCID id = index_to_id[index];
-        // TODO: implement
-        remove_list.push_back(id);
+        NPC & npc = db.get_npc(id);
 
+        /* If npc is loaded we let the npc controller handle this */
+        if (npc.map_position.room != db.game_state().current_room()) {
+            Item const & item = db.game_state().item_db().get(entry.item);
+            if (db.get_action_timestamp(id) + item.use_duration <
+                db.game_state().current_time()) {
+
+                db.game_state().item_db().use(
+                    id,
+                    entry.item,
+                    db.get_target_position(scene, entry.target)
+                );
+                remove_list.push_back(id);
+            }
+        }
     }
 }
 

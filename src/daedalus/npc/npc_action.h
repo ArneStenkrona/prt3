@@ -90,8 +90,9 @@ struct WaitUntil {
 };
 
 struct UseItem {
-    ItemDB::ItemID item;
+    ItemID item;
     AnyID target;
+    bool activated;
     static void update(
         prt3::Scene & scene,
         NPCDB & db,

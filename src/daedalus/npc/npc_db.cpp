@@ -41,17 +41,30 @@ void npc_update_test(
         }
     }
 
-    float dist = glm::distance(npc.map_position.position, player_pos);
-    float melee_threshold = 3.5f;
-    if (dist < melee_threshold) {
-        if (npc_db.has_no_action(id) ||
-            npc_db.get_action_type(id) == npc_action::FOLLOW) {
-            npc_action::Attack attack;
-            attack.target.id = 0; // d/c for player
-            attack.target.type = IDType::dds_id_type_player;
-            attack.timer = 0;
-            attack.activated = false;
-            npc_db.queue_action<npc_action::Attack>(id, std::move(attack));
+    if (npc_db.get_action_type(id) == npc_action::FOLLOW) {
+        float dist = glm::distance(npc.map_position.position, player_pos);
+        float arcane_threshold = 12.5f;
+        float melee_threshold = 3.5f;
+
+        if (dist < arcane_threshold &&
+            npc_db.game_state().item_db().ready_to_use(
+                id, ItemID::item_spell_flame_pillar
+        )) {
+            npc_action::UseItem use_item;
+            use_item.item = ItemID::item_spell_flame_pillar;
+            use_item.target.type = IDType::dds_id_type_player;
+            use_item.activated = false;
+            npc_db.queue_action<npc_action::UseItem>(id, std::move(use_item));
+        } else if (dist < melee_threshold) {
+            if (npc_db.has_no_action(id) ||
+                npc_db.get_action_type(id) == npc_action::FOLLOW) {
+                npc_action::Attack attack;
+                attack.target.id = 0; // d/c for player
+                attack.target.type = IDType::dds_id_type_player;
+                attack.timer = 0;
+                attack.activated = false;
+                npc_db.queue_action<npc_action::Attack>(id, std::move(attack));
+            }
         }
     }
 }
@@ -69,8 +82,8 @@ NPCDB::NPCDB(GameState & game_state)
     npc.prefab_id = PrefabDB::dark_flames;
     npc.collider_radius = 1.0f;
     npc.collider_length = 3.75f;
-    npc.walk_force = 39.0f / dds::time_scale;
-    npc.run_force = 90.0f / dds::time_scale;
+    npc.walk_force = 50.0f / dds::time_scale;
+    npc.run_force = 118.0f / dds::time_scale;
 
     npc.mode = NPC::Mode::active;
     npc.update = npc_update_test;
@@ -113,9 +126,12 @@ void NPCDB::update_npcs(prt3::Scene & scene) {
 void NPCDB::update_action_queues() {
     for (auto & pair : m_new_actions) {
         NPCID id = pair.first;
-        if (m_current_actions[id] != npc_action::NONE) {
-            m_action_db.remove_entry_by_table_index(m_current_actions[id], id);
-            m_current_actions[id] = npc_action::NONE;
+        if (m_current_actions[id].type != npc_action::NONE) {
+            m_action_db.remove_entry_by_table_index(
+                m_current_actions[id].type,
+                id
+            );
+            m_current_actions[id].type = npc_action::NONE;
         }
 
         npc_action::ActionUnion & au = pair.second;
@@ -125,7 +141,8 @@ void NPCDB::update_action_queues() {
 
         void * action_p = reinterpret_cast<void*>(&au.u);
         m_action_db.add_entry_by_table_index(au.type, id, action_p);
-        m_current_actions[id] = au.type;
+        m_current_actions[id].timestamp = m_game_state.current_time();
+        m_current_actions[id].type = au.type;
         /* clear status when new action is set */
         if (au.type != npc_action::GO_TO_DESTINATION &&
             au.type != npc_action::FOLLOW) {
@@ -155,10 +172,7 @@ MapPosition NPCDB::get_target_position(
             return m_npcs[target.id].map_position;
         }
         case IDType::dds_id_type_object: {
-            /* TODO: implement */
-            MapPosition res;
-            res.position = glm::vec3{0.0f};
-            return res;
+            return m_game_state.object_db().get_object(target.id).position;
         }
         case IDType::dds_id_type_item: {
             // nonsensical
@@ -172,7 +186,7 @@ MapPosition NPCDB::get_target_position(
 NPCID NPCDB::push_npc() {
     NPCID id = m_npcs.size();
     m_npcs.push_back({});
-    m_current_actions.push_back(npc_action::NONE);
+    m_current_actions.push_back({0, npc_action::NONE});
     return id;
 }
 

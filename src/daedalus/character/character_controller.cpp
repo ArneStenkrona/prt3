@@ -129,6 +129,17 @@ void CharacterController::on_init(prt3::Scene & scene) {
         .inherit_animation_time = false
     };
 
+    get_state_data(CAST_SPELL) = {
+        .transition = 0.05f,
+        .clip_a = { .animation_index = model.get_animation_index("cast", 0),
+                    .speed = 2.0f,
+                    .paused = false,
+                    .looping = false },
+        .clip_b = { .animation_index = prt3::NO_ANIMATION},
+        .can_change_direction = false,
+        .inherit_animation_time = false
+    };
+
     if (!m_state.transition_complete) {
         init_state(scene);
     }
@@ -151,27 +162,27 @@ bool CharacterController::transition_state(
     StateType queueable_mask = NONE;
     switch (m_state.state) {
         case IDLE: {
-            transition_mask = WALK | ATTACK_1 | JUMP;
+            transition_mask = WALK | ATTACK_1 | JUMP | CAST_SPELL;
             if (m_state.grounded_timer > m_state.coyote_time) transition_mask |= FALL;
             queueable_mask = transition_mask;
             break;
         }
         case WALK: {
-            transition_mask = IDLE | RUN | ATTACK_1 | JUMP;
+            transition_mask = IDLE | RUN | ATTACK_1 | JUMP | CAST_SPELL;
             if (m_state.grounded_timer > m_state.coyote_time) transition_mask |= FALL;
             queueable_mask = transition_mask;
             break;
         }
         case RUN: {
-            transition_mask = IDLE | WALK | ATTACK_1 | JUMP;
+            transition_mask = IDLE | WALK | ATTACK_1 | JUMP | CAST_SPELL;
             if (m_state.grounded_timer > m_state.coyote_time) transition_mask |= FALL;
             queueable_mask = transition_mask;
             break;
         }
         case ATTACK_1: {
-            queueable_mask = ATTACK_2 | JUMP;
+            queueable_mask = ATTACK_2 | JUMP | CAST_SPELL;
             if (a_frac >= 1.0f) {
-                transition_mask = IDLE | WALK | ATTACK_2;
+                transition_mask = IDLE | WALK | ATTACK_2 | CAST_SPELL;
                 queueable_mask |= IDLE | WALK;
             } else if (a_frac >= 0.467f) {
                 transition_mask = ATTACK_2;
@@ -186,9 +197,9 @@ bool CharacterController::transition_state(
         }
         case ATTACK_2: {
             // busy = false;
-            queueable_mask = ATTACK_1 | JUMP;
+            queueable_mask = ATTACK_1 | JUMP | CAST_SPELL;
             if (a_frac >= 1.0f) {
-                transition_mask = IDLE | WALK | ATTACK_1;
+                transition_mask = IDLE | WALK | ATTACK_1 | CAST_SPELL;
                 queueable_mask |= IDLE | WALK;
             } else if (a_frac >= 0.467f) {
                 transition_mask = ATTACK_1;
@@ -259,13 +270,26 @@ bool CharacterController::transition_state(
             break;
         }
         case LAND: {
-            queueable_mask = JUMP | ATTACK_1;
+            queueable_mask = JUMP | ATTACK_1 | CAST_SPELL;
             if (a_frac >= 1.0f) {
                 transition_mask = IDLE;
                 queueable_mask |= IDLE;
             } else if (a_frac >= 0.25f) {
-                transition_mask = WALK | JUMP | ATTACK_1;
+                transition_mask = WALK | JUMP | ATTACK_1 | CAST_SPELL;
                 queueable_mask |= WALK;
+            }
+            break;
+        }
+        case CAST_SPELL: {
+            queueable_mask = ATTACK_1 | JUMP | CAST_SPELL;
+            if (a_frac >= 1.0f) {
+                transition_mask = IDLE | WALK | ATTACK_1 | CAST_SPELL;
+                queueable_mask |= IDLE | WALK;
+            }
+
+            if (m_state.grounded_timer > m_state.coyote_time) {
+                transition_mask |= FALL;
+                queueable_mask |= FALL;
             }
             break;
         }
@@ -305,6 +329,10 @@ bool CharacterController::transition_state(
 
     if (m_state.input.jump) {
         attempt_queue_state(JUMP);
+    }
+
+    if (m_state.input.cast_spell) {
+        attempt_queue_state(CAST_SPELL);
     }
 
     if (m_state.grounded) {
@@ -533,6 +561,10 @@ void CharacterController::handle_state(prt3::Scene & scene, float delta_time) {
             break;
         }
         case LAND: {
+            m_state.force = glm::vec3{0.0f};
+            break;
+        }
+        case CAST_SPELL: {
             m_state.force = glm::vec3{0.0f};
             break;
         }

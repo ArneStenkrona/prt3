@@ -41,6 +41,7 @@ private:
     void update_moving(prt3::Scene & scene, float delta_time);
     void update_warp(prt3::Scene & scene, float delta_time);
     void update_attack(prt3::Scene & scene, float delta_time);
+    void update_use_item(prt3::Scene & scene, float delta_time);
 
     virtual void update_input(prt3::Scene & /*scene*/, float /*delta_time*/);
 
