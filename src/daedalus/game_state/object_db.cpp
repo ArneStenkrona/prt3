@@ -64,6 +64,9 @@ TimeMS ObjectDB::current_time() {
 ObjectDB::ObjectDB(GameState & game_state)
  : m_game_state{game_state} {}
 
+void ObjectDB::on_scene_start() {
+    m_loaded_objects.clear();
+}
 
 void ObjectDB::update(prt3::Scene & scene) {
     load_objects(scene);

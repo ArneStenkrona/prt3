@@ -110,6 +110,8 @@ public:
 
     TimeMS current_time();
 
+    void on_scene_start();
+
     void update(prt3::Scene & scene);
 
     prt3::NodeID get_loaded_object(ObjectID id) const {

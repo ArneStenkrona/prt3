@@ -3,6 +3,8 @@
 #include "src/daedalus/game_state/game_state.h"
 #include "src/daedalus/npc/npc_controller.h"
 
+#include "src/util/geometry_util.h"
+
 using namespace dds;
 
 void npc_update_test(
@@ -78,10 +80,10 @@ NPCDB::NPCDB(GameState & game_state)
     npc.map_position.room = 4;
     npc.map_position.position = glm::vec3{-4.0f, 0.5f, -0.5f};
     npc.model_path = "assets/models/boss1/boss1.fbx";
-    npc.model_scale = glm::vec3{0.62f};
+    npc.model_scale = 0.62f;
     npc.prefab_id = PrefabDB::dark_flames;
     npc.collider_radius = 1.0f;
-    npc.collider_length = 3.75f;
+    npc.collider_height = 3.75f;
     npc.walk_force = 50.0f / dds::time_scale;
     npc.run_force = 118.0f / dds::time_scale;
 
@@ -101,6 +103,8 @@ void NPCDB::update(prt3::Scene & scene) {
 }
 
 void NPCDB::update_npcs(prt3::Scene & scene) {
+    move_npcs_between_rooms();
+
     load_npcs(scene);
 
     for (auto it = m_loaded_npcs.begin();
@@ -198,12 +202,12 @@ void NPCDB::load_npc(prt3::Scene & scene, NPCID id) {
 
     prt3::Node & node = scene.get_node(node_id);
     node.set_global_position(scene, npc.map_position.position);
-    node.set_global_scale(scene, npc.model_scale);
+    node.set_global_scale(scene, glm::vec3{npc.model_scale});
 
     prt3::Capsule capsule{};
     capsule.radius = npc.collider_radius;
     capsule.start.y = npc.collider_radius;
-    capsule.end.y = npc.collider_radius + npc.collider_length;
+    capsule.end.y = npc.collider_radius + npc.collider_height;
     scene.add_component<prt3::ColliderComponent>(
         node_id,
         prt3::ColliderType::collider,
@@ -243,4 +247,74 @@ void NPCDB::set_stuck(NPCID id) {
         m_npcs[id].stuck_since = m_game_state.current_time();
     }
     m_npcs[id].stuck = true;
+}
+
+void NPCDB::move_npcs_between_rooms() {
+    thread_local std::vector<prt3::ColliderID> ids;
+    ids.clear();
+
+    Map & map = m_game_state.map();
+
+    struct IntersectRes {
+        NPCID npc_id;
+        int32_t num;
+    };
+
+    thread_local std::vector<IntersectRes> res;
+    res.clear();
+
+    for (NPCID i = 0; i < m_npcs.size(); ++i) {
+        NPC & npc = m_npcs[i];
+        RoomID room_id = npc.map_position.room;
+
+        prt3::AABB aabb = npc.get_aabb();
+
+        size_t before = ids.size();
+        map.query_doors(room_id, aabb, ids);
+
+        if (ids.size() > before) {
+            int32_t n_ids = static_cast<int32_t>(ids.size() - before);
+            res.push_back({i, n_ids});
+        }
+    }
+
+    if (ids.empty()) {
+        return;
+    }
+
+    std::vector<glm::vec3> const & geom = map.door_geometry();
+
+    uint32_t id_index = 0;
+    for (IntersectRes & r : res) {
+        NPC & npc = m_npcs[r.npc_id];
+        prt3::AABB aabb = npc.get_aabb();
+        glm::vec3 c = 0.5f * (aabb.lower_bound + aabb.upper_bound); // center
+        glm::vec3 hs = 0.5f * (aabb.upper_bound - aabb.lower_bound); // halfsize
+
+        uint32_t n_ids = r.num;
+        r.num = -1;
+        for (uint32_t i = 0; i < n_ids; ++i) {
+            uint32_t door_id = ids[id_index + i];
+            glm::vec3 const * gs = &geom[map.door_to_vertex_index(door_id)];
+            if (prt3::triangle_box_overlap(c, hs, gs[0], gs[1], gs[3]) ||
+                prt3::triangle_box_overlap(c, hs, gs[2], gs[1], gs[3])) {
+                r.num = door_id;
+                break;
+            }
+
+        }
+
+        id_index += n_ids;
+    }
+
+    for (IntersectRes & r : res) {
+        if (r.num == -1) continue;
+        NPC & npc = m_npcs[r.npc_id];
+        glm::vec3 p_door =
+            m_game_state.get_door_local_position(r.num, r.npc_id);
+        uint32_t dest_door = map.get_door_destination_id(r.num);
+        glm::vec3 new_pos = p_door + map.get_door_entry_position(dest_door);
+        npc.map_position.position = new_pos;
+        npc.map_position.room = map.door_to_room(dest_door);
+    }
 }

@@ -62,18 +62,35 @@ public:
     Interactable const * interactable() const { return m_interactable; }
 
     Map & map() { return m_map; }
+    Map const & map() const { return m_map; }
+
     NPCDB & npc_db() { return m_npc_db; }
-    ItemDB const & item_db() const { return m_item_db; }
+    NPCDB const & npc_db() const { return m_npc_db; }
+
     ItemDB & item_db() { return m_item_db; }
+    ItemDB const & item_db() const { return m_item_db; }
+
     PrefabDB const & prefab_db() const { return m_prefab_db; }
-    ObjectDB const & object_db() const { return m_object_db; }
+
     ObjectDB & object_db() { return m_object_db; }
+    ObjectDB const & object_db() const { return m_object_db; }
 
     TimeMS current_time() const { return m_current_time; }
 
     RoomID current_room() const { return m_current_room; }
 
     prt3::NodeID player_id() const { return m_player_id; }
+
+    glm::vec3 get_door_local_position(
+        prt3::Scene const & scene,
+        prt3::Door const & door,
+        prt3::NodeID node_id
+    ) const;
+
+    glm::vec3 get_door_local_position(
+        uint32_t door_id,
+        NPCID npc_id
+    ) const;
 
 private:
     Map m_map;

@@ -227,7 +227,8 @@ bool Map::parse_door(
     MapDoor map_door;
     map_door.shape = global_tform;
     map_door.position.room = room_index;
-    map_door.position.position = global_tform.position + entry_offset;
+    map_door.position.position = global_tform.position;
+    map_door.entry_offset = entry_offset;
     map_door.dest = dest_door; // rename later
     map_door.local_id = door_id;
     ctx.num_to_door[room_index][door_id] = door_ind;
@@ -740,6 +741,7 @@ Map Map::parse_map_from_model(char const * path) {
     }
 
     generate_nav_mesh(prt3_context, ctx, map_model);
+    ctx.map.init_door_geometry();
 
     return ctx.map;
 }
@@ -764,12 +766,6 @@ RoomID Map::scene_to_room(prt3::Scene const & scene) {
     RoomID id = id32;
     return id;
 }
-
-glm::vec3 Map::get_door_entry_position(uint32_t door_id) const {
-    MapDoor const & door = m_doors[door_id];
-    return door.position.position + door.entry_offset;
-}
-
 
 void Map::serialize(std::ofstream & out) {
     prt3::write_stream(out, m_rooms.size());
@@ -852,25 +848,25 @@ void Map::deserialize(std::ifstream & in) {
             m_doors[i].position.room, m_doors[i].local_id
         }] = i;
     }
+
+    init_door_geometry();
 }
 
-MapPathID Map::query_map_path(MapPosition origin, MapPosition destination) {
+MapPathID Map::query_map_path(glm::vec3 origin, glm::vec3 destination) {
     MapPathID id = m_next_map_path_id;
 
     MapPath & mp = *m_map_path_cache.push_new_entry(id);
-    if (!get_map_path(origin, destination, mp.path)) {
+    bool path_res = m_navigation_system.generate_path(
+        m_nav_mesh_id,
+        origin,
+        destination,
+        mp.path
+    );
+    if (!path_res) {
         m_map_path_cache.invalidate(id);
         return NO_MAP_PATH;
     }
 
-    float length = 0.0f;
-    for (uint32_t i = 1; i < mp.path.size(); ++i) {
-        length += glm::distance(
-            mp.path[i].position.position,
-            mp.path[i - 1].position.position
-        );
-    }
-    mp.length = length;
     mp.curr_ind = 0;
 
     ++m_next_map_path_id;
@@ -881,7 +877,7 @@ bool Map::advance_map_path(
     MapPathID id,
     glm::vec3 position,
     float delta,
-    MapPosition & out_pos,
+    glm::vec3 & out_pos,
     glm::vec3 & out_dir
 ) {
     MapPath & mp = *m_map_path_cache.access(id);
@@ -897,7 +893,7 @@ bool Map::advance_map_path(
          */
         float adjust_factor = 0.1f;
         glm::vec3 adjust_y_a = curr_pos;
-        glm::vec3 adjust_y_b = mp.path[mp.curr_ind + 1].position.position;
+        glm::vec3 adjust_y_b = mp.path[mp.curr_ind + 1];
         adjust_y_a.y *= adjust_factor;
         adjust_y_b.y *= adjust_factor;
 
@@ -909,45 +905,31 @@ bool Map::advance_map_path(
         if (dist - remaining <= eps) {
             ++mp.curr_ind;
             remaining -= dist;
-            curr_pos = mp.path[mp.curr_ind].position.position;
+            curr_pos = mp.path[mp.curr_ind];
         } else {
             break;
         }
     }
 
     if (mp.curr_ind + 1 >= mp.path.size()) {
-        out_pos = mp.path.back().position;
+        out_pos = mp.path.back();
         return true;
     }
 
     float seg_dist = glm::distance(
         curr_pos,
-        mp.path[mp.curr_ind + 1].position.position
+        mp.path[mp.curr_ind + 1]
     );
 
     float t = glm::min(remaining / seg_dist, 1.0f);
 
-    out_pos.position = glm::mix(
+    out_pos = glm::mix(
         curr_pos,
-        mp.path[mp.curr_ind + 1].position.position,
+        mp.path[mp.curr_ind + 1],
         t
     );
 
-    float intersect_dist = glm::distance(
-        mp.path[mp.curr_ind].position.position,
-        curr_pos
-    );
-
-    float interp = intersect_dist / glm::distance(
-        mp.path[mp.curr_ind].position.position,
-        mp.path[mp.curr_ind + 1].position.position
-    );
-
-    out_pos.room = interp < mp.path[mp.curr_ind].door_intersection ?
-        mp.path[mp.curr_ind].position.room :
-        mp.path[mp.curr_ind + 1].position.room;
-
-    glm::vec3 dir = mp.path[mp.curr_ind + 1].position.position - curr_pos;
+    glm::vec3 dir = mp.path[mp.curr_ind + 1] - curr_pos;
     if (dir != glm::vec3{0.0f}) {
         out_dir = glm::normalize(dir);
     }
@@ -955,120 +937,67 @@ bool Map::advance_map_path(
     return false;
 }
 
-bool Map::intersects_door(
-    RoomID room_id,
-    glm::vec3 a,
-    glm::vec3 b,
-    float & t,
-    uint32_t & door_id
-) {
-    if (a == b) return false;
+void Map::init_door_geometry() {
+    prt3::ColliderTag tag;
+    tag.shape = prt3::ColliderShape::mesh;
+    tag.type = prt3::ColliderType::collider;
 
-    glm::vec3 v = b - a;
+    prt3::CollisionLayer layer = ~0;
 
-    MapRoom const & room = m_rooms[room_id];
-    uint32_t doors_start = room.doors.start_index;
-    uint32_t doors_end = doors_start + room.doors.num_indices;
-    for (uint32_t i = doors_start; i < doors_end; ++i) {
-        MapDoor const & door = m_doors[i];
-        if (door.dest == -1) continue;
+    m_door_geometry.resize(m_doors.size() * VERTS_PER_DOOR);
 
-        glm::vec3 n = glm::normalize(door.entry_offset);
-        if (glm::dot(door.entry_offset, n) > 0.0f) {
-            /* We don't want to intersect when entering from behind the door */
-            continue;
-        }
+    for (MapRoom & room : m_rooms) {
+        uint32_t doors_start = room.doors.start_index;
+        uint32_t doors_end = doors_start + room.doors.num_indices;
+        for (uint32_t i = doors_start; i < doors_end; ++i) {
+            MapDoor const & door = m_doors[i];
+            if (door.dest == -1) {
+                continue;
+            }
 
-        glm::mat4 tform = door.shape.to_matrix();
+            tag.id = i;
 
-        // normalized dimension
-        glm::vec3 nd =
-            glm::vec3{1.0f} /
-            glm::abs(glm::vec3{tform * glm::vec4{1.0f, 1.0f, 1.0f, 0.0f}});
+            prt3::Box box{};
+            box.dimensions = glm::vec3{1.0f};
+            box.center.x = box.dimensions.x / 2.0f;
+            box.center.y = box.dimensions.y / 2.0f;
+            box.center.z = box.dimensions.z / 2.0f;
 
-        prt3::Box box{};
-        box.dimensions = glm::vec3{1.0f + nd};
-        box.center.x = box.dimensions.x / 2.0f;
-        box.center.y = box.dimensions.y / 2.0f;
-        box.center.z = box.dimensions.z / 2.0f;
+            prt3::BoxCollider bc{box};
 
-        prt3::BoxCollider bc{box};
+            auto shape = bc.get_shape(door.shape);
+            // Order of vertices:
+            // 0 : 0, 0, 0
+            // 1 : 0, 0, 1
+            // 2 : 0, 1, 0
+            // 3 : 0, 1, 1
+            // 4 : 1, 0, 0
+            // 5 : 1, 0, 1
+            // 6 : 1, 1, 0
+            // 7 : 1, 1, 1
+            glm::vec3 v0 = shape.vertices[2];
+            glm::vec3 v1 = shape.vertices[3];
+            glm::vec3 v2 = shape.vertices[7];
+            glm::vec3 v3 = shape.vertices[6];
 
-        auto shape = bc.get_shape(door.shape);
-        // Order of vertices:
-        // 0 : 0, 0, 0
-        // 1 : 0, 0, 1
-        // 2 : 0, 1, 0
-        // 3 : 0, 1, 1
-        // 4 : 1, 0, 0
-        // 5 : 1, 0, 1
-        // 6 : 1, 1, 0
-        // 7 : 1, 1, 1
-        glm::vec3 v0 = shape.vertices[2];
-        glm::vec3 v1 = shape.vertices[3];
-        glm::vec3 v2 = shape.vertices[7];
-        glm::vec3 v3 = shape.vertices[6];
+            uint32_t vi = door_to_vertex_index(i);
+            m_door_geometry[vi] = v0;
+            m_door_geometry[vi + 1] = v1;
+            m_door_geometry[vi + 2] = v2;
+            m_door_geometry[vi + 3] = v3;
 
-        glm::vec3 p0;
-        glm::vec3 p1;
-        bool intersect0 = prt3::triangle_ray_intersect(a, v, v0, v1, v3, p0);
-        bool intersect1 = prt3::triangle_ray_intersect(a, v, v2, v1, v3, p1);
+            prt3::AABB aabb;
+            aabb.lower_bound = v0;
+            aabb.lower_bound = glm::min(aabb.lower_bound, v1);
+            aabb.lower_bound = glm::min(aabb.lower_bound, v2);
+            aabb.lower_bound = glm::min(aabb.lower_bound, v3);
 
-        if (intersect0 || intersect1) {
-            glm::vec3 p = intersect0 ? p0 : p1;
-            t = glm::distance(a, p) / glm::distance(a, b);
-            door_id = i;
-            return true;
+            aabb.upper_bound = v0;
+            aabb.upper_bound = glm::max(aabb.upper_bound, v1);
+            aabb.upper_bound = glm::max(aabb.upper_bound, v2);
+            aabb.upper_bound = glm::max(aabb.upper_bound, v3);
+
+            room.aabb_tree.insert(tag, layer, aabb);
         }
     }
-
-    return false;
-}
-
-bool Map::get_map_path(
-    MapPosition from,
-    MapPosition to,
-    std::vector<MapPathEntry> & path
-) {
-    thread_local std::vector<glm::vec3> nav_path;
-    path.clear();
-    if (!m_navigation_system.generate_path(
-        m_nav_mesh_id,
-        from.position,
-        to.position,
-        nav_path
-    )) {
-        return false;
-    }
-
-    RoomID curr_room = from.room;
-    float accumulated_distance = 0.0f;
-
-    path.resize(nav_path.size());
-
-    for (unsigned int i = 0; i + 1 < nav_path.size(); ++i) {
-        glm::vec3 a = nav_path[i];
-        glm::vec3 b = nav_path[i + 1];
-
-        MapPathEntry & entry = path[i];
-        entry.position.position = a;
-        entry.position.room = curr_room;
-
-        float t;
-        uint32_t door_id;
-        if (intersects_door(curr_room, a, b, t, door_id)) {
-            curr_room = m_doors[m_doors[door_id].dest].position.room;
-            entry.door_intersection = t;
-        } else {
-            entry.door_intersection = 1.0f;
-        }
-        entry.accumulated_distance = accumulated_distance;
-        accumulated_distance += glm::distance(a, b);
-    }
-    path.back().position.position = nav_path.back();
-    path.back().position.room = to.room;
-    path.back().door_intersection = 1.0f;
-    path.back().accumulated_distance = accumulated_distance;
-
-    return true;
 }

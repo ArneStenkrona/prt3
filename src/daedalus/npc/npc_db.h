@@ -24,11 +24,11 @@ struct NPC {
     MapPosition map_position;
     glm::vec3 direction;
     std::string model_path;
-    glm::vec3 model_scale;
+    float model_scale;
     PrefabDB::PrefabID prefab_id = PrefabDB::none;
 
     float collider_radius;
-    float collider_length;
+    float collider_height;
 
     float walk_force;
     float run_force;
@@ -45,6 +45,24 @@ struct NPC {
 
     Mode mode = Mode::passive;
     void (*update)(NPCID, NPCDB &, prt3::Scene &);
+
+    inline prt3::AABB get_aabb() const {
+        prt3::AABB aabb;
+
+        glm::vec3 const & pos = map_position.position;
+        aabb.lower_bound = glm::vec3{
+            pos.x - model_scale * collider_radius,
+            pos.y,
+            pos.z - model_scale * collider_radius
+        };
+
+        aabb.upper_bound = glm::vec3{
+            pos.x + model_scale * collider_radius,
+            pos.y + model_scale * collider_height,
+            pos.z + model_scale * collider_radius
+        };
+        return aabb;
+    }
 };
 
 struct ActionTimestamp {
@@ -79,6 +97,7 @@ public:
     { return m_action_db.get_entry<T>(id); }
 
     NPC & get_npc(NPCID id) { return m_npcs[id]; }
+    NPC const & get_npc(NPCID id) const { return m_npcs[id]; }
 
     GameState & game_state() { return m_game_state; }
 
@@ -163,6 +182,7 @@ private:
     void update_action_queues();
 
     void update_npcs(prt3::Scene & scene);
+    void move_npcs_between_rooms();
 };
 
 } // namespace dds

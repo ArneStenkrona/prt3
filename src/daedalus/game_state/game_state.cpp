@@ -69,25 +69,43 @@ void GameState::on_signal(
 
         for (prt3::Door const & door : scene.get_all_components<prt3::Door>()) {
             if (door.id() == m_exit_door_id) {
-                prt3::Node const & door_node = scene.get_node(door.node_id());
-                prt3::Transform door_tform =
-                    door_node.get_global_transform(scene);
-                glm::vec3 door_position = door_tform.position;
-                glm::vec3 entry_position = door_position + door.entry_offset();
-
-                prt3::Node & player = scene.get_node(m_player_id);
-                glm::vec3 player_pos = player.get_global_transform(scene).position;
-                glm::vec3 v = player_pos - entry_position;
-
-                glm::vec3 n = door_tform.get_up();
-                if (n != glm::vec3{0.0f}) n = glm::normalize(n);
-                m_player_door_offset = v - glm::dot(v, n) * n;
+                m_player_door_offset =
+                    get_door_local_position(scene, door, m_player_id);
                 break;
             }
         }
 
         m_npc_db.on_scene_exit();
     }
+}
+
+glm::vec3 GameState::get_door_local_position(
+    prt3::Scene const & scene,
+    prt3::Door const & door,
+    prt3::NodeID node_id
+) const {
+    prt3::Node const & door_node = scene.get_node(door.node_id());
+    prt3::Transform door_tform =
+        door_node.get_global_transform(scene);
+    glm::vec3 door_position = door_tform.position;
+    glm::vec3 entry_position = door_position + door.entry_offset();
+
+    prt3::Node const & node = scene.get_node(node_id);
+    glm::vec3 pos = node.get_global_transform(scene).position;
+    glm::vec3 v = pos - entry_position;
+
+    glm::vec3 n = door_tform.get_up();
+    return v - glm::dot(v, n) * n;
+}
+
+glm::vec3 GameState::get_door_local_position(
+    uint32_t door_id,
+    NPCID npc_id
+) const {
+    glm::vec3 pos = m_npc_db.get_npc(npc_id).map_position.position;
+    glm::vec3 v = pos - m_map.get_door_entry_position(door_id);
+    glm::vec3 n = m_map.get_door_up(door_id);
+    return v - glm::dot(v, n) * n;
 }
 
 void GameState::on_start(prt3::Scene & scene) {
@@ -141,6 +159,7 @@ void GameState::on_start(prt3::Scene & scene) {
     //     scene.audio_manager().play_midi(m_midi, m_sound_font);
     // }
 
+    m_object_db.on_scene_start();
     m_npc_db.on_scene_start(scene);
 
     prt3::AnimationID anim_id =

@@ -14,7 +14,7 @@ class NPCDB;
 namespace npc_action {
 
 struct GoToDest {
-    MapPosition destination;
+    glm::vec3 destination;
     MapPathID path_id;
     bool running;
     static void update(

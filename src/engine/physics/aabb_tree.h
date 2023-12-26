@@ -44,6 +44,13 @@ public:
                    ColliderShape::total_num_collider_shape> & ids) const;
 
     /**
+     * Finds all intersecting nodes for aabb
+     * @param aabb aabb of query object
+     * @param ids query result
+     */
+    void query(AABB const & aabb, std::vector<ColliderID> & ids) const;
+
+    /**
      * Finds all intersecting nodes for raycast
      * @param origin origin of the ray
      * @param direction direction of the ray

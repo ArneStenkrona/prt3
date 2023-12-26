@@ -20,8 +20,10 @@ void dds::npc_action::GoToDest::update(
         Map & map = db.game_state().map();
 
         if (!map.has_map_path(entry.path_id)) {
-            entry.path_id =
-                map.query_map_path(npc.map_position, entry.destination);
+            entry.path_id = map.query_map_path(
+                npc.map_position.position,
+                entry.destination
+            );
         }
 
         if (entry.path_id == NO_MAP_PATH) {
@@ -38,7 +40,7 @@ void dds::npc_action::GoToDest::update(
             entry.path_id,
             npc.map_position.position,
             length,
-            npc.map_position,
+            npc.map_position.position,
             npc.direction
         );
 
@@ -72,14 +74,17 @@ void dds::npc_action::Follow::update(
         bool gen_path = !has_path;
         if (has_path) {
             float dest_dist = glm::distance(
-                map.get_map_destination(entry.path_id).position,
+                map.get_map_destination(entry.path_id),
                 target_pos.position
             );
             gen_path |= dest_dist > entry.path_threshold;
         }
 
         if (gen_path) {
-            entry.path_id = map.query_map_path(npc.map_position, target_pos);
+            entry.path_id = map.query_map_path(
+                npc.map_position.position,
+                target_pos.position
+            );
         }
 
         if (entry.path_id == NO_MAP_PATH) {
@@ -97,7 +102,7 @@ void dds::npc_action::Follow::update(
                 entry.path_id,
                 npc.map_position.position,
                 length,
-                npc.map_position,
+                npc.map_position.position,
                 npc.direction
             );
 

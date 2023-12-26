@@ -41,6 +41,14 @@ struct ParsingContext;
 namespace dds {
 
 class Map {
+private:
+    struct MapDoor {
+        prt3::Transform shape;
+        glm::vec3 entry_offset;
+        int32_t dest;
+        uint32_t local_id;
+        MapPosition position;
+    };
 public:
     Map(char const * path);
 
@@ -52,19 +60,16 @@ public:
     bool has_map_path(MapPathID id) const
     { return m_map_path_cache.has_key(id); }
 
-    MapPathID query_map_path(MapPosition origin, MapPosition destination);
+    MapPathID query_map_path(glm::vec3 origin, glm::vec3 destination);
 
-    float get_map_path_length(MapPathID id)
-    { return m_map_path_cache.access(id)->length; }
-
-    MapPosition get_map_destination(MapPathID id)
-    { return m_map_path_cache.access(id)->path.back().position; }
+    glm::vec3 get_map_destination(MapPathID id)
+    { return m_map_path_cache.access(id)->path.back(); }
 
     bool advance_map_path(
         MapPathID id,
         glm::vec3 position,
         float delta,
-        MapPosition & out_pos,
+        glm::vec3 & out_pos,
         glm::vec3 & out_dir
     );
 
@@ -72,12 +77,46 @@ public:
     static RoomID scene_to_room(prt3::Scene const & scene);
 
 
-    uint32_t local_to_global_door_id(RoomID room, uint32_t door_id) const
+    inline uint32_t local_to_global_door_id(RoomID room, uint32_t door_id) const
     { return m_local_ids.at(std::pair<RoomID, uint32_t>(room, door_id)); }
-    uint32_t get_door_destination_id(uint32_t door_id) const
+    inline uint32_t get_door_destination_id(uint32_t door_id) const
     { return static_cast<uint32_t>(m_doors[door_id].dest); }
 
-    glm::vec3 get_door_entry_position(uint32_t door_id) const;
+    inline glm::vec3 get_door_position(uint32_t door_id) const {
+        return m_doors[door_id].position.position;
+    }
+
+    inline glm::vec3 get_door_entry_offset(uint32_t door_id) const {
+        return m_doors[door_id].entry_offset;
+    }
+
+    inline glm::vec3 get_door_entry_position(uint32_t door_id) const {
+        MapDoor const & door = m_doors[door_id];
+        return door.position.position + door.entry_offset;
+    }
+
+    inline glm::vec3 get_door_up(uint32_t door_id) const {
+        MapDoor const & door = m_doors[door_id];
+        return door.shape.get_up();
+    }
+
+    inline RoomID door_to_room(uint32_t door_id) const
+    { return m_doors[door_id].position.room; }
+
+    static constexpr uint32_t VERTS_PER_DOOR = 4;
+    static inline constexpr uint32_t door_to_vertex_index(uint32_t i)
+    { return i * VERTS_PER_DOOR; }
+
+    std::vector<glm::vec3> const & door_geometry() const
+    { return m_door_geometry; }
+
+    void query_doors(
+        RoomID room_id,
+        prt3::AABB const & aabb,
+        std::vector<prt3::ColliderID> & ids
+    ) const {
+        return m_rooms[room_id].aabb_tree.query(aabb, ids);
+    }
 
 private:
       struct MapRoom {
@@ -88,14 +127,7 @@ private:
 
         prt3::SubVec doors;
         RoomType type;
-    };
-
-    struct MapDoor {
-        prt3::Transform shape;
-        glm::vec3 entry_offset;
-        int32_t dest;
-        uint32_t local_id;
-        MapPosition position;
+        prt3::DynamicAABBTree aabb_tree;
     };
 
     std::vector<MapRoom> m_rooms;
@@ -105,6 +137,7 @@ private:
     prt3::NavMeshID m_nav_mesh_id = prt3::NO_NAV_MESH;
 
     std::vector<MapDoor> m_doors;
+    std::vector<glm::vec3> m_door_geometry;
 
     struct pairhash {
         size_t operator()(std::pair<dds::RoomID, uint32_t> const & p) const {
@@ -116,20 +149,8 @@ private:
 
     std::unordered_map<std::pair<RoomID, uint32_t>, uint32_t, pairhash> m_local_ids;
 
-    struct NavPath {
-        float length;
-        std::vector<glm::vec3> path;
-    };
-
-    struct MapPathEntry {
-        MapPosition position;
-        float door_intersection;
-        float accumulated_distance;
-    };
-
     struct MapPath {
-        std::vector<MapPathEntry> path;
-        float length;
+        std::vector<glm::vec3> path;
         uint32_t curr_ind;
     };
 
@@ -140,30 +161,6 @@ private:
     prt3::NavigationSystem m_navigation_system;
 
     Map() {}
-
-    bool intersects_door(
-        RoomID room_id,
-        glm::vec3 a,
-        glm::vec3 b,
-        float & t,
-        uint32_t & door_id
-    );
-
-    bool get_map_path(
-        MapPosition from,
-        MapPosition to,
-        std::vector<MapPathEntry> & path
-    );
-
-    NavPath const * get_nav_path(
-        glm::vec3 from,
-        glm::vec3 to
-    );
-
-    float get_nav_path_length(
-        glm::vec3 from,
-        glm::vec3 to
-    );
 
     static prt3::NodeID map_node_to_new_scene_node(
         ParsingContext & ctx,
@@ -268,6 +265,8 @@ private:
         ParsingContext & ctx,
         prt3::Model const & model
     );
+
+    void init_door_geometry();
 
     friend struct ParsingContext;
 };
