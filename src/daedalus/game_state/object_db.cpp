@@ -31,7 +31,6 @@ void AOE::update(
         }
 
         /* update loaded object */
-        prt3::Decal & decal = scene.get_component<prt3::Decal>(node_id);
         auto & ps = scene.get_component<prt3::ParticleSystem>(node_id);
 
         float alpha;
@@ -43,14 +42,18 @@ void AOE::update(
             ps.parameters().active = true;
         } else {
             ps.parameters().emission_rate = 0.0f;
-            alpha = 1.0f - glm::min(
-                float(entry.timer - (entry.fade_time + entry.duration)) /
-                float(entry.fade_time),
-                1.0f
-            );
+            alpha = entry.fade_time == 0 ? 0.0f :
+                1.0f - glm::min(
+                    float(entry.timer - (entry.fade_time + entry.duration)) /
+                    float(entry.fade_time),
+                    1.0f
+                );
         }
 
-        decal.color().a = alpha;
+        if (scene.has_component<prt3::Decal>(node_id)) {
+            prt3::Decal & decal = scene.get_component<prt3::Decal>(node_id);
+            decal.color().a = alpha;
+        }
 
         if (entry.timer > entry.fade_time + entry.duration &&
             ps.active_particles() == 0) {
@@ -145,6 +148,32 @@ void Projectile::update(
         if (entry.timer > entry.fade_time + entry.duration &&
             ps.active_particles() == 0) {
             remove_list.push_back(id);
+        }
+
+        if (entry.timer > entry.fade_time &&
+            entry.timer < entry.fade_time + entry.duration &&
+            !scene.get_overlaps(node_id).empty()) {
+            entry.timer = entry.fade_time + entry.duration;
+            entry.velocity = 0.0f;
+            entry.rotation_speed = 0.0f;
+            auto & col = scene.get_component<prt3::ColliderComponent>(node_id);
+            col.set_mask(scene, 0);
+
+            AOE aoe;
+            aoe.radius = 2.0f;
+            aoe.height = 0.0f;
+            aoe.fade_time = 0;
+            aoe.duration = 200 * dds::time_scale;
+            aoe.sustain = 750 * dds::time_scale;
+            aoe.timer = 0;
+
+            MapPosition map_pos = object.position;
+            // This invalidates object reference
+            db.add_object<AOE>(
+                aoe,
+                map_pos,
+                entry.hit_prefab
+            );
         }
     }
 }

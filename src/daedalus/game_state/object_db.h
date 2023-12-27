@@ -44,7 +44,7 @@ struct Projectile {
     TimeMS timer;
     glm::vec3 current_dir;
     AnyID target;
-    // PrefabID hit_prefab;
+    PrefabDB::PrefabID hit_prefab;
 
     static void update(
         prt3::Scene & scene,

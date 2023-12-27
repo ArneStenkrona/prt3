@@ -107,9 +107,10 @@ public:
         m_id_map[id] = NO_ENTRY;
 
         if (index + 1 != m_entries.size()) {
-            IDType swap = m_id_map[index];
+            IDType swap = m_index_map.back();
             m_entries[index] = m_entries.back();
             m_id_map[swap] = index;
+            m_index_map[index] = swap;
         }
 
         m_index_map.pop_back();

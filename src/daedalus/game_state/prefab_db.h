@@ -16,6 +16,7 @@ public:
         dark_flames,
         flame_pillar,
         fire_rock,
+        fire_rock_explosion,
         n_prefab_ids,
         none = n_prefab_ids
     };

@@ -38,7 +38,7 @@ ItemDB::ItemDB(GameState & game_state)
         item.object.u.projectile.velocity = 15.0f / dds::time_scale;
         item.object.u.projectile.homing_force = 0.5f;
         item.object.u.projectile.timer = 0;
-        // item.object.u.projectile.hit_prefab = /* TODO */;
+        item.object.u.projectile.hit_prefab = PrefabDB::fire_rock_explosion;
     }
 }
 
