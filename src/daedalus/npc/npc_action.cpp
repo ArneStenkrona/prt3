@@ -210,9 +210,10 @@ void dds::npc_action::UseItem::update(
                 db.game_state().current_time()) {
 
                 db.game_state().item_db().use(
+                    scene,
                     id,
                     entry.item,
-                    db.get_target_position(scene, entry.target)
+                    entry.target
                 );
                 remove_list.push_back(id);
             }

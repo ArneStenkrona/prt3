@@ -26,6 +26,14 @@ bool triangle_ray_intersect(
     glm::vec3 & intersection
 );
 
+bool triangle_ray_intersect(
+    glm::vec3 origin,
+    glm::vec3 ray_vector,
+    glm::vec3 a,
+    glm::vec3 b,
+    glm::vec3 c
+);
+
 void triangle_segment_clip_2d(
     glm::vec2 p0,
     glm::vec2 p1,

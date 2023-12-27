@@ -80,6 +80,18 @@ public:
                            ColliderShape::total_num_collider_shape> & ids) const;
 
     /**
+     * Finds all intersecting nodes for raycast
+     * @param origin origin of the ray
+     * @param direction direction of the ray
+     * @param max_distance maximum length of the ray
+     * @param ids query result
+     */
+    void query_raycast(glm::vec3 const& origin,
+                       glm::vec3 const& direction,
+                       float max_distance,
+                       std::vector<ColliderID> & ids) const;
+
+    /**
      * Inserts aabbs along with their collider tags into the tree
      * @param tag
      * @param layer

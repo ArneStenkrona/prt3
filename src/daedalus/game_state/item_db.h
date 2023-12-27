@@ -12,6 +12,10 @@
 #include <functional>
 #include <unordered_map>
 
+namespace prt3 {
+class Scene;
+} // namespace prt3
+
 namespace dds {
 
 struct Item {
@@ -23,6 +27,7 @@ struct Item {
 
 enum ItemID : DDSID {
     item_spell_flame_pillar,
+    item_spell_fire_rock,
     n_item_ids,
     item_none = n_item_ids
 };
@@ -67,13 +72,19 @@ public:
     inline static bool is_spell(ItemID id) {
         switch(id) {
             case item_spell_flame_pillar:
+            case item_spell_fire_rock:
                 return true;
             default: {}
         }
         return false;
     }
 
-    void use(NPCID npc_id, ItemID item_id, MapPosition const & position);
+    void use(
+        prt3::Scene const & scene,
+        NPCID npc_id,
+        ItemID item_id,
+        AnyID const & target
+    );
 
     inline bool ready_to_use(NPCID npc_id, ItemID item_id) const {
         auto it = m_cooldown_timestamps.find(CooldownKey{npc_id, item_id});

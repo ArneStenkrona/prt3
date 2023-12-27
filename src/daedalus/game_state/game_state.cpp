@@ -100,9 +100,9 @@ glm::vec3 GameState::get_door_local_position(
 
 glm::vec3 GameState::get_door_local_position(
     uint32_t door_id,
-    NPCID npc_id
+    glm::vec3 position
 ) const {
-    glm::vec3 pos = m_npc_db.get_npc(npc_id).map_position.position;
+    glm::vec3 pos = position;
     glm::vec3 v = pos - m_map.get_door_entry_position(door_id);
     glm::vec3 n = m_map.get_door_up(door_id);
     return v - glm::dot(v, n) * n;

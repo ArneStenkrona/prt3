@@ -118,6 +118,21 @@ public:
         return m_rooms[room_id].aabb_tree.query(aabb, ids);
     }
 
+    void query_doors_raycast(
+        RoomID room_id,
+        glm::vec3 const & origin,
+        glm::vec3 const& direction,
+        float max_distance,
+        std::vector<prt3::ColliderID> & ids
+    ) const {
+        return m_rooms[room_id].aabb_tree.query_raycast(
+            origin,
+            direction,
+            max_distance,
+            ids
+        );
+    }
+
 private:
       struct MapRoom {
         enum RoomType {

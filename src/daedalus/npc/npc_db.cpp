@@ -57,6 +57,15 @@ void npc_update_test(
             use_item.target.type = IDType::dds_id_type_player;
             use_item.activated = false;
             npc_db.queue_action<npc_action::UseItem>(id, std::move(use_item));
+        } else if (dist < arcane_threshold &&
+            npc_db.game_state().item_db().ready_to_use(
+                id, ItemID::item_spell_fire_rock
+        )) {
+            npc_action::UseItem use_item;
+            use_item.item = ItemID::item_spell_fire_rock;
+            use_item.target.type = IDType::dds_id_type_player;
+            use_item.activated = false;
+            npc_db.queue_action<npc_action::UseItem>(id, std::move(use_item));
         } else if (dist < melee_threshold) {
             if (npc_db.has_no_action(id) ||
                 npc_db.get_action_type(id) == npc_action::FOLLOW) {
@@ -99,10 +108,10 @@ void NPCDB::update(prt3::Scene & scene) {
     thread_local std::vector<NPCID> remove_list;
     update_actions(scene, remove_list);
     update_action_queues();
-    update_npcs(scene);
+    load_unload_npcs(scene);
 }
 
-void NPCDB::update_npcs(prt3::Scene & scene) {
+void NPCDB::load_unload_npcs(prt3::Scene & scene) {
     move_npcs_between_rooms();
 
     load_npcs(scene);
@@ -186,6 +195,26 @@ MapPosition NPCDB::get_target_position(
         }
     }
 }
+
+float NPCDB::get_target_height(AnyID target) const {
+    switch (target.type) {
+        case IDType::dds_id_type_player: {
+            return 3.0f; // hardcoded for now
+        }
+        case IDType::dds_id_type_npc: {
+            return m_npcs[target.id].model_scale *
+                   m_npcs[target.id].collider_height;
+        }
+        case IDType::dds_id_type_object: {
+            return 0.0f;
+        }
+        case IDType::dds_id_type_item: {
+            // nonsensical
+            return 0.0f;
+        }
+    }
+}
+
 
 NPCID NPCDB::push_npc() {
     NPCID id = m_npcs.size();
@@ -301,7 +330,6 @@ void NPCDB::move_npcs_between_rooms() {
                 r.num = door_id;
                 break;
             }
-
         }
 
         id_index += n_ids;
@@ -310,8 +338,10 @@ void NPCDB::move_npcs_between_rooms() {
     for (IntersectRes & r : res) {
         if (r.num == -1) continue;
         NPC & npc = m_npcs[r.npc_id];
-        glm::vec3 p_door =
-            m_game_state.get_door_local_position(r.num, r.npc_id);
+        glm::vec3 p_door = m_game_state.get_door_local_position(
+            r.num,
+            npc.map_position.position
+        );
         uint32_t dest_door = map.get_door_destination_id(r.num);
         glm::vec3 new_pos = p_door + map.get_door_entry_position(dest_door);
         npc.map_position.position = new_pos;

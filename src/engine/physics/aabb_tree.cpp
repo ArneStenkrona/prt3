@@ -150,6 +150,31 @@ void DynamicAABBTree::query_raycast(glm::vec3 const& origin,
     }
 }
 
+void DynamicAABBTree::query_raycast(glm::vec3 const& origin,
+                                    glm::vec3 const& direction,
+                                    float max_distance,
+                                    std::vector<ColliderID> & ids) const {
+    if (m_size == 0) {
+        return;
+    }
+
+    thread_local std::vector<TreeIndex> node_stack;
+    node_stack.push_back(m_root_index);
+    while (!node_stack.empty()) {
+        TreeIndex index = node_stack.back();
+        node_stack.pop_back();
+        TreeNode const & node = m_nodes[index];
+        if (AABB::intersect_ray(node.aabb, origin, direction, max_distance)) {
+            if (node.is_leaf()) {
+                ids.push_back(node.collider_tag.id);
+            } else {
+                node_stack.push_back(node.left);
+                node_stack.push_back(node.right);
+            }
+        }
+    }
+}
+
 void DynamicAABBTree::insert(ColliderTag const & tag,
                              CollisionLayer layer,
                              AABB const & aabb) {

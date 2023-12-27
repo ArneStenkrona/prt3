@@ -31,6 +31,31 @@ struct AOE {
     );
 };
 
+struct Projectile {
+    glm::vec3 local_rotation_axis;
+    float rotation_speed;
+    float angle;
+    float radius;
+    TimeMS fade_time;
+    TimeMS duration;
+    TimeMS sustain;
+    float velocity;
+    float homing_force;
+    TimeMS timer;
+    glm::vec3 current_dir;
+    AnyID target;
+    // PrefabID hit_prefab;
+
+    static void update(
+        prt3::Scene & scene,
+        ObjectDB & db,
+        Projectile * entries,
+        ObjectID const * index_to_id,
+        size_t n_entries,
+        std::vector<ObjectID> & remove_list
+    );
+};
+
 class GameState;
 
 class ObjectDB {
@@ -39,11 +64,13 @@ public:
         /* id type */
         ObjectID,
         /* data types */
-        AOE
+        AOE,
+        Projectile
     >;
 
     enum ObjectType {
         area_of_effect = ObjectDatabase::get_table_index<AOE>(),
+        projectile = ObjectDatabase::get_table_index<Projectile>(),
     };
 
     template<typename T>
@@ -65,6 +92,7 @@ public:
         union U {
             U() : aoe{} {}
             AOE aoe;
+            Projectile projectile;
         } u;
         ObjectType type;
     };
@@ -92,11 +120,13 @@ public:
         } else {
             id = m_objects.size();
             m_objects.push_back({});
+            m_position_history.push_back({});
         }
         m_objects[id].position = position;
         m_objects[id].prefab_id = prefab_id;
         m_objects[id].type = object_to_enum<T>();
         m_objects[id].timestamp = current_time();
+        m_position_history[id] = position.position;
 
         m_object_database.add_entry<T>(id, obj);
     }
@@ -122,11 +152,15 @@ public:
         return it->second;
     }
 
+    GameState & game_state() { return m_game_state; }
+    GameState const & game_state() const { return m_game_state; }
+
 private:
     ObjectDatabase m_object_database;
 
     std::vector<Object> m_objects;
     std::vector<ObjectID> m_free_ids;
+    std::vector<glm::vec3> m_position_history;
 
     std::unordered_map<ObjectID, prt3::NodeID> m_loaded_objects;
 
@@ -160,6 +194,10 @@ private:
     }
 
     bool load_aoe(prt3::Scene & scene, ObjectID id);
+
+    void update_positions(prt3::Scene & scene);
+
+    void move_objects_between_rooms();
 
     void load_objects(prt3::Scene & scene);
     void unload_objects(prt3::Scene & scene);

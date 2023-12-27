@@ -89,8 +89,20 @@ public:
 
     glm::vec3 get_door_local_position(
         uint32_t door_id,
-        NPCID npc_id
+        glm::vec3 position
     ) const;
+
+    static inline glm::vec3 smooth_change_dir(
+        glm::vec3 dir,
+        glm::vec3 target,
+        float speed,
+        float delta_time
+    ) {
+        float dt_fac = 1.0f - glm::pow(0.5f, delta_time * speed);
+        glm::vec3 new_dir = glm::mix(dir, target, dt_fac);
+        return new_dir != glm::vec3{0.0f} ?
+            glm::normalize(new_dir) : new_dir;
+    }
 
 private:
     Map m_map;

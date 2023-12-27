@@ -106,6 +106,8 @@ public:
         AnyID target
     ) const;
 
+    float get_target_height(AnyID target) const;
+
     template<typename T>
     void queue_action(NPCID id, T && action) {
         npc_action::ActionUnion & au = m_new_actions[id];
@@ -181,7 +183,7 @@ private:
 
     void update_action_queues();
 
-    void update_npcs(prt3::Scene & scene);
+    void load_unload_npcs(prt3::Scene & scene);
     void move_npcs_between_rooms();
 };
 

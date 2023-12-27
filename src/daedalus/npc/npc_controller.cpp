@@ -215,7 +215,12 @@ void NPCController::update_moving(prt3::Scene & /*scene*/, float delta_time) {
         m_state.input.direction = glm::vec3{0.0f};
     } else if (target_dir != glm::vec3{0.0f}) {
         target_dir = glm::normalize(target_dir);
-        smooth_change_dir(target_dir, 40.0f, delta_time);
+        m_state.input.direction = GameState::smooth_change_dir(
+            m_state.input.direction,
+            target_dir,
+            40.0f,
+            delta_time
+        );
     }
 
     if (m_movement_performance < 0.2f) {
@@ -268,7 +273,12 @@ void NPCController::update_attack(prt3::Scene & scene, float delta_time) {
     dir.y = 0.0f;
     if (dir != glm::vec3{0.0f}) {
         dir = glm::normalize(dir);
-        smooth_change_dir(dir, 40.0f, delta_time);
+        m_state.input.direction = GameState::smooth_change_dir(
+            m_state.input.direction,
+            dir,
+            40.0f,
+            delta_time
+        );
     }
 
     m_state.input.attack = true;
@@ -290,9 +300,10 @@ void NPCController::update_use_item(prt3::Scene & scene, float /*delta_time*/) {
         float frac = anim.clip_a.frac(model);
         if (frac > 0.5f) {
             db.game_state().item_db().use(
+                scene,
                 m_npc_id,
                 use_item.item,
-                db.get_target_position(scene, use_item.target)
+                use_item.target
             );
             db.queue_clear_action(m_npc_id);
         }
@@ -306,6 +317,7 @@ void NPCController::update_use_item(prt3::Scene & scene, float /*delta_time*/) {
     }
 
     if (m_state.state != CAST_SPELL &&
+        m_game_state->item_db().is_spell(use_item.item) &&
         m_game_state->current_time() - db.get_action_timestamp(m_npc_id) >
             dds::ms_per_frame * 60) {
         /* Couldn't set character set, give up */
