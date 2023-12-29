@@ -16,6 +16,12 @@ class GameGui {
 public:
     GameGui(prt3::Scene & scene);
 
+    void on_start(
+        prt3::Scene & scene,
+        prt3::NodeID canvas_id,
+        GameState const & game_state
+    );
+
     void on_update(
         prt3::Scene & scene,
         prt3::NodeID canvas_id,
@@ -28,6 +34,9 @@ public:
 private:
     Interactable const * m_prev_interactable = nullptr;
     float m_interactable_timer = 0.0f;
+
+    static constexpr float m_room_name_time = 5.0f;
+    float m_time_since_start = 0.0f;
 
     struct FontMetadata {
         std::array<prt3::FontChar, 256> char_data;
@@ -44,6 +53,11 @@ private:
     void display_interact(
         prt3::Canvas & canvas,
         Interactable const & interactable
+    );
+
+    void display_room_name(
+        prt3::Canvas & canvas,
+        char const * room_name
     );
 };
 

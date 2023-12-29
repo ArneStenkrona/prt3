@@ -518,14 +518,46 @@ Map Map::parse_map_from_model(char const * path) {
 
         if (check_tok(TOK_ROOM, name)) {
             uint32_t num;
-            char type;
-            sscanf(name + strlen(TOK_ROOM), "%" SCNu32 "(%c", &num, &type);
+            char type_buf[16] = { 0 };
+            char name_buf[256] = { 0 };
+
+            int scanned = sscanf(name + strlen(TOK_ROOM), "%" SCNu32 "", &num);
+
+            char const * curr = name + strlen(TOK_ROOM) + scanned;
+
+            /* room type */
+            ++curr;
+            unsigned i = 0;
+            while (*curr && *curr != ')') {
+                type_buf[i] = *curr;
+                ++i;
+                ++curr;
+            }
+
+            /* room name */
+            if (*curr) ++curr;
+            if (*curr) ++curr;
+
+            i = 0;
+            while (*curr && *curr != ']') {
+                name_buf[i] = *curr;
+                ++i;
+                ++curr;
+            }
+
+            if (*name_buf != '\0') {
+                ctx.map.m_room_names.push_back(name_buf);
+            } else {
+                ctx.map.m_room_names.push_back("unkown room");
+            }
+
             ctx.num_to_room_node[num] = index;
             ctx.num_to_room_index[num] = n_rooms;
 
             MapRoom room{};
-            room.type = type == 'i' ? MapRoom::RoomType::indoors :
-                                      MapRoom::RoomType::outdoors;
+            room.type = type_buf[0] == 'i' ? MapRoom::RoomType::indoors :
+                                             MapRoom::RoomType::outdoors;
+
             ctx.map.m_rooms.push_back(room);
 
             ++n_rooms;
@@ -774,6 +806,15 @@ void Map::serialize(std::ofstream & out) {
         prt3::write_stream(out, m_rooms[i].doors.num_indices);
     }
 
+    for (size_t i = 0; i < m_rooms.size(); ++i) {
+        prt3::write_stream(out, m_room_names[i].size());
+        prt3::write_stream_n(
+            out,
+            m_room_names[i].data(),
+            m_room_names[i].size()
+        );
+    }
+
     prt3::write_stream(out, m_doors.size());
     for (size_t i = 0; i < m_doors.size(); ++i) {
         prt3::write_stream(out, m_doors[i].shape);
@@ -807,6 +848,18 @@ void Map::deserialize(std::ifstream & in) {
     for (size_t i = 0; i < m_rooms.size(); ++i) {
         prt3::read_stream(in, m_rooms[i].doors.start_index);
         prt3::read_stream(in, m_rooms[i].doors.num_indices);
+    }
+
+    m_room_names.resize(n_rooms);
+    for (size_t i = 0; i < m_rooms.size(); ++i) {
+        size_t size;
+        prt3::read_stream(in, size);
+        m_room_names[i].resize(size);
+        prt3::read_stream_n(
+            in,
+            m_room_names[i].data(),
+            m_room_names[i].size()
+        );
     }
 
     size_t n_doors;

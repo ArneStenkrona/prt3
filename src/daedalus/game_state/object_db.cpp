@@ -289,7 +289,6 @@ void ObjectDB::move_objects_between_rooms() {
         glm::vec3 new_pos = p_door + map.get_door_entry_position(dest_door);
         object.position.position = new_pos;
         object.position.room = map.door_to_room(dest_door);
-        PRT3LOG("room change\n");
     }
 }
 

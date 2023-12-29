@@ -76,6 +76,8 @@ public:
     static std::string room_to_scene_path(RoomID room_id);
     static RoomID scene_to_room(prt3::Scene const & scene);
 
+    char const * room_name(RoomID room_id) const
+    { return m_room_names[room_id].c_str(); }
 
     inline uint32_t local_to_global_door_id(RoomID room, uint32_t door_id) const
     { return m_local_ids.at(std::pair<RoomID, uint32_t>(room, door_id)); }
@@ -146,6 +148,7 @@ private:
     };
 
     std::vector<MapRoom> m_rooms;
+    std::vector<std::string> m_room_names;
     std::vector<MapPosition> m_locations;
     std::unordered_map<std::string, LocationID> m_location_ids;
 

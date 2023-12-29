@@ -130,7 +130,7 @@ void GameGui::display_interact(
     cn.position_mode = prt3::CanvasNode::UnitType::absolute;
     cn.origin_mode = prt3::CanvasNode::UnitType::relative;
     cn.parent_anchor = prt3::CanvasNode::AnchorPoint::bottom;
-    cn.center_point = prt3::CanvasNode::AnchorPoint::top;
+    cn.center_point = prt3::CanvasNode::AnchorPoint::bottom;
 
     cn.color = glm::vec4{0.0f, 0.0f, 0.0f, 0.5f * t_alpha};
     cn.inherit_color = false;
@@ -176,6 +176,14 @@ void GameGui::display_interact(
     canvas.end_node();
 }
 
+void GameGui::on_start(
+    prt3::Scene & /* scene */,
+    prt3::NodeID /* canvas_id */,
+    GameState const & /* game_state */
+) {
+    m_time_since_start = 0.0f;
+}
+
 void GameGui::on_update(
     prt3::Scene & scene,
     prt3::NodeID canvas_id,
@@ -194,10 +202,72 @@ void GameGui::on_update(
         m_interactable_timer += delta_time;
         display_interact(canvas, *game_state.interactable());
     }
+
+    if (m_time_since_start < m_room_name_time) {
+        display_room_name(
+            canvas,
+            game_state.map().room_name(game_state.current_room())
+        );
+    }
+
+    m_time_since_start += delta_time;
 }
 
 void GameGui::free_resources(prt3::Scene & scene) {
     if (m_atlas.texture != prt3::NO_RESOURCE) {
         scene.free_persistent_texture(m_atlas.texture);
     }
+}
+
+void GameGui::display_room_name(
+    prt3::Canvas & canvas,
+    char const * room_name
+) {
+    float font_size = 24;
+    float t_alpha;
+    if (m_time_since_start < m_room_name_time * 0.333f) {
+        t_alpha = m_time_since_start / (m_room_name_time * 0.333f);
+    } else if (m_time_since_start < m_room_name_time * 0.667f) {
+        t_alpha = 1.0f;
+    } else {
+        t_alpha = 1.0f - glm::min(
+            (m_time_since_start - 0.667f * m_room_name_time) /
+                (m_room_name_time * 0.333f),
+            1.0f
+        );
+    }
+
+    char const * str = room_name;
+    float str_width = get_string_width(
+        str,
+        m_atlas.metadata[0].char_data.data(),
+        font_size
+    );
+
+    prt3::CanvasNode text;
+    text.dimension = glm::vec2{str_width, font_size};
+    text.dimension_mode = prt3::CanvasNode::UnitType::absolute;
+
+    text.position = glm::vec2{-8.0f, 4.0f};
+    text.origin = glm::vec2{0.0f, 0.0f};
+    text.position_mode = prt3::CanvasNode::UnitType::absolute;
+    text.origin_mode = prt3::CanvasNode::UnitType::relative;
+    text.parent_anchor = prt3::CanvasNode::AnchorPoint::bottom_right;
+    text.center_point = prt3::CanvasNode::AnchorPoint::bottom_right;
+
+    text.color = glm::vec4{1.0f, 1.0f, 1.0f, t_alpha};
+    text.inherit_color = false;
+    text.texture = m_atlas.texture;
+
+    text.mode = prt3::CanvasNode::Mode::text;
+
+    text.u.text.char_info = m_atlas.metadata[0].char_data.data();
+    text.u.text.font_size = font_size;
+    text.u.text.text = str;
+    text.u.text.length = strlen(str);
+
+    text.layer = 0;
+
+    canvas.begin_node(text);
+    canvas.end_node();
 }

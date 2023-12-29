@@ -165,6 +165,8 @@ void GameState::on_start(prt3::Scene & scene) {
     prt3::AnimationID anim_id =
         scene.get_component<prt3::Armature>(m_player_id).animation_id();
     scene.animation_system().update_transforms(scene, anim_id);
+
+    m_game_gui.on_start(scene, m_canvas_id, *this);
 }
 
 void GameState::on_update(prt3::Scene & scene, float) {

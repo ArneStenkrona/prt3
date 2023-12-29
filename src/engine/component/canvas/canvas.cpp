@@ -24,13 +24,13 @@ void Canvas::serialize(
 glm::vec2 get_anchor_factor(CanvasNode::AnchorPoint anchor_point) {
     switch (anchor_point) {
         case CanvasNode::AnchorPoint::top_left: {
-            return glm::vec2{0.0f, 0.0f};
+            return glm::vec2{0.0f, 1.0f};
         }
         case CanvasNode::AnchorPoint::top: {
-            return glm::vec2{0.5f, 0.0f};
+            return glm::vec2{0.5f, 1.0f};
         }
         case CanvasNode::AnchorPoint::top_right: {
-            return glm::vec2{1.0f, 0.0f};
+            return glm::vec2{1.0f, 1.0f};
         }
         case CanvasNode::AnchorPoint::mid_left: {
             return glm::vec2{0.0f, 0.5f};
@@ -42,13 +42,13 @@ glm::vec2 get_anchor_factor(CanvasNode::AnchorPoint anchor_point) {
             return glm::vec2{1.0f, 0.5f};
         }
         case CanvasNode::AnchorPoint::bottom_left: {
-            return glm::vec2{0.0f, 1.0f};
+            return glm::vec2{0.0f, 0.0f};
         }
         case CanvasNode::AnchorPoint::bottom: {
-            return glm::vec2{0.5f, 1.0f};
+            return glm::vec2{0.5f, 0.0f};
         }
         case CanvasNode::AnchorPoint::bottom_right: {
-            return glm::vec2{1.0f, 1.0f};
+            return glm::vec2{1.0f, 0.0f};
         }
     }
 }
@@ -167,32 +167,34 @@ void Canvas::collect_render_data(
 ) const {
     struct StackInfo {
         glm::vec4 color;
-        int32_t layer;
         glm::vec2 dimension;
         glm::vec2 position;
+        int32_t layer;
+        int32_t index;
     };
 
     thread_local std::vector<StackInfo> stack_info;
     stack_info.resize(1);
     stack_info[0].color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
+    stack_info[0].position = glm::vec2{0.0f};
     stack_info[0].layer = 0;
+    stack_info[0].index = -1;
 
     unsigned int w, h;
     scene.get_window_size(w, h);
     stack_info[0].dimension = glm::vec2{w, h};
 
-    int32_t curr_parent = -2;
+    int32_t index = 0;
     for (CanvasStackNode const & sn : m_node_stack) {
         CanvasNode const & n = sn.n;
-        bool moved_up_stack = curr_parent < sn.parent;
-        curr_parent = sn.parent;
 
-        if (!moved_up_stack) {
+        while (stack_info.back().index != sn.parent) {
             stack_info.pop_back();
         }
 
         StackInfo const & curr_info = stack_info.back();
         StackInfo info;
+        info.index = index;
 
         /* color */
         glm::vec4 color;
@@ -217,11 +219,12 @@ void Canvas::collect_render_data(
         }
         info.dimension = dimension;
 
+        glm::vec2 parent_anchor = get_anchor_factor(n.parent_anchor);
+
         /* position */
         glm::vec2 position =
             curr_info.position +
-            (glm::vec2{1.0f} - get_anchor_factor(n.parent_anchor)) *
-            curr_info.dimension;
+            parent_anchor * curr_info.dimension;
 
         switch (n.position_mode) {
             case CanvasNode::UnitType::absolute: {
@@ -234,7 +237,8 @@ void Canvas::collect_render_data(
             }
         }
 
-        position += -get_anchor_factor(n.center_point) * dimension;
+        glm::vec2 center_anchor = get_anchor_factor(n.center_point);
+        position += -center_anchor * dimension;
 
         switch (n.origin_mode) {
             case CanvasNode::UnitType::absolute: {
@@ -268,7 +272,7 @@ void Canvas::collect_render_data(
                 rect.texture = n.texture;
                 rect.layer = rect_layer;
 
-                data.push_back(rect);
+                data.emplace_back(rect);
 
                 break;
             }
@@ -276,8 +280,10 @@ void Canvas::collect_render_data(
                 CanvasText const & text = n.u.text;
                 float font_size = static_cast<float>(text.font_size);
 
+                position.x += (0.5f - center_anchor.x) * dimension.x;
+                position.y += (0.5f + center_anchor.y) * dimension.y - font_size;
+
                 glm::vec2 curr_pos = position;
-                curr_pos.y += dimension.y - font_size;
                 float start_y = curr_pos.y;
 
                 float row_width = 0.0f;
@@ -378,5 +384,6 @@ void Canvas::collect_render_data(
         }
 
         stack_info.push_back(info);
+        ++index;
     }
 }
