@@ -42,6 +42,7 @@ Map::Map(char const * path) {
 #define TOK_INTERACTABLE "[interact]"
 #define TOK_SLIDE "[slide]"
 #define TOK_COLLIDER "[col]"
+#define TOK_NO_COLLIDER "[no_col]"
 #define TOK_TRIGGER "[trigger]"
 
 enum class MapToken {
@@ -54,6 +55,7 @@ enum class MapToken {
     interactable,
     slide,
     collider,
+    no_collider,
     trigger
 };
 
@@ -70,6 +72,7 @@ MapToken get_token(char const * str) {
     if (check_tok(TOK_INTERACTABLE, str)) return MapToken::interactable;
     if (check_tok(TOK_SLIDE, str)) return MapToken::slide;
     if (check_tok(TOK_COLLIDER, str)) return MapToken::collider;
+    if (check_tok(TOK_NO_COLLIDER, str)) return MapToken::no_collider;
     if (check_tok(TOK_TRIGGER, str)) return MapToken::trigger;
     return MapToken::none;
 }
@@ -458,6 +461,10 @@ void Map::generate_nav_mesh(
                 include_mesh_in_model = true;
                 break;
             }
+            case MapToken::no_collider: {
+                include_mesh_in_model = false;
+                break;
+            }
             default: {}
         }
 
@@ -693,6 +700,9 @@ Map Map::parse_map_from_model(char const * path) {
                 }
                 case MapToken::collider: {
                     parse_collider(ctx, qni, room_id, node_index, global_tform, scene);
+                    break;
+                }
+                case MapToken::no_collider: {
                     break;
                 }
                 case MapToken::trigger: {
