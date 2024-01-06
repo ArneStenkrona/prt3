@@ -49,6 +49,7 @@ file(GLOB SOURCES
   "src/daedalus/game_state/item_db.cpp"
   "src/daedalus/game_state/object_db.cpp"
   "src/daedalus/game_state/prefab_db.cpp"
+  "src/daedalus/game_state/sound_pool.cpp"
   "src/daedalus/gui/game_gui.cpp"
   "src/daedalus/gui/strings.cpp"
   "src/daedalus/map/map.cpp"

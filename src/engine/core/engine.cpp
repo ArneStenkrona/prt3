@@ -36,10 +36,7 @@ bool Engine::execute_frame() {
 
         m_context.renderer().render(render_data, false);
 
-        m_context.audio_manager().update(
-            scene.get_camera().transform(),
-            scene.m_transform_cache.global_transforms().data()
-        );
+        m_context.audio_manager().update();
     } else {
         // loop begin
         float fixed_delta_time = 1.0f / 60.0f;
@@ -75,10 +72,7 @@ bool Engine::execute_frame() {
 
                 m_context.renderer().render(render_data, false);
 
-                m_context.audio_manager().update(
-                    scene.get_camera().transform(),
-                    scene.m_transform_cache.global_transforms().data()
-                );
+                m_context.audio_manager().update();
                 break;
             }
             case EngineMode::editor: {

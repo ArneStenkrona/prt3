@@ -322,6 +322,9 @@ public:
 
     void get_window_size(unsigned int & w, unsigned int & h) const;
 
+    inline std::vector<Transform> const & get_cached_transforms() const
+    { return m_transform_cache.global_transforms(); }
+
 private:
     Context * m_context;
 

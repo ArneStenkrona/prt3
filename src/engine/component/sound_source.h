@@ -11,6 +11,10 @@ class Scene;
 template<typename T>
 class ComponentStorage;
 
+class EditorContext;
+
+template<typename T>
+void inner_show_component(EditorContext &, NodeID);
 class SoundSourceComponent {
 public:
     SoundSourceComponent(Scene & scene, NodeID node_id);
@@ -19,8 +23,17 @@ public:
     float pitch() const { return m_pitch; }
     float gain() const { return m_gain; }
 
+    float rolloff_factor() const { return m_rolloff_factor; }
+    float reference_distance() const { return m_reference_distance; }
+    float max_distance() const { return m_max_distance; }
+
     void set_pitch(Scene & scene, float pitch);
     void set_gain(Scene & scene, float gain);
+    void set_rolloff_factor();
+    void set_reference_distance();
+    void set_max_distance();
+    void set_max_gain();
+    void set_min_gain();
 
     NodeID node_id() const { return m_node_id; }
     SoundSourceID sound_source_id() const { return m_sound_source_id; }
@@ -40,9 +53,21 @@ private:
     float m_pitch = 1.0f;
     float m_gain = 1.0f;
 
+    float m_rolloff_factor = 1.0f;
+    float m_reference_distance = 1.0f;
+    float m_max_distance = 100.0f;
+
     void remove(Scene & scene);
 
+    static void update(
+        Scene & scene,
+        float delta_time,
+        std::vector<SoundSourceComponent> & components
+    );
+
     friend class ComponentStorage<SoundSourceComponent>;
+    friend class ComponentManager;
+    friend void inner_show_component<SoundSourceComponent>(EditorContext &, NodeID);
 };
 
 } // namespace prt3

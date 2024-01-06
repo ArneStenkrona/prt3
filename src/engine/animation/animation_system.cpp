@@ -38,13 +38,13 @@ void AnimationSystem::init_animation(
     Model const & model = scene.model_manager().get_model(model_handle);
 
     m_animations[id].model_handle = model_handle;
-    m_animations[id].clip_a.animation_index = 0;
+    m_animations[id].clip_a.set_animation_index(model, 0);
     m_animations[id].clip_a.t = 0;
     m_animations[id].clip_a.speed = 1.0f;
     m_animations[id].clip_a.paused = false;
     m_animations[id].clip_a.looping = true;
 
-    m_animations[id].clip_b.animation_index = NO_ANIMATION;
+    m_animations[id].clip_b.clear_animation();
     m_animations[id].clip_b.t = 0;
     m_animations[id].clip_b.speed = 1.0f;
     m_animations[id].clip_b.paused = false;
@@ -163,6 +163,7 @@ void AnimationSystem::update(Scene const & scene, float delta_time) {
             Model::Animation const & model_anim = model.animations()[clip.animation_index];
             float duration = model_anim.duration / model_anim.ticks_per_second;
 
+            clip.t_prev = clip.t;
             clip.t += clip.speed * delta_time;
             clip.t = clip.looping ?
                 fmod(clip.t, duration) :
@@ -175,6 +176,7 @@ void AnimationSystem::update(Scene const & scene, float delta_time) {
 
             Model::Animation const & model_anim = model.animations()[clip.animation_index];
             float duration = model_anim.duration / model_anim.ticks_per_second;
+            clip.t_prev = clip.t;
             clip.t += clip.speed * delta_time;
             clip.t = clip.looping ?
                 fmod(clip.t, duration) :

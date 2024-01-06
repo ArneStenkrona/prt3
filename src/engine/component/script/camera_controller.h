@@ -141,7 +141,7 @@ private:
     float m_mouse_sensitivity = 0.005236f;
 
     NodeID m_target = NO_NODE;
-    float m_target_distance = 25.0f;
+    float m_target_distance = 20.0f;
 
     float m_screen_shake_magnitude = 0.0f;
     float m_screen_shake_time = 0.0f;

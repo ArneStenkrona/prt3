@@ -1,15 +1,21 @@
-
 #include "character_controller.h"
+
+#include "src/daedalus/game_state/game_state.h"
+
+#include "src/util/random.h"
 
 #include <utility>
 
 using namespace dds;
 
 void CharacterController::on_init(prt3::Scene & scene) {
+    m_game_state = scene.get_autoload_script<GameState>();
+
     m_state.input = {};
 
     m_state.direction =
         get_node(scene).get_global_transform(scene).get_front();
+
     m_state.ground_normal = glm::vec3{0.0f, 1.0f, 0.0f};
 
     m_weapon_id = scene.get_child_with_tag(node_id(), "weapon");
@@ -19,126 +25,106 @@ void CharacterController::on_init(prt3::Scene & scene) {
     prt3::Model const & model =
         scene.get_model(armature.model_handle());
 
-    get_state_data(IDLE) = {
-        .transition = 0.0f,
-        .clip_a = { .animation_index = model.get_animation_index("idle", 0),
-                    .paused = false,
-                    .looping = true, },
-        .clip_b = { .animation_index = prt3::NO_ANIMATION },
-        .can_change_direction = false,
-        .inherit_animation_time = true
-    };
+    StateData & idle = get_state_data(IDLE);
+    idle.transition = 0.0f;
+    idle.clip_a.set_animation_index(model, model.get_animation_index("idle", 0));
+    idle.clip_a.paused = false;
+    idle.clip_a.looping = true;
+    idle.can_change_direction = false;
+    idle.inherit_animation_time = true;
 
-    get_state_data(WALK) = {
-        .transition = 0.0f,
-        .clip_a = { .animation_index = model.get_animation_index("walk", 0),
-                    .paused = false,
-                    .looping = true },
-        .clip_b = { .animation_index = model.get_animation_index("idle", 0),
-                    .paused = false,
-                    .looping = true },
-        .can_change_direction = true,
-        .inherit_animation_time = true
-    };
+    StateData & walk = get_state_data(WALK);
+    walk.transition = 0.0f;
+    walk.clip_a.set_animation_index(model, model.get_animation_index("walk", 0));
+    walk.clip_a.paused = false;
+    walk.clip_a.looping = true;
+    walk.clip_b.set_animation_index(model, model.get_animation_index("idle", 0));
+    walk.clip_b.paused = false;
+    walk.clip_b.looping = true;
+    walk.can_change_direction = true;
+    walk.inherit_animation_time = true;
 
-    get_state_data(RUN) = {
-        .transition = 0.0f,
-        .clip_a = { .animation_index = model.get_animation_index("run", 0),
-                    .paused = false,
-                    .looping = true },
-        .clip_b = { .animation_index = model.get_animation_index("walk", 0),
-                    .paused = false,
-                    .looping = true },
-        .can_change_direction = true,
-        .inherit_animation_time = true
-    };
+    StateData & run = get_state_data(RUN);
+    run.transition = 0.0f;
+    run.clip_a.set_animation_index(model, model.get_animation_index("run", 0));
+    run.clip_a.paused = false;
+    run.clip_a.looping = true;
+    run.clip_b.set_animation_index(model, model.get_animation_index("walk", 0));
+    run.clip_b.paused = false;
+    run.clip_b.looping = true;
+    run.can_change_direction = true;
+    run.inherit_animation_time = true;
 
-    get_state_data(ATTACK_1) = {
-        .transition = 0.05f,
-        .clip_a = { .animation_index = model.get_animation_index("attack1", 0),
-                    .speed = 0.75f,
-                    .paused = false,
-                    .looping = false },
-        .clip_b = { .animation_index = prt3::NO_ANIMATION},
-        .can_change_direction = false,
-        .inherit_animation_time = false
-    };
+    StateData & atk1 = get_state_data(ATTACK_1);
+    atk1.transition = 0.05f;
+    atk1.clip_a.set_animation_index(model, model.get_animation_index("attack1", 0));
+    atk1.clip_a.speed = 0.75f;
+    atk1.clip_a.paused = false;
+    atk1.clip_a.looping = false;
+    atk1.can_change_direction = false;
+    atk1.inherit_animation_time = false;
 
-    get_state_data(ATTACK_2) = {
-        .transition = 0.05f,
-        .clip_a = { .animation_index = model.get_animation_index("attack2", 0),
-                    .speed = 0.75f,
-                    .paused = false,
-                    .looping = false },
-        .clip_b = { .animation_index = prt3::NO_ANIMATION},
-        .can_change_direction = false,
-        .inherit_animation_time = false
-    };
+    StateData & atk2 = get_state_data(ATTACK_2);
+    atk2.transition = 0.05f;
+    atk2.clip_a.set_animation_index(model, model.get_animation_index("attack2", 0));
+    atk2.clip_a.speed = 0.75f;
+    atk2.clip_a.paused = false;
+    atk2.clip_a.looping = false;
+    atk2.can_change_direction = false;
+    atk2.inherit_animation_time = false;
 
-    get_state_data(ATTACK_AIR_1) = {
-        .transition = 0.05f,
-        .clip_a = { .animation_index = model.get_animation_index("attack_air1", 0),
-                    .speed = 0.75f,
-                    .paused = false,
-                    .looping = false },
-        .clip_b = { .animation_index = prt3::NO_ANIMATION},
-        .can_change_direction = false,
-        .inherit_animation_time = false
-    };
+    StateData & atk_air1 = get_state_data(ATTACK_AIR_1);
+    atk_air1.transition = 0.05f;
+    atk_air1.clip_a.set_animation_index(model, model.get_animation_index("attack_air1", 0));
+    atk_air1.clip_a.speed = 0.75f;
+    atk_air1.clip_a.paused = false;
+    atk_air1.clip_a.looping = false;
+    atk_air1.can_change_direction = false;
+    atk_air1.inherit_animation_time = false;
 
-    get_state_data(ATTACK_AIR_2) = {
-        .transition = 0.05f,
-        .clip_a = { .animation_index = model.get_animation_index("attack_air2", 0),
-                    .speed = 0.75f,
-                    .paused = false,
-                    .looping = false },
-        .clip_b = { .animation_index = prt3::NO_ANIMATION},
-        .can_change_direction = false,
-        .inherit_animation_time = false
-    };
+    StateData & atk_air2 = get_state_data(ATTACK_AIR_2);
+    atk_air2.transition = 0.05f;
+    atk_air2.clip_a.set_animation_index(model, model.get_animation_index("attack_air2", 0));
+    atk_air2.clip_a.speed = 0.75f;
+    atk_air2.clip_a.paused = false;
+    atk_air2.clip_a.looping = false;
+    atk_air2.can_change_direction = false;
+    atk_air2.inherit_animation_time = false;
 
-    get_state_data(JUMP) = {
-        .transition = 0.02f,
-        .clip_a = { .animation_index = model.get_animation_index("jump", 0),
-                    .speed = 1.25f,
-                    .paused = false,
-                    .looping = false },
-        .clip_b = { .animation_index = prt3::NO_ANIMATION},
-        .can_change_direction = false,
-        .inherit_animation_time = false
-    };
+    StateData & jump = get_state_data(JUMP);
+    jump.transition = 0.02f;
+    jump.clip_a.set_animation_index(model, model.get_animation_index("jump", 0));
+    jump.clip_a.speed = 1.25f;
+    jump.clip_a.paused = false;
+    jump.clip_a.looping = false;
+    jump.can_change_direction = false;
+    jump.inherit_animation_time = false;
 
-    get_state_data(FALL) = {
-        .transition = 0.1f,
-        .clip_a = { .animation_index = model.get_animation_index("fall", 0),
-                    .paused = false,
-                    .looping = true },
-        .clip_b = { .animation_index = prt3::NO_ANIMATION},
-        .can_change_direction = false,
-        .inherit_animation_time = false
-    };
+    StateData & fall = get_state_data(FALL);
+    fall.transition = 0.1f;
+    fall.clip_a.set_animation_index(model, model.get_animation_index("fall", 0));
+    fall.clip_a.paused = false;
+    fall.clip_a.looping = true;
+    fall.can_change_direction = false;
+    fall.inherit_animation_time = false;
 
-    get_state_data(LAND) = {
-        .transition = 0.02f,
-        .clip_a = { .animation_index = model.get_animation_index("land", 0),
-                    .speed = 1.5f,
-                    .paused = false,
-                    .looping = false },
-        .clip_b = { .animation_index = prt3::NO_ANIMATION},
-        .can_change_direction = false,
-        .inherit_animation_time = false
-    };
+    StateData & land = get_state_data(LAND);
+    land.transition = 0.02f;
+    land.clip_a.set_animation_index(model, model.get_animation_index("land", 0));
+    land.clip_a.speed = 1.5f;
+    land.clip_a.paused = false;
+    land.clip_a.looping = false;
+    land.can_change_direction = false;
+    land.inherit_animation_time = false;
 
-    get_state_data(CAST_SPELL) = {
-        .transition = 0.05f,
-        .clip_a = { .animation_index = model.get_animation_index("cast", 0),
-                    .speed = 2.0f,
-                    .paused = false,
-                    .looping = false },
-        .clip_b = { .animation_index = prt3::NO_ANIMATION},
-        .can_change_direction = false,
-        .inherit_animation_time = false
-    };
+    StateData & cast = get_state_data(CAST_SPELL);
+    cast.transition = 0.05f;
+    cast.clip_a.set_animation_index(model, model.get_animation_index("cast", 0));
+    cast.clip_a.speed = 2.0f;
+    cast.clip_a.paused = false;
+    cast.clip_a.looping = false;
+    cast.can_change_direction = false;
+    cast.inherit_animation_time = false;
 
     if (!m_state.transition_complete) {
         init_state(scene);
@@ -153,10 +139,8 @@ bool CharacterController::transition_state(
         scene.get_component<prt3::Armature>(node_id());
     prt3::Animation & anim =
         scene.animation_system().get_animation(armature.animation_id());
-    prt3::Model const & model =
-        scene.get_model(armature.model_handle());
 
-    float a_frac = anim.clip_a.frac(model);
+    float a_frac = anim.clip_a.frac();
 
     StateType transition_mask = NONE;
     StateType queueable_mask = NONE;
@@ -182,11 +166,10 @@ bool CharacterController::transition_state(
         case ATTACK_1: {
             queueable_mask = ATTACK_2 | JUMP | CAST_SPELL;
             if (a_frac >= 1.0f) {
-                transition_mask = IDLE | WALK | ATTACK_2 | CAST_SPELL;
+                transition_mask = IDLE | WALK | ATTACK_2 | CAST_SPELL | JUMP;
                 queueable_mask |= IDLE | WALK;
             } else if (a_frac >= 0.467f) {
-                transition_mask = ATTACK_2;
-                queueable_mask |= JUMP;
+                transition_mask = ATTACK_2 | JUMP;
             }
 
             if (m_state.grounded_timer > m_state.coyote_time) {
@@ -199,11 +182,10 @@ bool CharacterController::transition_state(
             // busy = false;
             queueable_mask = ATTACK_1 | JUMP | CAST_SPELL;
             if (a_frac >= 1.0f) {
-                transition_mask = IDLE | WALK | ATTACK_1 | CAST_SPELL;
+                transition_mask = IDLE | WALK | ATTACK_1 | CAST_SPELL | JUMP;
                 queueable_mask |= IDLE | WALK;
             } else if (a_frac >= 0.467f) {
-                transition_mask = ATTACK_1;
-                queueable_mask |= JUMP;
+                transition_mask = ATTACK_1 | JUMP;
             }
 
             if (m_state.grounded_timer > m_state.coyote_time) {
@@ -381,8 +363,6 @@ void CharacterController::init_state(prt3::Scene & scene) {
     prt3::Animation & anim =
         scene.animation_system().get_animation(armature.animation_id());
     init_animation(anim);
-    prt3::Model const & model =
-        scene.get_model(armature.model_handle());
 
     switch (m_state.state) {
         case IDLE: {
@@ -413,7 +393,7 @@ void CharacterController::init_state(prt3::Scene & scene) {
             m_state.run_factor = 0.0f;
             m_state.jumped = false;
             if (m_state.jump_count > 0) {
-                anim.clip_a.set_frac(model, 0.05f);
+                anim.clip_a.set_frac(0.05f);
             }
             m_state.jump_dir = m_state.jump_count == 0 ?
                 m_state.input.last_grounded_direction : m_state.input.direction;
@@ -434,15 +414,12 @@ float CharacterController::get_blend_factor() const {
     switch (m_state.state) {
         case IDLE: {
             return 0.0f;
-            break;
         }
         case WALK: {
             return glm::clamp(1.0f - (m_state.run_factor), 0.0f, 1.0f);
-            break;
         }
         case RUN: {
             return glm::clamp(1.0f - (m_state.run_factor - 1.0f), 0.0f, 1.0f);
-            break;
         }
         default: {
             return 0.0f;
@@ -450,7 +427,12 @@ float CharacterController::get_blend_factor() const {
     }
 }
 
-void CharacterController::update_animation(prt3::Animation & animation) {
+void CharacterController::update_animation(prt3::Scene & scene) {
+    prt3::Armature & armature =
+        scene.get_component<prt3::Armature>(node_id());
+    prt3::Animation & anim =
+        scene.animation_system().get_animation(armature.animation_id());
+
     StateData const & data = get_state_data(m_state.state);
 
     bool exit_transition = false;
@@ -464,10 +446,10 @@ void CharacterController::update_animation(prt3::Animation & animation) {
     if (exit_transition) {
         float t_adjusted = data.clip_b.paused ?
             data.clip_b.t :
-            (animation.clip_a.t * data.clip_b.speed / animation.clip_a.speed) +
+            (anim.clip_a.t * data.clip_b.speed / anim.clip_a.speed) +
                 data.clip_b.t;
-        animation.clip_b = data.clip_b;
-        animation.clip_b.t = t_adjusted;
+        anim.clip_b = data.clip_b;
+        anim.clip_b.t = t_adjusted;
     }
 
     switch (m_state.state) {
@@ -481,14 +463,35 @@ void CharacterController::update_animation(prt3::Animation & animation) {
             float high = m_state.state == WALK ?
                 m_walk_anim_speed_b : m_run_anim_speed;
 
-            animation.clip_a.speed = glm::mix(low, high, fac);
-            animation.clip_b.speed = glm::mix(low, high, fac);
+            anim.clip_a.speed = glm::mix(low, high, fac);
+            anim.clip_b.speed = glm::mix(low, high, fac);
+
+            if (m_state.grounded) {
+                prt3::Animation::Clip & clip = anim.blend_factor <= 0.5f ?
+                    anim.clip_a : anim.clip_b;
+
+                float t_step0 = clip.frac_to_timepoint(0.0f);
+                float t_step1 = clip.frac_to_timepoint(0.5f);
+
+                if (clip.passed_timepoint(t_step0) ||
+                    clip.passed_timepoint(t_step1)) {
+                    m_game_state->sound_pool().play_sound(
+                        scene,
+                        SoundPool::footstep_default,
+                        glm::mix(0.9f, 1.1f, random_float()),
+                        glm::mix(0.9f, 1.1f, random_float()),
+                        0.75f,
+                        100.0f,
+                        scene.get_cached_transforms()[node_id()].position
+                    );
+                }
+            }
             break;
         }
         default: {}
     }
 
-    animation.blend_factor = !m_state.transition_complete ?
+    anim.blend_factor = !m_state.transition_complete ?
         glm::clamp(1.0f - m_state.transition / data.transition, 0.0f, 1.0f) :
         get_blend_factor();
 }
@@ -498,8 +501,6 @@ void CharacterController::handle_state(prt3::Scene & scene, float delta_time) {
         scene.get_component<prt3::Armature>(node_id());
     prt3::Animation & anim =
         scene.animation_system().get_animation(armature.animation_id());
-    prt3::Model const & model =
-        scene.get_model(armature.model_handle());
 
     float speed = 20.0f;
     float dt_fac = 1.0f - glm::pow(0.5f, delta_time * speed);
@@ -526,12 +527,13 @@ void CharacterController::handle_state(prt3::Scene & scene, float delta_time) {
         }
         case ATTACK_1:
         case ATTACK_2: {
-            float a_frac = anim.clip_a.frac(model);
+            float a_frac = anim.clip_a.frac();
             active_weapon = 0.15f < a_frac && a_frac < 0.3f;
             float force_mag = 0.0f;
             if (0.15f < a_frac && a_frac < 0.2f) {
                 force_mag = 128.0f;
             }
+
             m_state.force = m_state.direction * force_mag;
             break;
         }
@@ -540,12 +542,12 @@ void CharacterController::handle_state(prt3::Scene & scene, float delta_time) {
             float force_mag = m_state.grounded ? 0.0f : 45.0f;
             m_state.force = m_state.input.direction * force_mag;
 
-            float a_frac = anim.clip_a.frac(model);
+            float a_frac = anim.clip_a.frac();
             active_weapon = 0.1f < a_frac && a_frac < 0.25f;
             break;
         }
         case JUMP: {
-            float a_frac = anim.clip_a.frac(model);
+            float a_frac = anim.clip_a.frac();
             if (a_frac >= 0.25f && !m_state.jumped) {
                 m_state.gravity_velocity = -14.5f;
                 m_state.force = m_state.jump_dir * m_jump_force;
@@ -583,8 +585,9 @@ void CharacterController::update_direction(prt3::Scene & scene, float delta_time
 
     if (get_state_data(m_state.state).can_change_direction &&
         m_state.input.direction != glm::vec3{0.0f}) {
-        m_state.direction =
-            glm::mix(m_state.direction, m_state.input.direction, dt_fac);
+        m_state.direction = glm::normalize(
+            glm::mix(m_state.direction, m_state.input.direction, dt_fac)
+        );
     }
 
     glm::vec3 raw_look_dir =
@@ -672,11 +675,6 @@ void CharacterController::update_post_input(prt3::Scene & /*scene*/) {
 }
 
 void CharacterController::on_update(prt3::Scene & scene, float delta_time) {
-    prt3::Armature & armature =
-        scene.get_component<prt3::Armature>(node_id());
-    prt3::Animation & anim =
-        scene.animation_system().get_animation(armature.animation_id());
-
     update_input(scene, delta_time);
     update_post_input(scene);
 
@@ -686,7 +684,7 @@ void CharacterController::on_update(prt3::Scene & scene, float delta_time) {
     }
 
     /* update */
-    update_animation(anim);
+    update_animation(scene);
     handle_state(scene, delta_time);
     update_direction(scene, delta_time);
     update_physics(scene, delta_time);
@@ -725,9 +723,9 @@ void CharacterController::deserialize_state(
         scene.animation_system().get_animation(armature.animation_id());
 
     m_state = serialized.state;
-    anim.clip_a = serialized.clip_a.animation_index == prt3::NO_ANIMATION ?
+    anim.clip_a = serialized.clip_a.get_animation_index() == prt3::NO_ANIMATION ?
         get_state_data(m_state.state).clip_a : serialized.clip_a;
-    anim.clip_b = serialized.clip_b.animation_index == prt3::NO_ANIMATION ?
+    anim.clip_b = serialized.clip_b.get_animation_index() == prt3::NO_ANIMATION ?
         get_state_data(m_state.state).clip_b : serialized.clip_b;
     anim.blend_factor = serialized.blend_factor;
 

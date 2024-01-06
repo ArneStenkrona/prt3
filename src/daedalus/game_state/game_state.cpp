@@ -12,7 +12,8 @@ GameState::GameState(prt3::Scene & scene, prt3::NodeID node_id)
    m_npc_db{*this},
    m_item_db{*this},
    m_object_db{*this},
-   m_game_gui{scene} {
+   m_game_gui{scene},
+   m_sound_pool{scene} {
     init_resources(scene);
 }
 
@@ -26,7 +27,8 @@ GameState::GameState(
    m_npc_db{*this},
    m_item_db{*this},
    m_object_db{*this},
-   m_game_gui{scene} {
+   m_game_gui{scene},
+   m_sound_pool{scene} {
     init_resources(scene);
 }
 
@@ -170,10 +172,31 @@ void GameState::on_start(prt3::Scene & scene) {
 }
 
 void GameState::on_update(prt3::Scene & scene, float) {
+    m_sound_pool.update(scene);
     m_npc_db.update(scene);
     m_item_db.update();
     m_object_db.update(scene);
     m_current_time += dds::ms_per_frame;
+
+    /* set audio listener */
+    prt3::Transform cam_tform = scene.get_cached_transforms()[m_camera_id];
+
+    glm::vec3 player_pos = scene.get_cached_transforms()[m_player_id].position;
+
+    float listener_dist = 5.0f;
+    glm::vec3 listener_pos = player_pos - cam_tform.get_front() * listener_dist;
+
+    prt3::AudioManager & man = scene.audio_manager();
+    man.set_listener_position(listener_pos.x, listener_pos.y, listener_pos.z);
+
+    man.set_listener_orientation(
+        cam_tform.get_front().x,
+        cam_tform.get_front().y,
+        cam_tform.get_front().z,
+        cam_tform.get_up().x,
+        cam_tform.get_up().y,
+        cam_tform.get_up().z
+    );
 }
 
 void GameState::on_late_update(prt3::Scene & scene, float delta_time) {
@@ -221,6 +244,8 @@ void GameState::init_resources(prt3::Scene & scene) {
              .load_sound_font("assets/audio/soundfonts/CT2MGM.sf2");
 
     // player state
-    m_player_state.clip_a.animation_index = prt3::NO_ANIMATION;
-    m_player_state.clip_b.animation_index = prt3::NO_ANIMATION;
+    m_player_state.clip_a.clear_animation();
+    m_player_state.clip_b.clear_animation();
+
+    m_player_state.state.direction = glm::vec3{0.0f, 0.0f, 1.0f};
 }

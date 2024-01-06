@@ -14,6 +14,8 @@
 
 namespace dds {
 
+class GameState;
+
 class CharacterController : public prt3::Script {
 public:
     typedef uint32_t StateType;
@@ -103,7 +105,7 @@ public:
 
     float get_blend_factor() const;
 
-    void update_animation(prt3::Animation & animation);
+    void update_animation(prt3::Scene & scene);
 
     virtual void update_input(prt3::Scene & /*scene*/, float /*delta_time*/) {}
     void update_post_input(prt3::Scene & scene);
@@ -146,7 +148,9 @@ protected:
 
     prt3::NodeID m_weapon_id = prt3::NO_NODE;
 
-    std::array<StateData, TOTAL_NUM_STATES> m_state_data;
+    std::array<StateData, TOTAL_NUM_STATES> m_state_data = {};
+
+    GameState * m_game_state;
 
     inline State bit_index_to_state(StateType bit_index) {
         return static_cast<State>(1 << bit_index);

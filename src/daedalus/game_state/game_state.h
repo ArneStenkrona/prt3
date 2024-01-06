@@ -2,6 +2,7 @@
 #define DDS_GAME_STATE_H
 
 #include "src/daedalus/game_state/game_time.h"
+#include "src/daedalus/game_state/sound_pool.h"
 #include "src/daedalus/gui/game_gui.h"
 #include "src/daedalus/map/map.h"
 #include "src/daedalus/npc/npc_db.h"
@@ -75,6 +76,9 @@ public:
     ObjectDB & object_db() { return m_object_db; }
     ObjectDB const & object_db() const { return m_object_db; }
 
+    SoundPool & sound_pool() { return m_sound_pool; }
+    SoundPool const & sound_pool() const { return m_sound_pool; }
+
     TimeMS current_time() const { return m_current_time; }
 
     RoomID current_room() const { return m_current_room; }
@@ -112,6 +116,7 @@ private:
     ObjectDB m_object_db;
     RoomID m_current_room = 0;
     GameGui m_game_gui;
+    SoundPool m_sound_pool;
 
     TimeMS m_current_time = 0;
 

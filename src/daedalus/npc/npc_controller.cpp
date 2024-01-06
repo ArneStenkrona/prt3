@@ -1,17 +1,9 @@
 #include "npc_controller.h"
+
 #include "src/daedalus/npc/npc_db.h"
+#include "src/daedalus/game_state/game_state.h"
 
 using namespace dds;
-
-void set_anim_if_not_set(prt3::Animation & anim, int32_t anim_index) {
-    if (anim.clip_a.animation_index != anim_index) {
-        anim.clip_a.animation_index = anim_index;
-        anim.clip_a.looping = true;
-        anim.clip_a.speed = 1.0f;
-        anim.clip_a.t = 0.0f;
-        anim.blend_factor = 0.0f;
-    }
-}
 
 inline static bool is_running(NPCDB const & db, NPCID id) {
     npc_action::ActionType action_type = db.get_action_type(id);
@@ -36,6 +28,7 @@ inline static MapPathID path_id(NPCDB const & db, NPCID id) {
 
 void NPCController::on_init(prt3::Scene & scene) {
     m_game_state = scene.get_autoload_script<GameState>();
+
     NPCDB & db = m_game_state->npc_db();
     NPC & npc = db.get_npc(m_npc_id);
 
@@ -294,10 +287,8 @@ void NPCController::update_use_item(prt3::Scene & scene, float /*delta_time*/) {
             scene.get_component<prt3::Armature>(node_id());
         prt3::Animation & anim =
             scene.animation_system().get_animation(armature.animation_id());
-        prt3::Model const & model =
-            scene.get_model(armature.model_handle());
 
-        float frac = anim.clip_a.frac(model);
+        float frac = anim.clip_a.frac();
         if (frac > 0.5f) {
             db.game_state().item_db().use(
                 scene,

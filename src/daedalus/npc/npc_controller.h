@@ -2,7 +2,8 @@
 #define DDS_NPC_CONTROLLER_H
 
 #include "src/daedalus/character/character_controller.h"
-#include "src/daedalus/game_state/game_state.h"
+#include "src/daedalus/npc/npc_db.h"
+
 #include "src/engine/scene/scene.h"
 
 #include <vector>
@@ -33,7 +34,6 @@ public:
     void set_npc_id(NPCID id) { m_npc_id = id; }
 private:
     NPCID m_npc_id;
-    GameState * m_game_state;
 
     static constexpr unsigned int m_rolling_avg_n = 10;
     float m_movement_performance = 1.0f;

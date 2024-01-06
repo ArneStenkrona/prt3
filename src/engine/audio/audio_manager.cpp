@@ -132,7 +132,7 @@ AudioManager::~AudioManager() {
     CHECK_AL_ERRORS();
 }
 
-SoundSourceID AudioManager::create_sound_source(NodeID node_id) {
+SoundSourceID AudioManager::create_sound_source() {
     MidiID id;
     if (!m_free_sound_source_ids.empty()) {
         id = m_free_sound_source_ids.back();
@@ -145,7 +145,6 @@ SoundSourceID AudioManager::create_sound_source(NodeID node_id) {
     SoundSource & source = m_sound_sources[id];
     source.active = true;
     source.section = 0;
-    source.node_id = node_id;
     source.audio_id = NO_AUDIO;
     source.playing = false;
     source.looping = false;
@@ -176,10 +175,14 @@ void AudioManager::play_sound_source(
     AudioID audio_id,
     bool looping
 ) {
+
     SoundSource & source = m_sound_sources[id];
 
-    if (source.audio_id != NO_AUDIO) {
+    AudioID prev_audio = source.audio_id;
+    if (prev_audio != NO_AUDIO && audio_id != prev_audio) {
         ov_clear(&source.file);
+    } else {
+        ov_time_seek(&source.file, 0.0f);
     }
 
     source.audio_id = audio_id;
@@ -189,9 +192,20 @@ void AudioManager::play_sound_source(
     source.section = 0;
     source.pos = 0;
 
-    void * void_id = reinterpret_cast<void*>(static_cast<intptr_t>(id+1));
-    if(ov_open_callbacks(void_id, &source.file, NULL, 0, m_ov_callbacks) != 0) {
-        PRT3ERROR("Invalid Ogg file '%s'.", m_audio_to_path.at(audio_id).c_str());
+    if (audio_id != prev_audio) {
+        int res = ov_open_callbacks(
+            reinterpret_cast<void*>(static_cast<intptr_t>(id+1)),
+            &source.file,
+            NULL,
+            0,
+            m_ov_callbacks
+        );
+
+        if(res != 0) {
+            char const * path = m_audio_to_path.at(audio_id).c_str();
+            PRT3ERROR("Invalid Ogg file '%s'.", path);
+            return;
+        }
     }
 }
 
@@ -200,6 +214,7 @@ void AudioManager::stop_sound_source(SoundSourceID id) {
 }
 
 void AudioManager::set_sound_source_pitch(SoundSourceID id, float pitch) {
+    pitch = glm::max(0.01f, pitch);
     m_sound_sources[id].pitch = pitch;
     if (m_initialized) {
         alSourcef(m_sound_sources[id].source, AL_PITCH, pitch);
@@ -207,9 +222,43 @@ void AudioManager::set_sound_source_pitch(SoundSourceID id, float pitch) {
 }
 
 void AudioManager::set_sound_source_gain(SoundSourceID id, float gain) {
+    gain = glm::max(0.0f, gain);
     m_sound_sources[id].gain = gain;
     if (m_initialized) {
         alSourcef(m_sound_sources[id].source, AL_GAIN, gain);
+    }
+}
+
+void AudioManager::set_sound_source_rolloff_factor(
+    SoundSourceID id,
+    float rolloff_factor
+) {
+    rolloff_factor = glm::max(0.0f, rolloff_factor);
+    m_sound_sources[id].rolloff_factor = rolloff_factor;
+    if (m_initialized) {
+        alSourcef(m_sound_sources[id].source, AL_ROLLOFF_FACTOR, rolloff_factor);
+    }
+}
+
+void AudioManager::set_sound_source_reference_distance(
+    SoundSourceID id,
+    float distance
+) {
+    distance = glm::max(0.01f, distance);
+    m_sound_sources[id].reference_distance = distance;
+    if (m_initialized) {
+        alSourcef(m_sound_sources[id].source, AL_REFERENCE_DISTANCE, distance);
+    }
+}
+
+void AudioManager::set_sound_source_max_distance(
+    SoundSourceID id,
+    float distance
+) {
+    distance = glm::max(0.01f, distance);
+    m_sound_sources[id].max_distance = distance;
+    if (m_initialized) {
+        alSourcef(m_sound_sources[id].source, AL_MAX_DISTANCE, distance);
     }
 }
 
@@ -311,34 +360,24 @@ void AudioManager::free_audio(AudioID id) {
     m_audio_to_path.erase(id);
 }
 
-void AudioManager::update(
-    Transform const & camera_transform,
-    Transform const * transforms
-) {
+void AudioManager::update() {
     if (!m_initialized) {
         init();
         return;
     }
 
-    glm::vec3 const & cam_pos = camera_transform.position;
-    glm::vec3 const & cam_front = camera_transform.get_front();
-    alListener3f(AL_POSITION, cam_pos.x, cam_pos.y, cam_pos.z);
-    float orientation[6] =
-        {cam_front.x, cam_front.y, cam_front.z, 0.0f, 1.0f, 0.0f};
-    alListenerfv(AL_ORIENTATION, orientation);
-
-    update_sound_sources(transforms);
+    update_sound_sources();
     update_current_track();
 }
 
-void AudioManager::update_sound_sources(Transform const * transforms) {
+void AudioManager::update_sound_sources() {
+    alListenerfv(AL_POSITION, m_listener_position);
+    alListenerfv(AL_ORIENTATION, m_listener_orientation);
+
     for (SoundSource & source : m_sound_sources) {
         if (!source.active) continue;
         if (!source.playing) continue;
         if (source.audio_id == NO_AUDIO) continue;
-
-        glm::vec3 const & pos = transforms[source.node_id].position;
-        alSource3f(source.source, AL_POSITION, pos.x, pos.y, pos.z);
 
         OggVorbis_File & audio = source.file;
 
@@ -346,10 +385,8 @@ void AudioManager::update_sound_sources(Transform const * transforms) {
         alGetSourcei(source.source, AL_BUFFERS_PROCESSED, &n_processed);
         CHECK_AL_ERRORS();
 
-        static constexpr int buf_length = 4096;
-        float buf[buf_length * 2]; // * 2 due to possibly stereo
-
-        vorbis_info* info = ov_info(&audio, -1);
+        static constexpr int buf_length = 1024;
+        float buf[buf_length];
 
         while (n_processed > 0) {
             --n_processed;
@@ -375,7 +412,7 @@ void AudioManager::update_sound_sources(Transform const * transforms) {
                 pos = ov_pcm_tell(&audio);
                 int len = std::min(512, static_cast<int>(total - pos));
 
-                if (len <= 0) {
+                if (len <= 0 || read_samples + len > buf_length) {
                     break;
                 }
 
@@ -388,26 +425,19 @@ void AudioManager::update_sound_sources(Transform const * transforms) {
                     );
 
                 if (n_samples < 0) {
+                    PRT3ERROR("Failed to read ogg audio.\n");
                     break;
                 }
 
-                auto n_bytes = n_samples * 4 * info->channels;
-                if (info->channels == 1) {
-                    memcpy(&buf[0] + read_samples, &buf_ptr[0][0], n_bytes);
-                } else {
-                    unsigned n_samples_ui = static_cast<unsigned>(n_samples);
-                    for (unsigned i = 0; i < n_samples_ui; ++i) {
-                        buf[2*(i + read_samples)] = buf_ptr[0][i];
-                        buf[2*(i + read_samples)+1] = buf_ptr[1][i];
-                    }
-                }
+                auto n_bytes = n_samples * 4;
+                memcpy(&buf[0] + read_samples, &buf_ptr[0][0], n_bytes);
+
                 read_bytes += n_bytes;
                 read_samples += n_samples;
                 reading = read_samples < buf_length && source.playing;
             }
 
-            if (read_samples <= 0) {
-                PRT3ERROR("Failed to read ogg audio.\n");
+            if (read_samples == 0) {
                 break;
             }
 
@@ -415,13 +445,11 @@ void AudioManager::update_sound_sources(Transform const * transforms) {
             alSourceUnqueueBuffers(source.source, 1, &buffer);
             CHECK_AL_ERRORS();
 
-            ALint format = info->channels == 1 ?
-                AL_FORMAT_MONO_FLOAT32 :
-                AL_FORMAT_STEREO_FLOAT32;
+            vorbis_info* info = ov_info(&audio, -1);
 
             alBufferData(
                 buffer,
-                format,
+                AL_FORMAT_MONO_FLOAT32,
                 &buf[0],
                 read_bytes,
                 info->rate
@@ -755,6 +783,8 @@ void AudioManager::init() {
         }
     }
 
+    alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
+
     m_initialized = true;
 }
 
@@ -764,9 +794,15 @@ void AudioManager::init_sound_source(SoundSourceID id) {
     alGenSources(1, &source.source);
     alSourcef(source.source, AL_PITCH, source.pitch);
     alSourcef(source.source, AL_GAIN, source.gain);
+    alSourcef(source.source, AL_ROLLOFF_FACTOR, source.rolloff_factor);
+    alSourcef(source.source, AL_REFERENCE_DISTANCE, source.reference_distance);
+    alSourcef(source.source, AL_MAX_DISTANCE, source.max_distance);
     alSource3f(source.source, AL_POSITION, 0.0f, 0.0f, 0.0f);
     alSource3f(source.source, AL_VELOCITY, 0.0f, 0.0f, 0.0f);
     alSourcei(source.source, AL_LOOPING, AL_FALSE);
+
+    alSourcef(source.source, AL_MAX_GAIN, 1.0f);
+    alSourcef(source.source, AL_MIN_GAIN, 0.0f);
 
     alGenBuffers(SoundSource::n_buffers, &source.buffers[0]);
 
@@ -774,7 +810,7 @@ void AudioManager::init_sound_source(SoundSourceID id) {
     for (size_t i = 0; i < SoundSource::n_buffers; ++i) {
         alBufferData(
             source.buffers[i],
-            AL_FORMAT_STEREO_FLOAT32,
+            AL_FORMAT_MONO_FLOAT32,
             &zero,
             1,
             m_sample_rate

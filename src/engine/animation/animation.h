@@ -23,24 +23,55 @@ class Scene;
 
 struct Animation {
     struct Clip {
-        int32_t animation_index;
-        float t;
+        float t = 0.0f;
         float speed = 1.0f;
         bool paused = false;
         bool looping = false;
 
-        float frac(Model const & model) const {
+        void clear_animation() {
+            duration = 0.0f;
+            animation_index = -1;
+            t_prev = std::numeric_limits<float>::quiet_NaN();
+        }
+
+        int32_t get_animation_index() const
+        { return animation_index; }
+
+        void set_animation_index(Model const & model, int32_t index) {
+            animation_index = index;
+            Model::Animation const & animation = model.animations()[index];
+            duration = animation.duration / animation.ticks_per_second;
+            t_prev = std::numeric_limits<float>::quiet_NaN();
+        }
+
+        float frac() const {
             if (animation_index == -1) return 0.0f;
-            Model::Animation const & animation = model.animations()[animation_index];
-            float duration = animation.duration / animation.ticks_per_second;
             return t / duration;
         }
 
-        void set_frac(Model const & model, float frac) {
-            Model::Animation const & animation = model.animations()[animation_index];
-            float duration = animation.duration / animation.ticks_per_second;
+        void set_frac(float frac) {
             t = frac * duration;
         }
+
+        float frac_to_timepoint(float frac) const {
+            return frac * duration;
+        }
+
+        bool passed_timepoint(float tp) const {
+            if (t_prev > t)  {
+                /* this means that we've looped */
+                return t_prev <= tp || tp < t;
+            }
+
+            return t_prev <= tp && tp < t;
+        }
+
+    private:
+        int32_t animation_index = -1;
+        float duration = 0.0f;
+        float t_prev;
+
+        friend class AnimationSystem;
     };
 
     ModelHandle model_handle;

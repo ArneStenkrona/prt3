@@ -67,12 +67,54 @@ public:
     AudioManager(BackendType backend_type);
     ~AudioManager();
 
-    SoundSourceID create_sound_source(NodeID node_id);
+    SoundSourceID create_sound_source();
     void free_sound_source(SoundSourceID id);
     void play_sound_source(SoundSourceID id, AudioID audio_id, bool looping);
     void stop_sound_source(SoundSourceID id);
     void set_sound_source_pitch(SoundSourceID id, float pitch);
     void set_sound_source_gain(SoundSourceID id, float gain);
+
+    void set_sound_source_rolloff_factor(
+        SoundSourceID id,
+        float rolloff_factor
+    );
+
+    void set_sound_source_reference_distance(
+        SoundSourceID id,
+        float distance
+    );
+
+    void set_sound_source_max_distance(SoundSourceID id, float distance);
+
+    void set_sound_source_position(SoundSourceID id, float x, float y, float z) {
+        if (m_initialized)
+            alSource3f(m_sound_sources[id].source, AL_POSITION, x, y, z);
+    }
+
+    void set_listener_position(float x , float y, float z) {
+        m_listener_position[0] = x;
+        m_listener_position[1] = y;
+        m_listener_position[2] = z;
+    }
+
+    void set_listener_orientation(
+        float front_x,
+        float front_y,
+        float front_z,
+        float up_x,
+        float up_y,
+        float up_z
+    ) {
+        m_listener_orientation[0] = front_x;
+        m_listener_orientation[1] = front_y;
+        m_listener_orientation[2] = front_z;
+        m_listener_orientation[3] = up_x;
+        m_listener_orientation[4] = up_y;
+        m_listener_orientation[5] = up_z;
+    }
+
+    bool sound_source_playing(SoundSourceID id) const
+    { return m_sound_sources[id].playing; }
 
     /**
      * Only supports loading ogg vorbis
@@ -101,7 +143,6 @@ private:
         ALuint buffers[n_buffers];
         ALuint source;
 
-        NodeID node_id;
         AudioID audio_id;
 
         int section;
@@ -109,8 +150,11 @@ private:
         bool playing;
         bool looping;
 
-        float pitch;
-        float gain;
+        float pitch = 1.0f;
+        float gain = 1.0f;
+        float rolloff_factor = 1.0f;
+        float reference_distance = 1.0f;
+        float max_distance = 100.0f;
 
         OggVorbis_File file;
         size_t pos;
@@ -147,20 +191,18 @@ private:
 
     ALCcontext * m_al_context;
 
+    float m_listener_position[3] = {};
+    float m_listener_orientation[6] = { 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f };
+
     unsigned int m_sample_rate;
 
     bool m_initialized = false;
 
     bool m_is_dummy;
 
-    void update(
-        Transform const & camera_transform,
-        Transform const * transforms
-    );
+    void update();
 
-    void update_sound_sources(
-        Transform const * transforms
-    );
+    void update_sound_sources();
 
     void update_current_track();
 
