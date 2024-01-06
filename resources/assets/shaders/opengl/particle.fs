@@ -32,7 +32,8 @@ uniform vec3 u_ViewPosition;
 in vec3 v_Position;
 in vec2 v_UV;
 in vec4 v_Color;
-in vec2 v_screenUV;
+in vec2 v_ScreenUV;
+in float v_Emissive;
 
 const float PI = 3.14159265359;
 
@@ -65,7 +66,7 @@ void main() {
     vec4 albedo = v_Color * texture(u_Texture, v_UV);
 
     // fade close to opaque geometry
-    float sample_d = linearize_depth(texture(u_DepthMap, v_screenUV).r);
+    float sample_d = linearize_depth(texture(u_DepthMap, v_ScreenUV).r);
     float d = linearize_depth(gl_FragCoord.z);
     float depth_lim = 0.005;
     float d_diff = clamp(sample_d - d, 0.0, depth_lim);
@@ -100,7 +101,7 @@ void main() {
         );
     }
 
-    vec3 color = lightContribution * albedo.rgb;
+    vec3 color = mix(lightContribution * albedo.rgb, albedo.rgb, v_Emissive);
 
     color.rgb *= albedo.a;
     float w = weight(gl_FragCoord.z, albedo.a);

@@ -9,11 +9,13 @@ layout(location = 0) in vec3 a_VertexPos;
 layout(location = 1) in vec4 a_PosSize;
 layout(location = 2) in vec2 a_BaseUV;
 layout(location = 3) in vec4 a_Color;
+layout(location = 4) in float a_Emissive;
 
 out vec3 v_Position;
 out vec2 v_UV;
 out vec4 v_Color;
-out vec2 v_screenUV;
+out vec2 v_ScreenUV;
+out float v_Emissive;
 
 void main() {
     v_UV = a_BaseUV - u_InvDiv * a_VertexPos.xy;
@@ -22,7 +24,8 @@ void main() {
     v_Position = pos;
 
     v_Color = a_Color;
+    v_Emissive = a_Emissive;
 
     gl_Position = u_VPMatrix * vec4(pos, 1.0);
-    v_screenUV = (gl_Position.xy / gl_Position.w) * (0.5) + vec2(0.5);
+    v_ScreenUV = (gl_Position.xy / gl_Position.w) * (0.5) + vec2(0.5);
 }

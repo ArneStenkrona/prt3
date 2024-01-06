@@ -13,7 +13,7 @@ using namespace prt3;
 using time_point = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
 Context::Context(BackendType backend_type)
- : m_renderer{*this, 960, 540, 1.0f, backend_type},
+ : m_renderer{*this, 960, 540, 2.0f, backend_type},
    m_material_manager{*this},
    m_model_manager{*this},
    m_texture_manager{*this},

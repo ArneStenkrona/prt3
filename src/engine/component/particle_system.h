@@ -27,6 +27,7 @@ public:
         glm::vec3 velocity;
         float lifetime;
         glm::vec4 color;
+        float emissive;
         float start_scale;
         float end_scale;
         float scale;
@@ -79,6 +80,9 @@ public:
 
         glm::vec4 start_color;
         glm::vec4 end_color;
+
+        float start_emissive;
+        float end_emissive;
 
         float emission_rate;
 

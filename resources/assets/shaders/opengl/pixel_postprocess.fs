@@ -87,10 +87,10 @@ void main() {
     float depth_outline = depth_diff > mix(0.001, 0.02, grazing) ? 1.0 : 0.0;
 
     vec3 color;
-    //if (normal_outline > depth_outline) {
-    //    color = 0.5 * texture(u_PreviousColorBuffer, v_TexCoordinate).rgb;
-    //} else if (depth_outline > 0.0) {
-    //    color = 0.3 * texture(u_PreviousColorBuffer, v_TexCoordinate).rgb;
+    // if (normal_outline > depth_outline) {
+       color = 0.75 * texture(u_PreviousColorBuffer, v_TexCoordinate).rgb;
+    // } else if (depth_outline > 0.0) {
+       color = 0.5 * texture(u_PreviousColorBuffer, v_TexCoordinate).rgb;
     // } else {
         color = texture(u_PreviousColorBuffer, v_TexCoordinate).rgb;
     // }
@@ -125,9 +125,9 @@ void main() {
 
     vec3 dithered_color = color + spread * M;
 
-    float n = 16.0;
+    float n = 32.0;
     vec3 compressed_color = floor(dithered_color * (n - 1.0) + 0.5) / (n - 1.0);
     outColor = vec4(compressed_color, 1.0);
 
-    // gl_FragColor = vec4(color, 1.0);
+    outColor = vec4(color, 1.0);
 }

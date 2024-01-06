@@ -96,6 +96,7 @@ struct ParticleAttributes {
     glm::vec4 pos_size; // (x, y, z, size)
     glm::vec2 base_uv;
     std::array<uint8_t, 4> color;
+    float emissive;
 };
 
 struct ParticleData {

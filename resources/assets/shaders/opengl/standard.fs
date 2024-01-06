@@ -43,6 +43,8 @@ in mat3 v_InverseTBN;
 
 const float PI = 3.14159265359;
 
+const float toon_steps = 1.0;
+
 vec3 calculatePointLight(PointLight light,
                          vec3 albedo,
                          vec3 normal,
@@ -128,9 +130,14 @@ float GeometrySchlickGGX(float NdotV, float roughness) {
     return num / denom;
 }
 
+float toon_quantize(float f) {
+    if (toon_steps >= 0.0) return f;
+    return floor(f * (toon_steps - 1.0) + 0.5) / (toon_steps - 1.0);
+}
+
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
     float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
+    float NdotL = toon_quantize(max(dot(N, L), 0.0));
     float ggx2 = GeometrySchlickGGX(NdotV, roughness);
     float ggx1 = GeometrySchlickGGX(NdotL, roughness);
 
@@ -168,7 +175,7 @@ vec3 calculatePointLight(PointLight light,
     float denominator = 4.0 * max(dot(normal, V), 0.0) * max(dot(normal,L), 0.0);
     vec3 specular = numerator / max(denominator, 0.001);
 
-    float NdotL = max(dot(normal, L), 0.0);
+    float NdotL = toon_quantize(max(dot(normal, L), 0.0));
     vec3 contribution = (kD * albedo / PI + specular) * radiance * NdotL;
 
     return contribution;
@@ -205,7 +212,7 @@ vec3 CalculateDirectionalLight(DirectionalLight light,
 
     kD *= 1.0 - metallic;
 
-    float NdotL = max(dot(normal, L), 0.0);
+    float NdotL = toon_quantize(max(dot(normal, L), 0.0));
     vec3 contribution = (kD * albedo / PI + specular) * radiance * NdotL;
 
     return contribution;

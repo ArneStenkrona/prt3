@@ -172,6 +172,20 @@ void inner_show_component<ParticleSystem>(
     edit_field<ParticleSystem, float>(
         context,
         id,
+        "start emissive",
+        offsetof(ParticleSystem, m_parameters.start_emissive)
+    );
+
+    edit_field<ParticleSystem, float>(
+        context,
+        id,
+        "end emissive",
+        offsetof(ParticleSystem, m_parameters.end_emissive)
+    );
+
+    edit_field<ParticleSystem, float>(
+        context,
+        id,
         "emission rate",
         offsetof(ParticleSystem, m_parameters.emission_rate)
     );

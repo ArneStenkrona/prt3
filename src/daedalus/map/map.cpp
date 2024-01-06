@@ -528,6 +528,8 @@ Map Map::parse_map_from_model(char const * path) {
             /* room type */
             ++curr;
             unsigned i = 0;
+            if (*curr) ++curr;
+            if (*curr) ++curr;
             while (*curr && *curr != ')') {
                 type_buf[i] = *curr;
                 ++i;
@@ -804,6 +806,7 @@ void Map::serialize(std::ofstream & out) {
     for (size_t i = 0; i < m_rooms.size(); ++i) {
         prt3::write_stream(out, m_rooms[i].doors.start_index);
         prt3::write_stream(out, m_rooms[i].doors.num_indices);
+        prt3::write_stream(out, m_rooms[i].type);
     }
 
     for (size_t i = 0; i < m_rooms.size(); ++i) {
@@ -848,6 +851,7 @@ void Map::deserialize(std::ifstream & in) {
     for (size_t i = 0; i < m_rooms.size(); ++i) {
         prt3::read_stream(in, m_rooms[i].doors.start_index);
         prt3::read_stream(in, m_rooms[i].doors.num_indices);
+        prt3::read_stream(in, m_rooms[i].type);
     }
 
     m_room_names.resize(n_rooms);

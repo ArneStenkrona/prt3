@@ -23,6 +23,8 @@ ParticleSystem::ParticleSystem(
     read_stream(in, m_parameters.end_scale);
     read_stream(in, m_parameters.start_color);
     read_stream(in, m_parameters.end_color);
+    read_stream(in, m_parameters.start_emissive);
+    read_stream(in, m_parameters.end_emissive);
     read_stream(in, m_parameters.emission_rate);
     read_stream(in, m_parameters.lifetime);
     read_stream(in, m_parameters.velocity);
@@ -50,6 +52,8 @@ void ParticleSystem::serialize(
     write_stream(out, m_parameters.end_scale);
     write_stream(out, m_parameters.start_color);
     write_stream(out, m_parameters.end_color);
+    write_stream(out, m_parameters.start_emissive);
+    write_stream(out, m_parameters.end_emissive);
     write_stream(out, m_parameters.emission_rate);
     write_stream(out, m_parameters.lifetime);
     write_stream(out, m_parameters.velocity);
@@ -196,6 +200,7 @@ void ParticleSystem::emit_particle(Scene & scene, Particle & particle) {
     particle.velocity = dir * params.velocity.apply();
     particle.lifetime = params.lifetime.apply();
     particle.color = params.start_color;
+    particle.emissive = params.start_emissive;
     particle.start_scale = params.start_scale.apply();
     particle.end_scale = params.end_scale.apply();
     particle.scale = particle.start_scale;
@@ -262,6 +267,8 @@ void ParticleSystem::update_system(Scene & scene, float delta_time) {
             glm::mix(particle.start_scale, particle.end_scale, interp);
         particle.color =
             glm::mix(params.start_color, params.end_color, interp);
+        particle.emissive =
+            glm::mix(params.start_emissive, params.end_emissive, interp);
 
         particle.t += delta_time;
     }
@@ -327,6 +334,7 @@ void ParticleSystem::collect_render_data(
             attr.color[1] = static_cast<uint8_t>(255.0f * particle.color[1]);
             attr.color[2] = static_cast<uint8_t>(255.0f * particle.color[2]);
             attr.color[3] = static_cast<uint8_t>(255.0f * particle.color[3]);
+            attr.emissive = particle.emissive;
 
             if (ps.m_parameters.animated) {
                 uint32_t frame = get_frame(

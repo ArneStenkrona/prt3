@@ -73,16 +73,26 @@ GLRenderer::GLRenderer(
     PostProcessingPass game_pass_info;
     game_pass_info.fragment_shader_path =
         "assets/shaders/opengl/game_postprocess.fs";
-    game_pass_info.downscale_factor = 1.0f;
+    game_pass_info.downscale_factor = downscale_factor;
 
     PostProcessingPass editor_pass_info;
     editor_pass_info.fragment_shader_path =
         "assets/shaders/opengl/editor_postprocess.fs";
     editor_pass_info.downscale_factor = 1.0f;
 
+    PostProcessingPass passthrough_info;
+    passthrough_info.fragment_shader_path =
+        "assets/shaders/opengl/passthrough.fs";
+    passthrough_info.downscale_factor = 1.0f;
+
+    PostProcessingChain game_chain = downscale_factor == 1.0f ?
+        PostProcessingChain{{ game_pass_info }} :
+        PostProcessingChain{{ game_pass_info, passthrough_info }};
+    PostProcessingChain editor_chain{{ editor_pass_info }};
+
     set_postprocessing_chains(
-        PostProcessingChain{{ game_pass_info, pixel_pass_info  }},
-        PostProcessingChain{{ pixel_pass_info, editor_pass_info }}
+        game_chain,
+        editor_chain
     );
 
     m_decal_shader = new GLShader(
@@ -661,6 +671,7 @@ void GLRenderer::render_particles(RenderData const & render_data) {
     GL_CHECK(glVertexAttribDivisor(1, 1));
     GL_CHECK(glVertexAttribDivisor(2, 1));
     GL_CHECK(glVertexAttribDivisor(3, 1));
+    GL_CHECK(glVertexAttribDivisor(4, 1));
 
     GLShader & shader = *m_particle_shader;
     GL_CHECK(glUseProgram(shader.shader()));
@@ -738,6 +749,15 @@ void GLRenderer::render_particles(RenderData const & render_data) {
             GL_TRUE,
             sizeof(ParticleAttributes),
             reinterpret_cast<void*>(b + offsetof(ParticleAttributes, color))
+        ));
+        GL_CHECK(glEnableVertexAttribArray(4));
+        GL_CHECK(glVertexAttribPointer(
+            4,
+            1,
+            GL_FLOAT,
+            GL_FALSE,
+            sizeof(ParticleAttributes),
+            reinterpret_cast<void*>(b + offsetof(ParticleAttributes, emissive))
         ));
 
         GL_CHECK(glDrawArraysInstanced(

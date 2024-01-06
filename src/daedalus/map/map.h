@@ -49,6 +49,17 @@ private:
         uint32_t local_id;
         MapPosition position;
     };
+
+    struct MapRoom {
+        enum RoomType : uint32_t {
+            indoors,
+            outdoors
+        };
+
+        prt3::SubVec doors;
+        RoomType type;
+        prt3::DynamicAABBTree aabb_tree;
+    };
 public:
     Map(char const * path);
 
@@ -78,6 +89,9 @@ public:
 
     char const * room_name(RoomID room_id) const
     { return m_room_names[room_id].c_str(); }
+
+    bool room_is_indoors(RoomID room_id) const
+    { return m_rooms[room_id].type == MapRoom::indoors; }
 
     inline uint32_t local_to_global_door_id(RoomID room, uint32_t door_id) const
     { return m_local_ids.at(std::pair<RoomID, uint32_t>(room, door_id)); }
@@ -136,17 +150,6 @@ public:
     }
 
 private:
-      struct MapRoom {
-        enum RoomType {
-            indoors,
-            outdoors
-        };
-
-        prt3::SubVec doors;
-        RoomType type;
-        prt3::DynamicAABBTree aabb_tree;
-    };
-
     std::vector<MapRoom> m_rooms;
     std::vector<std::string> m_room_names;
     std::vector<MapPosition> m_locations;

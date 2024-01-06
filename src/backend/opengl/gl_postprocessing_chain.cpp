@@ -91,7 +91,6 @@ void GLPostProcessingChain::set_chain(
         int width = static_cast<int>(window_width / chain.passes[i].downscale_factor);
         int height = static_cast<int>(window_height / chain.passes[i].downscale_factor);
 
-
         GLuint shader = glshaderutility::create_shader(
             "assets/shaders/opengl/passthrough.vs",
             chain.passes[i].fragment_shader_path.c_str()

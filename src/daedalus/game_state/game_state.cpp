@@ -169,6 +169,20 @@ void GameState::on_start(prt3::Scene & scene) {
     scene.animation_system().update_transforms(scene, anim_id);
 
     m_game_gui.on_start(scene, m_canvas_id, *this);
+
+    /* lighting */
+    if (m_map.room_is_indoors(m_current_room)) {
+        scene.directional_light_on() = false;
+    } else {
+        scene.directional_light_on() = true;
+        /* hard-coded for now */
+        scene.directional_light().color = glm::vec3{0.3f, 0.3f, 0.5f};
+        scene.directional_light().direction = glm::normalize(
+            glm::vec3{1.0f, -1.0f, 1.0f}
+        );
+
+        scene.ambient_light() = glm::vec3{0.1f, 0.1f, 0.1f};
+    }
 }
 
 void GameState::on_update(prt3::Scene & scene, float) {
