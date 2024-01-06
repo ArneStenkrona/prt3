@@ -104,8 +104,7 @@ glm::vec3 GameState::get_door_local_position(
     uint32_t door_id,
     glm::vec3 position
 ) const {
-    glm::vec3 pos = position;
-    glm::vec3 v = pos - m_map.get_door_entry_position(door_id);
+    glm::vec3 v = position - m_map.get_door_entry_position(door_id);
     glm::vec3 n = m_map.get_door_up(door_id);
     return v - glm::dot(v, n) * n;
 }
@@ -121,19 +120,13 @@ void GameState::on_start(prt3::Scene & scene) {
 
     m_current_room = Map::scene_to_room(scene);
 
-    glm::vec3 spawn_position{};
-    for (prt3::Door const & door : scene.get_all_components<prt3::Door>()) {
-        if (door.id() == m_entry_door_id) {
-            prt3::Node const & door_node = scene.get_node(door.node_id());
-            glm::vec3 door_position =
-                door_node.get_global_transform(scene).position;
-            spawn_position =
-                door_position +
-                door.entry_offset() +
-                m_player_door_offset;
-            break;
-        }
-    }
+    uint32_t global_door_id = m_map.local_to_global_door_id(
+        m_current_room,
+        m_entry_door_id
+    );
+    glm::vec3 spawn_position = m_map.get_door_entry_position(global_door_id) +
+                               m_player_door_offset;
+
     prt3::Prefab const & player_prefab = m_prefab_db.get(PrefabDB::player);
     m_player_id = player_prefab.instantiate(scene, scene.root_id());
     prt3::Node & player = scene.get_node(m_player_id);
@@ -181,7 +174,7 @@ void GameState::on_start(prt3::Scene & scene) {
             glm::vec3{1.0f, -1.0f, 1.0f}
         );
 
-        scene.ambient_light() = glm::vec3{0.1f, 0.1f, 0.1f};
+        scene.ambient_light() = glm::vec3{0.2f, 0.2f, 0.2f};
     }
 }
 

@@ -45,6 +45,8 @@ void parse_args(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
+    std::ios_base::sync_with_stdio(false);
+
     parse_args(argc, argv);
 
     if (!prt3::Args::project_path().empty()) {
