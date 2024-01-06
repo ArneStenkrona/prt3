@@ -143,14 +143,14 @@ uint32_t Map::copy_mesh(
 prt3::NodeID Map::map_node_to_new_scene_node(
     ParsingContext & ctx,
     uint32_t map_node_index,
-    uint32_t room_index,
+    RoomID room_id,
     uint32_t node_index,
     prt3::Transform global_tform,
     char const * name,
     prt3::Scene & scene
 ) {
     prt3::Model::Node const & model_node =
-        ctx.models[room_index].nodes()[node_index];
+        ctx.models[room_id].nodes()[node_index];
 
     int32_t parent_index = model_node.parent_index;
 
@@ -168,7 +168,7 @@ prt3::NodeID Map::map_node_to_new_scene_node(
 
     int32_t map_mesh_index = ctx.map_model->nodes()[map_node_index].mesh_index;
     if (map_mesh_index != -1) {
-        prt3::Model & obj_model = ctx.object_models[room_index];
+        prt3::Model & obj_model = ctx.object_models[room_id];
         uint32_t node_index = obj_model.nodes().size();
         obj_model.nodes().push_back({});
         obj_model.nodes()[0].child_indices.push_back(node_index);
@@ -182,10 +182,10 @@ prt3::NodeID Map::map_node_to_new_scene_node(
             map_mesh_index,
             obj_model,
             node_index,
-            ctx.material_maps[room_index]
+            ctx.material_maps[room_id]
         );
 
-        ctx.object_meshes[room_index][id] = mesh_index;
+        ctx.object_meshes[room_id][id] = mesh_index;
     }
 
     return id;
@@ -194,15 +194,15 @@ prt3::NodeID Map::map_node_to_new_scene_node(
 bool Map::parse_door(
     ParsingContext & ctx,
     uint32_t map_node_index,
-    uint32_t room_index,
+    RoomID room_id,
     uint32_t node_index,
     prt3::Transform global_tform,
     prt3::Scene & scene
 ) {
-    MapRoom & room = ctx.map.m_rooms[room_index];
+    MapRoom & room = ctx.map.m_rooms[room_id];
 
     prt3::Model::Node const & model_node =
-        ctx.models[room_index].nodes()[node_index];
+        ctx.models[room_id].nodes()[node_index];
 
     uint32_t door_id;
     uint32_t dest_room;
@@ -226,23 +226,23 @@ bool Map::parse_door(
     uint32_t door_ind = ctx.map.m_doors.size();
     MapDoor map_door;
     map_door.shape = global_tform;
-    map_door.position.room = room_index;
+    map_door.position.room = room_id;
     map_door.position.position = global_tform.position;
     map_door.entry_offset = entry_offset;
     map_door.dest = dest_door; // rename later
     map_door.local_id = door_id;
-    ctx.num_to_door[room_index][door_id] = door_ind;
-    ctx.door_num_to_dest_room[door_ind] = ctx.num_to_room_index.at(dest_room);
+    ctx.num_to_door[room_id][door_id] = door_ind;
+    ctx.door_num_to_dest_room[door_ind] = ctx.map.m_num_to_room_id[dest_room];
     ctx.map.m_doors.emplace_back(map_door);
     ++room.doors.num_indices;
 
-    ctx.map.m_local_ids[std::pair<RoomID, uint32_t>{room_index, door_id}] =
+    ctx.map.m_local_ids[std::pair<RoomID, uint32_t>{room_id, door_id}] =
         door_ind;
 
     prt3::NodeID id = map_node_to_new_scene_node(
         ctx,
         map_node_index,
-        room_index,
+        room_id,
         node_index,
         global_tform,
         (std::string{"door"} + std::to_string(door_id)).c_str(),
@@ -256,7 +256,7 @@ bool Map::parse_door(
     prt3::Door & door = scene.add_component<prt3::Door>(id);
     door.id() = door_id;
 
-    RoomID dest_room_id = ctx.num_to_room_index.at(dest_room);
+    RoomID dest_room_id = ctx.map.m_num_to_room_id[dest_room];
     std::string dest_scene_path = room_to_scene_path(dest_room_id);
 
     door.destination_scene_path() = dest_scene_path.c_str();
@@ -289,12 +289,12 @@ bool Map::parse_door(
 bool Map::parse_location(
     ParsingContext & ctx,
     uint32_t /*map_node_index*/,
-    uint32_t room_index,
+    RoomID room_id,
     uint32_t node_index,
     prt3::Transform global_tform
 ) {
     prt3::Model::Node const & model_node =
-    ctx.models[room_index].nodes()[node_index];
+    ctx.models[room_id].nodes()[node_index];
 
     if (model_node.name.length() < strlen(TOK_LOCATION)) {
         return false;
@@ -302,7 +302,7 @@ bool Map::parse_location(
 
     char const * name = model_node.name.c_str() + strlen(TOK_LOCATION);
     MapPosition map_pos;
-    map_pos.room = room_index;
+    map_pos.room = room_id;
     map_pos.position = global_tform.position;
     ctx.map.m_location_ids[name] =
         static_cast<LocationID>(ctx.map.m_locations.size());
@@ -314,7 +314,7 @@ bool Map::parse_location(
 bool Map::parse_object(
     ParsingContext & ctx,
     uint32_t map_node_index,
-    uint32_t room_index,
+    RoomID room_id,
     uint32_t node_index,
     prt3::Transform global_tform,
     prt3::Scene & scene
@@ -322,7 +322,7 @@ bool Map::parse_object(
     map_node_to_new_scene_node(
         ctx,
         map_node_index,
-        room_index,
+        room_id,
         node_index,
         global_tform,
         "object",
@@ -335,7 +335,7 @@ bool Map::parse_object(
 bool Map::parse_interactable(
     ParsingContext & ctx,
     uint32_t map_node_index,
-    uint32_t room_index,
+    RoomID room_id,
     uint32_t node_index,
     prt3::Transform global_tform,
     prt3::Scene & scene
@@ -343,7 +343,7 @@ bool Map::parse_interactable(
     prt3::NodeID id = map_node_to_new_scene_node(
         ctx,
         map_node_index,
-        room_index,
+        room_id,
         node_index,
         global_tform,
         "interactable",
@@ -359,18 +359,18 @@ bool Map::parse_interactable(
 bool Map::parse_slide(
     ParsingContext & ctx,
     uint32_t map_node_index,
-    uint32_t room_index,
+    RoomID room_id,
     uint32_t node_index,
     prt3::Transform global_tform,
     prt3::Scene & scene
 ) {
     prt3::Model::Node const & model_node =
-        ctx.models[room_index].nodes()[node_index];
+        ctx.models[room_id].nodes()[node_index];
 
     prt3::NodeID id = map_node_to_new_scene_node(
         ctx,
         map_node_index,
-        room_index,
+        room_id,
         node_index,
         global_tform,
         "slide",
@@ -400,7 +400,7 @@ bool Map::parse_slide(
 bool Map::parse_collider_trigger_common(
     ParsingContext & ctx,
     uint32_t map_node_index,
-    uint32_t room_index,
+    RoomID room_id,
     uint32_t node_index,
     prt3::Transform global_tform,
     bool is_collider,
@@ -409,7 +409,7 @@ bool Map::parse_collider_trigger_common(
     prt3::NodeID id = map_node_to_new_scene_node(
         ctx,
         map_node_index,
-        room_index,
+        room_id,
         node_index,
         global_tform,
         is_collider ? "collider" : "trigger",
@@ -554,7 +554,8 @@ Map Map::parse_map_from_model(char const * path) {
             }
 
             ctx.num_to_room_node[num] = index;
-            ctx.num_to_room_index[num] = n_rooms;
+            ctx.map.m_num_to_room_id.resize(num + 1);
+            ctx.map.m_num_to_room_id[num] = n_rooms;
 
             MapRoom room{};
             room.type = type_buf[0] == 'i' ? MapRoom::RoomType::indoors :
@@ -585,8 +586,8 @@ Map Map::parse_map_from_model(char const * path) {
 
     std::vector<QueueNode> node_queue;
     for (auto const & pair : ctx.num_to_room_node) {
-        uint32_t room_index = ctx.num_to_room_index.at(pair.first);
-        MapRoom & room = ctx.map.m_rooms[room_index];
+        RoomID room_id = ctx.map.m_num_to_room_id[pair.first];
+        MapRoom & room = ctx.map.m_rooms[room_id];
         room.doors.start_index = ctx.map.m_doors.size();
 
         ctx.model_node_to_scene_node.clear();
@@ -595,7 +596,7 @@ Map Map::parse_map_from_model(char const * path) {
         // TODO: Implement a scene name instead since root node name can be
         //       overwritten.
         scene.get_node_name(scene.root_id()) =
-            (std::string("room") + std::to_string(room_index)).c_str();
+            (std::string("room") + std::to_string(room_id)).c_str();
 
         scene.ambient_light() = glm::vec3{0.7};
 
@@ -603,7 +604,7 @@ Map Map::parse_map_from_model(char const * path) {
 
         material_map.clear();
 
-        prt3::Model & model = ctx.models[room_index];
+        prt3::Model & model = ctx.models[room_id];
 
         prt3::Model::Node new_root{};
         new_root.parent_index = -1;
@@ -666,11 +667,11 @@ Map Map::parse_map_from_model(char const * path) {
                     break;
                 }
                 case MapToken::door: {
-                    parse_door(ctx, qni, room_index, node_index, global_tform, scene);
+                    parse_door(ctx, qni, room_id, node_index, global_tform, scene);
                     break;
                 }
                 case MapToken::location: {
-                    parse_location(ctx, qni, room_index, node_index, global_tform);
+                    parse_location(ctx, qni, room_id, node_index, global_tform);
                     break;
                 }
                 case MapToken::water: {
@@ -679,23 +680,23 @@ Map Map::parse_map_from_model(char const * path) {
                     break;
                 }
                 case MapToken::object: {
-                    parse_object(ctx, qni, room_index, node_index, global_tform, scene);
+                    parse_object(ctx, qni, room_id, node_index, global_tform, scene);
                     break;
                 }
                 case MapToken::slide: {
-                    parse_slide(ctx, qni, room_index, node_index, global_tform, scene);
+                    parse_slide(ctx, qni, room_id, node_index, global_tform, scene);
                     break;
                 }
                 case MapToken::interactable: {
-                    parse_interactable(ctx, qni, room_index, node_index, global_tform, scene);
+                    parse_interactable(ctx, qni, room_id, node_index, global_tform, scene);
                     break;
                 }
                 case MapToken::collider: {
-                    parse_collider(ctx, qni, room_index, node_index, global_tform, scene);
+                    parse_collider(ctx, qni, room_id, node_index, global_tform, scene);
                     break;
                 }
                 case MapToken::trigger: {
-                    parse_trigger(ctx, qni, room_index, node_index, global_tform, scene);
+                    parse_trigger(ctx, qni, room_id, node_index, global_tform, scene);
                     break;
                 }
                 case MapToken::none: {
@@ -712,36 +713,36 @@ Map Map::parse_map_from_model(char const * path) {
         /* save model */
         std::string room_model_path;
         room_model_path = std::string{"assets/models/map/room"} +
-                          std::to_string(room_index) +
+                          std::to_string(room_id) +
                           DOT_PRT3_MODEL_EXT;
 
         model.save_prt3model(room_model_path.c_str());
         model.set_path(room_model_path);
 
-        prt3::NodeID room_id = scene.add_node_to_root("room");
+        prt3::NodeID room_node_id = scene.add_node_to_root("room");
         prt3::ModelHandle handle = scene.upload_model(room_model_path);
-        scene.add_component<prt3::ModelComponent>(room_id, handle);
+        scene.add_component<prt3::ModelComponent>(room_node_id, handle);
 
         /* collider */
         scene.add_component<prt3::ColliderComponent>(
-            room_id,
+            room_node_id,
             prt3::ColliderType::collider,
             handle
         );
 
         /* save object model */
-        prt3::Model & obj_model = ctx.object_models[room_index];
+        prt3::Model & obj_model = ctx.object_models[room_id];
         if (!obj_model.meshes().empty()) {
             std::string obj_model_path;
             obj_model_path = std::string{"assets/models/map/objects"} +
-                             std::to_string(room_index) +
+                             std::to_string(room_id) +
                              DOT_PRT3_MODEL_EXT;
 
             obj_model.save_prt3model(obj_model_path.c_str());
             obj_model.set_path(obj_model_path);
             prt3::ModelHandle handle = scene.upload_model(obj_model_path);
 
-            for (auto pair : ctx.object_meshes.at(room_index)) {
+            for (auto pair : ctx.object_meshes.at(room_id)) {
                 prt3::NodeID node_id = pair.first;
                 uint32_t mesh_ind = pair.second;
 
@@ -756,7 +757,7 @@ Map Map::parse_map_from_model(char const * path) {
         }
 
         /* save scene */
-        std::string room_scene_path = room_to_scene_path(room_index);
+        std::string room_scene_path = room_to_scene_path(room_id);
         std::ofstream out(room_scene_path, std::ios::binary);
         scene.serialize(out);
         out.close();
@@ -769,9 +770,9 @@ Map Map::parse_map_from_model(char const * path) {
     /* rename door destinations */
     for (uint32_t door_ind = 0; door_ind < ctx.map.m_doors.size(); ++door_ind) {
         MapDoor & door = ctx.map.m_doors[door_ind];
-        uint32_t room_index = ctx.door_num_to_dest_room.at(door_ind);
+        RoomID room_id = ctx.door_num_to_dest_room.at(door_ind);
         door.dest = door.dest == -1 ?
-            -1 : ctx.num_to_door[room_index].at(door.dest);
+            -1 : ctx.num_to_door[room_id].at(door.dest);
     }
 
     generate_nav_mesh(prt3_context, ctx, map_model);
@@ -816,6 +817,11 @@ void Map::serialize(std::ofstream & out) {
             m_room_names[i].data(),
             m_room_names[i].size()
         );
+    }
+
+    prt3::write_stream(out, m_num_to_room_id.size());
+    for (RoomID id : m_num_to_room_id) {
+        prt3::write_stream(out, id);
     }
 
     prt3::write_stream(out, m_doors.size());
@@ -864,6 +870,13 @@ void Map::deserialize(std::ifstream & in) {
             m_room_names[i].data(),
             m_room_names[i].size()
         );
+    }
+
+    size_t n_num_to_room;
+    prt3::read_stream(in, n_num_to_room);
+    m_num_to_room_id.resize(n_num_to_room);
+    for (RoomID & id : m_num_to_room_id) {
+        prt3::read_stream(in, id);
     }
 
     size_t n_doors;

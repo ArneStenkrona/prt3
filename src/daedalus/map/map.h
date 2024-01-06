@@ -149,9 +149,13 @@ public:
         );
     }
 
+    RoomID get_room_id_from_num(uint32_t num) const
+    { return m_num_to_room_id[num]; }
+
 private:
     std::vector<MapRoom> m_rooms;
     std::vector<std::string> m_room_names;
+    std::vector<RoomID> m_num_to_room_id;
     std::vector<MapPosition> m_locations;
     std::unordered_map<std::string, LocationID> m_location_ids;
 
@@ -186,7 +190,7 @@ private:
     static prt3::NodeID map_node_to_new_scene_node(
         ParsingContext & ctx,
         uint32_t map_node_index,
-        uint32_t room_index,
+        RoomID room_id,
         uint32_t node_index,
         prt3::Transform global_tform,
         char const * name,
@@ -196,7 +200,7 @@ private:
     static bool parse_door(
         ParsingContext & ctx,
         uint32_t map_node_index,
-        uint32_t room_index,
+        RoomID room_id,
         uint32_t node_index,
         prt3::Transform global_tform,
         prt3::Scene & scene
@@ -205,7 +209,7 @@ private:
     static bool parse_location(
         ParsingContext & ctx,
         uint32_t map_node_index,
-        uint32_t room_index,
+        RoomID room_id,
         uint32_t node_index,
         prt3::Transform global_tform
     );
@@ -213,7 +217,7 @@ private:
     static bool parse_object(
         ParsingContext & ctx,
         uint32_t map_node_index,
-        uint32_t room_index,
+        RoomID room_id,
         uint32_t node_index,
         prt3::Transform global_tform,
         prt3::Scene & scene
@@ -222,7 +226,7 @@ private:
     static bool parse_interactable(
         ParsingContext & ctx,
         uint32_t map_node_index,
-        uint32_t room_index,
+        RoomID room_id,
         uint32_t node_index,
         prt3::Transform global_tform,
         prt3::Scene & scene
@@ -231,7 +235,7 @@ private:
     static bool parse_slide(
         ParsingContext & ctx,
         uint32_t map_node_index,
-        uint32_t room_index,
+        RoomID room_id,
         uint32_t node_index,
         prt3::Transform global_tform,
         prt3::Scene & scene
@@ -240,7 +244,7 @@ private:
     static bool parse_collider_trigger_common(
         ParsingContext & ctx,
         uint32_t map_node_index,
-        uint32_t room_index,
+        RoomID room_id,
         uint32_t node_index,
         prt3::Transform global_tform,
         bool is_collider,
@@ -250,26 +254,26 @@ private:
     static bool parse_collider(
         ParsingContext & ctx,
         uint32_t map_node_index,
-        uint32_t room_index,
+        RoomID room_id,
         uint32_t node_index,
         prt3::Transform global_tform,
         prt3::Scene & scene
     ) {
         return parse_collider_trigger_common(
-            ctx, map_node_index, room_index, node_index, global_tform, true, scene
+            ctx, map_node_index, room_id, node_index, global_tform, true, scene
         );
     }
 
     static bool parse_trigger(
         ParsingContext & ctx,
         uint32_t map_node_index,
-        uint32_t room_index,
+        RoomID room_id,
         uint32_t node_index,
         prt3::Transform global_tform,
         prt3::Scene & scene
     ) {
         return parse_collider_trigger_common(
-            ctx, map_node_index, room_index, node_index, global_tform, false, scene
+            ctx, map_node_index, room_id, node_index, global_tform, false, scene
         );
     }
 
@@ -297,9 +301,8 @@ struct ParsingContext {
     prt3::Model * map_model;
     std::vector<prt3::Model> models;
     std::unordered_map<uint32_t, uint32_t> num_to_room_node;
-    std::unordered_map<uint32_t, uint32_t> num_to_room_index;
     std::vector<std::unordered_map<uint32_t, uint32_t> > num_to_door;
-    std::unordered_map<uint32_t, uint32_t> door_num_to_dest_room;
+    std::unordered_map<uint32_t, RoomID> door_num_to_dest_room;
     std::unordered_map<int32_t, prt3::NodeID> model_node_to_scene_node;
     std::vector<prt3::Model> object_models;
     std::unordered_map<uint32_t, std::unordered_map<prt3::NodeID, uint32_t> > object_meshes;

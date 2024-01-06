@@ -86,7 +86,7 @@ NPCDB::NPCDB(GameState & game_state)
     NPCID npc_id = push_npc();
 
     NPC & npc = m_npcs[npc_id];
-    npc.map_position.room = 4;
+    npc.map_position.room = game_state.map().get_room_id_from_num(0);
     npc.map_position.position = glm::vec3{-4.0f, 0.5f, -0.5f};
     npc.model_path = "assets/models/boss1/boss1.fbx";
     npc.model_scale = 0.62f;
