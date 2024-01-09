@@ -124,3 +124,17 @@ void PlayerController::on_update(prt3::Scene & scene, float delta_time) {
         blob_shadow.local_transform().scale = glm::vec3{0.0f};
     }
 }
+
+void PlayerController::on_signal(
+    prt3::Scene & /*scene*/,
+    prt3::SignalString const & signal,
+    void * data
+) {
+    if (prt3::Weapon::is_hit_signal(signal)) {
+        prt3::HitPacket const & packet =
+            *reinterpret_cast<prt3::HitPacket const *>(data);
+        if (packet.node_id != m_weapon_id) {
+            m_state.hp = 0.0f;
+        }
+    }
+}

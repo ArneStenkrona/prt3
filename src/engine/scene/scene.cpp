@@ -185,6 +185,27 @@ NodeID Scene::get_child_with_tag(NodeID id, NodeTag tag) const {
     return NO_NODE;
 }
 
+NodeID Scene::get_child_with_name(NodeID id, char const * name) const {
+    thread_local std::vector<NodeID> queue;
+    queue = get_node(id).children_ids();
+
+    while (!queue.empty()) {
+        NodeID curr = queue.back();
+        queue.pop_back();
+        if (get_node_name(curr) == name) {
+            return curr;
+        }
+
+        Node const & curr_node = get_node(curr);
+
+        for (NodeID const & child_id : curr_node.children_ids()) {
+            queue.push_back(child_id);
+        }
+    }
+
+    return NO_NODE;
+}
+
 void Scene::find_relative_path(
     NodeID a_id,
     NodeID b_id,

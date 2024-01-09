@@ -66,7 +66,7 @@ bool Weapon::is_hit_signal(SignalString const & signal) {
         signal.data(),
         HIT_SIGNAL_BASE,
         sizeof(HIT_SIGNAL_BASE) - 1
-    );
+    ) == 0;
 }
 
 void Weapon::update(

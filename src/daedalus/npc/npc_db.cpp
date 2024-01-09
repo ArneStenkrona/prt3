@@ -91,6 +91,7 @@ NPCDB::NPCDB(GameState & game_state)
     npc.model_path = "assets/models/boss1/boss1.fbx";
     npc.model_scale = 0.62f;
     npc.prefab_id = PrefabDB::dark_flames;
+    npc.hand_equip_r_prefab_id = PrefabDB::wraith_sword;
     npc.collider_radius = 1.0f;
     npc.collider_height = 3.75f;
     npc.walk_force = 50.0f / dds::time_scale;
@@ -246,8 +247,10 @@ void NPCDB::load_npc(prt3::Scene & scene, NPCID id) {
     prt3::AnimationID anim_id =
         scene.get_component<prt3::Armature>(node_id).animation_id();
 
-    prt3::ScriptSet & script_set = scene.add_component<prt3::ScriptSet>(node_id);
-    script_set.add_script<NPCController>(scene, id);
+    prt3::ScriptSet & script_set =
+        scene.add_component<prt3::ScriptSet>(node_id);
+    prt3::ScriptID controller_id =
+        script_set.add_script<NPCController>(scene, id);
 
     m_loaded_npcs[id] = node_id;
 
@@ -257,6 +260,20 @@ void NPCDB::load_npc(prt3::Scene & scene, NPCID id) {
         prt3::Prefab const & prefab =
             m_game_state.prefab_db().get(npc.prefab_id);
         prefab.instantiate(scene, node_id);
+    }
+
+    if (npc.hand_equip_r_prefab_id) {
+        prt3::Prefab const & prefab =
+            m_game_state.prefab_db().get(npc.hand_equip_r_prefab_id);
+        prt3::NodeID hand_equip_r = scene.get_child_with_name(
+            node_id,
+            "hand_equip_r"
+        );
+        prt3::NodeID equip_id = prefab.instantiate(scene, hand_equip_r);
+        NPCController * controller = static_cast<NPCController*>(
+            scene.get_script(controller_id)
+        );
+        controller->set_weapon(equip_id);
     }
 }
 

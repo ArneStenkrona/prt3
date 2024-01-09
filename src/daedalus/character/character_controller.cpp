@@ -126,8 +126,22 @@ void CharacterController::on_init(prt3::Scene & scene) {
     cast.can_change_direction = false;
     cast.inherit_animation_time = false;
 
+    StateData & dead = get_state_data(DEAD);
+    dead.transition = 0.05f;
+    dead.clip_a.set_animation_index(model, model.get_animation_index("die", 0));
+    dead.clip_a.speed = 1.0f;
+    dead.clip_a.paused = false;
+    dead.clip_a.looping = false;
+    dead.can_change_direction = false;
+    dead.inherit_animation_time = false;
+
     if (!m_state.transition_complete) {
         init_state(scene);
+    }
+
+    prt3::NodeID hitbox = scene.get_child_with_tag(node_id(), "hitbox");
+    if (hitbox != prt3::NO_NODE) {
+        prt3::Weapon::connect_hit_signal(scene, *this, hitbox);
     }
 }
 
@@ -274,6 +288,8 @@ bool CharacterController::transition_state(
                 queueable_mask |= FALL;
             }
             break;
+        case DEAD:
+            break;
         }
         default: { assert(false); }
     }
@@ -283,6 +299,12 @@ bool CharacterController::transition_state(
             this->m_state.queued_state =
                 state & queueable_mask ? state : this->m_state.queued_state;
         };
+
+    if (m_state.hp <= 0.0f && m_state.state != DEAD) {
+        queueable_mask = DEAD;
+        transition_mask = DEAD;
+        attempt_queue_state(DEAD);
+    }
 
     float eps = 0.05f;
     if (m_state.run_factor <= eps) {
@@ -567,6 +589,10 @@ void CharacterController::handle_state(prt3::Scene & scene, float delta_time) {
             break;
         }
         case CAST_SPELL: {
+            m_state.force = glm::vec3{0.0f};
+            break;
+        }
+        case DEAD: {
             m_state.force = glm::vec3{0.0f};
             break;
         }

@@ -24,6 +24,13 @@ public:
 
     virtual void update_input(prt3::Scene & scene, float /*delta_time*/);
     virtual void on_update(prt3::Scene & scene, float delta_time);
+
+    virtual void on_signal(
+        prt3::Scene & scene,
+        prt3::SignalString const & signal,
+        void * data
+    );
+
 private:
     prt3::NodeID m_blob_shadow_id;
 

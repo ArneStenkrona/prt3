@@ -14,7 +14,6 @@
 #include <queue>
 #include <unordered_map>
 #include <string>
-
 namespace dds {
 
 class GameState;
@@ -26,6 +25,7 @@ struct NPC {
     std::string model_path;
     float model_scale;
     PrefabDB::PrefabID prefab_id = PrefabDB::none;
+    PrefabDB::PrefabID hand_equip_r_prefab_id = PrefabDB::none;
 
     float collider_radius;
     float collider_height;

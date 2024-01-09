@@ -17,6 +17,7 @@ public:
         flame_pillar,
         fire_rock,
         fire_rock_explosion,
+        wraith_sword,
         n_prefab_ids,
         none = n_prefab_ids
     };

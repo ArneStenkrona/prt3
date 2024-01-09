@@ -3,10 +3,8 @@
 
 #include "src/engine/component/script/script.h"
 #include "src/engine/scene/scene.h"
-
 #include "src/engine/rendering/model.h"
 #include "src/engine/geometry/shapes.h"
-
 #include "src/engine/physics/collider.h"
 #include "src/engine/physics/gjk.h"
 
@@ -20,19 +18,20 @@ class CharacterController : public prt3::Script {
 public:
     typedef uint32_t StateType;
     enum State : StateType {
-        NONE             = 0,
-        IDLE             = 1 << 0,
-        WALK             = 1 << 1,
-        RUN              = 1 << 2,
-        ATTACK_1         = 1 << 3,
-        ATTACK_2         = 1 << 4,
-        ATTACK_AIR_1     = 1 << 5,
-        ATTACK_AIR_2     = 1 << 6,
-        JUMP             = 1 << 7,
-        FALL             = 1 << 8,
-        LAND             = 1 << 9,
+        NONE              = 0,
+        IDLE              = 1 << 0,
+        WALK              = 1 << 1,
+        RUN               = 1 << 2,
+        ATTACK_1          = 1 << 3,
+        ATTACK_2          = 1 << 4,
+        ATTACK_AIR_1      = 1 << 5,
+        ATTACK_AIR_2      = 1 << 6,
+        JUMP              = 1 << 7,
+        FALL              = 1 << 8,
+        LAND              = 1 << 9,
         CAST_SPELL        = 1 << 10,
-        TOTAL_NUM_STATES = 11 // number of states, excluding 'none'
+        DEAD              = 1 << 11,
+        TOTAL_NUM_STATES = 12 // number of states, excluding 'none'
     };
     static constexpr StateType all_states = ~0;
 
@@ -75,6 +74,9 @@ public:
         bool run_jump = false;
         glm::vec3 jump_dir;
         CharacterInput input;
+
+        /* stats */
+        float hp = 1.0f;
     };
 
     struct SerializedState {
@@ -117,6 +119,9 @@ public:
     void update_physics(prt3::Scene & scene, float delta_time);
 
     virtual void on_update(prt3::Scene & scene, float delta_time);
+
+    void set_weapon(prt3::NodeID id)
+    { m_weapon_id = id; }
 
     CharacterState & state() { return m_state; }
     CharacterState const & state() const { return m_state; }
@@ -169,6 +174,7 @@ protected:
             case FALL: return m_state_data[8];
             case LAND: return m_state_data[9];
             case CAST_SPELL: return m_state_data[10];
+            case DEAD: return m_state_data[11];
             default: { assert(false); return m_state_data[0]; }
         }
     }

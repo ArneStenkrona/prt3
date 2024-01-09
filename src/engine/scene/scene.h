@@ -139,6 +139,7 @@ public:
     std::string get_node_path(NodeID id) const;
 
     NodeID get_child_with_tag(NodeID id, NodeTag tag) const;
+    NodeID get_child_with_name(NodeID id, char const * name) const;
 
     Camera & get_camera() { return m_camera; }
     Input & get_input();

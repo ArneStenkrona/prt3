@@ -76,7 +76,7 @@ public:
         SignalString const & signal,
         void * data
     ) {
-        if (Weapon::is_hit_signal(signal) == 0) {
+        if (Weapon::is_hit_signal(signal)) {
             HitPacket const & packet =
                 *reinterpret_cast<HitPacket const *>(data);
             on_hit(scene, packet);
