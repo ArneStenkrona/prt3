@@ -56,6 +56,7 @@ file(GLOB SOURCES
   "src/daedalus/npc/npc_action.cpp"
   "src/daedalus/npc/npc_controller.cpp"
   "src/daedalus/npc/npc_db.cpp"
+  "src/daedalus/npc/npcs.cpp"
   "src/daedalus/objects/interactable.cpp"
   "src/daedalus/objects/slide.cpp"
   "src/engine/animation/animation_system.cpp"

@@ -1,6 +1,7 @@
 #include "game_state.h"
 
 #include "src/daedalus/input_mapping/input_mapping.h"
+#include "src/daedalus/npc/npcs.h"
 
 using namespace dds;
 
@@ -255,4 +256,6 @@ void GameState::init_resources(prt3::Scene & scene) {
     m_player_state.clip_b.clear_animation();
 
     m_player_state.state.direction = glm::vec3{0.0f, 0.0f, 1.0f};
+
+    create_npcs(m_npc_db);
 }

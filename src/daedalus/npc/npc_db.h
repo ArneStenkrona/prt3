@@ -96,6 +96,8 @@ public:
     T const & get_action(NPCID id) const
     { return m_action_db.get_entry<T>(id); }
 
+    NPCID push_npc();
+
     NPC & get_npc(NPCID id) { return m_npcs[id]; }
     NPC const & get_npc(NPCID id) const { return m_npcs[id]; }
 
@@ -141,8 +143,6 @@ private:
     std::unordered_map<NPCID, npc_action::ActionUnion> m_new_actions;
 
     GameState & m_game_state;
-
-    NPCID push_npc();
 
     void load_npc(prt3::Scene & scene, NPCID id);
     void load_npcs(prt3::Scene & scene);
