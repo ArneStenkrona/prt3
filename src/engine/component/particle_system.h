@@ -115,6 +115,12 @@ public:
 
     ParticleSystem(Scene & scene, NodeID node_id, std::istream & in);
 
+    ~ParticleSystem();
+    ParticleSystem(ParticleSystem const & other);
+    ParticleSystem(ParticleSystem && other) noexcept;
+    ParticleSystem & operator=(ParticleSystem const & other);
+    ParticleSystem & operator=(ParticleSystem && other) noexcept;
+
     NodeID node_id() const { return m_node_id; }
 
     ResourceID const & texture_id() const { return m_parameters.texture_id; }
@@ -153,7 +159,9 @@ public:
 private:
     NodeID m_node_id;
 
-    std::vector<Particle> m_particles;
+    // std::vector<Particle> m_particles;
+    Particle * m_particles = nullptr;
+    uint32_t m_n_particles = 0;
 
     Parameters m_parameters;
 
@@ -182,6 +190,7 @@ private:
     friend class ComponentStorage<ParticleSystem>;
     friend class ComponentManager;
     friend void inner_show_component<ParticleSystem>(EditorContext &, NodeID);
+    friend class Context;
 };
 
 } // namespace prt3

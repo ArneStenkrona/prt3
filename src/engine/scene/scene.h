@@ -323,8 +323,13 @@ public:
 
     void get_window_size(unsigned int & w, unsigned int & h) const;
 
-    inline std::vector<Transform> const & get_cached_transforms() const
-    { return m_transform_cache.global_transforms(); }
+    Transform const & get_cached_transform(NodeID id) const {
+        static Transform default_tform{};
+        if (m_transform_cache.global_transforms().size() <=
+            static_cast<size_t>(id))
+            return default_tform;
+        return m_transform_cache.global_transforms()[id];
+    }
 
 private:
     Context * m_context;

@@ -108,7 +108,7 @@ public:
 
         if (index + 1 != m_entries.size()) {
             IDType swap = m_index_map.back();
-            m_entries[index] = m_entries.back();
+            m_entries[index] = std::move(m_entries.back());
             m_id_map[swap] = index;
             m_index_map[index] = swap;
         }

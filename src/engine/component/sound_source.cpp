@@ -65,10 +65,9 @@ void SoundSourceComponent::update(
     float /*delta_time*/,
     std::vector<SoundSourceComponent> & components
 ) {
-    std::vector<Transform> const & tforms = scene.get_cached_transforms();
     AudioManager & man = scene.audio_manager();
     for (SoundSourceComponent & comp : components) {
-        glm::vec3 pos = tforms[comp.node_id()].position;
+        glm::vec3 pos = scene.get_cached_transform(comp.node_id()).position;
         SoundSourceID id = comp.sound_source_id();
         man.set_sound_source_position(id, pos.x, pos.y, pos.z);
     }

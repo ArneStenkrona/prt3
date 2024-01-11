@@ -123,6 +123,7 @@ file(GLOB SOURCES
   "src/engine/scene/scene.cpp"
   "src/engine/scene/script_container.cpp"
   "src/engine/scene/transform_cache.cpp"
+  "src/util/heap/heap.cpp"
   "src/util/checksum.cpp"
   "src/util/file_util.cpp"
   "src/util/geometry_util.cpp"

@@ -2,9 +2,14 @@
 
 #include "src/engine/component/component_utility.h"
 #include "src/engine/scene/scene.h"
+#include "src/util/heap/heap.h"
 #include "src/util/random.h"
 
 using namespace prt3;
+
+static constexpr size_t PARTICLE_HEAP_CAPACITY = 1024 * 1024;
+
+Heap particle_heap{PARTICLE_HEAP_CAPACITY};
 
 ParticleSystem::ParticleSystem(Scene & /*scene*/, NodeID node_id)
  : m_node_id{node_id} {
@@ -71,6 +76,71 @@ void ParticleSystem::serialize(
     write_stream(out, m_parameters.max_particles);
 }
 
+ParticleSystem::~ParticleSystem() {
+    particle_heap.heap_free(m_particles);
+}
+
+ParticleSystem::ParticleSystem(ParticleSystem const & other) {
+    m_node_id = other.m_node_id;
+    m_parameters = other.m_parameters;
+    m_particle_timer = other.m_particle_timer;
+    m_init = other.m_init;
+    m_active_particles = other.m_active_particles;
+
+    m_n_particles = other.m_n_particles;
+    m_particles = reinterpret_cast<Particle*>(particle_heap.heap_realloc(
+        m_particles,
+        m_n_particles * sizeof(Particle)
+    ));
+    memcpy(m_particles, other.m_particles, m_n_particles * sizeof(Particle));
+}
+
+ParticleSystem::ParticleSystem(ParticleSystem && other) noexcept {
+    m_node_id = other.m_node_id;
+    m_parameters = other.m_parameters;
+    m_particle_timer = other.m_particle_timer;
+    m_init = other.m_init;
+    m_active_particles = other.m_active_particles;
+
+    m_n_particles = other.m_n_particles;
+    m_particles = other.m_particles;
+    other.m_n_particles = 0;
+    other.m_particles = nullptr;
+}
+
+ParticleSystem & ParticleSystem::operator=(ParticleSystem const & other) {
+    m_node_id = other.m_node_id;
+    m_parameters = other.m_parameters;
+    m_particle_timer = other.m_particle_timer;
+    m_init = other.m_init;
+    m_active_particles = other.m_active_particles;
+
+    m_n_particles = other.m_n_particles;
+    m_particles = reinterpret_cast<Particle*>(particle_heap.heap_realloc(
+        m_particles,
+        m_n_particles * sizeof(Particle)
+    ));
+    memcpy(m_particles, other.m_particles, m_n_particles * sizeof(Particle));
+
+    return *this;
+}
+
+ParticleSystem & ParticleSystem::operator=(ParticleSystem && other) noexcept {
+    m_node_id = other.m_node_id;
+    m_parameters = other.m_parameters;
+    m_particle_timer = other.m_particle_timer;
+    m_init = other.m_init;
+    m_active_particles = other.m_active_particles;
+
+    m_n_particles = other.m_n_particles;
+    m_particles = other.m_particles;
+
+    other.m_n_particles = 0;
+    other.m_particles = nullptr;
+
+    return *this;
+}
+
 void ParticleSystem::set_default_parameters() {
     Parameters & params = m_parameters;
     params.shape_type = ParticleSystem::EmissionShape::Type::circle_edge;
@@ -113,10 +183,16 @@ void ParticleSystem::advance_simulation(
     }
 }
 
-
 void ParticleSystem::init(Scene & scene, float delta_time) {
-    m_particles.resize(m_parameters.max_particles);
-    for (Particle & particle : m_particles) {
+    // m_particles.resize(m_parameters.max_particles);
+    m_n_particles = m_parameters.max_particles;
+    m_particles = reinterpret_cast<Particle*>(particle_heap.heap_realloc(
+        m_particles,
+        m_n_particles * sizeof(Particle)
+    ));
+
+    for (uint32_t i = 0; i < m_n_particles; ++i) {
+        Particle & particle = m_particles[i];
         particle.alive = false;
     }
 
@@ -233,8 +309,13 @@ void ParticleSystem::update_system(Scene & scene, float delta_time) {
 
     unsigned emit_count = 0;
 
-    if (params.max_particles != m_particles.size()) {
-        m_particles.resize(params.max_particles);
+    if (params.max_particles != m_n_particles) {
+        // m_particles.resize(params.max_particles);
+        m_n_particles = m_parameters.max_particles;
+        m_particles = reinterpret_cast<Particle*>(particle_heap.heap_realloc(
+            m_particles,
+            m_n_particles * sizeof(Particle)
+        ));
     }
 
     if (params.emission_rate * m_particle_timer >= 1.0f) {
@@ -244,7 +325,8 @@ void ParticleSystem::update_system(Scene & scene, float delta_time) {
         m_particle_timer -= 1.0f / params.emission_rate;
     }
 
-    for (Particle & particle : m_particles) {
+    for (uint32_t i = 0; i < m_n_particles; ++i) {
+        Particle & particle = m_particles[i];
         if (particle.alive && particle.t >= particle.lifetime) {
             particle.alive = false;
             --m_active_particles;
@@ -307,7 +389,8 @@ void ParticleSystem::collect_render_data(
         ParticleSystem::Parameters const & params = ps.m_parameters;
 
         uint32_t n_particles = 0;
-        for (Particle const & particle : ps.m_particles) {
+        for (uint32_t pi = 0; pi < ps.m_n_particles; ++pi) {
+            Particle & particle = ps.m_particles[pi];
             if (particle.alive) ++n_particles;
         }
 
@@ -326,7 +409,8 @@ void ParticleSystem::collect_render_data(
         uint32_t i = data.attributes.size();
         data.attributes.resize(i + n_particles);
 
-        for (Particle const & particle : ps.m_particles) {
+        for (uint32_t pi = 0; pi < ps.m_n_particles; ++pi) {
+            Particle & particle = ps.m_particles[pi];
             if (!particle.alive) continue;
             ParticleAttributes & attr = data.attributes[i];
             attr.pos_size = glm::vec4{particle.position, particle.scale};

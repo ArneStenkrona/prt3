@@ -21,7 +21,6 @@ Context::Context(BackendType backend_type)
    m_game_scene{*this},
    m_scene_manager{*this},
    m_audio_manager{backend_type} {
-
 }
 
 Context::~Context() {

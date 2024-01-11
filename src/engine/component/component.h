@@ -106,7 +106,7 @@ public:
 
         if (c_id + 1 != components.size()) {
             NodeID swap = components.back().node_id();
-            components[c_id] = components.back();
+            components[c_id] = std::move(components.back());
             node_map[swap] = c_id;
         }
 

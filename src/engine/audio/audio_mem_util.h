@@ -12,7 +12,7 @@ void * o1hmalloc(size_t size);
 
 void o1hfree(void * const pointer);
 
-void * o1hrealloc(void *ptr,size_t size);
+void * o1hrealloc(void *ptr, size_t size);
 
 } // namespace prt3
 

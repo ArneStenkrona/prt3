@@ -187,9 +187,9 @@ void GameState::on_update(prt3::Scene & scene, float) {
     m_current_time += dds::ms_per_frame;
 
     /* set audio listener */
-    prt3::Transform cam_tform = scene.get_cached_transforms()[m_camera_id];
+    prt3::Transform cam_tform = scene.get_cached_transform(m_camera_id);
 
-    glm::vec3 player_pos = scene.get_cached_transforms()[m_player_id].position;
+    glm::vec3 player_pos = scene.get_cached_transform(m_player_id).position;
 
     float listener_dist = 5.0f;
     glm::vec3 listener_pos = player_pos - cam_tform.get_front() * listener_dist;

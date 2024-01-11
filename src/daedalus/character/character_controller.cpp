@@ -504,7 +504,7 @@ void CharacterController::update_animation(prt3::Scene & scene) {
                         glm::mix(0.9f, 1.1f, random_float()),
                         0.75f,
                         100.0f,
-                        scene.get_cached_transforms()[node_id()].position
+                        scene.get_cached_transform(node_id()).position
                     );
                 }
             }
