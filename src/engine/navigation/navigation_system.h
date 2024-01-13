@@ -38,9 +38,17 @@ struct Adjacency {
 class NavigationSystem {
 public:
     NavMeshID generate_nav_mesh(
-        NodeID node_id,
         Scene const & scene,
         CollisionLayer layer,
+        float granularity,
+        float max_edge_deviation,
+        float max_edge_length,
+        float min_height,
+        float min_width
+    );
+
+    NavMeshID generate_nav_mesh(
+        std::vector<glm::vec3> const & geometry,
         float granularity,
         float max_edge_deviation,
         float max_edge_length,
@@ -55,14 +63,11 @@ public:
         std::ostream & out
     ) const;
 
-    NavMeshID deserialize_nav_mesh(
-        NodeID node_id,
-        std::istream & in
-    );
+    NavMeshID deserialize_nav_mesh(std::istream & in);
 
     void collect_render_data(
         Renderer & renderer,
-        NodeID selected_node,
+        NavMeshID id,
         EditorRenderData & data
     );
 
@@ -91,8 +96,6 @@ private:
         DynamicAABBTree aabb_tree;
     };
 
-    std::unordered_map<NodeID, NavMeshID> m_nav_mesh_ids;
-    std::unordered_map<NavMeshID, NodeID> m_node_ids;
     std::vector<NavMeshID> m_id_queue;
 
     std::unordered_map<NavMeshID, NavigationMesh> m_navigation_meshes;
@@ -117,14 +120,12 @@ private:
 
     void update_render_data(Renderer & renderer);
 
-    NavMeshID insert_nav_mesh(NodeID node_id) {
+    NavMeshID insert_nav_mesh() {
         NavMeshID nav_mesh_id = m_navigation_meshes.size();
         if (!m_id_queue.empty()) {
             nav_mesh_id = m_id_queue.back();
             m_id_queue.pop_back();
         }
-        m_node_ids[nav_mesh_id] = node_id;
-        m_nav_mesh_ids[node_id] = nav_mesh_id;
 
         m_navigation_meshes[nav_mesh_id] = {};
         return nav_mesh_id;

@@ -444,7 +444,6 @@ bool Map::parse_collider_trigger_common(
 }
 
 void Map::generate_nav_mesh(
-    prt3::Context & prt3_context,
     ParsingContext & ctx,
     prt3::Model const & model
 ) {
@@ -484,22 +483,9 @@ void Map::generate_nav_mesh(
         }
     }
 
-    prt3::Scene dummy_scene{prt3_context};
-    prt3::NodeID node_id = dummy_scene.add_node_to_root("");
-
-    /* collider */
-    prt3::ColliderComponent & col =
-        dummy_scene.add_component<prt3::ColliderComponent>(
-            node_id,
-            prt3::ColliderType::collider,
-            std::move(triangles)
-        );
-
     /* nav mesh */
     ctx.map.m_nav_mesh_id = ctx.map.m_navigation_system.generate_nav_mesh(
-        node_id,
-        dummy_scene,
-        dummy_scene.physics_system().get_collision_layer(col.tag()),
+        triangles,
         0.5f,
         1.0f,
         1.0f,
@@ -785,7 +771,7 @@ Map Map::parse_map_from_model(char const * path) {
             -1 : ctx.num_to_door[room_id].at(door.dest);
     }
 
-    generate_nav_mesh(prt3_context, ctx, map_model);
+    generate_nav_mesh(ctx, map_model);
     ctx.map.init_door_geometry();
 
     return ctx.map;
@@ -920,7 +906,7 @@ void Map::deserialize(std::ifstream & in) {
     prt3::read_stream(in, has_nav_mesh);
     if (has_nav_mesh) {
         m_nav_mesh_id =
-            m_navigation_system.deserialize_nav_mesh(0, in);
+            m_navigation_system.deserialize_nav_mesh(in);
     }
 
     for (uint32_t i = 0; i < m_doors.size(); ++i) {

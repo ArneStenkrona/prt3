@@ -70,45 +70,53 @@ void Editor::collect_render_data(
     EditorRenderData & data
 ) {
     PhysicsSystem & physics_sys = m_context.edit_scene().physics_system();
-    NavigationSystem & nav_sys = m_context.edit_scene().navigation_system();
     Renderer & renderer = m_context.renderer();
     auto const & transforms =
         m_context.edit_scene().m_transform_cache.global_transforms();
 
+    NodeID selected = m_editor_context.get_selected_node();
+
     physics_sys.collect_render_data(
         renderer,
         transforms.data(),
-        m_editor_context.get_selected_node(),
+        selected,
         data
     );
 
-    nav_sys.collect_render_data(
-        renderer,
-        m_editor_context.get_selected_node(),
-        data
-    );
+    Scene & scene = m_context.edit_scene();
 
-    auto & armatures =
-        m_context.edit_scene()
+    if (scene.has_component<NavigationMeshComponent>(selected)) {
+        NavigationSystem & nav_sys =
+            m_context.edit_scene().navigation_system();
+
+        NavMeshID nav_mesh_id =
+            scene.get_component<NavigationMeshComponent>(selected)
+            .nav_mesh_id();
+
+        nav_sys.collect_render_data(
+            renderer,
+            nav_mesh_id,
+            data
+        );
+    }
+
+
+    std::vector<Armature> & armatures =
+        scene
         .m_component_manager
         .get_all_components<Armature>();
 
     for (Armature & armature : armatures) {
         auto flags =
-            m_context.edit_scene().get_node_mod_flags(armature.node_id());
+            scene.get_node_mod_flags(armature.node_id());
         if (flags | Node::ModFlags::mod_flag_descendant_removed ||
             flags | Node::ModFlags::mod_flag_descendant_added) {
-            armature.map_bones(m_context.edit_scene());
+            armature.map_bones(scene);
         }
     }
 
-    Scene const & scene = m_context.edit_scene();
-    if (scene.has_component<Decal>(
-        m_editor_context.get_selected_node()
-    )) {
-        Decal const & decal = scene.get_component<Decal>(
-            m_editor_context.get_selected_node()
-        );
+    if (scene.has_component<Decal>(selected)) {
+        Decal const & decal = scene.get_component<Decal>(selected);
         Transform tform =
             scene.get_node(decal.node_id()).get_global_transform(scene);
         tform.scale *= decal.dimensions();

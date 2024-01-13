@@ -50,8 +50,11 @@ protected:
             scene.get_component<NavigationMeshComponent>(m_node_id);
 
         if (m_new_data.empty()) {
-            NavMeshID nav_mesh_id = sys.generate_nav_mesh(
-                m_node_id,
+            if (m_nav_mesh_id != NO_NAV_MESH) {
+                sys.remove_nav_mesh(m_nav_mesh_id);
+            }
+
+            m_nav_mesh_id = sys.generate_nav_mesh(
                 scene,
                 m_params.layer,
                 m_params.granularity,
@@ -61,11 +64,13 @@ protected:
                 m_params.min_height
             );
 
-            if (nav_mesh_id == NO_NAV_MESH) {
+            if (m_nav_mesh_id == NO_NAV_MESH) {
+                imemstream in(m_original_data.data(), m_original_data.size());
+                comp.deserialize(in, scene);
                 return false;
             }
 
-            comp.m_nav_mesh_id = nav_mesh_id;
+            comp.m_nav_mesh_id = m_nav_mesh_id;
 
             std::stringstream stream;
             comp.serialize(stream, scene);
@@ -86,9 +91,16 @@ protected:
         imemstream in(m_original_data.data(), m_original_data.size());
         Scene & scene = m_editor_context->scene();
 
+        if (m_nav_mesh_id != NO_NAV_MESH) {
+            NavigationSystem & sys = scene.navigation_system();
+            sys.remove_nav_mesh(m_nav_mesh_id);
+        }
+
         NavigationMeshComponent & comp =
             scene.get_component<NavigationMeshComponent>(m_node_id);
         comp.deserialize(in, scene);
+
+        m_nav_mesh_id = comp.nav_mesh_id();
 
         return true;
     }
@@ -96,6 +108,8 @@ protected:
 private:
     EditorContext * m_editor_context;
     NodeID m_node_id;
+
+    NavMeshID m_nav_mesh_id = NO_NAV_MESH;
 
     std::vector<char> m_original_data;
     std::vector<char> m_new_data;

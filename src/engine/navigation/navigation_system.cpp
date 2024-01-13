@@ -630,7 +630,6 @@ bool triangulate(
 // Many thanks to https://javid.nl/atlas.html
 // and https://www.stefanolazzaroni.com/navigation-mesh-generation
 NavMeshID NavigationSystem::generate_nav_mesh(
-    NodeID node_id,
     Scene const & scene,
     CollisionLayer layer,
     float granularity,
@@ -639,10 +638,6 @@ NavMeshID NavigationSystem::generate_nav_mesh(
     float min_width,
     float min_height
 ) {
-    if (m_nav_mesh_ids.find(node_id) != m_nav_mesh_ids.end()) {
-        remove_nav_mesh(m_nav_mesh_ids.at(node_id));
-    }
-
     if (layer == 0) return NO_NAV_MESH;
 
     PhysicsSystem const & sys = scene.physics_system();
@@ -659,6 +654,24 @@ NavMeshID NavigationSystem::generate_nav_mesh(
         );
     }
 
+    return generate_nav_mesh(
+        geometry,
+        granularity,
+        max_edge_deviation,
+        max_edge_length,
+        min_width,
+        min_height
+    );
+}
+
+NavMeshID NavigationSystem::generate_nav_mesh(
+    std::vector<glm::vec3> const & geometry,
+    float granularity,
+    float max_edge_deviation,
+    float max_edge_length,
+    float min_width,
+    float min_height
+) {
     if (geometry.empty()) return NO_NAV_MESH;
 
     assert(geometry.size() % 3 == 0);
@@ -1125,11 +1138,7 @@ NavMeshID NavigationSystem::generate_nav_mesh(
     });
 
     /* create nav mesh */
-    if (m_nav_mesh_ids.find(node_id) != m_nav_mesh_ids.end()) {
-        remove_nav_mesh(m_nav_mesh_ids.at(node_id));
-    }
-
-    NavMeshID nav_mesh_id = insert_nav_mesh(node_id);
+    NavMeshID nav_mesh_id = insert_nav_mesh();
     NavigationMesh & nav_mesh = m_navigation_meshes.at(nav_mesh_id);
 
     /* contour */
@@ -1372,9 +1381,6 @@ NavMeshID NavigationSystem::generate_nav_mesh(
 }
 
 void NavigationSystem::remove_nav_mesh(NavMeshID id) {
-    NodeID node_id = m_node_ids.at(id);
-    m_node_ids.erase(id);
-    m_nav_mesh_ids.erase(node_id);
     m_navigation_meshes.erase(id);
     m_render_meshes.erase(id);
 
@@ -1406,15 +1412,8 @@ void NavigationSystem::serialize_nav_mesh(
     write_stream_n(out, nav_mesh.island_indices.data(), nav_mesh.island_indices.size());
 }
 
-NavMeshID NavigationSystem::deserialize_nav_mesh(
-    NodeID node_id,
-    std::istream & in
-) {
-    if (m_nav_mesh_ids.find(node_id) != m_nav_mesh_ids.end()) {
-        remove_nav_mesh(m_nav_mesh_ids.at(node_id));
-    }
-
-    NavMeshID nav_mesh_id = insert_nav_mesh(node_id);
+NavMeshID NavigationSystem::deserialize_nav_mesh(std::istream & in) {
+    NavMeshID nav_mesh_id = insert_nav_mesh();
     NavigationMesh & nav_mesh = m_navigation_meshes.at(nav_mesh_id);
 
     size_t n_vert;
@@ -1499,10 +1498,9 @@ NavMeshID NavigationSystem::deserialize_nav_mesh(
 }
 
 void NavigationSystem::update_render_data(Renderer & renderer) {
-    for (auto const & pair : m_nav_mesh_ids) {
-        NavMeshID id = pair.second;
-        if (m_render_meshes.find(id) != m_render_meshes.end()) continue;
-        NavigationMesh const & nav_mesh = m_navigation_meshes.at(id);
+    for (auto const & pair : m_navigation_meshes) {
+        NavMeshID id = pair.first;
+        NavigationMesh const & nav_mesh = pair.second;
 
         auto const & tris = nav_mesh.vertices;
         size_t n = tris.size();
@@ -1540,13 +1538,12 @@ void NavigationSystem::update_render_data(Renderer & renderer) {
 
 void NavigationSystem::collect_render_data(
     Renderer & renderer,
-    NodeID selected_node,
+    NavMeshID id,
     EditorRenderData & data
 ) {
     update_render_data(renderer);
 
-    if (m_nav_mesh_ids.find(selected_node) != m_nav_mesh_ids.end()) {
-        NavMeshID id = m_nav_mesh_ids.at(selected_node);
+    if (m_render_meshes.find(id) != m_render_meshes.end()) {
         data.line_data.push_back({});
         data.line_data.back().mesh_id = m_render_meshes.at(id);
         data.line_data.back().color = glm::vec4{0.0f, 0.0f, 1.0f, 1.0f};
@@ -2007,8 +2004,6 @@ bool NavigationSystem::generate_path(
 }
 
 void NavigationSystem::clear() {
-    m_nav_mesh_ids.clear();
-    m_node_ids.clear();
     m_id_queue.clear();
 
     m_navigation_meshes.clear();

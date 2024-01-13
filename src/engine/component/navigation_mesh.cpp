@@ -53,6 +53,6 @@ void NavigationMeshComponent::deserialize(
     bool has_nav_mesh;
     read_stream(in, has_nav_mesh);
     if (has_nav_mesh) {
-        m_nav_mesh_id = sys.deserialize_nav_mesh(m_node_id, in);
+        m_nav_mesh_id = sys.deserialize_nav_mesh(in);
     }
 }

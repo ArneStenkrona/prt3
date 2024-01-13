@@ -286,7 +286,6 @@ private:
     );
 
     static void generate_nav_mesh(
-        prt3::Context & prt3_context,
         ParsingContext & ctx,
         prt3::Model const & model
     );
