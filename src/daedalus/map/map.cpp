@@ -166,6 +166,12 @@ prt3::NodeID Map::map_node_to_new_scene_node(
     prt3::NodeID id = scene.add_node(parent_id, name);
     prt3::Node & node = scene.get_node(id);
     node.set_global_transform(scene, global_tform);
+    PRT3LOG(
+        "%s : %s vs %s\n",
+        model_node.name.c_str(),
+        glm::to_string(global_tform.position).c_str(),
+        glm::to_string(node.get_global_transform(scene).position).c_str()
+    );
 
     ctx.model_node_to_scene_node[node_index] = id;
 
@@ -202,45 +208,23 @@ bool Map::parse_door(
     prt3::Transform global_tform,
     prt3::Scene & scene
 ) {
-    MapRoom & room = ctx.map.m_rooms[room_id];
-
     prt3::Model::Node const & model_node =
         ctx.models[room_id].nodes()[node_index];
 
     uint32_t door_id;
-    uint32_t dest_room;
-    int32_t dest_door;
+    uint32_t from_room;
+    uint32_t to_room;
     if (sscanf(
         model_node.name.c_str() + strlen(TOK_DOOR),
-        "(%" SCNu32 ",%" SCNu32 ",%" SCNi32 ")",
+        "(%" SCNu32 ",%" SCNu32 ",%" SCNu32 ")",
         &door_id,
-        &dest_room,
-        &dest_door
+        &from_room,
+        &to_room
     ) == EOF) {
         return false;
     }
 
-    glm::vec3 offset_dir = -global_tform.get_up();
-
-    glm::vec3 dim_offset =
-        -global_tform.get_right() * model_node.transform.scale.x / 2.0f;
-    glm::vec3 entry_offset = offset_dir * (model_node.transform.scale.y) + dim_offset;
-
-    uint32_t door_ind = ctx.map.m_doors.size();
-    MapDoor map_door;
-    map_door.shape = global_tform;
-    map_door.position.room = room_id;
-    map_door.position.position = global_tform.position;
-    map_door.entry_offset = entry_offset;
-    map_door.dest = dest_door; // rename later
-    map_door.local_id = door_id;
-    ctx.num_to_door[room_id][door_id] = door_ind;
-    ctx.door_num_to_dest_room[door_ind] = ctx.map.m_num_to_room_id[dest_room];
-    ctx.map.m_doors.emplace_back(map_door);
-    ++room.doors.num_indices;
-
-    ctx.map.m_local_ids[std::pair<RoomID, uint32_t>{room_id, door_id}] =
-        door_ind;
+    MapDoor const & map_door = ctx.map.m_doors[door_id];
 
     prt3::NodeID id = map_node_to_new_scene_node(
         ctx,
@@ -252,9 +236,8 @@ bool Map::parse_door(
         scene
     );
 
-    if (dest_door == -1) {
-        return true;
-    }
+    bool is_from_room = ctx.map.m_num_to_room_id[from_room] == room_id;
+    RoomID dest_room = is_from_room ? to_room : from_room;
 
     prt3::Door & door = scene.add_component<prt3::Door>(id);
     door.id() = door_id;
@@ -263,14 +246,21 @@ bool Map::parse_door(
     std::string dest_scene_path = room_to_scene_path(dest_room_id);
 
     door.destination_scene_path() = dest_scene_path.c_str();
-    door.destination_id() = dest_door;
+    door.destination_id() = door_id;
 
-    door.entry_offset() = entry_offset;
+    door.entry_offset() = ctx.map.get_door_entry_offset(room_id, door_id);
+
+    // glm::vec3 dim = glm::vec3{
+    //     glm::inverse(global_tform.to_matrix()) *
+    //     glm::vec4{map_door.shape.scale, 0.0f}
+    // };
+    glm::vec3 dim = map_door.shape.scale;
 
     prt3::Box box{};
-    box.dimensions = glm::vec3{1.0f};
-    box.center.x = box.dimensions.x / 2.0f;
-    box.center.y = box.dimensions.y / 2.0f;
+    box.dimensions = dim;
+    box.center.x = 0.0f;
+    box.center.y = is_from_room ?
+        box.dimensions.y / 2.0f : -box.dimensions.y / 2.0f;
     box.center.z = box.dimensions.z / 2.0f;
 
     scene.add_component<prt3::ColliderComponent>(
@@ -504,9 +494,11 @@ Map Map::parse_map_from_model(char const * path) {
 
     auto const & nodes = ctx.map_model->nodes();
 
-    uint32_t index = 0;
     uint32_t n_rooms = 0;
-    for (prt3::Model::Node const & node : nodes) {
+
+    /* rooms */
+    for (uint32_t index = 0; index < nodes.size(); ++index) {
+        prt3::Model::Node const & node = nodes[index];
         char const * name = node.name.c_str();
 
         if (check_tok(TOK_ROOM, name)) {
@@ -547,7 +539,9 @@ Map Map::parse_map_from_model(char const * path) {
             }
 
             ctx.num_to_room_node[num] = index;
-            ctx.map.m_num_to_room_id.resize(num + 1);
+            if (ctx.map.m_num_to_room_id.size() <= num) {
+                ctx.map.m_num_to_room_id.resize(num + 1);
+            }
             ctx.map.m_num_to_room_id[num] = n_rooms;
 
             MapRoom room{};
@@ -558,14 +552,58 @@ Map Map::parse_map_from_model(char const * path) {
 
             ++n_rooms;
         }
-        ++index;
+    }
+
+    /* doors */
+    for (uint32_t index = 0; index < nodes.size(); ++index) {
+        prt3::Model::Node const & node = nodes[index];
+        char const * name = node.name.c_str();
+        if (!check_tok(TOK_DOOR, name)) continue;
+        char const * args = name + strlen(TOK_DOOR);
+
+        uint32_t id, room_a, room_b;
+        sscanf(
+            args,
+            "(%" SCNu32 ",%" SCNu32 ",%" SCNu32 ")",
+            &id,
+            &room_a,
+            &room_b
+        );
+
+        ctx.room_to_doors[room_a].push_back(index);
+        ctx.room_to_doors[room_b].push_back(index);
+
+        prt3::Transform size_g_tform;
+        glm::vec3 size_scale;
+        for (uint32_t index : node.child_indices) {
+            prt3::Model::Node child = nodes[index];
+            char const * name = child.name.c_str();
+            if (strncmp(name, "size", strlen("size")) == 0) {
+                size_g_tform = child.inherited_transform;
+                size_scale = child.transform.scale;
+            }
+        }
+
+        glm::vec3 offset_dir = -size_g_tform.get_up();
+        glm::vec3 entry_offset =
+            offset_dir * (size_g_tform.scale.y);
+
+        if (ctx.map.m_doors.size() <= id) {
+            ctx.map.m_doors.resize(id + 1);
+        }
+
+        MapDoor & door = ctx.map.m_doors[id];
+        door.shape = size_g_tform;
+        door.entry_offset = entry_offset;
+        door.room_a = ctx.map.m_num_to_room_id.at(room_a);
+        door.room_b = ctx.map.m_num_to_room_id.at(room_b);
+        door.position = node.inherited_transform.position;
     }
 
     std::unordered_map<uint32_t, uint32_t> material_map;
 
     ctx.models.resize(ctx.num_to_room_node.size());
     ctx.object_models.resize(ctx.num_to_room_node.size());
-    ctx.num_to_door.resize(ctx.num_to_room_node.size());
 
     for (prt3::Model & obj_model : ctx.object_models) {
         obj_model.nodes().push_back({});
@@ -579,9 +617,8 @@ Map Map::parse_map_from_model(char const * path) {
 
     std::vector<QueueNode> node_queue;
     for (auto const & pair : ctx.num_to_room_node) {
-        RoomID room_id = ctx.map.m_num_to_room_id[pair.first];
-        MapRoom & room = ctx.map.m_rooms[room_id];
-        room.doors.start_index = ctx.map.m_doors.size();
+        uint32_t room_num = pair.first;
+        RoomID room_id = ctx.map.m_num_to_room_id[room_num];
 
         ctx.model_node_to_scene_node.clear();
 
@@ -606,12 +643,20 @@ Map Map::parse_map_from_model(char const * path) {
         new_root.inherited_transform = room_node.inherited_transform;
         model.nodes().push_back(new_root);
 
-        for (auto index : room_node.child_indices) {
+        for (uint32_t index : room_node.child_indices) {
             node_queue.push_back({
                 prt3::Transform::compose(
                     new_root.inherited_transform,
                     nodes[index].transform
                 ),
+                index,
+                0
+            });
+        }
+
+        for (uint32_t index : ctx.room_to_doors[room_num]) {
+            node_queue.push_back({
+                nodes[index].inherited_transform,
                 index,
                 0
             });
@@ -629,7 +674,7 @@ Map Map::parse_map_from_model(char const * path) {
             prt3::Model::Node & room_node = model.nodes().back();
             room_node.parent_index = qn.parent;
             room_node.transform = node.transform;
-            room_node.inherited_transform = node.inherited_transform;
+            room_node.inherited_transform = qn.inherited;
             room_node.name = node.name;
 
             if (qn.parent != -1) {
@@ -637,7 +682,7 @@ Map Map::parse_map_from_model(char const * path) {
                 child_indices.push_back(node_index);
             }
 
-            prt3::Transform global_tform = node.inherited_transform;
+            prt3::Transform global_tform = qn.inherited;
 
             for (auto child_index : node.child_indices) {
                 prt3::Transform inherited = prt3::Transform::compose(
@@ -763,14 +808,6 @@ Map Map::parse_map_from_model(char const * path) {
 #endif // __EMSCRIPTEN__
     }
 
-    /* rename door destinations */
-    for (uint32_t door_ind = 0; door_ind < ctx.map.m_doors.size(); ++door_ind) {
-        MapDoor & door = ctx.map.m_doors[door_ind];
-        RoomID room_id = ctx.door_num_to_dest_room.at(door_ind);
-        door.dest = door.dest == -1 ?
-            -1 : ctx.num_to_door[room_id].at(door.dest);
-    }
-
     generate_nav_mesh(ctx, map_model);
     ctx.map.init_door_geometry();
 
@@ -801,8 +838,6 @@ RoomID Map::scene_to_room(prt3::Scene const & scene) {
 void Map::serialize(std::ofstream & out) {
     prt3::write_stream(out, m_rooms.size());
     for (size_t i = 0; i < m_rooms.size(); ++i) {
-        prt3::write_stream(out, m_rooms[i].doors.start_index);
-        prt3::write_stream(out, m_rooms[i].doors.num_indices);
         prt3::write_stream(out, m_rooms[i].type);
     }
 
@@ -824,10 +859,9 @@ void Map::serialize(std::ofstream & out) {
     for (size_t i = 0; i < m_doors.size(); ++i) {
         prt3::write_stream(out, m_doors[i].shape);
         prt3::write_stream(out, m_doors[i].entry_offset);
-        prt3::write_stream(out, m_doors[i].dest);
-        prt3::write_stream(out, m_doors[i].local_id);
-        prt3::write_stream(out, m_doors[i].position.position);
-        prt3::write_stream(out, m_doors[i].position.room);
+        prt3::write_stream(out, m_doors[i].room_a);
+        prt3::write_stream(out, m_doors[i].room_b);
+        prt3::write_stream(out, m_doors[i].position);
     }
 
     prt3::write_stream(out, m_locations.size());
@@ -851,8 +885,6 @@ void Map::deserialize(std::ifstream & in) {
     prt3::read_stream(in, n_rooms);
     m_rooms.resize(n_rooms);
     for (size_t i = 0; i < m_rooms.size(); ++i) {
-        prt3::read_stream(in, m_rooms[i].doors.start_index);
-        prt3::read_stream(in, m_rooms[i].doors.num_indices);
         prt3::read_stream(in, m_rooms[i].type);
     }
 
@@ -881,10 +913,9 @@ void Map::deserialize(std::ifstream & in) {
     for (size_t i = 0; i < m_doors.size(); ++i) {
         prt3::read_stream(in, m_doors[i].shape);
         prt3::read_stream(in, m_doors[i].entry_offset);
-        prt3::read_stream(in, m_doors[i].dest);
-        prt3::read_stream(in, m_doors[i].local_id);
-        prt3::read_stream(in, m_doors[i].position.position);
-        prt3::read_stream(in, m_doors[i].position.room);
+        prt3::read_stream(in, m_doors[i].room_a);
+        prt3::read_stream(in, m_doors[i].room_b);
+        prt3::read_stream(in, m_doors[i].position);
     }
 
     size_t n_locations;
@@ -907,12 +938,6 @@ void Map::deserialize(std::ifstream & in) {
     if (has_nav_mesh) {
         m_nav_mesh_id =
             m_navigation_system.deserialize_nav_mesh(in);
-    }
-
-    for (uint32_t i = 0; i < m_doors.size(); ++i) {
-        m_local_ids[std::pair<RoomID, uint32_t>{
-            m_doors[i].position.room, m_doors[i].local_id
-        }] = i;
     }
 
     init_door_geometry();
@@ -1012,58 +1037,56 @@ void Map::init_door_geometry() {
 
     m_door_geometry.resize(m_doors.size() * VERTS_PER_DOOR);
 
-    for (MapRoom & room : m_rooms) {
-        uint32_t doors_start = room.doors.start_index;
-        uint32_t doors_end = doors_start + room.doors.num_indices;
-        for (uint32_t i = doors_start; i < doors_end; ++i) {
-            MapDoor const & door = m_doors[i];
-            if (door.dest == -1) {
-                continue;
-            }
+    uint32_t door_id = 0;
+    for (MapDoor const & door : m_doors) {
+        tag.id = door_id;
 
-            tag.id = i;
+        prt3::Box box{};
+        box.dimensions = glm::vec3{1.0f};
+        box.center.x = box.dimensions.x / 2.0f;
+        box.center.y = box.dimensions.y / 2.0f;
+        box.center.z = box.dimensions.z / 2.0f;
 
-            prt3::Box box{};
-            box.dimensions = glm::vec3{1.0f};
-            box.center.x = box.dimensions.x / 2.0f;
-            box.center.y = box.dimensions.y / 2.0f;
-            box.center.z = box.dimensions.z / 2.0f;
+        prt3::BoxCollider bc{box};
 
-            prt3::BoxCollider bc{box};
+        auto shape = bc.get_shape(door.shape);
+        // Order of vertices:
+        // 0 : 0, 0, 0
+        // 1 : 0, 0, 1
+        // 2 : 0, 1, 0
+        // 3 : 0, 1, 1
+        // 4 : 1, 0, 0
+        // 5 : 1, 0, 1
+        // 6 : 1, 1, 0
+        // 7 : 1, 1, 1
+        glm::vec3 v0 = shape.vertices[2];
+        glm::vec3 v1 = shape.vertices[3];
+        glm::vec3 v2 = shape.vertices[7];
+        glm::vec3 v3 = shape.vertices[6];
 
-            auto shape = bc.get_shape(door.shape);
-            // Order of vertices:
-            // 0 : 0, 0, 0
-            // 1 : 0, 0, 1
-            // 2 : 0, 1, 0
-            // 3 : 0, 1, 1
-            // 4 : 1, 0, 0
-            // 5 : 1, 0, 1
-            // 6 : 1, 1, 0
-            // 7 : 1, 1, 1
-            glm::vec3 v0 = shape.vertices[2];
-            glm::vec3 v1 = shape.vertices[3];
-            glm::vec3 v2 = shape.vertices[7];
-            glm::vec3 v3 = shape.vertices[6];
+        uint32_t vi = door_to_vertex_index(door_id);
+        m_door_geometry[vi] = v0;
+        m_door_geometry[vi + 1] = v1;
+        m_door_geometry[vi + 2] = v2;
+        m_door_geometry[vi + 3] = v3;
 
-            uint32_t vi = door_to_vertex_index(i);
-            m_door_geometry[vi] = v0;
-            m_door_geometry[vi + 1] = v1;
-            m_door_geometry[vi + 2] = v2;
-            m_door_geometry[vi + 3] = v3;
+        prt3::AABB aabb;
+        aabb.lower_bound = v0;
+        aabb.lower_bound = glm::min(aabb.lower_bound, v1);
+        aabb.lower_bound = glm::min(aabb.lower_bound, v2);
+        aabb.lower_bound = glm::min(aabb.lower_bound, v3);
 
-            prt3::AABB aabb;
-            aabb.lower_bound = v0;
-            aabb.lower_bound = glm::min(aabb.lower_bound, v1);
-            aabb.lower_bound = glm::min(aabb.lower_bound, v2);
-            aabb.lower_bound = glm::min(aabb.lower_bound, v3);
+        aabb.upper_bound = v0;
+        aabb.upper_bound = glm::max(aabb.upper_bound, v1);
+        aabb.upper_bound = glm::max(aabb.upper_bound, v2);
+        aabb.upper_bound = glm::max(aabb.upper_bound, v3);
 
-            aabb.upper_bound = v0;
-            aabb.upper_bound = glm::max(aabb.upper_bound, v1);
-            aabb.upper_bound = glm::max(aabb.upper_bound, v2);
-            aabb.upper_bound = glm::max(aabb.upper_bound, v3);
+        MapRoom & room_a = m_rooms[door.room_a];
+        MapRoom & room_b = m_rooms[door.room_b];
 
-            room.aabb_tree.insert(tag, layer, aabb);
-        }
+        room_a.aabb_tree.insert(tag, layer, aabb);
+        room_b.aabb_tree.insert(tag, layer, aabb);
+
+        ++door_id;
     }
 }

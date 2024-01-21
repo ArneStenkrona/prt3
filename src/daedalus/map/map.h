@@ -45,9 +45,9 @@ private:
     struct MapDoor {
         prt3::Transform shape;
         glm::vec3 entry_offset;
-        int32_t dest;
-        uint32_t local_id;
-        MapPosition position;
+        RoomID room_a;
+        RoomID room_b;
+        glm::vec3 position;
     };
 
     struct MapRoom {
@@ -56,7 +56,6 @@ private:
             outdoors
         };
 
-        prt3::SubVec doors;
         RoomType type;
         prt3::DynamicAABBTree aabb_tree;
     };
@@ -93,22 +92,18 @@ public:
     bool room_is_indoors(RoomID room_id) const
     { return m_rooms[room_id].type == MapRoom::indoors; }
 
-    inline uint32_t local_to_global_door_id(RoomID room, uint32_t door_id) const
-    { return m_local_ids.at(std::pair<RoomID, uint32_t>(room, door_id)); }
-    inline uint32_t get_door_destination_id(uint32_t door_id) const
-    { return static_cast<uint32_t>(m_doors[door_id].dest); }
-
     inline glm::vec3 get_door_position(uint32_t door_id) const {
-        return m_doors[door_id].position.position;
+        return m_doors[door_id].position;
     }
 
-    inline glm::vec3 get_door_entry_offset(uint32_t door_id) const {
-        return m_doors[door_id].entry_offset;
-    }
-
-    inline glm::vec3 get_door_entry_position(uint32_t door_id) const {
+    inline glm::vec3 get_door_entry_offset(RoomID room, uint32_t door_id) const {
         MapDoor const & door = m_doors[door_id];
-        return door.position.position + door.entry_offset;
+        return room == door.room_a ? door.entry_offset : -door.entry_offset;
+    }
+
+    inline glm::vec3 get_door_entry_position(RoomID room, uint32_t door_id) const {
+        MapDoor const & door = m_doors[door_id];
+        return door.position + get_door_entry_offset(room, door_id);
     }
 
     inline glm::vec3 get_door_up(uint32_t door_id) const {
@@ -116,8 +111,10 @@ public:
         return door.shape.get_up();
     }
 
-    inline RoomID door_to_room(uint32_t door_id) const
-    { return m_doors[door_id].position.room; }
+    inline RoomID get_door_dest_room(RoomID from, uint32_t door_id) const {
+        return m_doors[door_id].room_a == from ?
+            m_doors[door_id].room_b : m_doors[door_id].room_a;
+    }
 
     static constexpr uint32_t VERTS_PER_DOOR = 4;
     static inline constexpr uint32_t door_to_vertex_index(uint32_t i)
@@ -171,8 +168,6 @@ private:
             return hash;
         }
     };
-
-    std::unordered_map<std::pair<RoomID, uint32_t>, uint32_t, pairhash> m_local_ids;
 
     struct MapPath {
         std::vector<glm::vec3> path;
@@ -300,9 +295,8 @@ struct ParsingContext {
     prt3::Model * map_model;
     std::vector<prt3::Model> models;
     std::unordered_map<uint32_t, uint32_t> num_to_room_node;
-    std::vector<std::unordered_map<uint32_t, uint32_t> > num_to_door;
-    std::unordered_map<uint32_t, RoomID> door_num_to_dest_room;
     std::unordered_map<int32_t, prt3::NodeID> model_node_to_scene_node;
+    std::unordered_map<uint32_t, std::vector<uint32_t> > room_to_doors;
     std::vector<prt3::Model> object_models;
     std::unordered_map<uint32_t, std::unordered_map<prt3::NodeID, uint32_t> > object_meshes;
     std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t> > material_maps;

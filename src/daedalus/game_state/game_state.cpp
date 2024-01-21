@@ -5,7 +5,7 @@
 
 using namespace dds;
 
-#define MAP_PATH "assets/models/map/island.map" // hard-coded for now
+#define MAP_PATH "assets/models/map/house.map" // hard-coded for now
 
 GameState::GameState(prt3::Scene & scene, prt3::NodeID node_id)
  : Script(scene, node_id),
@@ -45,13 +45,10 @@ void GameState::on_signal(
         prt3::Camera & cam = scene.get_camera();
         prt3::Node & player = scene.get_node(m_player_id);
 
-        uint32_t exit_door_id =
-            m_map.local_to_global_door_id(m_current_room, m_exit_door_id);
-        uint32_t entry_door_id = m_map.get_door_destination_id(exit_door_id);
-
         glm::vec3 player_pos = player.get_global_transform(scene).position;
-        glm::vec3 entry_pos = m_map.get_door_entry_position(entry_door_id) +
-                              m_player_door_offset;
+        glm::vec3 entry_pos =
+            m_map.get_door_entry_position(m_current_room, m_entry_exit_door) +
+            m_player_door_offset;
         glm::vec3 diff = entry_pos - player_pos;
 
         glm::vec3 translation = t * dt * diff;
@@ -71,7 +68,7 @@ void GameState::on_signal(
         m_cam_pitch = cam.pitch();
 
         for (prt3::Door const & door : scene.get_all_components<prt3::Door>()) {
-            if (door.id() == m_exit_door_id) {
+            if (door.id() == m_entry_exit_door) {
                 m_player_door_offset =
                     get_door_local_position(scene, door, m_player_id);
                 break;
@@ -105,7 +102,8 @@ glm::vec3 GameState::get_door_local_position(
     uint32_t door_id,
     glm::vec3 position
 ) const {
-    glm::vec3 v = position - m_map.get_door_entry_position(door_id);
+    glm::vec3 v =
+        position - m_map.get_door_entry_position(m_current_room, door_id);
     glm::vec3 n = m_map.get_door_up(door_id);
     return v - glm::dot(v, n) * n;
 }
@@ -121,12 +119,9 @@ void GameState::on_start(prt3::Scene & scene) {
 
     m_current_room = Map::scene_to_room(scene);
 
-    uint32_t global_door_id = m_map.local_to_global_door_id(
-        m_current_room,
-        m_entry_door_id
-    );
-    glm::vec3 spawn_position = m_map.get_door_entry_position(global_door_id) +
-                               m_player_door_offset;
+    glm::vec3 spawn_position =
+        m_map.get_door_entry_position(m_current_room, m_entry_exit_door) +
+        m_player_door_offset;
 
     prt3::Prefab const & player_prefab = m_prefab_db.get(PrefabDB::player);
     m_player_id = player_prefab.instantiate(scene, scene.root_id());
@@ -225,12 +220,11 @@ void GameState::on_game_end(prt3::Scene & scene) {
 }
 
 void GameState::register_door_overlap(prt3::Scene & scene, prt3::Door & door) {
-    m_entry_overlap_frame = door.id() == m_entry_door_id;
+    m_entry_overlap_frame = door.id() == m_entry_exit_door;
     if (!m_entry_overlap) {
         scene.scene_manager()
             .queue_scene(door.destination_scene_path().data());
-        m_exit_door_id = door.id();
-        m_entry_door_id = door.destination_id();
+        m_entry_exit_door = door.id();
     }
 }
 

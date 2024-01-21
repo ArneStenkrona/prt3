@@ -270,9 +270,12 @@ void NPCDB::move_npcs_between_rooms() {
             r.num,
             npc.map_position.position
         );
-        uint32_t dest_door = map.get_door_destination_id(r.num);
-        glm::vec3 new_pos = p_door + map.get_door_entry_position(dest_door);
+        uint32_t door_id = r.num;
+        npc.map_position.room =
+            map.get_door_dest_room(npc.map_position.room, door_id);
+        glm::vec3 new_pos =
+            p_door +
+            map.get_door_entry_position(npc.map_position.room, door_id);
         npc.map_position.position = new_pos;
-        npc.map_position.room = map.door_to_room(dest_door);
     }
 }

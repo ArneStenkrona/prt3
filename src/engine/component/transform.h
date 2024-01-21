@@ -51,7 +51,19 @@ struct Transform {
                 outer.scale * inner.position
             );
         tform.scale = inner.scale * outer.scale;
-        tform.rotation = inner.rotation * outer.rotation;
+        tform.rotation = outer.rotation * inner.rotation;
+        return tform;
+    }
+
+    static Transform inverse_compose(Transform const & outer, Transform const & inner) {
+        Transform tform;
+        tform.position = outer.position -
+            glm::rotate(
+                outer.rotation,
+                outer.scale * inner.position
+            );
+        tform.scale = inner.scale / outer.scale;
+        tform.rotation = glm::inverse(outer.rotation) * inner.rotation;
         return tform;
     }
 };

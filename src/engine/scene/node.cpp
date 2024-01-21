@@ -28,7 +28,7 @@ Transform Node::get_global_transform(Scene const & scene) const {
                 curr_tform.scale * tform.position
             );
         tform.scale = tform.scale * curr_tform.scale;
-        tform.rotation = tform.rotation * curr_tform.rotation;
+        tform.rotation = curr_tform.rotation * tform.rotation;
         curr_id = curr.m_parent_id;
     }
 
@@ -49,7 +49,7 @@ Transform Node::get_inherited_transform(Scene const & scene) const {
                 curr_tform.scale * tform.position
             );
         tform.scale = tform.scale * curr_tform.scale;
-        tform.rotation = tform.rotation * curr_tform.rotation;
+        tform.rotation = curr_tform.rotation * tform.rotation;
         curr_id = curr.m_parent_id;
     }
 

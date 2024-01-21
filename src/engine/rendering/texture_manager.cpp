@@ -19,7 +19,7 @@ ResourceID TextureManager::upload_texture(std::string const & path) {
             res_id = m_context.renderer().upload_texture(data);
             free_texture_data(data);
         } else {
-            PRT3ERROR("failed to load tecture at path \"%s\".\n", path.c_str());
+            PRT3ERROR("failed to load texture at path \"%s\".\n", path.c_str());
             return NO_RESOURCE;
         }
 

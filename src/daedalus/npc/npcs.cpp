@@ -43,28 +43,39 @@ void npc_update_test(
 
     if (npc_db.get_action_type(id) == npc_action::FOLLOW) {
         float dist = glm::distance(npc.map_position.position, player_pos);
-        float arcane_threshold = 12.5f;
+        // float arcane_threshold = 12.5f;
         float melee_threshold = 3.5f;
 
-        if (dist < arcane_threshold &&
-            npc_db.game_state().item_db().ready_to_use(
-                id, ItemID::item_spell_flame_pillar
-        )) {
-            npc_action::UseItem use_item;
-            use_item.item = ItemID::item_spell_flame_pillar;
-            use_item.target.type = IDType::dds_id_type_player;
-            use_item.activated = false;
-            npc_db.queue_action<npc_action::UseItem>(id, std::move(use_item));
-        } else if (dist < arcane_threshold &&
-            npc_db.game_state().item_db().ready_to_use(
-                id, ItemID::item_spell_fire_rock
-        )) {
-            npc_action::UseItem use_item;
-            use_item.item = ItemID::item_spell_fire_rock;
-            use_item.target.type = IDType::dds_id_type_player;
-            use_item.activated = false;
-            npc_db.queue_action<npc_action::UseItem>(id, std::move(use_item));
-        } else if (dist < melee_threshold) {
+        // if (dist < arcane_threshold &&
+        //     npc_db.game_state().item_db().ready_to_use(
+        //         id, ItemID::item_spell_flame_pillar
+        // )) {
+        //     npc_action::UseItem use_item;
+        //     use_item.item = ItemID::item_spell_flame_pillar;
+        //     use_item.target.type = IDType::dds_id_type_player;
+        //     use_item.activated = false;
+        //     npc_db.queue_action<npc_action::UseItem>(id, std::move(use_item));
+        // } else if (dist < arcane_threshold &&
+        //     npc_db.game_state().item_db().ready_to_use(
+        //         id, ItemID::item_spell_fire_rock
+        // )) {
+        //     npc_action::UseItem use_item;
+        //     use_item.item = ItemID::item_spell_fire_rock;
+        //     use_item.target.type = IDType::dds_id_type_player;
+        //     use_item.activated = false;
+        //     npc_db.queue_action<npc_action::UseItem>(id, std::move(use_item));
+        // } else if (dist < melee_threshold) {
+        //     if (npc_db.has_no_action(id) ||
+        //         npc_db.get_action_type(id) == npc_action::FOLLOW) {
+        //         npc_action::Attack attack;
+        //         attack.target.id = 0; // d/c for player
+        //         attack.target.type = IDType::dds_id_type_player;
+        //         attack.timer = 0;
+        //         attack.activated = false;
+        //         npc_db.queue_action<npc_action::Attack>(id, std::move(attack));
+        //     }
+        // }
+        if (dist < melee_threshold) {
             if (npc_db.has_no_action(id) ||
                 npc_db.get_action_type(id) == npc_action::FOLLOW) {
                 npc_action::Attack attack;

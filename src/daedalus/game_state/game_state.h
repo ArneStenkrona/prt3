@@ -54,9 +54,6 @@ public:
     virtual void on_late_update(prt3::Scene &, float);
     virtual void on_game_end(prt3::Scene & scene);
 
-    void set_exit_door_id(prt3::DoorID id) { m_exit_door_id = id; }
-    void set_entry_door_id(prt3::DoorID id) { m_entry_door_id = id; }
-
     void register_door_overlap(prt3::Scene & scene, prt3::Door & door);
     void register_interactable(Interactable & candidate);
 
@@ -120,8 +117,7 @@ private:
 
     TimeMS m_current_time = 0;
 
-    prt3::DoorID m_exit_door_id = 0;
-    prt3::DoorID m_entry_door_id = 0;
+    prt3::DoorID m_entry_exit_door = 0;
     bool m_entry_overlap_frame;
     bool m_entry_overlap;
 

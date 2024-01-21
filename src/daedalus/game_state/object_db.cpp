@@ -285,10 +285,13 @@ void ObjectDB::move_objects_between_rooms() {
             r.num,
             object.position.position
         );
-        uint32_t dest_door = map.get_door_destination_id(r.num);
-        glm::vec3 new_pos = p_door + map.get_door_entry_position(dest_door);
+        uint32_t door_id = r.num;
+        object.position.room =
+            map.get_door_dest_room(object.position.room, door_id);
+        glm::vec3 new_pos =
+            p_door +
+            map.get_door_entry_position(object.position.room, door_id);
         object.position.position = new_pos;
-        object.position.room = map.door_to_room(dest_door);
     }
 }
 
