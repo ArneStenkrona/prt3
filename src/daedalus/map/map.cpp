@@ -44,6 +44,7 @@ Map::Map(char const * path) {
 #define TOK_COLLIDER "[col]"
 #define TOK_NO_COLLIDER "[no_col]"
 #define TOK_TRIGGER "[trigger]"
+#define TOK_TRANSPARENT "[transparent]"
 
 enum class MapToken {
     none,
@@ -56,7 +57,8 @@ enum class MapToken {
     slide,
     collider,
     no_collider,
-    trigger
+    trigger,
+    transparent
 };
 
 inline bool check_tok(char const * tok, char const * str) {
@@ -74,6 +76,7 @@ MapToken get_token(char const * str) {
     if (check_tok(TOK_COLLIDER, str)) return MapToken::collider;
     if (check_tok(TOK_NO_COLLIDER, str)) return MapToken::no_collider;
     if (check_tok(TOK_TRIGGER, str)) return MapToken::trigger;
+    if (check_tok(TOK_TRANSPARENT, str)) return MapToken::transparent;
     return MapToken::none;
 }
 
@@ -96,6 +99,10 @@ uint32_t Map::copy_mesh(
         dest_model.materials().push_back(
             ctx.map_model->materials()[src_mesh.material_index]
         );
+        prt3::Model::MeshMaterial & mat = dest_model.materials().back();
+        if (get_token(mat.name.c_str()) == MapToken::transparent) {
+            mat.transparent = true;
+        }
     }
 
     uint32_t mesh_index = dest_model.meshes().size();
@@ -166,12 +173,6 @@ prt3::NodeID Map::map_node_to_new_scene_node(
     prt3::NodeID id = scene.add_node(parent_id, name);
     prt3::Node & node = scene.get_node(id);
     node.set_global_transform(scene, global_tform);
-    PRT3LOG(
-        "%s : %s vs %s\n",
-        model_node.name.c_str(),
-        glm::to_string(global_tform.position).c_str(),
-        glm::to_string(node.get_global_transform(scene).position).c_str()
-    );
 
     ctx.model_node_to_scene_node[node_index] = id;
 
@@ -738,6 +739,9 @@ Map Map::parse_map_from_model(char const * path) {
                 }
                 case MapToken::trigger: {
                     parse_trigger(ctx, qni, room_id, node_index, global_tform, scene);
+                    break;
+                }
+                case MapToken::transparent: {
                     break;
                 }
                 case MapToken::none: {

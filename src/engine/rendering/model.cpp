@@ -871,7 +871,7 @@ void Model::save_prt3model(std::ofstream & out, char const * path) const {
         write_stream(out, material.roughness);
         write_stream(out, material.ao);
         write_stream(out, material.emissive);
-        write_stream(out, material.twosided);
+        write_stream(out, material.transparent);
 
         write_string(out, material.albedo_map);
         write_string(out, material.normal_map);
@@ -1045,7 +1045,7 @@ void Model::load_prt3model(std::FILE * in) {
         read_stream(in, material.roughness);
         read_stream(in, material.ao);
         read_stream(in, material.emissive);
-        read_stream(in, material.twosided);
+        read_stream(in, material.transparent);
 
         read_string(in, material.albedo_map);
         read_string(in, material.normal_map);
