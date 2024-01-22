@@ -142,6 +142,9 @@ void GameState::on_start(prt3::Scene & scene) {
     cam.pitch() = m_cam_pitch;
     cam.set_target(m_player_id);
 
+    scene.get_camera().set_orthographic_projection(true);
+    scene.get_camera().orthographic_scale() = 10.0f;
+
     m_canvas_id = scene.add_node_to_root("canvas");
     scene.add_component<prt3::Canvas>(m_canvas_id);
 
